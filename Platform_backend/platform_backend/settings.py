@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     'organizations',
     'infrastructure',
     'rest_framework',
-    
 ]
 
 MIDDLEWARE = [

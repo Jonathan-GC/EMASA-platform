@@ -12,5 +12,5 @@
 
 ### DB Prefix usage
 
-1. (UPDATE) Just add it to your .env, can be whatever you need it to be.
+(UPDATE) Just add it to your .env, can be whatever you need it to be. (Make sure you name it something like `your_prefix_` end it with a "_")
 
