@@ -4,8 +4,8 @@ from django.db import models
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
-from .mixins import PrefixMixin
-class UserBase(models.Model, PrefixMixin):
+
+class UserBase(models.Model):
     code = models.CharField(max_length=255)
     img = models.CharField(max_length=255)
     first_name = models.CharField(max_length=255)

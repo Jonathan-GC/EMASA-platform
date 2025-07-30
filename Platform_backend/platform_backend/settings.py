@@ -40,6 +40,7 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost'])
 # Application definition
 
 INSTALLED_APPS = [
+    'django_db_prefix',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -51,7 +52,7 @@ INSTALLED_APPS = [
     'organizations',
     'infrastructure',
     'rest_framework',
-    'table_prefix',
+    
 ]
 
 MIDDLEWARE = [

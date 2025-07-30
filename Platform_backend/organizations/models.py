@@ -1,15 +1,13 @@
 from django.db import models
 
-from .mixins import PrefixMixin
-
-class Region(models.Model, PrefixMixin):
+class Region(models.Model):
     name = models.CharField(max_length=255)
     img = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
 
-class Organization(models.Model, PrefixMixin):
+class Organization(models.Model):
     name = models.CharField(max_length=255)
     img = models.CharField(max_length=255)
     region = models.ForeignKey(Region, on_delete=models.CASCADE)
@@ -17,7 +15,7 @@ class Organization(models.Model, PrefixMixin):
     def __str__(self):
         return self.name
     
-class Workspace(models.Model, PrefixMixin):
+class Workspace(models.Model):
     name = models.CharField(max_length=255)
     img = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
