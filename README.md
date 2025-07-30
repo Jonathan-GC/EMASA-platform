@@ -1,6 +1,7 @@
-# Estructura del proyecto:
+# 📄 Estructura del proyecto:
 
 ```
+ .
  ├── backend/            # Proyecto Django
  │   ├── manage.py
  │   └── ...
