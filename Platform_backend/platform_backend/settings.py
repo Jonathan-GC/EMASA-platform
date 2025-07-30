@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'organizations',
     'infrastructure',
     'rest_framework',
+    'table_prefix',
 ]
 
 MIDDLEWARE = [

@@ -12,14 +12,5 @@
 
 ### DB Prefix usage
 
-1. Import the mixin from the `mixins.py` file:
+1. (UPDATE) Just add it to your .env, can be whatever you need it to be.
 
-```python
-from .mixins import PrefixMixin
-```
-2. Add it to your model:
-```python
-    class YourModel(models.Model, PrefixMixin):
-        # Your attributes
-```
-Results must be something like `"prefix_model_name"`.

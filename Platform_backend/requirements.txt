@@ -1,5 +1,6 @@
 asgiref==3.9.1
 Django==5.2.4
+django-db-prefix==1.0.5
 django-environ==0.12.0
 djangorestframework==3.16.0
 psycopg==3.2.9
