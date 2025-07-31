@@ -81,3 +81,6 @@ class PermissionKey(models.Model):
     def __str__(self):
         return self.code
 
+class RolePermission(models.Model):
+    role = models.ForeignKey(Role, on_delete=models.CASCADE)
+    permission_key = models.ForeignKey(PermissionKey, on_delete=models.CASCADE)
