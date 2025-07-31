@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Role, WorkspaceMembership
+from .models import Role, WorkspaceMembership, PermissionKey
 from users.models import User
 from organizations.models import Workspace
 
@@ -62,3 +62,27 @@ class WorkspaceMembershipDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkspaceMembership
         fields = ['id', 'workspace', 'user', 'role']
+
+class PermissionKeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PermissionKey
+        fields = '__all__'
+
+    def validate(self, attrs):
+        if attrs['scope'] == 'user':
+            if not attrs['user']:
+                raise serializers.ValidationError('User is required for user scope')
+        if attrs['scope'] == 'service':
+            if not attrs['service']:
+                raise serializers.ValidationError('Service is required for service scope')
+        if attrs['scope'] == 'machine':
+            if not attrs['machine']:
+                raise serializers.ValidationError('Machine is required for machine scope')
+        if attrs['scope'] == 'node':
+            if not attrs['node']:
+                raise serializers.ValidationError('Node is required for node scope')
+        if attrs['scope'] == 'role':
+            if not attrs['role']:
+                raise serializers.ValidationError('Role is required for role scope')
+        
+        return attrs
