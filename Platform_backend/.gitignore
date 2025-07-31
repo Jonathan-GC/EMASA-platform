@@ -24,6 +24,7 @@ media
 *.so
 
 # Distribution / packaging
+/maquina1
 .Python
 build/
 develop-eggs/
