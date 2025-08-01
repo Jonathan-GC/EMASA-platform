@@ -6,6 +6,7 @@
 ## Index
 1. [Environment Variables](#env_var)
 1. [Backend setup](#setup)
+1. [API Docs (Swagger, ReDoc)](#docs)
     1. [DB Prefix usage](#db_prefix)
     2. [Default .env template](#env_template)
 1. [HasPermissionKey usage](#has_per) 
@@ -85,6 +86,10 @@ python manage.py runserver
 Note: at this point, if you get the allowed hosts error, check if your .env is working.
 
 10. Go to /admin/ and log in with the super user you created in step 8.
+
+## <a name="docs">API Docs (Swagger, ReDoc)</a>
+
+For endpoints or API Docs you can access `/api/schema/swagger-ui/` for swagger or `/api/schema/redoc/`. 
 
 ## <a name="has_per">HasPermissionKey usage</a>
 
