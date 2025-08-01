@@ -15,6 +15,9 @@ class NodeType(models.Model):
     img = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
 
+    def __str__(self):
+        return f"{self.name}"
+
 class Node(models.Model):
     name = models.CharField(max_length=255)
     node_data = models.CharField(max_length=255)
