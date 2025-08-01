@@ -11,6 +11,33 @@
 1. [HasPermissionKey usage](#has_per)
 1. 
 
+## <a name="env_var">Environment variables used in settings.py </a>
+
+|Name|Description|
+|----|----|
+|DEBUG| Default=False|
+|SECRET_KEY| Django's secret key|
+|DATABASE_URL| Url for the used database |
+|ALLOWED_HOSTS| If you're testing, you can write here your localhost|
+|DB_PREFIX| Prefix used in the naming of the DB tables |
+
+### <a name="db_prefix">DB Prefix usage </a>
+
+(UPDATE) Just add it to your .env, can be whatever you need it to be. (Make sure you name it something like `your_prefix_` end it with a "_")
+
+### <a name="env_template">Default .env template</a>
+
+This file should be created where your manage.py file is located, **please don't forget to modify the fields according to your needs**.
+
+```ini
+DEBUG=True 
+SECRET_KEY=your_secret_key
+DATABASE_URL=postgres://user:password@localhost:5432/test_db # Adjust this to your needs, if it doesn't work, change postgres for postgresql or your port, check the docker-compose.yml file
+DB_PREFIX=test_monitor_ # See DB Prefix usage for more information
+ALLOWED_HOSTS=127.0.0.1, localhost
+```
+
+
 ## <a name="setup">Backend setup</a>
 
 This is a guide step by step to set up the backend in your environment.
@@ -59,32 +86,6 @@ python manage.py runserver
 Note: at this point, if you get the allowed hosts error, check if your .env is working.
 
 10. Go to /admin/ and log in with the super user you created in step 8.
- 
-## <a name="env_var">Environment variables used in settings.py </a>
-
-|Name|Description|
-|----|----|
-|DEBUG| Default=False|
-|SECRET_KEY| Django's secret key|
-|DATABASE_URL| Url for the used database |
-|ALLOWED_HOSTS| If you're testing, you can write here your localhost|
-|DB_PREFIX| Prefix used in the naming of the DB tables |
-
-### <a name="db_prefix">DB Prefix usage </a>
-
-(UPDATE) Just add it to your .env, can be whatever you need it to be. (Make sure you name it something like `your_prefix_` end it with a "_")
-
-### <a name="env_template">Default .env template</a>
-
-This file should be created where your manage.py file is located, **please don't forget to modify the fields according to your needs**.
-
-```ini
-DEBUG=True 
-SECRET_KEY=your_secret_key
-DATABASE_URL=postgres://user:password@localhost:5432/test_db # Adjust this to your needs, if it doesn't work, change postgres for postgresql or your port, check the docker-compose.yml file
-DB_PREFIX=test_monitor_ # See DB Prefix usage for more information
-ALLOWED_HOSTS=127.0.0.1, localhost
-```
 
 ## <a name="has_per">HasPermissionKey usage</a>
 
