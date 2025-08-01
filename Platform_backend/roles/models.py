@@ -7,9 +7,9 @@ from infrastructure.models import Node, Machine, Service
 
 
 class Role(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=30, unique=True)
     description = models.CharField(max_length=255)
-    color = models.CharField(max_length=255)
+    color = models.CharField(max_length=20)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -84,3 +84,6 @@ class PermissionKey(models.Model):
 class RolePermission(models.Model):
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
     permission_key = models.ForeignKey(PermissionKey, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.role} - {self.permission_key}"

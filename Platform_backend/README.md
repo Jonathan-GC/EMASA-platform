@@ -8,8 +8,7 @@
 1. [Backend setup](#setup)
     1. [DB Prefix usage](#db_prefix)
     2. [Default .env template](#env_template)
-1. [HasPermissionKey usage](#has_per)
-1. 
+1. [HasPermissionKey usage](#has_per) 
 
 ## <a name="env_var">Environment variables used in settings.py </a>
 

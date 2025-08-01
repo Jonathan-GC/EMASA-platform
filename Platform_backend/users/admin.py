@@ -9,7 +9,7 @@ class UserAdmin(admin.ModelAdmin):
         "is_staff",
         "is_superuser",
         "first_name",
-        "first_last_name",
+        "last_name",
     )
 
 

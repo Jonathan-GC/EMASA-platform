@@ -2,8 +2,8 @@ from django.db import models
 from organizations.models import Workspace
 
 class Machine(models.Model):
-    name = models.CharField(max_length=255)
-    img = models.CharField(max_length=255)
+    name = models.CharField(max_length=30, unique=True)
+    img = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=255)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
 
@@ -11,8 +11,8 @@ class Machine(models.Model):
         return f"{self.name} - {self.workspace}"
 
 class NodeType(models.Model):
-    name = models.CharField(max_length=255)
-    img = models.CharField(max_length=255)
+    name = models.CharField(max_length=30, unique=True)
+    img = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=255)
 
     def __str__(self):
@@ -21,7 +21,7 @@ class NodeType(models.Model):
 class Node(models.Model):
     name = models.CharField(max_length=255)
     node_data = models.CharField(max_length=255)
-    img = models.CharField(max_length=255)
+    img = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=255)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
@@ -32,7 +32,7 @@ class Node(models.Model):
 
 class Service(models.Model):
     name = models.CharField(max_length=255)
-    img = models.CharField(max_length=255)
+    img = models.CharField(max_length=255, blank=True, null=True)
     node_type = models.ForeignKey(NodeType, on_delete=models.CASCADE)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
 
@@ -40,7 +40,8 @@ class Service(models.Model):
         return f"{self.name} - {self.node_type}"
 
 class Gateway(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=30)
+    img = models.CharField(max_length=255, blank=True, null=True)
     location = models.CharField(max_length=255)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
     

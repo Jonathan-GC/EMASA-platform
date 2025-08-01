@@ -6,14 +6,13 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 
 class UserBase(models.Model):
-    code = models.CharField(max_length=255)
-    img = models.CharField(max_length=255)
-    first_name = models.CharField(max_length=255)
-    middle_name = models.CharField(max_length=255)
-    first_last_name = models.CharField(max_length=255)
-    second_last_name = models.CharField(max_length=255)
+    code = models.CharField(max_length=80, unique=True)
+    img = models.CharField(max_length=255, blank=True, null=True)
+    first_name = models.CharField(max_length=40)
+    middle_name = models.CharField(max_length=40)
+    last_name = models.CharField(max_length=80)
     email = models.CharField(max_length=255)
-    phone = models.CharField(max_length=255)
+    phone = models.CharField(max_length=50)
     address = models.CharField(max_length=255)
 
     class Meta:
@@ -38,7 +37,7 @@ class UserManager(BaseUserManager):
         return user
 
 class User(UserBase, AbstractBaseUser):
-    username = models.CharField(max_length=255, unique=True)
+    username = models.CharField(max_length=80, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
