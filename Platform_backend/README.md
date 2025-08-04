@@ -10,8 +10,7 @@
 1. [Backend setup](#setup)
 1. [API Docs (Swagger, ReDoc)](#docs)
 1. [Authentication with EchoAPI](#auth)
-
-1. [HasPermissionKey usage](#has_per) 
+1. [Custom Permission classes](#perm) 
 
 ## <a name="env_var">Environment variables</a>
 
@@ -124,7 +123,9 @@ The result should be a new access token.
 
 In any request you want to make (eg. `infrastructure_api_v1_node_list`) go to Auth set *Type* to "Bearer token" and paste your access token in the *Token* textfield, make sure the token is new or not expired. The result, depending on the user you got the token with (permissions), should be 200 OK.
 
-## <a name="has_per">HasPermissionKey usage</a>
+## <a name="perms">Custom Permission classes</a>
+
+### HasPermissionKey
 
 This permission class is located in `roles.permissions` if you acces it from any other app, if you are trying to import this class in roles app, you can just use `.permissions`.
 
@@ -136,7 +137,7 @@ In this case, we use a model called PermissionKey, which contains three relevant
 
 To use this permission class, you have to make sure to put it in your viewset, in `permission_classes`, it already includes `IsAuthenticated` and `IsAdminUser` permissions. 
 
-### Example
+ - Example
 ```python
 class GatewayViewSet(viewsets.ModelViewSet):
     queryset = Gateway.objects.all()
@@ -145,3 +146,11 @@ class GatewayViewSet(viewsets.ModelViewSet):
 ```
 NOTE: you have to verify the context of the viewset. (e.g. You don't need a key for `PermissionKey`, in that case you use `IsAdminUser` and `IsAuthenticated`.)
 
+### IsAdminOrIsAuthenticatedReadOnly
+
+Returns True if the user has permission to access the view based on the request method and the user's authentication status. The permission rules are as follows:
+
+    - GET, HEAD, OPTIONS requests are allowed if the user is authenticated.
+    - POST, PUT, PATCH, DELETE requests are allowed if the user is a superuser.
+
+Otherwise, the method returns False, permission wil be denied.
