@@ -23,6 +23,8 @@ env = environ.Env(
     DEBUG=(bool, False)
 )
 
+AUTH_USER_MODEL = 'users.User'
+
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production

@@ -2,7 +2,7 @@ from django.db import models
 
 from django.db import models
 from users.models import User
-from organizations.models import Workspace
+from organizations.models import Workspace, Organization, Region
 from infrastructure.models import Node, Machine, Service
 
 
@@ -27,12 +27,12 @@ class WorkspaceMembership(models.Model):
 
 class PermissionKey(models.Model):
     ACTION_MAP = {
-        "list": "get",
-        "retrieve": "get_by_id",
-        "create": "post",
-        "update": "put",
-        "partial_update": "put",
-        "destroy": "delete",
+        "list": ["get"],
+        "retrieve": ["get", "get_by_id"],
+        "create": ["post"],
+        "update": ["put"],
+        "partial_update": ["put"],
+        "destroy": ["delete"],
     }
     code = models.CharField(max_length=255, blank=True, null=True)
     scope = models.CharField(
@@ -43,6 +43,9 @@ class PermissionKey(models.Model):
             ("service", "Service"),
             ("user", "User"),
             ("role", "Role"),
+            ("workspace", "Workspace"),
+            ("organization", "Organization"),
+            ("region", "Region"),
         ],
     )
     key_type = models.CharField(
@@ -53,7 +56,7 @@ class PermissionKey(models.Model):
             ("put", "Put"),
             ("post", "Post"),
             ("delete", "Delete"),
-        ]
+        ],
     )
 
     node = models.ForeignKey(Node, on_delete=models.CASCADE, null=True, blank=True)
@@ -65,15 +68,29 @@ class PermissionKey(models.Model):
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
+    workspace = models.ForeignKey(
+        Workspace, on_delete=models.CASCADE, null=True, blank=True
+    )
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, null=True, blank=True
+    )
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, null=True, blank=True)
 
     @classmethod
     def from_view_action(cls, action):
-        return cls.ACTION_MAP.get(action)
+        return cls.ACTION_MAP.get(action, [])
 
     def save(self, *args, **kwargs):
         entity_id = (
-            self.node_id or self.machine_id or self.service_id
-            or self.user_id or self.role_id or "*"
+            self.node_id
+            or self.machine_id
+            or self.service_id
+            or self.user_id
+            or self.role_id
+            or self.workspace_id
+            or self.organization_id
+            or self.region_id
+            or "*"
         )
         self.code = f"{self.scope}:{entity_id}:{self.key_type}"
         super().save(*args, **kwargs)
@@ -81,9 +98,10 @@ class PermissionKey(models.Model):
     def __str__(self):
         return self.code
 
+
 class RolePermission(models.Model):
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
-    permission_key = models.ForeignKey(PermissionKey, on_delete=models.CASCADE)
+    permission_key = models.ForeignKey(PermissionKey, on_delete=models.CASCADE, related_name="rolepermissions")
 
     def __str__(self):
         return f"{self.role} - {self.permission_key}"

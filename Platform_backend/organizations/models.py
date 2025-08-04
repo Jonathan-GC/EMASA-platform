@@ -11,6 +11,7 @@ class Organization(models.Model):
     name = models.CharField(max_length=90)
     img = models.CharField(max_length=255, blank=True, null=True)
     region = models.ForeignKey(Region, on_delete=models.CASCADE)
+    group = models.CharField(max_length=30)
 
     def __str__(self):
         return self.name

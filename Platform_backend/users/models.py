@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 
 class UserBase(models.Model):
@@ -36,7 +36,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-class User(UserBase, AbstractBaseUser):
+class User(UserBase, AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=80, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
