@@ -5,13 +5,15 @@
 
 ## Index
 1. [Environment Variables](#env_var)
+    1. [DB Prefix usage](#db_prefix)
+    1. [Default .env template](#env_template)
 1. [Backend setup](#setup)
 1. [API Docs (Swagger, ReDoc)](#docs)
-    1. [DB Prefix usage](#db_prefix)
-    2. [Default .env template](#env_template)
+1. [Authentication with EchoAPI](#auth)
+
 1. [HasPermissionKey usage](#has_per) 
 
-## <a name="env_var">Environment variables used in settings.py </a>
+## <a name="env_var">Environment variables</a>
 
 |Name|Description|
 |----|----|
@@ -41,7 +43,7 @@ ALLOWED_HOSTS=127.0.0.1, localhost
 ## <a name="setup">Backend setup</a>
 
 This is a guide step by step to set up the backend in your environment.
-1. Setup the database with docker, you can use the `docker-compose.yml` file, but change the ports if you are already using those or if you don't like 5432 number, it can happen and I get it, it's ugly 😠.
+1. Setup the database with docker, you can use the `docker-compose.yml` file, but change the ports if you are already using those or if you don't like 5432 number, it can happen and I get it, it's an ugly number 😠.
 1. Make sure you're using python 3.12+ ‼️
 1. Clone this repository in a directory of your preference📂, it's important for you to use the `backend` branch.
     https://github.com/Jonathan-GC/EMASA-platform.git
@@ -90,6 +92,37 @@ Note: at this point, if you get the allowed hosts error, check if your .env is w
 ## <a name="docs">API Docs (Swagger, ReDoc)</a>
 
 For endpoints or API Docs you can access `/api/schema/swagger-ui/` for swagger or `/api/schema/redoc/`. 
+
+## <a name="auth">Authentication with EchoAPI</a>
+
+There's an *📂Auth* folder in EchoAPI's: **📂Monitor | Emasa**. There you can found 2 elements: *Get tokens* and *Refresh Token*. Make sure the server is running (`python3 manage.py runserver`)
+
+### Get tokens:
+
+In Get Tokens: replace username and pasword in Body > raw with the username and password you created during the instalation with `createsuperuser`, if you don't remember that combination, repeat that step and just create another user.
+
+```json
+    {
+        "username": "your_username",
+        "password": "your_password"
+    }
+```
+Send the request, the result should be 2 tokens: Access token, Refresh token. Acording to our settings.py jwt config, access token are only valid for 20 minutes, you'll have to auth again or proceed with **Refresh token**⬇️.
+
+### Refresh tokens
+
+In Refresh Tokens: replace refresh in Body > raw with your refresh token.
+
+```json
+    {
+    "refresh":"your_refresh_token"
+    }
+```
+The result should be a new access token.
+
+### Token usage
+
+In any request you want to make (eg. `infrastructure_api_v1_node_list`) go to Auth set *Type* to "Bearer token" and paste your access token in the *Token* textfield, make sure the token is new or not expired. The result, depending on the user you got the token with (permissions), should be 200 OK.
 
 ## <a name="has_per">HasPermissionKey usage</a>
 
