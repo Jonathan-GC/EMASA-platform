@@ -143,6 +143,6 @@ def test_role_edit_role_client_fail():
 
     client.force_authenticate(user=user2)
     url = reverse("role-detail", args=[new_role.id])
-    response = client.patch(url, {"name": "role_updated", "scope": "role"}, format="json")
+    response = client.patch(url, {"name": "role_updated"}, format="json")
 
     assert response.status_code == 403

@@ -35,7 +35,7 @@ class PermissionKey(models.Model):
         "partial_update": ["put"],
         "destroy": ["delete"],
     }
-    code = models.CharField(max_length=255, blank=True, null=True)
+    code = models.CharField(max_length=50, blank=True, null=True)
     scope = models.CharField(
         max_length=30,
         choices=[
@@ -47,7 +47,7 @@ class PermissionKey(models.Model):
             ("workspace", "Workspace"),
             ("organization", "Organization"),
             ("region", "Region"),
-            ("permission_key", "PermissionKey")
+            ("permission_key", "PermissionKey"),
         ],
     )
     key_type = models.CharField(
@@ -83,6 +83,11 @@ class PermissionKey(models.Model):
         return cls.ACTION_MAP.get(action, [])
 
     def save(self, *args, **kwargs):
+        """
+        Generate a code for this permission key based on the scope, entity id,
+        and key type. The code is in the format of "scope:entity_id:key_type".
+        If the entity id is None, it is replaced with "*".
+        """
         entity_id = (
             self.node_id
             or self.machine_id
@@ -103,7 +108,9 @@ class PermissionKey(models.Model):
 
 class RolePermission(models.Model):
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
-    permission_key = models.ForeignKey(PermissionKey, on_delete=models.CASCADE, related_name="rolepermissions")
+    permission_key = models.ForeignKey(
+        PermissionKey, on_delete=models.CASCADE, related_name="rolepermissions"
+    )
 
     def __str__(self):
         return f"{self.role} - {self.permission_key}"

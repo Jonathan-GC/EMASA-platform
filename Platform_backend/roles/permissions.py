@@ -47,7 +47,7 @@ def has_permission(user, scope, action, obj=None):
         if obj_org and obj_org != membership.workspace.organization:
             logger.warning("Organization mismatch")
             return False
-    
+
     if membership.role.is_admin and scope in ADMIN_SCOPES:
         logger.warning("User is admin, granting permission")
         return True
@@ -128,6 +128,7 @@ class IsAdminOrIsAuthenticatedReadOnly(BasePermission):
     Permission class that allows access to authenticated users for safe (read-only) methods,
     and grants full access to superusers for all methods.
     """
+
     def has_permission(self, request, view):
         """
         Returns True if the user has permission to access the view based on the

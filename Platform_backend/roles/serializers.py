@@ -69,25 +69,26 @@ class PermissionKeySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, attrs):
+        """
+        Validates that the required field for the given scope is present in the attributes.
+        Raises a ValidationError if the required field for the specified scope is missing.
+        """
         scope = attrs.get('scope')
-        if scope == 'user' and not attrs.get('user'):
-            raise serializers.ValidationError('User is required for user scope')
-        if scope == 'service' and not attrs.get('service'):
-            raise serializers.ValidationError('Service is required for service scope')
-        if scope == 'machine' and not attrs.get('machine'):
-            raise serializers.ValidationError('Machine is required for machine scope')
-        if scope == 'node' and not attrs.get('node'):
-            raise serializers.ValidationError('Node is required for node scope')
-        if scope == 'role' and not attrs.get('role'):
-            raise serializers.ValidationError('Role is required for role scope')
-        if scope == 'workspace' and not attrs.get('workspace'):
-            raise serializers.ValidationError('Workspace is required for workspace scope')
-        if scope == 'organization' and not attrs.get('organization'):
-            raise serializers.ValidationError('Organization is required for organization scope')
-        if scope == 'region' and not attrs.get('region'):
-            raise serializers.ValidationError('Region is required for region scope')
+        required_fields = {
+            'user': 'user',
+            'service': 'service',
+            'machine': 'machine',
+            'node': 'node',
+            'role': 'role',
+            'workspace': 'workspace',
+            'organization': 'organization',
+            'region': 'region',
+        }
+        required_field = required_fields.get(scope)
+        if required_field and not attrs.get(required_field):
+            raise serializers.ValidationError(f'{required_field.capitalize()} is required for {scope} scope')
         return attrs
-    
+
 class RolePermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = RolePermission

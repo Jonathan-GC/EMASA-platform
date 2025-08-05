@@ -19,7 +19,7 @@ class NodeType(models.Model):
         return f"{self.name}"
 
 class Node(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=30)
     node_data = models.CharField(max_length=255)
     img = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=255)
@@ -31,7 +31,7 @@ class Node(models.Model):
         return f"{self.node_data} - {self.machine}"
 
 class Service(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=30)
     img = models.CharField(max_length=255, blank=True, null=True)
     node_type = models.ForeignKey(NodeType, on_delete=models.CASCADE)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
