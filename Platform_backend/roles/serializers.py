@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Role, WorkspaceMembership, PermissionKey
+from .models import Role, WorkspaceMembership, PermissionKey, RolePermission
 from users.models import User
 from organizations.models import Workspace
 
@@ -10,7 +10,7 @@ class RoleSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Role
-        fields = ['id', 'name', 'description', 'color', 'workspace']
+        fields = ['id', 'name', 'description', 'color', 'workspace', 'is_admin']
 
     def validate_name(self, value):
         """
@@ -69,20 +69,26 @@ class PermissionKeySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, attrs):
-        if attrs['scope'] == 'user':
-            if not attrs['user']:
-                raise serializers.ValidationError('User is required for user scope')
-        if attrs['scope'] == 'service':
-            if not attrs['service']:
-                raise serializers.ValidationError('Service is required for service scope')
-        if attrs['scope'] == 'machine':
-            if not attrs['machine']:
-                raise serializers.ValidationError('Machine is required for machine scope')
-        if attrs['scope'] == 'node':
-            if not attrs['node']:
-                raise serializers.ValidationError('Node is required for node scope')
-        if attrs['scope'] == 'role':
-            if not attrs['role']:
-                raise serializers.ValidationError('Role is required for role scope')
-        
+        scope = attrs.get('scope')
+        if scope == 'user' and not attrs.get('user'):
+            raise serializers.ValidationError('User is required for user scope')
+        if scope == 'service' and not attrs.get('service'):
+            raise serializers.ValidationError('Service is required for service scope')
+        if scope == 'machine' and not attrs.get('machine'):
+            raise serializers.ValidationError('Machine is required for machine scope')
+        if scope == 'node' and not attrs.get('node'):
+            raise serializers.ValidationError('Node is required for node scope')
+        if scope == 'role' and not attrs.get('role'):
+            raise serializers.ValidationError('Role is required for role scope')
+        if scope == 'workspace' and not attrs.get('workspace'):
+            raise serializers.ValidationError('Workspace is required for workspace scope')
+        if scope == 'organization' and not attrs.get('organization'):
+            raise serializers.ValidationError('Organization is required for organization scope')
+        if scope == 'region' and not attrs.get('region'):
+            raise serializers.ValidationError('Region is required for region scope')
         return attrs
+    
+class RolePermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RolePermission
+        fields = '__all__'

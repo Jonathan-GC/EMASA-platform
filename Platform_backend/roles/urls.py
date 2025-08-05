@@ -6,7 +6,12 @@ from . import views
 
 routers = routers.DefaultRouter()
 
+routers.register(r'permission-key', views.PermissionKeyViewSet)
+routers.register(r'role', views.RoleViewSet)
+routers.register(r'workspace-membership', views.WorkspaceMembershipViewSet)
+routers.register(r'role-permission', views.RolePermissionViewSet)
+
 
 urlpatterns = [
-    path('/api/v1/', include(routers.urls)),
+    path('api/v1/', include(routers.urls)),
 ]

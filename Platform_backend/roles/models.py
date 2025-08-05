@@ -11,6 +11,7 @@ class Role(models.Model):
     description = models.CharField(max_length=255)
     color = models.CharField(max_length=20)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
+    is_admin = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -46,6 +47,7 @@ class PermissionKey(models.Model):
             ("workspace", "Workspace"),
             ("organization", "Organization"),
             ("region", "Region"),
+            ("permission_key", "PermissionKey")
         ],
     )
     key_type = models.CharField(
