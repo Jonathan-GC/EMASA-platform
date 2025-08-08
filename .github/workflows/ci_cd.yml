@@ -10,7 +10,7 @@ jobs:
   deploy-frontend:
     uses: ./.github/workflows/deploy_component.yml
     with:
-      component-path: 'frontend'
+      component-path: 'Platform_frontend'
     secrets: inherit
 
   cleanup-volumes:
