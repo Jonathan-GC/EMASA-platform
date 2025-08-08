@@ -1,0 +1,243 @@
+/* Estilos compartidos para los componentes de monitoreo IoT */
+
+.voltage-dashboard,
+.current-dashboard {
+  padding: 20px;
+  min-width: 100%;
+  margin: 0 auto;
+  background-color: #f9fafb;
+  min-height: calc(100vh - 80px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.header-subtitle {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.header h1 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.logo {
+  height: 60px;
+  width: auto;
+  margin-right: 20px;
+}
+
+.connection-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+  background-color: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.device-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.info-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.15);
+}
+
+.info-card h3 {
+  margin: 0 0 12px 0;
+  color: #374151;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-card p {
+  margin: 6px 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.info-card strong {
+  color: #374151;
+  font-weight: 500;
+}
+
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.no-data h2 {
+  color: #6b7280;
+  margin-bottom: 16px;
+  font-size: 1.5rem;
+}
+
+.no-data p {
+  color: #9ca3af;
+  margin: 8px 0;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  min-height: 400px;
+}
+
+.recent-messages {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.recent-messages h3 {
+  margin: 0 0 16px 0;
+  color: #374151;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.message-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.message-item:hover {
+  background: #f3f4f6;
+}
+
+.timestamp {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.device {
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.samples {
+  color: #059669;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  background: #ecfdf5;
+  border-radius: 12px;
+  border: 1px solid #d1fae5;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .voltage-dashboard,
+  .current-dashboard {
+    padding: 10px;
+  }
+
+  .device-info {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .logo {
+    height: 40px;
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  .message-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .chart-container {
+    padding: 16px;
+    margin: 16px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .info-card {
+    padding: 16px;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .chart-container {
+    min-height: 300px;
+  }
+}
