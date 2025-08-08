@@ -3,10 +3,11 @@ from .models import Role, WorkspaceMembership, PermissionKey, RolePermission
 from users.models import User
 from organizations.models import Workspace
 
+
 class RoleSerializer(serializers.ModelSerializer):
     """
-    Serializer para el modelo Role.
-    Permite la serialización y validación de los campos de un rol dentro de un workspace.
+    Serializer for the Role model.
+    Allows serialization and validation of the fields of a role within a workspace.
     """
     class Meta:
         model = Role
@@ -14,25 +15,25 @@ class RoleSerializer(serializers.ModelSerializer):
 
     def validate_name(self, value):
         """
-        Valida que el nombre del rol tenga al menos 3 caracteres.
+        Validates that the name of the role has at least 3 characters.
         """
         if len(value.strip()) < 3:
-            raise serializers.ValidationError("El nombre del rol debe tener al menos 3 caracteres.")
+            raise serializers.ValidationError("The name of the role must have at least 3 characters.")
         return value
 
     def validate_color(self, value):
         """
-        Valida que el color esté en formato hexadecimal (ejemplo: #FF5733).
+        Validates that the color is in hexadecimal format (e.g. #FF5733).
         """
         if not value.startswith("#") or len(value) != 7:
-            raise serializers.ValidationError("El color debe estar en formato hexadecimal (ej: #FF5733).")
+            raise serializers.ValidationError("The color must be in hexadecimal format (e.g. #FF5733).")
         return value
 
 
 class WorkspaceMembershipSerializer(serializers.ModelSerializer):
     """
-    Serializer para el modelo WorkspaceMembership.
-    Permite la serialización y validación de la membresía de un usuario en un workspace.
+    Serializer for the WorkspaceMembership model.
+    Allows serialization and validation of the membership of a user in a workspace.
     """
     class Meta:
         model = WorkspaceMembership
@@ -40,20 +41,20 @@ class WorkspaceMembershipSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """
-        Valida que el usuario no esté ya registrado como miembro en el mismo workspace.
+        Validates that the user is not already registered as a member in the same workspace.
         """
         user = data.get('user')
         workspace = data.get('workspace')
 
         if WorkspaceMembership.objects.filter(user=user, workspace=workspace).exists():
-            raise serializers.ValidationError("Este usuario ya es miembro de este workspace.")
+            raise serializers.ValidationError("This user is already a member of this workspace.")
 
         return data
     
 class WorkspaceMembershipDetailSerializer(serializers.ModelSerializer):
     """
-    Serializer detallado para WorkspaceMembership.
-    Incluye información anidada del usuario, rol y workspace.
+    Detailed serializer for WorkspaceMembership.
+    Includes nested information about the user, role and workspace.
     """
     user = serializers.StringRelatedField()
     role = RoleSerializer()

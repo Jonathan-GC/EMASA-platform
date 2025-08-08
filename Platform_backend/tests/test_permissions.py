@@ -10,6 +10,13 @@ from django.urls import reverse
 
 @pytest.mark.django_db
 def test_emasa_user_has_permission():
+    """
+    Tests that an EMASA user has permission to do an action on an object.
+
+    In this case, the user is a member of the EMASA group, has a role that
+    grants the get_by_id permission on the workspace, and the workspace is
+    in the same region as the user.
+    """
     reg = Region.objects.create(name="TestRegion")
     org = Organization.objects.create(name="EmasaOrg", region=reg)
     ws = Workspace.objects.create(name="TestWS", organization=org)
@@ -27,6 +34,37 @@ def test_emasa_user_has_permission():
     assert has_permission(user, scope="workspace", action="get_by_id", obj=ws)
 
 @pytest.mark.django_db
+def test_emasa_user_has_permission_in_other_region():
+    """
+    Tests that an EMASA user has permission to do an action on an object
+    in another region.
+
+    In this case, the user is a member of the EMASA group, has a role that
+    grants the put permission on the workspace, and the workspace is
+    in the same region as the user.
+    """
+    reg = Region.objects.create(name="TestRegion")
+    org = Organization.objects.create(name="EmasaOrg", region=reg)
+    ws = Workspace.objects.create(name="TestWS", organization=org)
+    role = Role.objects.create(name="AdminWS", workspace=ws)
+    group = Group.objects.create(name="EMASA")
+    user = User.objects.create_user(username="emasa_user", password="123")
+    user.groups.add(group)
+    WorkspaceMembership.objects.create(user=user, workspace=ws, role=role)
+
+    org2 = Organization.objects.create(name="RandomOrg", region=reg)
+    ws2 = Workspace.objects.create(name="RandomOrgWS", organization=org2)
+    perm = PermissionKey.objects.create(
+        scope="workspace",
+        key_type="put",
+        workspace=ws2,
+    )
+    role_permission = RolePermission.objects.create(role=role, permission_key=perm)
+    assert has_permission(user, scope="workspace", action="put", obj=ws2)
+
+
+
+@pytest.mark.django_db
 def test_normal_user_without_permission_fails():
     reg = Region.objects.create(name="TestRegion")
     org = Organization.objects.create(name="ClientOrg", region=reg)
@@ -38,6 +76,15 @@ def test_normal_user_without_permission_fails():
 
 @pytest.mark.django_db
 def test_machine_view_emasa_access():
+    """
+    Tests that an EMASA user can access a machine's detail view.
+
+    The user is a member of the EMASA group and has a role that grants
+    the get_by_id permission on the machine. The test verifies that the
+    authenticated user's request to retrieve the machine's details
+    returns a successful response.
+    """
+
     client = APIClient()
     reg = Region.objects.create(name="TestRegion")
     org = Organization.objects.create(name="EmasaOrg", region=reg)
@@ -146,3 +193,4 @@ def test_role_edit_role_client_fail():
     response = client.patch(url, {"name": "role_updated"}, format="json")
 
     assert response.status_code == 403
+

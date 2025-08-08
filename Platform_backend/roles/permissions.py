@@ -8,7 +8,18 @@ logger = logging.getLogger(__name__)
 
 
 def has_permission(user, scope, action, obj=None):
+    """
+    Checks if a user has the given permission.
 
+    Args:
+        user (User): The user to check.
+        scope (str): The scope of the permission.
+        action (str or list): The action(s) of the permission.
+        obj (any): The object related to the permission.
+
+    Returns:
+        bool: True if the user has permission, False otherwise.
+    """
     logger.warning(
         f"Checking perm: user={user}, scope={scope}, action={action}, obj={obj}"
     )
