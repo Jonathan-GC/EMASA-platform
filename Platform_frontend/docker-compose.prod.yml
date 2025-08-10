@@ -3,6 +3,8 @@ services:
   nginx:
     image: nginx:alpine
     restart: unless-stopped
+    env_file:
+      - ../.env.prod
     ports:
       - "80:80"
       - "443:443"
@@ -26,7 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_WEBSOCKET_URL=ws://localhost/ws
+        - VITE_WEBSOCKET_URL: ${VITE_WEBSOCKET_URL}
     restart: unless-stopped
     volumes:
       - frontend-dist:/app/dist
