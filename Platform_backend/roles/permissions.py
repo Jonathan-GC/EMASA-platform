@@ -2,7 +2,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from .models import PermissionKey
 import logging
 
-ADMIN_SCOPES = ["permission_key", "role", "workspace"]
+ADMIN_SCOPES = ["permission_key", "role", "workspace", "role_permission"]
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,13 @@ def has_permission(user, scope, action, obj=None):
         f"Checking perm: user={user}, scope={scope}, action={action}, obj={obj}"
     )
 
-    if not user.is_authenticated or not user.workspacemembership_set.exists():
-        logger.warning("User not authenticated or has no workspace memberships")
-        return False
-
     if user.is_superuser:
         logger.warning("User is superuser, granting permission")
         return True
+
+    if not user.is_authenticated or not user.workspacemembership_set.exists():
+        logger.warning("User not authenticated or has no workspace memberships")
+        return False
 
     membership = user.workspacemembership_set.first()
     if not membership:
@@ -73,6 +73,7 @@ def has_permission(user, scope, action, obj=None):
                 if any(
                     [
                         key.node_id == getattr(obj, "id", None),
+                        key.gateway_id == getattr(obj, "id", None),
                         key.machine_id == getattr(obj, "id", None),
                         key.service_id == getattr(obj, "id", None),
                         key.user_id == getattr(obj, "id", None),

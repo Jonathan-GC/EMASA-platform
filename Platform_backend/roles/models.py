@@ -3,7 +3,7 @@ from django.db import models
 from django.db import models
 from users.models import User
 from organizations.models import Workspace, Organization, Region
-from infrastructure.models import Node, Machine, Service
+from infrastructure.models import Node, Machine, Service, Gateway
 
 
 class Role(models.Model):
@@ -48,6 +48,8 @@ class PermissionKey(models.Model):
             ("organization", "Organization"),
             ("region", "Region"),
             ("permission_key", "PermissionKey"),
+            ("gateway", "Gateway"),
+            ("role_permission", "RolePermission"),
         ],
     )
     key_type = models.CharField(
@@ -77,6 +79,9 @@ class PermissionKey(models.Model):
         Organization, on_delete=models.CASCADE, null=True, blank=True
     )
     region = models.ForeignKey(Region, on_delete=models.CASCADE, null=True, blank=True)
+    gateway = models.ForeignKey(
+        Gateway, on_delete=models.CASCADE, null=True, blank=True
+    )
 
     @classmethod
     def from_view_action(cls, action):
@@ -97,6 +102,7 @@ class PermissionKey(models.Model):
             or self.workspace_id
             or self.organization_id
             or self.region_id
+            or self.gateway_id
             or "*"
         )
         self.code = f"{self.scope}:{entity_id}:{self.key_type}"

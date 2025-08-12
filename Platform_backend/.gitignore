@@ -182,3 +182,5 @@ cython_debug/
 *.wps
 
 # End of https://www.toptal.com/developers/gitignore/api/django,text
+
+.vscode
