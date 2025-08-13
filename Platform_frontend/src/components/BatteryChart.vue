@@ -21,12 +21,18 @@
       <div class="info-card">
         <h3>📊 Último Buffer</h3>
         <p><strong>Muestras:</strong> {{ lastDevice.buffer_stats?.total_samples || 0 }}</p>
-        <p><strong>Promedio:</strong> {{ (lastDevice.buffer_stats?.avg_value || 0).toFixed(2) }}A</p>
-        <p><strong>Rango:</strong> {{ (lastDevice.buffer_stats?.min_value || 0).toFixed(1) }}A - {{ (lastDevice.buffer_stats?.max_voltage || 0).toFixed(1) }}A</p>
-      </div>
+        <p><strong>Promedio:</strong> {{ (lastDevice.buffer_stats?.avg_value || 0).toFixed(2) }}V</p>
+        <p><strong>Valor: </strong>{{ (lastDevice.buffer_stats?.max_voltage || 0).toFixed(1) }}V</p>
+        </div>
 
       <div class="info-card">
-        <h3>📡 Radio</h3>
+        <h3>� Porcentaje de Batería</h3>
+        <p><strong>Carga:</strong> {{ batteryPercentage || 0 }}%</p>
+      </div>
+ 
+
+      <div class="info-card">
+        <h3>�📡 Radio</h3>
         <p><strong>RSSI:</strong> {{ lastDevice.radio_info?.rssi || 'N/A' }}dBm</p>
         <p><strong>SNR:</strong> {{ lastDevice.radio_info?.snr || 'N/A' }}dB</p>
         <p><strong>Frame:</strong> #{{ lastDevice.frame_counter || 0 }}</p>
@@ -68,6 +74,18 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { Line } from 'vue-chartjs'
 import { format } from 'date-fns'
+
+// Cálculo del porcentaje de batería para batería de litio 12V
+// Supongamos: 12.6V = 100%, 11.0V = 0%
+const batteryPercentage = computed(() => {
+  const maxV = lastDevice.value?.buffer_stats?.max_voltage || 0;
+  const minV = 10.5; //según datos de saul
+  const maxFull = 13.2; //según datos de saul
+  if (maxV <= minV) return 0;
+  if (maxV >= maxFull) return 100;
+  const percent = ((maxV - minV) / (maxFull - minV)) * 100;
+  return Math.round(percent);
+});
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -160,17 +178,32 @@ const reconnectAttempts = ref<number>(0)
 
 // Datos del gráfico
 const chartData = reactive<ChartData<'line', ChartPoint[]>>({
-  datasets: [{
-    label: 'Batería (V)',
-    data: [],
-    borderColor: 'rgba(4, 116, 0, 1)',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 2,
-    tension: 0.1,
-    pointRadius: 1,
-    pointHoverRadius: 4,
-    fill: false
-  }]
+  datasets: [
+    {
+      label: 'Batería (V)',
+      data: [],
+      borderColor: 'rgba(4, 116, 0, 1)',
+      backgroundColor: 'rgba(4, 116, 0, 0.1)',
+      borderWidth: 2,
+      tension: 0.1,
+      pointRadius: 1,
+      pointHoverRadius: 4,
+      fill: false,
+      yAxisID: 'y-left'
+    },
+    {
+      label: 'Batería (%)',
+      data: [],
+      borderColor: 'rgba(116, 0, 87, 1)',
+      backgroundColor: 'rgba(116, 0, 87, 0.1)',
+      borderWidth: 2,
+      tension: 0.1,
+      pointRadius: 1,
+      pointHoverRadius: 4,
+      fill: false,
+      yAxisID: 'y-right'
+    }
+  ]
 })
 
 // Configuración del gráfico
@@ -198,7 +231,11 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
           return ''
         },
         label: function(context: any) {
-          return `Batería: ${context.parsed.y.toFixed(3)}A`
+          if (context.datasetIndex === 0) {
+            return `Voltaje: ${context.parsed.y.toFixed(2)}V`
+          } else {
+            return `Porcentaje: ${context.parsed.y}%`
+          }
         }
       }
     }
@@ -218,7 +255,9 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
         text: 'Tiempo'
       }
     },
-    y: {
+    'y-left': {
+      //type: 'linear',
+      position: 'left',
       beginAtZero: false,
       title: {
         display: true,
@@ -226,6 +265,19 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
       },
       grid: {
         color: 'rgba(0, 0, 0, 0.1)'
+      }
+    },
+    'y-right': {
+      //type: 'linear',
+      position: 'right',
+      min: 0,
+      max: 100,
+      title: {
+        display: true,
+        text: 'Porcentaje (%)'
+      },
+      grid: {
+        drawOnChartArea: false
       }
     }
   },
@@ -305,15 +357,35 @@ const processIncomingData = (data: DeviceData): void => {
   // Procesar valores de corriente para el gráfico
   const BatteryValues = data.object?.values || data.measurement_values
   if (BatteryValues && Array.isArray(BatteryValues)) {
-    console.log(`📊 Procesando ${BatteryValues.length} muestras de corriente`)
+    console.log(`📊 Procesando ${BatteryValues.length} muestras de voltaje`)
     
     const newPoints: ChartPoint[] = BatteryValues.map(sample => ({
       x: new Date(sample.time_iso),
       y: sample.value
     }))
     
+    // Calcular puntos de porcentaje
+    const percentagePoints: ChartPoint[] = BatteryValues.map(sample => {
+      const voltage = sample.value;
+      const minV = 10.5;
+      const maxFull = 13.2;
+      let percent = 0;
+      if (voltage > minV) {
+        if (voltage >= maxFull) {
+          percent = 100;
+        } else {
+          percent = ((voltage - minV) / (maxFull - minV)) * 100;
+        }
+      }
+      return {
+        x: new Date(sample.time_iso),
+        y: Math.round(percent)
+      };
+    });
+    
     // Actualizar datos del gráfico
     chartData.datasets[0].data = newPoints
+    chartData.datasets[1].data = percentagePoints
     
     // Forzar actualización del gráfico
     chartKey.value++
