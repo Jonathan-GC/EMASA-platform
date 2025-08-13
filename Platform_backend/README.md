@@ -3,24 +3,39 @@
 []()
 <a name=""></a>
 
-## Index
-1. [Environment Variables](#env_var)
-    1. [DB Prefix usage](#db_prefix)
-    1. [Default .env template](#env_template)
-1. [Backend setup](#setup)
-1. [API Docs (Swagger, ReDoc)](#docs)
-1. [Authentication with EchoAPI](#auth)
-1. [Custom Permission classes](#perm) 
+
+- [EMASA Platform: Monitor $backend$ 😊](#emasa-platform-monitor-backend-)
+  - [Environment variables](#environment-variables)
+    - [DB Prefix usage ](#db-prefix-usage-)
+    - [Default .env template](#default-env-template)
+  - [Backend setup](#backend-setup)
+    - [Windows](#windows)
+    - [Linux](#linux)
+  - [API Docs (Swagger, ReDoc)](#api-docs-swagger-redoc)
+  - [Authentication with EchoAPI](#authentication-with-echoapi)
+    - [Get tokens:](#get-tokens)
+    - [Refresh tokens](#refresh-tokens)
+    - [Token usage](#token-usage)
+  - [Custom Permission classes](#custom-permission-classes)
+    - [HasPermissionKey](#haspermissionkey)
+    - [IsAdminOrIsAuthenticatedReadOnly](#isadminorisauthenticatedreadonly)
+  - [Seed data](#seed-data)
+    - [Administration json](#administration-json)
+    - [Infrastructure json](#infrastructure-json)
+  - [Special Methods](#special-methods)
+    - [Automatic Key creation method](#automatic-key-creation-method)
+    - [Coming soon](#coming-soon)
+
 
 ## <a name="env_var">Environment variables</a>
 
-|Name|Description|
-|----|----|
-|DEBUG| Default=False|
-|SECRET_KEY| Django's secret key|
-|DATABASE_URL| Url for the used database |
-|ALLOWED_HOSTS| If you're testing, you can write here your localhost|
-|DB_PREFIX| Prefix used in the naming of the DB tables |
+| Name          | Description                                          |
+| ------------- | ---------------------------------------------------- |
+| DEBUG         | Default=False                                        |
+| SECRET_KEY    | Django's secret key                                  |
+| DATABASE_URL  | Url for the used database                            |
+| ALLOWED_HOSTS | If you're testing, you can write here your localhost |
+| DB_PREFIX     | Prefix used in the naming of the DB tables           |
 
 ### <a name="db_prefix">DB Prefix usage </a>
 
@@ -76,9 +91,9 @@ python manage.py shell
 ```bash
 python manage.py makemigrations && python manage.py migrate
 ```
-8. Then, and only then, create a super user 😊 (follow django instructions)
+8. Then, and only then, load the seed data to the database see [seed data](#seed-data) for more info 😊
 ```bash
-python manage.py createsuperuser
+python manage.py loaddata fixtures/administration.json && python manage.py loaddata fixtures/infrastructure.json && python manage.py loaddata fixtures/keys.json
 ```
 9. Now, run it :v
 ```bash
@@ -86,7 +101,7 @@ python manage.py runserver
 ```
 Note: at this point, if you get the allowed hosts error, check if your .env is working.
 
-10. Go to /admin/ and log in with the super user you created in step 8.
+Next step will be **login** to **/admin/** and check everything.
 
 ## <a name="docs">API Docs (Swagger, ReDoc)</a>
 
@@ -154,3 +169,61 @@ Returns True if the user has permission to access the view based on the request 
     - POST, PUT, PATCH, DELETE requests are allowed if the user is a superuser.
 
 Otherwise, the method returns False, permission wil be denied.
+
+## Seed data
+
+This data is for developing purposes only! ‼️‼️‼️
+
+Contained in the json files located in 📂fixtures, it's a set test data.
+
+### Administration json
+
+Contains mostly administration purposes data:
+
+|Type|Quantity|
+|----|----|
+|Region| 1|
+|Superuser|1|
+|Organizations|2|
+|Roles|4|
+|Workspaces|3|
+|Users|4|
+|Permission Keys| A LOT|
+
+User account/pass relation classified by role, organization and workspace:
+
+|User|Password|Organization|Role|Workspace|
+|---|---|---|---|---|
+|weedo|estrellita123|None|superuser|None|
+|emasa_admin|estrellita123|EMASA|Admin|Principal|
+|emasa_employee|estrellita123|EMASA|Sin rol|Principal|
+|tec_admin|estrellita123|Tecnobot|Admin|Principal|
+|tec_employee|estrellita123|Tecnobot|Sin rol|Principal|
+
+1 Additional workspace: Tecnobot (emasa side).
+
+### Infrastructure json
+
+Infrastructure seed data
+
+|Type|Quantity|
+|---|---|
+|Machines|4|
+|Services|4|
+|Nodes|8|
+|Gateways|4|
+|NodeTypes|4|
+
+## Special Methods
+
+This is a list of special methods and endpoints (☝️🤓 Implemented), it details each method or endpoint with it's usage and purposes.
+
+### Automatic Key creation method
+
+Implemented with a Mixin: PermissionKeyMixin. This mixin creates any basic key for a new object that it's viewset **uses** this mixin. Basic keys includes basic actions: get, get_by_id, etc... It uses bulk create, so it doesn't uses the PermissionKey's model save() method, so, this mixin takes care of the automatic code attribute set. This could leave the save() method obsolete, but we'll see. 
+
+NOTE: This method doesn't need an endpoint.
+
+### Coming soon
+
+...
