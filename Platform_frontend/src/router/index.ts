@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import VoltageChart from '../components/VoltageChart.vue'
 import CurrentChart from '../components/CurrentChart.vue'
+import BatteryChart from '../components/BatteryChart.vue'
 
 const routes = [
   {
@@ -21,6 +22,14 @@ const routes = [
     component: CurrentChart,
     meta: {
       title: 'Monitor de Corriente'
+    }
+  },
+  {
+    path: '/battery',
+    name: '/battery', 
+    component: BatteryChart,
+    meta: {
+      title: 'Monitor de Batería'
     }
   }
 ]
