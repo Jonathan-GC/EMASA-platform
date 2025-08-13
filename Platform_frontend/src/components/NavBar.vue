@@ -20,6 +20,13 @@
         >
           🔌 Corriente
         </router-link>
+        <router-link 
+          to="/battery" 
+          class="nav-link"
+          :class="{ active: $route.path === '/Baterry' }"
+        >
+          🔋 Batería
+        </router-link>
       </div>
     </div>
   </nav>
