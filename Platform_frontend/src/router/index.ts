@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import VoltageChart from '../components/VoltageChart.vue'
+//import VoltageChart from '../components/VoltageChart.vue'
+import VoltageChart from '../components/MultiVoltageChart.vue'
 import CurrentChart from '../components/CurrentChart.vue'
 import BatteryChart from '../components/BatteryChart.vue'
 
