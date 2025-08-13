@@ -7,14 +7,14 @@ from infrastructure.models import Node, Machine, Service, Gateway
 
 
 class Role(models.Model):
-    name = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=30)
     description = models.CharField(max_length=255)
     color = models.CharField(max_length=20)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
     is_admin = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} - {self.workspace}"
 
 
 class WorkspaceMembership(models.Model):

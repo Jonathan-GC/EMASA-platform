@@ -17,7 +17,7 @@ class Organization(models.Model):
         return self.name
     
 class Workspace(models.Model):
-    name = models.CharField(max_length=80, unique=True)
+    name = models.CharField(max_length=80)
     img = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=255)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)

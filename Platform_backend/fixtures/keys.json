@@ -1,0 +1,2882 @@
+[
+  {
+    "model": "roles.permissionkey",
+    "pk": 1,
+    "fields": {
+      "code": "user:2:get",
+      "scope": "user",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 2,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 2,
+    "fields": {
+      "code": "user:2:get_by_id",
+      "scope": "user",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 2,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 3,
+    "fields": {
+      "code": "user:2:post",
+      "scope": "user",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 2,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 4,
+    "fields": {
+      "code": "user:2:put",
+      "scope": "user",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 2,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 5,
+    "fields": {
+      "code": "user:2:delete",
+      "scope": "user",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 2,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 6,
+    "fields": {
+      "code": "region:1:get",
+      "scope": "region",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": 1,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 7,
+    "fields": {
+      "code": "region:1:get_by_id",
+      "scope": "region",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": 1,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 8,
+    "fields": {
+      "code": "region:1:post",
+      "scope": "region",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": 1,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 9,
+    "fields": {
+      "code": "region:1:put",
+      "scope": "region",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": 1,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 10,
+    "fields": {
+      "code": "region:1:delete",
+      "scope": "region",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": 1,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 11,
+    "fields": {
+      "code": "role:1:get",
+      "scope": "role",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 1,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 12,
+    "fields": {
+      "code": "role:1:get_by_id",
+      "scope": "role",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 1,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 13,
+    "fields": {
+      "code": "role:1:post",
+      "scope": "role",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 1,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 14,
+    "fields": {
+      "code": "role:1:put",
+      "scope": "role",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 1,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 15,
+    "fields": {
+      "code": "role:1:delete",
+      "scope": "role",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 1,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 16,
+    "fields": {
+      "code": "role:2:get",
+      "scope": "role",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 2,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 17,
+    "fields": {
+      "code": "role:2:get_by_id",
+      "scope": "role",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 2,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 18,
+    "fields": {
+      "code": "role:2:post",
+      "scope": "role",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 2,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 19,
+    "fields": {
+      "code": "role:2:put",
+      "scope": "role",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 2,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 20,
+    "fields": {
+      "code": "role:2:delete",
+      "scope": "role",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 2,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 21,
+    "fields": {
+      "code": "role:3:get",
+      "scope": "role",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 3,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 22,
+    "fields": {
+      "code": "role:3:get_by_id",
+      "scope": "role",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 3,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 23,
+    "fields": {
+      "code": "role:3:post",
+      "scope": "role",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 3,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 24,
+    "fields": {
+      "code": "role:3:put",
+      "scope": "role",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 3,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 25,
+    "fields": {
+      "code": "role:3:delete",
+      "scope": "role",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 3,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 26,
+    "fields": {
+      "code": "role:4:get",
+      "scope": "role",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 4,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 27,
+    "fields": {
+      "code": "role:4:get_by_id",
+      "scope": "role",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 4,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 28,
+    "fields": {
+      "code": "role:4:post",
+      "scope": "role",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 4,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 29,
+    "fields": {
+      "code": "role:4:put",
+      "scope": "role",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 4,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 30,
+    "fields": {
+      "code": "role:4:delete",
+      "scope": "role",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": 4,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 31,
+    "fields": {
+      "code": "workspace:1:get",
+      "scope": "workspace",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 1,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 32,
+    "fields": {
+      "code": "workspace:1:get_by_id",
+      "scope": "workspace",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 1,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 33,
+    "fields": {
+      "code": "workspace:1:post",
+      "scope": "workspace",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 1,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 34,
+    "fields": {
+      "code": "workspace:1:put",
+      "scope": "workspace",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 1,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 35,
+    "fields": {
+      "code": "workspace:1:delete",
+      "scope": "workspace",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 1,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 36,
+    "fields": {
+      "code": "workspace:2:get",
+      "scope": "workspace",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 2,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 37,
+    "fields": {
+      "code": "workspace:2:get_by_id",
+      "scope": "workspace",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 2,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 38,
+    "fields": {
+      "code": "workspace:2:post",
+      "scope": "workspace",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 2,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 39,
+    "fields": {
+      "code": "workspace:2:put",
+      "scope": "workspace",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 2,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 40,
+    "fields": {
+      "code": "workspace:2:delete",
+      "scope": "workspace",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 2,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 41,
+    "fields": {
+      "code": "workspace:3:get",
+      "scope": "workspace",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 3,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 42,
+    "fields": {
+      "code": "workspace:3:get_by_id",
+      "scope": "workspace",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 3,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 43,
+    "fields": {
+      "code": "workspace:3:post",
+      "scope": "workspace",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 3,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 44,
+    "fields": {
+      "code": "workspace:3:put",
+      "scope": "workspace",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 3,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 45,
+    "fields": {
+      "code": "workspace:3:delete",
+      "scope": "workspace",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": 3,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 46,
+    "fields": {
+      "code": "user:3:get",
+      "scope": "user",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 3,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 47,
+    "fields": {
+      "code": "user:3:get_by_id",
+      "scope": "user",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 3,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 48,
+    "fields": {
+      "code": "user:3:post",
+      "scope": "user",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 3,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 49,
+    "fields": {
+      "code": "user:3:put",
+      "scope": "user",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 3,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 50,
+    "fields": {
+      "code": "user:3:delete",
+      "scope": "user",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 3,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 51,
+    "fields": {
+      "code": "user:4:get",
+      "scope": "user",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 4,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 52,
+    "fields": {
+      "code": "user:4:get_by_id",
+      "scope": "user",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 4,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 53,
+    "fields": {
+      "code": "user:4:post",
+      "scope": "user",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 4,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 54,
+    "fields": {
+      "code": "user:4:put",
+      "scope": "user",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 4,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 55,
+    "fields": {
+      "code": "user:4:delete",
+      "scope": "user",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 4,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 56,
+    "fields": {
+      "code": "user:5:get",
+      "scope": "user",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 5,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 57,
+    "fields": {
+      "code": "user:5:get_by_id",
+      "scope": "user",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 5,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 58,
+    "fields": {
+      "code": "user:5:post",
+      "scope": "user",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 5,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 59,
+    "fields": {
+      "code": "user:5:put",
+      "scope": "user",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 5,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 60,
+    "fields": {
+      "code": "user:5:delete",
+      "scope": "user",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": 5,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 61,
+    "fields": {
+      "code": "machine:1:get",
+      "scope": "machine",
+      "key_type": "get",
+      "node": null,
+      "machine": 1,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 62,
+    "fields": {
+      "code": "machine:1:get_by_id",
+      "scope": "machine",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": 1,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 63,
+    "fields": {
+      "code": "machine:1:post",
+      "scope": "machine",
+      "key_type": "post",
+      "node": null,
+      "machine": 1,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 64,
+    "fields": {
+      "code": "machine:1:put",
+      "scope": "machine",
+      "key_type": "put",
+      "node": null,
+      "machine": 1,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 65,
+    "fields": {
+      "code": "machine:1:delete",
+      "scope": "machine",
+      "key_type": "delete",
+      "node": null,
+      "machine": 1,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 66,
+    "fields": {
+      "code": "machine:2:get",
+      "scope": "machine",
+      "key_type": "get",
+      "node": null,
+      "machine": 2,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 67,
+    "fields": {
+      "code": "machine:2:get_by_id",
+      "scope": "machine",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": 2,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 68,
+    "fields": {
+      "code": "machine:2:post",
+      "scope": "machine",
+      "key_type": "post",
+      "node": null,
+      "machine": 2,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 69,
+    "fields": {
+      "code": "machine:2:put",
+      "scope": "machine",
+      "key_type": "put",
+      "node": null,
+      "machine": 2,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 70,
+    "fields": {
+      "code": "machine:2:delete",
+      "scope": "machine",
+      "key_type": "delete",
+      "node": null,
+      "machine": 2,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 71,
+    "fields": {
+      "code": "machine:3:get",
+      "scope": "machine",
+      "key_type": "get",
+      "node": null,
+      "machine": 3,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 72,
+    "fields": {
+      "code": "machine:3:get_by_id",
+      "scope": "machine",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": 3,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 73,
+    "fields": {
+      "code": "machine:3:post",
+      "scope": "machine",
+      "key_type": "post",
+      "node": null,
+      "machine": 3,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 74,
+    "fields": {
+      "code": "machine:3:put",
+      "scope": "machine",
+      "key_type": "put",
+      "node": null,
+      "machine": 3,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 75,
+    "fields": {
+      "code": "machine:3:delete",
+      "scope": "machine",
+      "key_type": "delete",
+      "node": null,
+      "machine": 3,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 76,
+    "fields": {
+      "code": "machine:4:get",
+      "scope": "machine",
+      "key_type": "get",
+      "node": null,
+      "machine": 4,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 77,
+    "fields": {
+      "code": "machine:4:get_by_id",
+      "scope": "machine",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": 4,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 78,
+    "fields": {
+      "code": "machine:4:post",
+      "scope": "machine",
+      "key_type": "post",
+      "node": null,
+      "machine": 4,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 79,
+    "fields": {
+      "code": "machine:4:put",
+      "scope": "machine",
+      "key_type": "put",
+      "node": null,
+      "machine": 4,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 80,
+    "fields": {
+      "code": "machine:4:delete",
+      "scope": "machine",
+      "key_type": "delete",
+      "node": null,
+      "machine": 4,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 81,
+    "fields": {
+      "code": "service:1:get",
+      "scope": "service",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": 1,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 82,
+    "fields": {
+      "code": "service:1:get_by_id",
+      "scope": "service",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": 1,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 83,
+    "fields": {
+      "code": "service:1:post",
+      "scope": "service",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": 1,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 84,
+    "fields": {
+      "code": "service:1:put",
+      "scope": "service",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": 1,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 85,
+    "fields": {
+      "code": "service:1:delete",
+      "scope": "service",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": 1,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 86,
+    "fields": {
+      "code": "service:2:get",
+      "scope": "service",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": 2,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 87,
+    "fields": {
+      "code": "service:2:get_by_id",
+      "scope": "service",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": 2,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 88,
+    "fields": {
+      "code": "service:2:post",
+      "scope": "service",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": 2,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 89,
+    "fields": {
+      "code": "service:2:put",
+      "scope": "service",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": 2,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 90,
+    "fields": {
+      "code": "service:2:delete",
+      "scope": "service",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": 2,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 91,
+    "fields": {
+      "code": "service:3:get",
+      "scope": "service",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": 3,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 92,
+    "fields": {
+      "code": "service:3:get_by_id",
+      "scope": "service",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": 3,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 93,
+    "fields": {
+      "code": "service:3:post",
+      "scope": "service",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": 3,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 94,
+    "fields": {
+      "code": "service:3:put",
+      "scope": "service",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": 3,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 95,
+    "fields": {
+      "code": "service:3:delete",
+      "scope": "service",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": 3,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 96,
+    "fields": {
+      "code": "service:4:get",
+      "scope": "service",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": 4,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 97,
+    "fields": {
+      "code": "service:4:get_by_id",
+      "scope": "service",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": 4,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 98,
+    "fields": {
+      "code": "service:4:post",
+      "scope": "service",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": 4,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 99,
+    "fields": {
+      "code": "service:4:put",
+      "scope": "service",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": 4,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 100,
+    "fields": {
+      "code": "service:4:delete",
+      "scope": "service",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": 4,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 101,
+    "fields": {
+      "code": "node:1:get",
+      "scope": "node",
+      "key_type": "get",
+      "node": 1,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 102,
+    "fields": {
+      "code": "node:1:get_by_id",
+      "scope": "node",
+      "key_type": "get_by_id",
+      "node": 1,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 103,
+    "fields": {
+      "code": "node:1:post",
+      "scope": "node",
+      "key_type": "post",
+      "node": 1,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 104,
+    "fields": {
+      "code": "node:1:put",
+      "scope": "node",
+      "key_type": "put",
+      "node": 1,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 105,
+    "fields": {
+      "code": "node:1:delete",
+      "scope": "node",
+      "key_type": "delete",
+      "node": 1,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 106,
+    "fields": {
+      "code": "node:2:get",
+      "scope": "node",
+      "key_type": "get",
+      "node": 2,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 107,
+    "fields": {
+      "code": "node:2:get_by_id",
+      "scope": "node",
+      "key_type": "get_by_id",
+      "node": 2,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 108,
+    "fields": {
+      "code": "node:2:post",
+      "scope": "node",
+      "key_type": "post",
+      "node": 2,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 109,
+    "fields": {
+      "code": "node:2:put",
+      "scope": "node",
+      "key_type": "put",
+      "node": 2,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 110,
+    "fields": {
+      "code": "node:2:delete",
+      "scope": "node",
+      "key_type": "delete",
+      "node": 2,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 111,
+    "fields": {
+      "code": "node:3:get",
+      "scope": "node",
+      "key_type": "get",
+      "node": 3,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 112,
+    "fields": {
+      "code": "node:3:get_by_id",
+      "scope": "node",
+      "key_type": "get_by_id",
+      "node": 3,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 113,
+    "fields": {
+      "code": "node:3:post",
+      "scope": "node",
+      "key_type": "post",
+      "node": 3,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 114,
+    "fields": {
+      "code": "node:3:put",
+      "scope": "node",
+      "key_type": "put",
+      "node": 3,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 115,
+    "fields": {
+      "code": "node:3:delete",
+      "scope": "node",
+      "key_type": "delete",
+      "node": 3,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 116,
+    "fields": {
+      "code": "node:4:get",
+      "scope": "node",
+      "key_type": "get",
+      "node": 4,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 117,
+    "fields": {
+      "code": "node:4:get_by_id",
+      "scope": "node",
+      "key_type": "get_by_id",
+      "node": 4,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 118,
+    "fields": {
+      "code": "node:4:post",
+      "scope": "node",
+      "key_type": "post",
+      "node": 4,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 119,
+    "fields": {
+      "code": "node:4:put",
+      "scope": "node",
+      "key_type": "put",
+      "node": 4,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 120,
+    "fields": {
+      "code": "node:4:delete",
+      "scope": "node",
+      "key_type": "delete",
+      "node": 4,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 121,
+    "fields": {
+      "code": "node:5:get",
+      "scope": "node",
+      "key_type": "get",
+      "node": 5,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 122,
+    "fields": {
+      "code": "node:5:get_by_id",
+      "scope": "node",
+      "key_type": "get_by_id",
+      "node": 5,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 123,
+    "fields": {
+      "code": "node:5:post",
+      "scope": "node",
+      "key_type": "post",
+      "node": 5,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 124,
+    "fields": {
+      "code": "node:5:put",
+      "scope": "node",
+      "key_type": "put",
+      "node": 5,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 125,
+    "fields": {
+      "code": "node:5:delete",
+      "scope": "node",
+      "key_type": "delete",
+      "node": 5,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 126,
+    "fields": {
+      "code": "node:6:get",
+      "scope": "node",
+      "key_type": "get",
+      "node": 6,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 127,
+    "fields": {
+      "code": "node:6:get_by_id",
+      "scope": "node",
+      "key_type": "get_by_id",
+      "node": 6,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 128,
+    "fields": {
+      "code": "node:6:post",
+      "scope": "node",
+      "key_type": "post",
+      "node": 6,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 129,
+    "fields": {
+      "code": "node:6:put",
+      "scope": "node",
+      "key_type": "put",
+      "node": 6,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 130,
+    "fields": {
+      "code": "node:6:delete",
+      "scope": "node",
+      "key_type": "delete",
+      "node": 6,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 131,
+    "fields": {
+      "code": "node:7:get",
+      "scope": "node",
+      "key_type": "get",
+      "node": 7,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 132,
+    "fields": {
+      "code": "node:7:get_by_id",
+      "scope": "node",
+      "key_type": "get_by_id",
+      "node": 7,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 133,
+    "fields": {
+      "code": "node:7:post",
+      "scope": "node",
+      "key_type": "post",
+      "node": 7,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 134,
+    "fields": {
+      "code": "node:7:put",
+      "scope": "node",
+      "key_type": "put",
+      "node": 7,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 135,
+    "fields": {
+      "code": "node:7:delete",
+      "scope": "node",
+      "key_type": "delete",
+      "node": 7,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 136,
+    "fields": {
+      "code": "node:8:get",
+      "scope": "node",
+      "key_type": "get",
+      "node": 8,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 137,
+    "fields": {
+      "code": "node:8:get_by_id",
+      "scope": "node",
+      "key_type": "get_by_id",
+      "node": 8,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 138,
+    "fields": {
+      "code": "node:8:post",
+      "scope": "node",
+      "key_type": "post",
+      "node": 8,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 139,
+    "fields": {
+      "code": "node:8:put",
+      "scope": "node",
+      "key_type": "put",
+      "node": 8,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 140,
+    "fields": {
+      "code": "node:8:delete",
+      "scope": "node",
+      "key_type": "delete",
+      "node": 8,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": null
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 141,
+    "fields": {
+      "code": "gateway:1:get",
+      "scope": "gateway",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 1
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 142,
+    "fields": {
+      "code": "gateway:1:get_by_id",
+      "scope": "gateway",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 1
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 143,
+    "fields": {
+      "code": "gateway:1:post",
+      "scope": "gateway",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 1
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 144,
+    "fields": {
+      "code": "gateway:1:put",
+      "scope": "gateway",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 1
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 145,
+    "fields": {
+      "code": "gateway:1:delete",
+      "scope": "gateway",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 1
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 146,
+    "fields": {
+      "code": "gateway:2:get",
+      "scope": "gateway",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 2
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 147,
+    "fields": {
+      "code": "gateway:2:get_by_id",
+      "scope": "gateway",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 2
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 148,
+    "fields": {
+      "code": "gateway:2:post",
+      "scope": "gateway",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 2
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 149,
+    "fields": {
+      "code": "gateway:2:put",
+      "scope": "gateway",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 2
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 150,
+    "fields": {
+      "code": "gateway:2:delete",
+      "scope": "gateway",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 2
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 151,
+    "fields": {
+      "code": "gateway:3:get",
+      "scope": "gateway",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 3
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 152,
+    "fields": {
+      "code": "gateway:3:get_by_id",
+      "scope": "gateway",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 3
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 153,
+    "fields": {
+      "code": "gateway:3:post",
+      "scope": "gateway",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 3
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 154,
+    "fields": {
+      "code": "gateway:3:put",
+      "scope": "gateway",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 3
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 155,
+    "fields": {
+      "code": "gateway:3:delete",
+      "scope": "gateway",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 3
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 156,
+    "fields": {
+      "code": "gateway:4:get",
+      "scope": "gateway",
+      "key_type": "get",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 4
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 157,
+    "fields": {
+      "code": "gateway:4:get_by_id",
+      "scope": "gateway",
+      "key_type": "get_by_id",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 4
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 158,
+    "fields": {
+      "code": "gateway:4:post",
+      "scope": "gateway",
+      "key_type": "post",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 4
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 159,
+    "fields": {
+      "code": "gateway:4:put",
+      "scope": "gateway",
+      "key_type": "put",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 4
+    }
+  },
+  {
+    "model": "roles.permissionkey",
+    "pk": 160,
+    "fields": {
+      "code": "gateway:4:delete",
+      "scope": "gateway",
+      "key_type": "delete",
+      "node": null,
+      "machine": null,
+      "service": null,
+      "user": null,
+      "role": null,
+      "workspace": null,
+      "organization": null,
+      "region": null,
+      "gateway": 4
+    }
+  }
+]
