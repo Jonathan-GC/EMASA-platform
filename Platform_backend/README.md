@@ -9,8 +9,6 @@
     - [DB Prefix usage ](#db-prefix-usage-)
     - [Default .env template](#default-env-template)
   - [Backend setup](#backend-setup)
-    - [Windows](#windows)
-    - [Linux](#linux)
   - [API Docs (Swagger, ReDoc)](#api-docs-swagger-redoc)
   - [Authentication with EchoAPI](#authentication-with-echoapi)
     - [Get tokens:](#get-tokens)
@@ -57,49 +55,34 @@ ALLOWED_HOSTS=127.0.0.1, localhost
 ## <a name="setup">Backend setup</a>
 
 This is a guide step by step to set up the backend in your environment.
-1. Setup the database with docker, you can use the `docker-compose.yml` file, but change the ports if you are already using those or if you don't like 5432 number, it can happen and I get it, it's an ugly number 😠.
-1. Make sure you're using python 3.12+ ‼️
-1. Clone this repository in a directory of your preference📂, it's important for you to use the `backend` branch.
-    https://github.com/Jonathan-GC/EMASA-platform.git
-1. Create a virtual environment where this `README.md` is located and activate it.
----
-### Windows
+1. Clone the repository (if from scratch) and checkout to branch **feature/backend**, just in case if this isn't in the main branch yet. If not from scratch, pull and checkout.
+2. Locate with your terminal the `docker-compose.yml` and enter this command:
 ```bash
-python -m venv venv
+sudo docker compose build
+```
+And when it's done:
+```bash
+sudo docker compose up -d
+```
+3. Check if everything went right with:
+```bash
+sudo docker compose logs -f web
+```
+4. Add the seed data to the database, enter the following commands one by one in this order (see [seed data](#seed-data) for more info):
+- Migrate just to be sure
+```bash
+sudo docker compose exec web python manage.py migrate
+```
+- Load the seed data (respect the order):
+```bash
+sudo docker compose exec web python manage.py loaddata fixtures/administration.json
 ```
 ```bash
-venv\Scripts\activate
-```
-Note: Rename the virtual environment if you like, or just copy and paste those up here ⬆️.
-### Linux
-```bash
-python3 -m venv venv
+sudo docker compose exec web python manage.py loaddata fixtures/infrastructure.json
 ```
 ```bash
-source venv/bin/activate
+sudo docker compose exec web python manage.py loaddata fixtures/keys.json
 ```
----
-5. Now, install the `requirements.txt`
-```bash
-pip install -r requirements.txt
-```
-6. Try to use the django shell to make sure everything is working. Otherwise you might need to pull again or report this issue.
-```bash
-python manage.py shell
-```
-7. If everything is fine, proceed with migrating. First makemigrations, to make sure there's no pending migrations to make, then migrate.
-```bash
-python manage.py makemigrations && python manage.py migrate
-```
-8. Then, and only then, load the seed data to the database see [seed data](#seed-data) for more info 😊
-```bash
-python manage.py loaddata fixtures/administration.json && python manage.py loaddata fixtures/infrastructure.json && python manage.py loaddata fixtures/keys.json
-```
-9. Now, run it :v
-```bash
-python manage.py runserver
-```
-Note: at this point, if you get the allowed hosts error, check if your .env is working.
 
 Next step will be **login** to **/admin/** and check everything.
 
