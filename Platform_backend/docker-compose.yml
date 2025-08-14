@@ -21,7 +21,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      volumes:
+    volumes:
         - .:/app
     ports:
       - "8000:8000"
@@ -30,6 +30,6 @@ services:
       python manage.py migrate &&
       python manage.py runserver 0.0.0.0:8000
       "
-      
+
 volumes:
   postgres_data:
