@@ -5,7 +5,7 @@
   "server": {
     "androidScheme": "https",
     "allowNavigation": [
-      "localhost"
+      "mtr-online.com"
     ]
   },
   "android": {
