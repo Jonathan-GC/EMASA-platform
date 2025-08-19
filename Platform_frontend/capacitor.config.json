@@ -1,0 +1,14 @@
+{
+  "appId": "com.example.proofoconcept",
+  "appName": "proof-o-concept",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": [
+      "mtr-online.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
