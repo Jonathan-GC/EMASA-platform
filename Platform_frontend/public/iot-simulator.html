@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Data Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .start {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .stop {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .send {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-sent {
+            color: #007bff;
+        }
+
+        .log-error {
+            color: #dc3545;
+        }
+
+        .log-info {
+            color: #6c757d;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔌 IoT Data Simulator</h1>
+        <p>This simulator sends mock voltage data to test the IoT monitoring component.</p>
+
+        <div class="controls">
+            <button class="start" onclick="startServer()">Start WebSocket Server</button>
+            <button class="stop" onclick="stopServer()">Stop Server</button>
+            <button class="send" onclick="sendMockData()">Send Single Sample</button>
+            <button class="send" onclick="sendLargeDataset()">Send Large Dataset (200 samples)</button>
+        </div>
+
+        <div id="status" class="status disconnected">WebSocket Server: Disconnected</div>
+
+        <div id="log" class="log">
+            <div class="log-entry log-info">Welcome to IoT Data Simulator</div>
+            <div class="log-entry log-info">Click 'Start WebSocket Server' to begin</div>
+        </div>
+    </div>
+
+    <script>
+        let server = null;
+        let clients = [];
+        let isRunning = false;
+        let dataCounter = 0;
+
+        // Mock device data generator
+        function generateVoltageData(numSamples = 50) {
+            const data = [];
+            const baseTime = Date.now();
+            const baseVoltage = 3.3; // Base voltage
+
+            for (let i = 0; i < numSamples; i++) {
+                const timestamp = new Date(baseTime + (i * 100)); // 100ms intervals
+                const noise = (Math.random() - 0.5) * 0.2; // ±0.1V noise
+                const trend = Math.sin(i * 0.1) * 0.1; // Small sine wave
+
+                data.push({
+                    time: timestamp.getTime(),
+                    time_iso: timestamp.toISOString(),
+                    value: Math.round((baseVoltage + noise + trend) * 1000) / 1000
+                });
+            }
+
+            return data;
+        }
+
+        function generateMockMessage(numSamples = 50, fragmentNumber = 1, totalFragments = 1) {
+            dataCounter++;
+            return {
+                device_name: `IoT-Sensor-${String(dataCounter).padStart(3, '0')}`,
+                dev_eui: "0004A30B00" + String(dataCounter).padStart(6, '0'),
+                tenant_name: "demo_tenant",
+                tenant_id: "demo_001",
+                application_name: "voltage_monitoring",
+                frame_counter: dataCounter,
+                reception_timestamp: new Date().toISOString(),
+                message_time: new Date().toISOString(),
+                object: {
+                    type: "voltage",
+                    measurement: "voltage_samples",
+                    values: generateVoltageData(numSamples),
+                    series_id: Math.floor(dataCounter / 10),
+                    fragment_number: fragmentNumber,
+                    total_fragments: totalFragments,
+                    message_arrival_time: Date.now()
+                },
+                buffer_stats: {
+                    total_samples: numSamples,
+                    avg_voltage: 3.3,
+                    min_voltage: 3.1,
+                    max_voltage: 3.5,
+                    measurement_type: "voltage",
+                    series_id: String(Math.floor(dataCounter / 10)),
+                    fragment_number: fragmentNumber,
+                    total_fragments: totalFragments
+                },
+                radio_info: {
+                    rssi: -80 + Math.random() * 20,
+                    snr: 5 + Math.random() * 10,
+                    frequency: 868100000,
+                    gateway_id: "gw_001"
+                }
+            };
+        }
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusElement = document.getElementById('status');
+            if (connected) {
+                statusElement.textContent = `WebSocket Server: Running on ws://localhost:8765 (${clients.length} clients)`;
+                statusElement.className = 'status connected';
+            } else {
+                statusElement.textContent = 'WebSocket Server: Disconnected';
+                statusElement.className = 'status disconnected';
+            }
+        }
+
+        async function startServer() {
+            if (isRunning) {
+                log('Server is already running', 'error');
+                return;
+            }
+
+            try {
+                // Since we can't run a real WebSocket server in the browser,
+                // we'll simulate it by creating a mock server that logs messages
+                log('🚀 Starting mock WebSocket server on ws://localhost:8765', 'info');
+                log('💡 Note: This is a simulation. In a real setup, you would run a Python/Node.js WebSocket server', 'info');
+                log('📡 To test with the app, the app will try to connect to ws://localhost:8765', 'info');
+
+                isRunning = true;
+                updateStatus(true);
+
+                // Simulate client connection after a short delay
+                setTimeout(() => {
+                    clients.push({ id: 1, connected: true });
+                    log('🔗 Client connected from Vue app', 'info');
+                    updateStatus(true);
+                }, 1000);
+
+            } catch (error) {
+                log(`❌ Error starting server: ${error.message}`, 'error');
+            }
+        }
+
+        function stopServer() {
+            if (!isRunning) {
+                log('Server is not running', 'error');
+                return;
+            }
+
+            isRunning = false;
+            clients = [];
+            updateStatus(false);
+            log('🛑 WebSocket server stopped', 'info');
+        }
+
+        function sendMockData() {
+            if (!isRunning) {
+                log('Start the server first', 'error');
+                return;
+            }
+
+            const mockData = generateMockMessage(50);
+            log(`📤 Sending mock data: ${mockData.object.values.length} voltage samples`, 'sent');
+            log(`   Device: ${mockData.device_name}`, 'sent');
+            log(`   Voltage range: ${Math.min(...mockData.object.values.map(v => v.value)).toFixed(3)}V - ${Math.max(...mockData.object.values.map(v => v.value)).toFixed(3)}V`, 'sent');
+
+            // In a real server, this would be sent via WebSocket
+            console.log('Mock data that would be sent:', mockData);
+        }
+
+        function sendLargeDataset() {
+            if (!isRunning) {
+                log('Start the server first', 'error');
+                return;
+            }
+
+            // Send data in 4 fragments of 50 samples each (200 total)
+            const totalFragments = 4;
+            log(`📊 Sending large dataset: ${totalFragments} fragments with 50 samples each`, 'sent');
+
+            for (let i = 1; i <= totalFragments; i++) {
+                setTimeout(() => {
+                    const mockData = generateMockMessage(50, i, totalFragments);
+                    log(`📤 Fragment ${i}/${totalFragments}: ${mockData.object.values.length} samples`, 'sent');
+                    console.log(`Fragment ${i} data:`, mockData);
+                }, i * 500); // Send fragments with 500ms delay
+            }
+        }
+
+        // Initialize
+        updateStatus(false);
+        log('🔧 IoT Data Simulator initialized', 'info');
+        log('🎯 To use this with your app:', 'info');
+        log('   1. Start the WebSocket server above', 'info');
+        log('   2. Open your Vue app and navigate to IoT Monitor', 'info');
+        log('   3. Send test data using the buttons above', 'info');
+    </script>
+</body>
+
+</html>
