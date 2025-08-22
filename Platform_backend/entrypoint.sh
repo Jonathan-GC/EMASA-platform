@@ -14,3 +14,4 @@ echo "✅ Fixtures cargadas correctamente."
 
 # Ejecuta el comando final (por defecto el runserver)
 exec "$@"
+    
