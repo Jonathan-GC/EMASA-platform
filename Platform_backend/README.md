@@ -6,6 +6,9 @@
 
 - [EMASA Platform: Monitor $backend$ 😊](#emasa-platform-monitor-backend-)
   - [Environment variables](#environment-variables)
+    - [Django Settings](#django-settings)
+    - [PostgreSQL Database Settings](#postgresql-database-settings)
+    - [Database Prefix](#database-prefix)
     - [DB Prefix usage ](#db-prefix-usage-)
     - [Default .env template](#default-env-template)
   - [Backend setup](#backend-setup)
@@ -18,22 +21,34 @@
     - [HasPermissionKey](#haspermissionkey)
     - [IsAdminOrIsAuthenticatedReadOnly](#isadminorisauthenticatedreadonly)
   - [Seed data](#seed-data)
-    - [Administration json](#administration-json)
-    - [Infrastructure json](#infrastructure-json)
   - [Special Methods](#special-methods)
     - [Automatic Key creation method](#automatic-key-creation-method)
-    - [Coming soon](#coming-soon)
+    - [Automatic group creation method](#automatic-group-creation-method)
 
 
 ## <a name="env_var">Environment variables</a>
 
-| Name          | Description                                          |
-| ------------- | ---------------------------------------------------- |
-| DEBUG         | Default=False                                        |
-| SECRET_KEY    | Django's secret key                                  |
-| DATABASE_URL  | Url for the used database                            |
-| ALLOWED_HOSTS | If you're testing, you can write here your localhost |
-| DB_PREFIX     | Prefix used in the naming of the DB tables           |
+The following environment variables are used to configure the application:
+
+### Django Settings
+
+* `DJANGO_DEBUG`: Enables debug mode for the Django application. Set to `1` to enable.
+* `DJANGO_SECRET_KEY`: Secret key for the Django application. **Must be changed to a unique and secret value**.
+* `DJANGO_ALLOWED_HOSTS`: Comma-separated list of allowed hosts for the Django application. Set to `*` to allow all hosts.
+
+### PostgreSQL Database Settings
+
+* `POSTGRES_DB`: Name of the PostgreSQL database.
+* `POSTGRES_USER`: Username for the PostgreSQL database.
+* `POSTGRES_PASSWORD`: Password for the PostgreSQL database.
+* `POSTGRES_HOST`: Hostname or IP address of the PostgreSQL database.
+* `POSTGRES_PORT`: Port number for the PostgreSQL database.
+
+### Database Prefix
+
+* `DB_PREFIX`: Prefix for the database tables. Set to `monitor_test_` for testing purposes.
+
+**Note**: These environment variables are used to configure the application and should be set accordingly. The `DJANGO_SECRET_KEY` should be kept secret and not committed to version control.
 
 ### <a name="db_prefix">DB Prefix usage </a>
 
@@ -44,11 +59,16 @@
 This file should be created where your manage.py file is located, **please don't forget to modify the fields according to your needs**.
 
 ```ini
-DEBUG=True 
-SECRET_KEY=your_secret_key
-DATABASE_URL=postgres://user:password@localhost:5432/test_db # Adjust this to your needs, if it doesn't work, change postgres for postgresql or your port, check the docker-compose.yml file
-DB_PREFIX=test_monitor_ # See DB Prefix usage for more information
-ALLOWED_HOSTS=127.0.0.1, localhost
+DJANGO_DEBUG=1
+DJANGO_SECRET_KEY=switch-to-a-super-secret-one
+DJANGO_ALLOWED_HOSTS=*
+
+POSTGRES_DB=appdb
+POSTGRES_USER=appuser
+POSTGRES_PASSWORD=apppass
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+DB_PREFIX=monitor_test_
 ```
 
 
@@ -56,7 +76,11 @@ ALLOWED_HOSTS=127.0.0.1, localhost
 
 This is a guide step by step to set up the backend in your environment.
 1. Clone the repository (if from scratch) and checkout to branch **feature/backend**, just in case if this isn't in the main branch yet. If not from scratch, pull and checkout.
-2. Locate with your terminal the `docker-compose.yml` and enter this command:
+2. Give permissions to the `entrypoint.sh` file, just in case:
+```bash
+sudo chmod +x entrypoint.sh
+```
+3. Locate with your terminal the `docker-compose.yml` and enter this command:
 ```bash
 sudo docker compose build
 ```
@@ -64,24 +88,9 @@ And when it's done:
 ```bash
 sudo docker compose up -d
 ```
-3. Check if everything went right with:
+1. Check if everything went right with:
 ```bash
-sudo docker compose logs -f web
-```
-4. Add the seed data to the database, enter the following commands one by one in this order (see [seed data](#seed-data) for more info):
-- Migrate just to be sure
-```bash
-sudo docker compose exec web python manage.py migrate
-```
-- Load the seed data (respect the order):
-```bash
-sudo docker compose exec web python manage.py loaddata fixtures/administration.json
-```
-```bash
-sudo docker compose exec web python manage.py loaddata fixtures/infrastructure.json
-```
-```bash
-sudo docker compose exec web python manage.py loaddata fixtures/keys.json
+sudo docker compose logs -f django_backend
 ```
 
 Next step will be **login** to **/admin/** and check everything.
@@ -131,7 +140,7 @@ This class has two parts, one function (`has_permission()`) and the class itself
 
 In this case, we use a model called PermissionKey, which contains three relevant parts to this manner: the scope, the entity and the action. When you create a key, it follows this naming structure: `<scope>:<entity_id>:<action>` (e.g. `node:22:get`). It connects to the user through `WorkspaceMembership`, `Role` and `RolePermission`. `RolePermission` stores `Role` and it's `PermissionKey`, and `WorkspaceMembership` stores `User`,`Role` and `Workspace`.
 
-<"diagram pic">
+<iframe width="768" height="496" src="https://miro.com/app/live-embed/uXjVJat8v5k=/?focusWidget=3458764635787706402&embedMode=view_only_without_ui&embedId=331675989933" frameborder="0" scrolling="no" allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
 
 To use this permission class, you have to make sure to put it in your viewset, in `permission_classes`, it already includes `IsAuthenticated` and `IsAdminUser` permissions. 
 
@@ -155,23 +164,9 @@ Otherwise, the method returns False, permission wil be denied.
 
 ## Seed data
 
-This data is for developing purposes only! ‼️‼️‼️
+This seed data is for developing purposes only! ‼️‼️‼️
 
-Contained in the json files located in 📂fixtures, it's a set test data.
-
-### Administration json
-
-Contains mostly administration purposes data:
-
-|Type|Quantity|
-|----|----|
-|Region| 1|
-|Superuser|1|
-|Organizations|2|
-|Roles|4|
-|Workspaces|3|
-|Users|4|
-|Permission Keys| A LOT|
+Contained in the json files located in 📂fixtures, it's a set test data. It is structured to work along with uplinks and downlinks in chirpstack. The data loaded contains every basic model for testing and frontend purposes.
 
 User account/pass relation classified by role, organization and workspace:
 
@@ -183,20 +178,6 @@ User account/pass relation classified by role, organization and workspace:
 |tec_admin|estrellita123|Tecnobot|Admin|Principal|
 |tec_employee|estrellita123|Tecnobot|Sin rol|Principal|
 
-1 Additional workspace: Tecnobot (emasa side).
-
-### Infrastructure json
-
-Infrastructure seed data
-
-|Type|Quantity|
-|---|---|
-|Machines|4|
-|Services|4|
-|Nodes|8|
-|Gateways|4|
-|NodeTypes|4|
-
 ## Special Methods
 
 This is a list of special methods and endpoints (☝️🤓 Implemented), it details each method or endpoint with it's usage and purposes.
@@ -207,6 +188,8 @@ Implemented with a Mixin: PermissionKeyMixin. This mixin creates any basic key f
 
 NOTE: This method doesn't need an endpoint.
 
-### Coming soon
+### Automatic group creation method
+
+For usable purposes, it's not needed to manually create a group through django's shell or django admin, when you create a Tenant, the `group` attribute will correspond to the name of the group automatically created, so, make sure to get this right.
 
 ...
