@@ -8,10 +8,11 @@ routers = routers.DefaultRouter()
 
 routers.register(r'gateway', views.GatewayViewSet)
 routers.register(r'machine', views.MachineViewSet)
-routers.register(r'node-type', views.NodeTypeViewSet)
-routers.register(r'node', views.NodeViewSet)
-routers.register(r'service', views.ServiceViewSet)
+routers.register(r'type', views.TypeViewSet)
+routers.register(r'device', views.DeviceViewSet)
+routers.register(r'application', views.ApplicationViewSet)
+routers.register(r'location', views.LocationViewSet)
 
 urlpatterns = [
-    path('api/v1/', include(routers.urls)),
+    path('', include(routers.urls)),
 ]

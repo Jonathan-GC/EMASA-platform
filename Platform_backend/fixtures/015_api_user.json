@@ -1,0 +1,26 @@
+[
+  {
+    "model": "chirpstack.apiuser",
+    "pk": 1,
+    "fields": {
+      "api_id": "api_id_placeholder",
+      "email": "emasa_tech@email.com",
+      "password": "",
+      "is_admin": true,
+      "is_active": true,
+      "note": "None"
+    }
+  },
+  {
+    "model": "chirpstack.apiuser",
+    "pk": 2,
+    "fields": {
+      "api_id": "api_id_placeholder",
+      "email": "tecnobot_plant@email.com",
+      "password": "",
+      "is_admin": true,
+      "is_active": true,
+      "note": "None"
+    }
+  }
+]

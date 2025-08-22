@@ -13,5 +13,5 @@ routers.register(r'role-permission', views.RolePermissionViewSet)
 
 
 urlpatterns = [
-    path('api/v1/', include(routers.urls)),
+    path('', include(routers.urls)),
 ]

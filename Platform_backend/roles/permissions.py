@@ -2,7 +2,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from .models import PermissionKey
 import logging
 
-ADMIN_SCOPES = ["permission_key", "role", "workspace", "role_permission"]
+TENANT_ADMIN_SCOPES = ["role", "workspace", "role_permission"]
 
 logger = logging.getLogger(__name__)
 
@@ -25,17 +25,23 @@ def has_permission(user, scope, action, obj=None):
     )
 
     if user.is_superuser:
+        # Superuser allways has permission
         logger.warning("User is superuser, granting permission")
         return True
 
-    if not user.is_authenticated or not user.workspacemembership_set.exists():
-        logger.warning("User not authenticated or has no workspace memberships")
+    if not user.is_authenticated:
+        logger.warning("User is not authenticated")
         return False
 
     membership = user.workspacemembership_set.first()
+
+    
+
     if not membership:
+        # User must have a workspace membership
         logger.warning("User has no workspace memberships")
         return False
+    
     role = membership.role
 
     if isinstance(action, list):
@@ -52,52 +58,88 @@ def has_permission(user, scope, action, obj=None):
     group = user.groups.first()
 
     is_internal = getattr(group, "name", None) == "EMASA"
+    admin_status = membership.role.is_admin
 
     if not is_internal and obj:
-        obj_org = getattr(getattr(obj, "workspace", None), "organization", None)
+        # Check if the object is in the same organization as the user, if not from EMASA
+        try:
+            obj_org = getattr(getattr(obj, "workspace", None), "organization", None)
+        except Exception as e:
+            logger.exception(f"Exception occurred while getting organization: {e}")
+            obj_org = None
         if obj_org and obj_org != membership.workspace.organization:
             logger.warning("Organization mismatch")
             return False
 
-    if membership.role.is_admin and scope in ADMIN_SCOPES:
-        logger.warning("User is admin, granting permission")
+    if admin_status and scope in TENANT_ADMIN_SCOPES:
+        # Tenant (EMASA included) admin has permissions, see TENANT_ADMIN_SCOPES for details
+        logger.warning("User is a tenant admin, granting permission")
         return True
 
     valid_actions = action if isinstance(action, list) else [action]
 
     for key in keys:
+        # Check each found key
         if key.scope == scope and key.key_type in valid_actions:
+            # Check if the key is valid
             logger.warning(f"Checking key: {key.code}")
             parts = key.code.split(":")
             if obj:
+                # Check if the object matches the key
                 if any(
                     [
-                        key.node_id == getattr(obj, "id", None),
+                        key.device_id == getattr(obj, "id", None),
                         key.gateway_id == getattr(obj, "id", None),
                         key.machine_id == getattr(obj, "id", None),
-                        key.service_id == getattr(obj, "id", None),
+                        key.application_id == getattr(obj, "id", None),
                         key.user_id == getattr(obj, "id", None),
                         key.role_id == getattr(obj, "id", None),
                         (
                             key.workspace_id == getattr(obj, "id", None)
+                            if admin_status
+                            else False
+                        ),
+                        (
+                            key.tenant_id == getattr(obj, "id", None)
                             if is_internal
                             else False
                         ),
                         (
-                            key.organization_id == getattr(obj, "id", None)
+                            key.location_id == getattr(obj, "id", None)
                             if is_internal
                             else False
                         ),
                         (
-                            key.region_id == getattr(obj, "id", None)
+                            key.device_profile_id == getattr(obj, "id", None)
+                            if is_internal
+                            else False
+                        ),
+                        (
+                            key.device_profile_template_id == getattr(obj, "id", None)
+                            if is_internal
+                            else False
+                        ),
+                        (
+                            key.api_user_id == getattr(obj, "id", None)
+                            if is_internal
+                            else False
+                        ),
+                        (
+                            key.tenant_user_id == getattr(obj, "id", None)
+                            if is_internal
+                            else False
+                        ),
+                        (
+                            key.type_id == getattr(obj, "id", None)
                             if is_internal
                             else False
                         ),
                     ]
                 ):
                     logger.warning("User has permission based on object")
+                    # At this point the user has permission based on the object
                     return True
-            # If the permission key code is in the format 'scope:*:action', it grants permission for all objects in that scope and action.
+            # If the permission key code is in the format 'scope:*:action', it grants permission for all objects in that scope and action. (rarely used)
             elif len(parts) == 3 and parts[1] == "*":
                 logger.warning("User has global permission based on scope and action")
                 return True
@@ -139,6 +181,7 @@ class IsAdminOrIsAuthenticatedReadOnly(BasePermission):
     """
     Permission class that allows access to authenticated users for safe (read-only) methods,
     and grants full access to superusers for all methods.
+    This permission is intended for automatic models such as permission keys or super-admin purposes.
     """
 
     def has_permission(self, request, view):

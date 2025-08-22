@@ -26,10 +26,11 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('users/', include('users.urls')),
-    path('roles/', include('roles.urls')),
-    path('organizations/', include('organizations.urls')),
-    path('infrastructure/', include('infrastructure.urls')),
+    path('api/v1/users/', include('users.urls')),
+    path('api/v1/roles/', include('roles.urls')),
+    path('api/v1/organizations/', include('organizations.urls')),
+    path('api/v1/infrastructure/', include('infrastructure.urls')),
+    path('api/v1/chirpstack/', include('chirpstack.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

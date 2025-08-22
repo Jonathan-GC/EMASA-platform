@@ -1,15 +1,16 @@
 from django.contrib import admin
-from .models import Workspace, Organization, Region
+
+from .models import Workspace, Tenant, Subscription
 
 class WorkspaceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
+    list_display = ('name', 'tenant')
 
-class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
+class TenantAdmin(admin.ModelAdmin):
+    list_display = ('name',)
 
-class RegionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('name',)
 
 admin.site.register(Workspace, WorkspaceAdmin)
-admin.site.register(Organization)
-admin.site.register(Region)
+admin.site.register(Tenant, TenantAdmin)
+admin.site.register(Subscription, SubscriptionAdmin)

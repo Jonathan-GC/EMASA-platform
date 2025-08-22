@@ -28,8 +28,7 @@ class UserViewSet(ModelViewSet, PermissionKeyMixin):
         serializer = PermissionKeySerializer(permission_keys, many=True)
         return self.get_paginated_response(serializer.data)
 
-        # CORREGIR
-
+        # TODO: CORREGIR
     
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
     def regenerate_permission_keys(self, request, pk=None):
@@ -43,4 +42,28 @@ class UserViewSet(ModelViewSet, PermissionKeyMixin):
         )
         serializer = PermissionKeySerializer(permission_keys, many=True)
 
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+    def set_user_image(self, request, pk=None):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    
+    @action (detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+    def disable_user(self, request, pk=None):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action (detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+    def enable_user(self, request, pk=None):
+        instance = self.get_object()
+        instance.is_active = True
+        instance.save()
+        serializer = self.get_serializer(instance)
         return Response(serializer.data)

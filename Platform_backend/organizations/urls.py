@@ -7,9 +7,9 @@ from . import views
 routers = routers.DefaultRouter()
 
 routers.register(r'workspace', views.WorkspaceViewSet)
-routers.register(r'organization', views.OrganizationViewSet)
-routers.register(r'region', views.RegionViewSet)
+routers.register(r'tenant', views.TenantViewSet)
+routers.register(r'subscription', views.SubscriptionViewSet)
 
 urlpatterns = [
-    path('api/v1/', include(routers.urls)),
+    path('', include(routers.urls)),
 ]
