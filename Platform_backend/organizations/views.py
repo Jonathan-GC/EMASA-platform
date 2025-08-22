@@ -1,15 +1,13 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAdminUser
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.contrib.auth.models import Group
 
-from .models import Workspace, Organization, Region
-from .serializers import WorkspaceSerializer, OrganizationSerializer, RegionSerializer
+from .models import Workspace, Tenant, Subscription
+from .serializers import WorkspaceSerializer, TenantSerializer, SubscriptionSerializer
 
 from roles.permissions import IsAdminOrIsAuthenticatedReadOnly, HasPermissionKey
 from roles.mixins import PermissionKeyMixin
-
-from rest_framework.decorators import action
-from rest_framework.response import Response
-
 from roles.models import PermissionKey
 from roles.serializers import PermissionKeySerializer
 
@@ -37,26 +35,51 @@ class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         
         return Response(serializer.data)
 
-class OrganizationViewSet(viewsets.ModelViewSet):
-    queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
-    permission_classes = [IsAdminOrIsAuthenticatedReadOnly]
-
-
-class RegionViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
-    queryset = Region.objects.all()
-    serializer_class = RegionSerializer
+class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+    queryset = Tenant.objects.all()
+    serializer_class = TenantSerializer
     permission_classes = [HasPermissionKey]
-    scope = "region"
+    scope = "tenant"
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="region")
+        self.create_permission_keys(instance, scope="tenant")
+
+        group_name = instance.group
+        group, created = Group.objects.get_or_create(name=group_name)
+
+        if created:
+            print(f"Se ha creado el grupo: {group_name}")
 
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
     def regenerate_permission_keys(self, request, pk=None):
         instance = self.get_object()
-        scope = "region"
+        scope = "tenant"
+
+        self.create_permission_keys(instance, scope)
+
+        permission_keys = PermissionKey.objects.filter(
+            **{self.scope_field_map[scope]: instance}
+        )
+        serializer = PermissionKeySerializer(permission_keys, many=True)
+        
+        return Response(serializer.data)
+
+
+class SubscriptionViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+    queryset = Subscription.objects.all()
+    serializer_class = SubscriptionSerializer
+    permission_classes = [HasPermissionKey]
+    scope = "subscription"
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        self.create_permission_keys(instance, scope="subscription")
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
+    def regenerate_permission_keys(self, request, pk=None):
+        instance = self.get_object()
+        scope = "subscription"
 
         self.create_permission_keys(instance, scope)
 

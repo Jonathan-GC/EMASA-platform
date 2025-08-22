@@ -1,0 +1,1 @@
+[{"model": "infrastructure.gateway", "pk": 1, "fields": {"api_id": "api_id_placeholder", "name": "Gateway planta Norte", "description": "Gateway principal de la planta Norte", "stats_interval": 30, "location": 1, "workspace": 3}}]

@@ -13,8 +13,7 @@ class PermissionKeyViewSet(viewsets.ModelViewSet):
 
     queryset = PermissionKey.objects.all()
     serializer_class = PermissionKeySerializer
-    permission_classes = [HasPermissionKey]
-    scope = "pemission_key"
+    permission_classes = [IsAdminOrIsAuthenticatedReadOnly]
 
 
 class RoleViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
@@ -56,11 +55,28 @@ class WorkspaceMembershipViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     permission_classes = [HasPermissionKey]
     scope = "workspace"
 
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        self.create_permission_keys(instance, scope="workspace")
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
+    def regenerate_permission_keys(self, request, pk=None):
+        instance = self.get_object()
+        scope = "workspace"
+
+        self.create_permission_keys(instance, scope)
+
+        permission_keys = PermissionKey.objects.filter(
+            **{self.scope_field_map[scope]: instance}
+        )
+        serializer = PermissionKeySerializer(permission_keys, many=True)
+        
+        return Response(serializer.data)
+
 class RolePermissionViewSet(viewsets.ModelViewSet):
 
     queryset = RolePermission.objects.all()
     serializer_class = RolePermissionSerializer
-    permission_classes = [HasPermissionKey]
-    scope = "role_permission"
+    permission_classes = [IsAdminOrIsAuthenticatedReadOnly]
 
         

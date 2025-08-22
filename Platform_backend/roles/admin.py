@@ -8,7 +8,7 @@ class WorkspaceMembershipAdmin(admin.ModelAdmin):
     list_display = ('id',)
 
 class PermissionKeyAdmin(admin.ModelAdmin):
-    list_display = ('id', 'code', 'scope', 'key_type')
+    list_display = ('id', 'code')
 
 class RolePermissionAdmin(admin.ModelAdmin):
     list_display = ('id',)

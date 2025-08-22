@@ -1,4 +1,4 @@
-from .models import Workspace, Organization, Region
+from .models import Workspace, Tenant, Subscription
 from rest_framework import serializers
 
 
@@ -8,12 +8,12 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class OrganizationSerializer(serializers.ModelSerializer):
+class TenantSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Organization
+        model = Tenant
         fields = '__all__'
 
-class RegionSerializer(serializers.ModelSerializer):
+class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Region
+        model = Subscription
         fields = '__all__'

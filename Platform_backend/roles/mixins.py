@@ -5,17 +5,23 @@ class PermissionKeyMixin:
     default_actions = ["get", "get_by_id", "post", "put", "delete"]
 
     scope_field_map = {
-        "node": "node",
         "machine": "machine",
-        "service": "service",
         "user": "user",
         "role": "role",
         "workspace": "workspace",
-        "organization": "organization",
-        "region": "region",
         "permission_key": "permission_key",
         "gateway": "gateway",
         "role_permission": "role_permission",
+        "device_profile": "device_profile",
+        "device_profile_template": "device_profile_template",
+        "api_user": "api_user",
+        "tenant_user": "tenant_user",
+        "type": "type",
+        "subscription": "subscription",
+        "location": "location",
+        "device": "device",
+        "application": "application",
+        "tenant": "tenant",
     }
 
     @transaction.atomic

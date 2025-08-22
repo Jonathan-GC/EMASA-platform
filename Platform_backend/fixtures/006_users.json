@@ -1,0 +1,110 @@
+[
+    {
+    "model": "users.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T15:58:34Z",
+      "code": "admin_1",
+      "img": "img_url",
+      "first_name": "Alberto",
+      "middle_name": "Colt",
+      "last_name": "Rodriguez Smith",
+      "email": "alberto.colt@gmail.com",
+      "phone": "3001234567",
+      "address": "AC Av 1 RS Cll 2 12-3",
+      "username": "emasa_admin",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [1],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T16:01:12Z",
+      "code": "employee_1",
+      "img": "img_url",
+      "first_name": "Jhon",
+      "middle_name": "Otoniel",
+      "last_name": "Oppenheimer Gutierrez",
+      "email": "jhon.otoniel@gmail.com",
+      "phone": "3008910111",
+      "address": "JO Av 1 OG Cll 2 12-3",
+      "username": "emasa_employee",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [1],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 4,
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T16:05:02Z",
+      "code": "admin_tec_1",
+      "img": "img_url",
+      "first_name": "Eduardo",
+      "middle_name": "Steven",
+      "last_name": "White Perez",
+      "email": "eduardo.steven@gmail.com",
+      "phone": "3001213141",
+      "address": "ES Av 1 WP Cll 2 12-3",
+      "username": "tec_admin",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [2],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 5,
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T16:06:54Z",
+      "code": "employee_tec_1",
+      "img": "img_url",
+      "first_name": "Igor",
+      "middle_name": "Guantanamero",
+      "last_name": "Morgan Jimenez",
+      "email": "igor.guantanamero@gmail.com",
+      "phone": "3001516171",
+      "address": "IG Av 1 MJ Cll 2 12-3",
+      "username": "tec_employee",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [2],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": 1,
+    "fields": { "workspace": 1, "user": 2, "role": 4 }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": 2,
+    "fields": { "workspace": 1, "user": 3, "role": 1 }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": 3,
+    "fields": { "workspace": 3, "user": 4, "role": 5 }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": 4,
+    "fields": { "workspace": 3, "user": 5, "role": 3 }
+  }
+]

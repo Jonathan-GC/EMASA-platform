@@ -13,8 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
             "code",
             "username",
             "email",
-            "first_name",
-            "middle_name",
+            "name",
             "last_name",
             "is_active",
             "is_staff",
@@ -37,15 +36,14 @@ class UserSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate_names_and_last_names(self, value):
+    def validate_name_and_last_name(self, value):
         """
-        Validates that the first name, middle name and last name contain only letters.
+        Validates that the name and last name contain only letters.
         Raises a ValidationError if any of them contain numbers or special characters.
         """
         user = User.objects.filter(username=value)
         if (
-            not user.first_name.isalpha()
-            or not user.middle_name.isalpha()
+            not user.name.isalpha()
             or not user.last_name.isalpha()
         ):
             raise serializers.ValidationError(

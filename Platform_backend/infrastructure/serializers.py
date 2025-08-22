@@ -1,4 +1,4 @@
-from .models import Machine, NodeType, Node, Service, Gateway
+from .models import Machine, Type, Device, Application, Gateway, Location
 from rest_framework import serializers
 
 
@@ -7,22 +7,27 @@ class MachineSerializer(serializers.ModelSerializer):
         model = Machine
         fields = "__all__"
 
-class NodeTypeSerializer(serializers.ModelSerializer):
+class TypeSerializer(serializers.ModelSerializer):
     class Meta:
-        model = NodeType
+        model = Type
         fields = "__all__"
 
-class NodeSerializer(serializers.ModelSerializer):
+class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Node
+        model = Device
         fields = "__all__"
 
-class ServiceSerializer(serializers.ModelSerializer):
+class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Service
+        model = Application
         fields = "__all__"
 
 class GatewaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Gateway
+        fields = "__all__"
+
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
         fields = "__all__"

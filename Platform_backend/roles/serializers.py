@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from .models import Role, WorkspaceMembership, PermissionKey, RolePermission
-from users.models import User
-from organizations.models import Workspace
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -11,7 +9,7 @@ class RoleSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Role
-        fields = ['id', 'name', 'description', 'color', 'workspace', 'is_admin']
+        fields = "__all__"
 
     def validate_name(self, value):
         """
@@ -76,14 +74,19 @@ class PermissionKeySerializer(serializers.ModelSerializer):
         """
         scope = attrs.get('scope')
         required_fields = {
-            'user': 'user',
-            'service': 'service',
-            'machine': 'machine',
-            'node': 'node',
-            'role': 'role',
-            'workspace': 'workspace',
-            'organization': 'organization',
-            'region': 'region',
+            'device': 'device_id',
+            'machine': 'machine_id',
+            'application': 'application_id',
+            'user': 'user_id',
+            'role': 'role_id',
+            'workspace': 'workspace_id',
+            'tenant': 'tenant_id',
+            'location': 'location_id',
+            'gateway': 'gateway_id',
+            'device_profile': 'device_profile_id',
+            'device_profile_template': 'device_profile_template_id',
+            'api_user': 'api_user_id',
+            'tenant_user': 'tenant_user_id',
         }
         required_field = required_fields.get(scope)
         if required_field and not attrs.get(required_field):
