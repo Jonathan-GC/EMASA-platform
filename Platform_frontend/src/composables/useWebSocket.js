@@ -4,7 +4,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
  * WebSocket composable for IoT data connection
  * Handles connection, reconnection, and data processing
  */
-export function useWebSocket(url = 'ws://localhost/ws') {
+export function useWebSocket(url = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:8765') {
     const isConnected = ref(false)
     const websocket = ref(null)
     const reconnectAttempts = ref(0)

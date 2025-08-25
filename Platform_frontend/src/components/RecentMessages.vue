@@ -39,7 +39,15 @@ defineProps({
 // Helper functions
 const formatTime = (timestamp) => {
   try {
-    return format(new Date(timestamp), 'HH:mm:ss')
+    // Convertir timestamp a zona horaria local explícitamente
+    const date = new Date(timestamp)
+    // Usar toLocaleTimeString para forzar zona horaria local
+    return date.toLocaleTimeString('es-ES', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      hour12: false 
+    })
   } catch {
     return 'N/A'
   }
