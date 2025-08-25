@@ -213,6 +213,25 @@ class API {
         }
     }
 
+    async patch(endpoint, data, headers = {}) {
+        try {
+            const response = await fetch(this.API_BASE_URL + `${endpoint}`, {
+                method: 'PATCH',
+                credentials: "include",
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...headers
+                },
+                body: JSON.stringify(data)
+            });
+
+            return await this.handleResponse(response, endpoint);
+        } catch (error) {
+            console.error(`Error putting to ${endpoint}:`, error);
+            throw error;
+        }
+    }
+
     async delete(endpoint, headers = {}) {
         try {
             const response = await fetch(this.API_BASE_URL + `${endpoint}`, {
@@ -248,3 +267,4 @@ export default API.getInstance()
 
 
 
+import API from '@utils/api/api.js';
