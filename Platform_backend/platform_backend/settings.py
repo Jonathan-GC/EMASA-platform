@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 import environ
 import os
 from datetime import timedelta
@@ -31,6 +32,17 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = env('DJANGO_DEBUG')
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['*'])
 
+ACCESS_TOKEN_DURATION = config(
+    'ACCESS_TOKEN_DURATION', 
+    default=5, 
+    cast=int
+)
+
+REFRESH_TOKEN_DURATION = config(
+    'REFRESH_TOKEN_DURATION', 
+    default=30, 
+    cast=int
+)
 
 # Application definition
 
