@@ -1,0 +1,40 @@
+[
+  {
+    "model": "chirpstack.apiuser",
+    "pk": 1,
+    "fields": {
+      "cs_user_id": "api_id_placeholder",
+      "email": "emasa_tech@email.com",
+      "password": "",
+      "is_admin": true,
+      "is_active": true,
+      "note": "None",
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "tenant":2,
+      "is_tenant_admin":true,
+      "is_tenant_device_admin":true,
+      "is_tenant_gateway_admin":true
+    }
+  },
+  {
+    "model": "chirpstack.apiuser",
+    "pk": 2,
+    "fields": {
+      "cs_user_id": "api_id_placeholder",
+      "email": "tecnobot_plant@email.com",
+      "password": "",
+      "is_admin": true,
+      "is_active": true,
+      "note": "None",
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "tenant":2,
+      "is_tenant_admin":true,
+      "is_tenant_device_admin":true,
+      "is_tenant_gateway_admin":true
+    }
+  }
+]

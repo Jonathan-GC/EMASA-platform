@@ -1,4 +1,4 @@
-from .models import DeviceProfile, DeviceProfileTemplate, ApiUser, TenantUser
+from .models import DeviceProfile, DeviceProfileTemplate, ApiUser
 from rest_framework import serializers
 
 
@@ -18,10 +18,3 @@ class ApiUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApiUser
         fields = '__all__'
-
-
-class TenantUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TenantUser
-        fields = '__all__'
-
