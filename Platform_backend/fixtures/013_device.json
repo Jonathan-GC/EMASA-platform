@@ -1,0 +1,70 @@
+[
+  {
+    "model": "infrastructure.device",
+    "pk": 1,
+    "fields": {
+      "name": "Voltage Intake",
+      "description": "Voltage Intake generador principal",
+      "dev_eui": "dev_eui",
+      "machine": 1,
+      "workspace": 3,
+      "device_type": 1,
+      "device_profile": 2,
+      "application": 1,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  },
+  {
+    "model": "infrastructure.device",
+    "pk": 2,
+    "fields": {
+      "name": "Voltage Intake",
+      "description": "Voltage Intake bomba estanque 1",
+      "dev_eui": "dev_eui",
+      "machine": 2,
+      "workspace": 3,
+      "device_type": 1,
+      "device_profile": 2,
+      "application": 1,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  },
+  {
+    "model": "infrastructure.device",
+    "pk": 3,
+    "fields": {
+      "name": "Core temperature",
+      "description": "Core temperature generador principal",
+      "dev_eui": "dev_eui",
+      "machine": 1,
+      "workspace": 3,
+      "device_type": 2,
+      "device_profile": 1,
+      "application": 2,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  },
+  {
+    "model": "infrastructure.device",
+    "pk": 4,
+    "fields": {
+      "name": "Water Temperature",
+      "description": "Water temperature estanque 1",
+      "dev_eui": "dev_eui",
+      "machine": 2,
+      "workspace": 3,
+      "device_type": 2,
+      "device_profile": 1,
+      "application": 2,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  }
+]

@@ -1,1 +1,0 @@
-[{"model": "chirpstack.tenantuser", "pk": 1, "fields": {"api_id": "api_id_placeholder", "user": 1, "tenant": 1, "is_admin": true, "is_device_admin": true, "is_gateway_admin": true}}, {"model": "chirpstack.tenantuser", "pk": 2, "fields": {"api_id": "api_id_placeholder", "user": 2, "tenant": 2, "is_admin": true, "is_device_admin": true, "is_gateway_admin": true}}]

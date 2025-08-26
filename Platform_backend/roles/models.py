@@ -4,7 +4,7 @@ from django.db import models
 from users.models import User
 from organizations.models import Workspace, Tenant, Subscription
 from infrastructure.models import Device, Machine, Application, Gateway, Location, Type
-from chirpstack.models import DeviceProfile, DeviceProfileTemplate, ApiUser, TenantUser
+from chirpstack.models import DeviceProfile, DeviceProfileTemplate, ApiUser
 
 
 class Role(models.Model):
@@ -55,7 +55,6 @@ class PermissionKey(models.Model):
             ("device_profile", "DeviceProfile"),
             ("device_profile_template", "DeviceProfileTemplate"),
             ("api_user", "ApiUser"),
-            ("tenant_user", "TenantUser"),
             ("type", "Type"),
             ("subscription", "Subscription"),
         ],
@@ -100,9 +99,6 @@ class PermissionKey(models.Model):
     api_user = models.ForeignKey(
         ApiUser, on_delete=models.CASCADE, null=True, blank=True
     )
-    tenant_user = models.ForeignKey(
-        TenantUser, on_delete=models.CASCADE, null=True, blank=True
-    )
     type = models.ForeignKey(Type, on_delete=models.CASCADE, null=True, blank=True)
     subscription = models.ForeignKey(
         Subscription, on_delete=models.CASCADE, null=True, blank=True
@@ -131,7 +127,6 @@ class PermissionKey(models.Model):
             or self.device_profile_id
             or self.device_profile_template_id
             or self.api_user_id
-            or self.tenant_user_id
             or self.subscription_id
             or self.type_id
             or "*"

@@ -1,1 +1,17 @@
-[{"model": "infrastructure.gateway", "pk": 1, "fields": {"api_id": "api_id_placeholder", "name": "Gateway planta Norte", "description": "Gateway principal de la planta Norte", "stats_interval": 30, "location": 1, "workspace": 3}}]
+[
+  {
+    "model": "infrastructure.gateway",
+    "pk": 1,
+    "fields": {
+      "cs_gateway_id": "api_id_placeholder",
+      "name": "Gateway planta Norte",
+      "description": "Gateway principal de la planta Norte",
+      "stats_interval": 30,
+      "location": 1,
+      "workspace": 3,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  }
+]

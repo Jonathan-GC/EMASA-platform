@@ -11,13 +11,23 @@ class Subscription(models.Model):
         return self.name
 
 class Tenant(models.Model):
-    api_id=models.CharField(max_length=30)
+    cs_tenant_id=models.CharField(max_length=36)
     name = models.CharField(max_length=90)
     img = models.CharField(max_length=255, blank=True, null=True)
-    suscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
     group = models.CharField(max_length=30)
     description = models.CharField(max_length=255, blank=True, null=True)
-
+    sync_status = models.CharField(
+        default=False,
+        choices=[
+            ("PENDING", "Pending"),
+            ("SYNCED", "Synced"),
+            ("ERROR", "Error")
+            ],
+        max_length=30,
+    )
+    sync_error = models.CharField(max_length=255, blank=True, null=True)
+    last_synced_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return self.name
     
