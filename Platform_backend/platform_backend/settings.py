@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+from decouple import config
 import environ
 import os
 from datetime import timedelta
@@ -32,6 +33,17 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = env('DJANGO_DEBUG')
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['*'])
 
+ACCESS_TOKEN_DURATION = config(
+    'ACCESS_TOKEN_DURATION', 
+    default=5, 
+    cast=int
+)
+
+REFRESH_TOKEN_DURATION = config(
+    'REFRESH_TOKEN_DURATION', 
+    default=30, 
+    cast=int
+)
 ACCESS_TOKEN_DURATION = config(
     'ACCESS_TOKEN_DURATION', 
     default=5, 
@@ -64,11 +76,13 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     "corsheaders",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -164,8 +178,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env('ACCESS_TOKEN_DURATION')), # Minutes
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=env('REFRESH_TOKEN_DURATION')), # Days
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=ACCESS_TOKEN_DURATION), # Minutes
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=REFRESH_TOKEN_DURATION), # Days
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
