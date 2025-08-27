@@ -8,9 +8,9 @@ export default defineConfig({
   plugins: [
     vue(),
     Components({
-      // Auto import components from these directories
+      // Auto import components from these directories (incluye subcarpetas)
       dirs: [
-        'src/components',
+        'src/components/**',
         'src/layouts'
       ],
 
@@ -23,8 +23,8 @@ export default defineConfig({
         }
       ],
 
-      // No TypeScript definitions for JavaScript project
-      dts: false,
+      // Generar TypeScript definitions para auto-import (necesario incluso en proyectos JS)
+      dts: true,
 
       // Include vue files
       include: [/\.vue$/, /\.vue\?vue/],
