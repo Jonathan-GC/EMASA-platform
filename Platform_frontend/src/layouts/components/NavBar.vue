@@ -61,6 +61,14 @@
           🔋 Batería
         </router-link>
         <router-link 
+          to="/infrastructure/gateways" 
+          class="nav-link"
+          :class="{ active: $route.path === '/gateways' }"
+          @click="closeNavbar"
+        >
+          🛜 Gateways
+        </router-link>
+        <router-link 
           to="/about" 
           class="nav-link"
           :class="{ active: $route.path === '/about' }"
@@ -102,6 +110,7 @@ const closeNavbar = () => {
 
 .nav-container {
   height: 100%;
+  min-height: 100%;
   padding: 0 1rem;
   display: flex;
   flex-direction: column;
@@ -255,7 +264,7 @@ const closeNavbar = () => {
   .nav-container {
     padding: 1rem;
     gap: 2rem;
-    min-height: 100vh;
+    min-height: 100%;
     justify-content: flex-start;
   }
   

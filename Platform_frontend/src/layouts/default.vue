@@ -30,7 +30,7 @@
 .sidebar {
   width: 250px; /* Ancho fijo del sidebar */
   min-width: 250px;
-  height: 100vh; /* Altura completa de la pantalla */
+  height: 100%; /* Altura completa de la pantalla */
   background-color: transparent; /* Sin fondo azul */
   border-right: 1px solid var(--ion-color-light, #f4f5f8);
   overflow-y: auto;
@@ -41,7 +41,7 @@
 .sidebar :deep(.navbar),
 .sidebar :deep(.nav-container) {
   height: 100%;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 .main-content {
