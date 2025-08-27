@@ -4,5 +4,6 @@ export const paths = {
     ABOUT: '/about',
     VOLTAGE: '/voltage',
     CURRENT: '/current',
-    BATERY: '/battery'
+    BATERY: '/battery',
+    GATEWAYS: '/infrastructure/gateways'
 }

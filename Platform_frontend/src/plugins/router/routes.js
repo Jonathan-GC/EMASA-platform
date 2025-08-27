@@ -13,7 +13,8 @@ export const routes = [
             { path: P.ABOUT, component: C.ABOUT },
             { path: P.VOLTAGE, component: C.VOLTAGE },
             { path: P.CURRENT, component: C.CURRENT },
-            { path: P.BATERY, component: C.BATTERY }
+            { path: P.BATERY, component: C.BATTERY },
+            { path: P.GATEWAYS, component: C.GATEWAYS }
         ]
     },
 

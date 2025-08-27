@@ -4,6 +4,6 @@ export const components = {
     ABOUT: () => import('@views/about/index.vue'),
     VOLTAGE: () => import('@views/voltage/index.vue'),
     CURRENT: () => import('@views/current/index.vue'),
-    BATTERY: () => import('@views/battery/index.vue')
-    //VOLTAGE: () => import('@components/MultiVoltageChart.vue')
+    BATTERY: () => import('@views/battery/index.vue'),
+    GATEWAYS: () => import('@views/Infracstructure/gateways/index.vue')
 }
