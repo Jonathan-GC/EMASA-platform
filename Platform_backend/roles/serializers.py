@@ -86,7 +86,8 @@ class PermissionKeySerializer(serializers.ModelSerializer):
             'device_profile': 'device_profile_id',
             'device_profile_template': 'device_profile_template_id',
             'api_user': 'api_user_id',
-            'tenant_user': 'tenant_user_id',
+            'type': 'type_id',
+            'subscription': 'subscription_id',
         }
         required_field = required_fields.get(scope)
         if required_field and not attrs.get(required_field):

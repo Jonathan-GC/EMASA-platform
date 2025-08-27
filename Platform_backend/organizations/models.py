@@ -11,6 +11,18 @@ class Subscription(models.Model):
         return self.name
 
 class Tenant(models.Model):
+    """
+    Chirpstack Tenant creation payload:
+        {
+        "canHaveGateways": true,
+		"description": "string",
+		"maxDeviceCount": 0,
+		"maxGatewayCount": 0,
+		"name": "tecnobot999",
+		"privateGatewaysDown": true,
+		"privateGatewaysUp": true,
+        }
+    """
     cs_tenant_id=models.CharField(max_length=36)
     name = models.CharField(max_length=90)
     img = models.CharField(max_length=255, blank=True, null=True)

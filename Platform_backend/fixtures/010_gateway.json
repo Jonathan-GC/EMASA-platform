@@ -9,6 +9,8 @@
       "stats_interval": 30,
       "location": 1,
       "workspace": 3,
+      "state":"",
+      "last_seen_at": "2023-01-01T00:00:00+00:00",
       "sync_status":"PENDING",
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00"

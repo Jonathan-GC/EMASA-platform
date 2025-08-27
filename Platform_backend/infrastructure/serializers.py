@@ -22,12 +22,14 @@ class ApplicationSerializer(serializers.ModelSerializer):
         model = Application
         fields = "__all__"
 
-class GatewaySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Gateway
-        fields = "__all__"
-
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = "__all__"
+
+class GatewaySerializer(serializers.ModelSerializer):
+    location = LocationSerializer()
+    class Meta:
+        model = Gateway
+        fields = "__all__"
+

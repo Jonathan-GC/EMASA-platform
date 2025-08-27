@@ -13,7 +13,9 @@
       "application": 1,
       "sync_status":"PENDING",
       "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "enabled_activation": false,
+      "activation": ""
     }
   },
   {
@@ -30,7 +32,9 @@
       "application": 1,
       "sync_status":"PENDING",
       "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "enabled_activation": false,
+      "activation": ""
     }
   },
   {
@@ -47,7 +51,9 @@
       "application": 2,
       "sync_status":"PENDING",
       "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "enabled_activation": false,
+      "activation": ""
     }
   },
   {
@@ -64,7 +70,9 @@
       "application": 2,
       "sync_status":"PENDING",
       "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "enabled_activation": false,
+      "activation": ""
     }
   }
 ]
