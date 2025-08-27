@@ -15,7 +15,7 @@
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": ""
+      "activation": null
     }
   },
   {
@@ -34,7 +34,7 @@
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": ""
+      "activation": null
     }
   },
   {
@@ -53,7 +53,7 @@
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": ""
+      "activation": null
     }
   },
   {
@@ -72,7 +72,7 @@
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": ""
+      "activation": null
     }
   }
 ]
