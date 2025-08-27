@@ -10,6 +10,10 @@ from roles.mixins import PermissionKeyMixin
 from roles.models import PermissionKey
 from roles.serializers import PermissionKeySerializer
 
+from chirpstack.chirpstack_api import sync_gateway_chirpstack_creation
+
+import logging
+
 class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Gateway.objects.all()
     serializer_class = GatewaySerializer
@@ -19,6 +23,13 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="gateway")
+
+        sync_response = sync_gateway_chirpstack_creation(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(f"Error al sincronizar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}")
+        else:
+            logging.info(f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack")
     
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
     def regenerate_permission_keys(self, request, pk=None):

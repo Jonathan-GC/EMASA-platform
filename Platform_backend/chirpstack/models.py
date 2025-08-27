@@ -5,6 +5,27 @@ from organizations.models import Tenant
 
 
 class ApiUser(models.Model):
+    """
+        Chirpstack API User payload:
+        {
+            "password": "123",
+            "tenants": [
+                    {
+                            "isAdmin": true,
+                            "isDeviceAdmin": true,
+                            "isGatewayAdmin": true,
+                            "tenantId": "b5adddf6-8ad0-46ca-923c-9a8b13b14304"
+                    }
+            ],
+            "user": {
+                    "email": "user2@tenant.com",
+                    "isActive": true,
+                    "isAdmin": false,
+                    "note": "this a user of the chiprstack default tenant"
+            }
+    }
+    """
+
     cs_user_id = models.CharField(max_length=36)
     email = models.EmailField()
     password = models.CharField(max_length=30)
@@ -17,11 +38,7 @@ class ApiUser(models.Model):
     is_tenant_gateway_admin = models.BooleanField(default=False)
     sync_status = models.CharField(
         default="PENDING",
-        choices=[
-            ("PENDING", "Pending"),
-            ("SYNCED", "Synced"),
-            ("ERROR", "Error")
-            ],
+        choices=[("PENDING", "Pending"), ("SYNCED", "Synced"), ("ERROR", "Error")],
         max_length=30,
     )
     sync_error = models.CharField(max_length=255, blank=True, null=True, default="")
@@ -33,8 +50,9 @@ class ApiUser(models.Model):
 
 class DeviceProfileTemplate(models.Model):
     """
-        This model is not necesary for chirpstack, but we left it to help make device profile creation easier
+    This model is not necesary for chirpstack, but we left it to help make device profile creation easier
     """
+
     name = models.CharField(max_length=30)
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)
@@ -76,11 +94,7 @@ class DeviceProfile(models.Model):
     is_rlay_ed = models.BooleanField(default=False)
     sync_status = models.CharField(
         default="PENDING",
-        choices=[
-            ("PENDING", "Pending"),
-            ("SYNCED", "Synced"),
-            ("ERROR", "Error")
-            ],
+        choices=[("PENDING", "Pending"), ("SYNCED", "Synced"), ("ERROR", "Error")],
         max_length=30,
     )
     sync_error = models.CharField(max_length=255, blank=True, null=True, default="")

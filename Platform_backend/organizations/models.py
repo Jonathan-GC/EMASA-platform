@@ -23,7 +23,7 @@ class Tenant(models.Model):
 		"privateGatewaysUp": true,
         }
     """
-    cs_tenant_id=models.CharField(max_length=36)
+    cs_tenant_id=models.CharField(max_length=36, null=True, blank=True)
     name = models.CharField(max_length=90)
     img = models.CharField(max_length=255, blank=True, null=True)
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)

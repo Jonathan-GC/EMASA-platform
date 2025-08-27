@@ -32,4 +32,10 @@ class GatewaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Gateway
         fields = "__all__"
+    
+    def create(self, validated_data):
+        location_data = validated_data.pop('location')
+        location = Location.objects.create(**location_data)
+        gateway = Gateway.objects.create(location=location, **validated_data)
+        return gateway
 

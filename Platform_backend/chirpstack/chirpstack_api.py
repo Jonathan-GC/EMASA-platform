@@ -19,6 +19,15 @@ HEADERS = {
 
 
 def sync_tenant_chirpstack_creation(tenant):
+    """
+    Syncs a tenant with Chirpstack.
+    
+    Args:
+        tenant (Tenant): a Tenant object
+    
+    Returns:
+        requests.Response: the response from the API
+    """
     payload = {
         "tenant": {
             "name": tenant.name,
@@ -42,4 +51,52 @@ def sync_tenant_chirpstack_creation(tenant):
         tenant.sync_error = response.text
         tenant.last_synced_at = dt.datetime.now()
         tenant.save()
+        return response
+
+def sync_gateway_chirpstack_creation(gateway):
+    """
+    Syncs a gateway with Chirpstack.
+
+    Args:
+        gateway (Gateway): a Gateway object
+
+    Returns:
+        requests.Response: the response from the API
+    """
+    payload = {
+        "gateway": {
+            "gatewayId": gateway.cs_gateway_id,
+            "name": gateway.name,
+            "description": gateway.description,
+            "statsInterval": gateway.stats_interval,
+            "tenantId": gateway.workspace.tenant.cs_tenant_id,
+            "location": {
+                "accuracy": gateway.location.accuracy,
+                "altitude": gateway.location.altitude,
+                "latitude": gateway.location.latitude,
+                "longitude": gateway.location.longitude,
+                "source": gateway.location.source
+            }
+        }
+    }
+    response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
+
+    if response.status_code == 200:
+        response_sync = requests.get(CHIRPSTACK_GATEWAYS_URL, headers=HEADERS, params={"tenant_id": gateway.workspace.tenant.cs_tenant_id, "limit": 100})
+        print(response_sync.json(), response_sync.request.url)
+        data = response_sync.json().get("result", [])
+        for result in data:
+            if result["gatewayId"] == gateway.cs_gateway_id:
+                gateway.state = result["state"]
+                gateway.last_seen_at = result["lastSeenAt"]
+                gateway.sync_status = "SYNCED"
+                gateway.last_synced_at = dt.datetime.now()
+                gateway.save()
+                break
+        return response
+    else:
+        gateway.sync_status = "ERROR"
+        gateway.sync_error = response.text
+        gateway.last_synced_at = dt.datetime.now()
+        gateway.save()
         return response
