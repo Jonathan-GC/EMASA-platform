@@ -21,10 +21,10 @@ HEADERS = {
 def sync_tenant_chirpstack_creation(tenant):
     """
     Syncs a tenant with Chirpstack.
-    
+
     Args:
         tenant (Tenant): a Tenant object
-    
+
     Returns:
         requests.Response: the response from the API
     """
@@ -53,6 +53,7 @@ def sync_tenant_chirpstack_creation(tenant):
         tenant.save()
         return response
 
+
 def sync_gateway_chirpstack_creation(gateway):
     """
     Syncs a gateway with Chirpstack.
@@ -75,14 +76,18 @@ def sync_gateway_chirpstack_creation(gateway):
                 "altitude": gateway.location.altitude,
                 "latitude": gateway.location.latitude,
                 "longitude": gateway.location.longitude,
-                "source": gateway.location.source
-            }
+                "source": gateway.location.source,
+            },
         }
     }
     response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
 
     if response.status_code == 200:
-        response_sync = requests.get(CHIRPSTACK_GATEWAYS_URL, headers=HEADERS, params={"tenant_id": gateway.workspace.tenant.cs_tenant_id, "limit": 100})
+        response_sync = requests.get(
+            CHIRPSTACK_GATEWAYS_URL,
+            headers=HEADERS,
+            params={"tenant_id": gateway.workspace.tenant.cs_tenant_id, "limit": 100},
+        )
         print(response_sync.json(), response_sync.request.url)
         data = response_sync.json().get("result", [])
         for result in data:
@@ -99,4 +104,99 @@ def sync_gateway_chirpstack_creation(gateway):
         gateway.sync_error = response.text
         gateway.last_synced_at = dt.datetime.now()
         gateway.save()
+        return response
+
+
+def sync_api_user_chirpstack_creation(api_user):
+    """
+    Syncs an API user with Chirpstack.
+
+    Args:
+        api_user (APIUser): an APIUser object
+
+    Returns:
+        requests.Response: the response from the API
+    """
+    payload = {
+        "password": api_user.password,
+        "tenants": [
+            {
+                "isAdmin": api_user.is_tenant_admin,
+                "isDeviceAdmin": api_user.is_tenant_device_admin,
+                "isGatewayAdmin": api_user.is_tenant_gateway_admin,
+                "tenantId": api_user.tenant.cs_tenant_id,
+            }
+        ],
+        "user": {
+            "email": api_user.email,
+            "isActive": api_user.is_active,
+            "isAdmin": api_user.is_admin,
+            "note": api_user.note,
+        },
+    }
+    response = requests.post(CHIRPSTACK_API_URL, json=payload, headers=HEADERS)
+
+    if response.status_code == 200:
+        api_id = response.json()["id"]
+        api_user.cs_user_id = api_id
+        api_user.sync_status = "SYNCED"
+        api_user.last_synced_at = dt.datetime.now()
+        api_user.save()
+        return response
+    else:
+        api_user.sync_status = "ERROR"
+        api_user.sync_error = response.text
+        api_user.last_synced_at = dt.datetime.now()
+        api_user.save()
+        return response
+
+
+def sync_device_profile_chirpstack_creation(device_profile):
+    """
+    Syncs a device profile with Chirpstack.
+
+    Args:
+        device_profile (DeviceProfile): a DeviceProfile object
+
+    Returns:
+        requests.Response: the response from the API
+    """
+    payload = {
+        "deviceProfile": {
+            "name": device_profile.name,
+            "region": device_profile.region,
+            "macVersion": device_profile.mac_version,
+            "regParamRevision": device_profile.reg_param_revision,
+            "supportsOtaa": device_profile.supports_otaa,
+            "abpRx1Delay": device_profile.abp_rx1_delay,
+            "abpRx1DrOffset": device_profile.abp_rx1_dr_offset,
+            "abpRx2Dr": device_profile.abp_rx2_dr,
+            "abpRx2Freq": device_profile.abp_rx2_freq,
+            "supportsClassB": device_profile.supports_class_b,
+            "supportsClassC": device_profile.supports_class_c,
+            "payloadCodecRuntime": device_profile.payload_codec_runtime,
+            "isRelay": device_profile.is_rlay,
+            "isRelayEd": device_profile.is_rlay_ed,
+            "tenantId": device_profile.tenant.cs_tenant_id
+        }
+    }
+    response = requests.post(
+        CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
+    )
+    print(response.request.url, response.request.body)
+    
+    if response.status_code == 200:
+        api_id = response.json()["id"]
+        device_profile.cs_device_profile_id = api_id
+        device_profile.sync_status = "SYNCED"
+        device_profile.last_synced_at = dt.datetime.now()
+        device_profile.save()
+        print(response.json())
+        return response
+    else:
+        device_profile.sync_status = "ERROR"
+        device_profile.sync_error = response.text
+        device_profile.last_synced_at = dt.datetime.now()
+        device_profile.save()
+        print(response.text)
         return response

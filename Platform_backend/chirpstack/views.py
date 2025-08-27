@@ -9,6 +9,9 @@ from roles.mixins import PermissionKeyMixin
 from roles.models import PermissionKey
 from roles.serializers import PermissionKeySerializer
 
+from chirpstack.chirpstack_api import sync_api_user_chirpstack_creation, sync_device_profile_chirpstack_creation
+
+import logging
 
 # Create your views here.
 
@@ -21,6 +24,13 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="device_profile")
+
+        sync_response = sync_device_profile_chirpstack_creation(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(f"Error al sincronizar el device_profile {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}")
+        else:
+            logging.info(f"Se ha sincronizado el device_profile {instance.cs_device_profile_id} - {instance.name} con Chirpstack")
 
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
     def regenerate_permission_keys(self, request, pk=None):
@@ -71,6 +81,13 @@ class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="api_user")
+
+        sync_response = sync_api_user_chirpstack_creation(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(f"Error al sincronizar el api_user {instance.email} con Chirpstack: {sync_response.status_code} {instance.sync_error}")
+        else:
+            logging.info(f"Se ha sincronizado el api_user {instance.cs_user_id} - {instance.email} con Chirpstack")
     
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
     def regenerate_permission_keys(self, request, pk=None):
