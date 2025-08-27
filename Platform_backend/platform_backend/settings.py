@@ -25,8 +25,6 @@ env = environ.Env(
     DJANGO_DEBUG=(bool, False)
 )
 
-
-
 environ.Env.read_env(os.path.join(BASE_DIR, '..', '.env'))
 
 SECRET_KEY = env('DJANGO_SECRET_KEY')
@@ -44,6 +42,10 @@ REFRESH_TOKEN_DURATION = config(
     default=30, 
     cast=int
 )
+
+# Environment variables
+CHIRPSTACK_BASE_URL = os.environ.get('CHIRPSTACK_BASE_URL')
+CHIRPSTACK_JWT_TOKEN = os.environ.get('CHIRPSTACK_JWT_TOKEN')
 
 # Application definition
 
