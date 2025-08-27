@@ -2,9 +2,12 @@
 class API {
 
     //API_BASE_URL = '/api/';
-    API_BASE_URL = 'http://localhost:8080/api/';
 
     API_VERSION = 'v1/';
+
+    API_BASE_URL = 'http://localhost:8000/api/' + this.API_VERSION;
+
+   
 
     // Interceptors básicos
     requestInterceptors = [];
@@ -264,7 +267,3 @@ class API {
 }
 
 export default API.getInstance()
-
-
-
-import API from '@utils/api/api.js';
