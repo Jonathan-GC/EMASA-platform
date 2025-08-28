@@ -81,7 +81,7 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
-        
+
         queryset = self.filter_queryset(self.get_queryset())
 
         for tenant in queryset:
@@ -96,7 +96,13 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-        
+    def perform_destroy(self, instance):
+        sync_response = sync_tenant_chirpstack(instance, request=self.request)
+
+        if sync_response.status_code != 200:
+            logging.error(f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}")
+        else:
+            logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
 
 
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])

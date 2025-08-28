@@ -124,8 +124,6 @@ def sync_tenant_chirpstack(tenant, request):
         if request.method == "POST":
             api_id = response.json()["id"]
             tenant.cs_tenant_id = api_id
-        if tenant.cs_tenant_id == "" or tenant.cs_tenant_id is None or tenant.cs_tenant_id != response.json()["id"]:
-            tenant.cs_tenant_id = response.json()["id"]
         tenant.sync_status = "SYNCED"
         if tenant.sync_error != "":
                 tenant.sync_error = ""
