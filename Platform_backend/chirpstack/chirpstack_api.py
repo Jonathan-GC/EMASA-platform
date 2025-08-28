@@ -390,7 +390,6 @@ def sync_device_profile_chirpstack(device_profile, request):
     }
 
     response = None
-    logging.warning(payload, device_profile.tenant.cs_tenant_id)
 
     if request.method == "GET":
         response = requests.get(
@@ -404,29 +403,39 @@ def sync_device_profile_chirpstack(device_profile, request):
             match = next((d for d in results if d["name"] == device_profile.name), None)
 
             if match:
-                device_profile.cs_device_profile_id = match["id"]
-                device_profile.sync_status = "SYNCED"
-                device_profile.sync_error = ""
-                device_profile.last_synced_at = dt.datetime.now()
-                device_profile.save()
-            else:
-                if not device_profile.cs_device_profile_id or device_profile.cs_device_profile_id.strip() == "":
-                    response = requests.post(
-                        CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
-                    )
-                    if response.status_code == 200:
-                        api_id = response.json()["id"]
-                        device_profile.cs_device_profile_id = api_id
-                        device_profile.sync_status = "SYNCED"
-                        device_profile.sync_error = "Profile not found in Chirpstack but created and synced now"
-                        device_profile.last_synced_at = dt.datetime.now()
-                        device_profile.save()
-                else:
-                    device_profile.sync_status = "PENDING"
-                    device_profile.sync_error = "Profile not found in Chirpstack but local cs_device_profile_id is set"
+                dp_id = match["id"]
+                detail_resp = requests.get(
+                    f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{dp_id}", headers=HEADERS
+                )
+                if detail_resp.status_code == 200:
+                    detail = detail_resp.json()["deviceProfile"]
+
+                    # sincroniza campos locales con ChirpStack
+                    device_profile.cs_device_profile_id = dp_id
+                    device_profile.name = detail["name"]
+                    device_profile.description = detail.get("description", "")
+                    device_profile.region = detail["region"]
+                    device_profile.mac_version = detail["macVersion"]
+                    device_profile.reg_param_revision = detail["regParamsRevision"]
+                    device_profile.abp_rx1_delay = detail["abpRx1Delay"]
+                    device_profile.abp_rx1_dr_offset = detail["abpRx1DrOffset"]
+                    device_profile.abp_rx2_dr = detail["abpRx2Dr"]
+                    device_profile.abp_rx2_freq = detail["abpRx2Freq"]
+                    device_profile.is_relay = detail.get("isRelay", False)
+                    device_profile.is_relay_ed = detail.get("isRelayEd", False)
+                    device_profile.payload_codec_runtime = detail["payloadCodecRuntime"]
+                    device_profile.payload_codec_script = detail.get("payloadCodecScript", "")
+
+                    device_profile.sync_status = "SYNCED"
+                    device_profile.sync_error = ""
                     device_profile.last_synced_at = dt.datetime.now()
                     device_profile.save()
-
+                else:
+                    # si falla el retrieve del detalle
+                    device_profile.sync_status = "ERROR"
+                    device_profile.sync_error = detail_resp.text
+                    device_profile.last_synced_at = dt.datetime.now()
+                    device_profile.save()
         else:
             device_profile.sync_status = "ERROR"
             device_profile.sync_error = response.text

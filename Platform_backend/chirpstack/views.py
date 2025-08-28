@@ -56,7 +56,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        sync_gateway_chirpstack(instance, request)
+        sync_device_profile_chirpstack(instance, request)
         instance.refresh_from_db()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
