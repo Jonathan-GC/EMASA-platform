@@ -27,7 +27,7 @@ class Tenant(models.Model):
     name = models.CharField(max_length=90)
     img = models.CharField(max_length=255, blank=True, null=True)
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
-    group = models.CharField(max_length=30)
+    group = models.CharField(max_length=30, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     sync_status = models.CharField(
         default=False,

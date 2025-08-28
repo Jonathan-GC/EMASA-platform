@@ -11,7 +11,7 @@ from roles.mixins import PermissionKeyMixin
 from roles.models import PermissionKey
 from roles.serializers import PermissionKeySerializer
 
-from chirpstack.chirpstack_api import sync_tenant_chirpstack_creation
+from chirpstack.chirpstack_api import sync_tenant_chirpstack
 
 import logging
 
@@ -55,12 +55,46 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         if created:
             print(f"Se ha creado el grupo: {group_name}")
         
-        sync_response = sync_tenant_chirpstack_creation(instance)
+        sync_response = sync_tenant_chirpstack(instance, request=self.request)
 
         if sync_response.status_code != 200:
             logging.error(f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}")
         else:
             logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+    
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        
+        sync_response = sync_tenant_chirpstack(instance, request=self.request)
+
+        if sync_response.status_code != 200:
+            logging.error(f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}")
+        else:
+            logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+    
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        sync_tenant_chirpstack(instance, request)
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        
+        queryset = self.filter_queryset(self.get_queryset())
+
+        for tenant in queryset:
+            sync_tenant_chirpstack(tenant, request)
+            tenant.refresh_from_db()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
         
 

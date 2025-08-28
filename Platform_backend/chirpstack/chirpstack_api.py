@@ -2,6 +2,10 @@ import requests
 from django.conf import settings
 import datetime as dt
 
+from organizations.models import Tenant
+
+import logging
+
 CHIRPSTACK_BASE_URL = settings.CHIRPSTACK_BASE_URL
 CHIRPSTACK_JWT_TOKEN = settings.CHIRPSTACK_JWT_TOKEN
 
@@ -18,15 +22,22 @@ HEADERS = {
 }
 
 
-def sync_tenant_chirpstack_creation(tenant):
+def sync_tenant_chirpstack(tenant, request):
     """
     Syncs a tenant with Chirpstack.
 
     Args:
         tenant (Tenant): a Tenant object
+        request (HttpRequest): request object with method
 
     Returns:
         requests.Response: the response from the API
+
+    Side Effects:
+        Updates tenant fields such as cs_tenant_id, sync_status, sync_error, and last_synced_at.
+
+    Raises:
+        May set tenant.sync_status to "ERROR" and tenant.sync_error if the API call fails.
     """
     payload = {
         "tenant": {
@@ -37,29 +48,105 @@ def sync_tenant_chirpstack_creation(tenant):
             "maxGatewayCount": tenant.subscription.max_gateway_count,
         }
     }
-    response = requests.post(CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS)
 
-    if response.status_code == 200:
-        api_id = response.json()["id"]
-        tenant.cs_tenant_id = api_id
+    response = None
+
+    if request.method == "GET":
+        url = f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}"
+        response = requests.get(url, headers=HEADERS)
+
+        if response.status_code == 200:
+            data = response.json()["tenant"]
+
+            changed = False
+            for field, local_value in {
+                "maxDeviceCount": tenant.subscription.max_device_count,
+                "maxGatewayCount": tenant.subscription.max_gateway_count,
+                "canHaveGateways": tenant.subscription.can_have_gateways,
+                "description": tenant.description,
+                "name": tenant.name,
+            }.items():
+                if data.get(field) != local_value:
+                    payload["tenant"][field] = local_value
+                    changed = True
+
+            if changed:
+                response = requests.put(url, json=payload, headers=HEADERS)
+
+            tenant.sync_status = "SYNCED"
+            if tenant.sync_error != "":
+                tenant.sync_error = ""
+            tenant.last_synced_at = dt.datetime.now()
+            tenant.save()
+
+            return response
+        elif tenant.cs_tenant_id == "" or tenant.cs_tenant_id is None or tenant.cs_tenant_id != "":
+            list_response = requests.get(
+                CHIRPSTACK_TENANT_URL,
+                headers=HEADERS,
+                params={"limit": 100},
+            )
+
+            if list_response.status_code == 200:
+                results = list_response.json().get("result", [])
+                match = next((t for t in results if t["name"] == tenant.name), None)
+                if match:
+                    tenant.cs_tenant_id = match["id"]
+                    tenant.sync_status = "SYNCED"
+                    tenant.sync_error = ""
+                    tenant.last_synced_at = dt.datetime.now()
+                    tenant.save()
+                    return list_response
+                else:
+                    response = requests.post(CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS)
+        else:
+            tenant.sync_status = "PENDING"
+            tenant.sync_error = response.text
+            tenant.last_synced_at = dt.datetime.now()
+            tenant.save()
+            return response
+
+    elif request.method == "PUT":
+        url = f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}"
+        if tenant.cs_tenant_id == "" or tenant.cs_tenant_id is None:
+            response = requests.post(CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS)
+        else:
+            response = requests.put(url, json=payload, headers=HEADERS)
+
+    elif request.method == "POST":
+        response = requests.post(CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS)
+
+    elif request.method == "DELETE":
+        url = f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}"
+        response = requests.delete(url, headers=HEADERS)
+
+    if response is not None and response.status_code == 200:
+        if request.method == "POST":
+            api_id = response.json()["id"]
+            tenant.cs_tenant_id = api_id
+        if tenant.cs_tenant_id == "" or tenant.cs_tenant_id is None or tenant.cs_tenant_id != response.json()["id"]:
+            tenant.cs_tenant_id = response.json()["id"]
         tenant.sync_status = "SYNCED"
-        tenant.last_synced_at = dt.datetime.now()
+        if tenant.sync_error != "":
+                tenant.sync_error = ""
+        tenant.last_synced_at = dt.datetime.now()   
         tenant.save()
-        return response
-    else:
+    elif response is not None:
         tenant.sync_status = "ERROR"
         tenant.sync_error = response.text
         tenant.last_synced_at = dt.datetime.now()
         tenant.save()
-        return response
+
+    return response
 
 
-def sync_gateway_chirpstack_creation(gateway):
+def sync_gateway_chirpstack(gateway, request):
     """
     Syncs a gateway with Chirpstack.
 
     Args:
         gateway (Gateway): a Gateway object
+        request (HttpRequest): request object with method
 
     Returns:
         requests.Response: the response from the API
@@ -80,31 +167,76 @@ def sync_gateway_chirpstack_creation(gateway):
             },
         }
     }
-    response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
 
-    if response.status_code == 200:
-        response_sync = requests.get(
+    response = None
+
+    if request.method == "GET":
+        response = requests.get(
             CHIRPSTACK_GATEWAYS_URL,
             headers=HEADERS,
-            params={"tenant_id": gateway.workspace.tenant.cs_tenant_id, "limit": 100},
+            params={
+                "tenant_id": gateway.workspace.tenant.cs_tenant_id,
+                "limit": 100
+            },
         )
-        print(response_sync.json(), response_sync.request.url)
-        data = response_sync.json().get("result", [])
-        for result in data:
-            if result["gatewayId"] == gateway.cs_gateway_id:
-                gateway.state = result["state"]
-                gateway.last_seen_at = result["lastSeenAt"]
+
+        if response.status_code == 200:
+            data = response.json().get("result", [])
+            gw_data = next((g for g in data if g["gatewayId"] == gateway.cs_gateway_id), None)
+
+            if gw_data:
+                gateway.state = gw_data.get("state", gateway.state)
+                gateway.last_seen_at = gw_data.get("lastSeenAt", gateway.last_seen_at)
+                if gateway.sync_error!= "":
+                    gateway.sync_error = ""
                 gateway.sync_status = "SYNCED"
                 gateway.last_synced_at = dt.datetime.now()
                 gateway.save()
-                break
+            else:
+                # Missing gateway
+                gateway.sync_status = "PENDING"
+                gateway.sync_error = "Gateway not found in Chirpstack list"
+                gateway.last_synced_at = dt.datetime.now()
+                gateway.save()
+        else:
+            gateway.sync_status = "ERROR"
+            gateway.sync_error = response.text
+            gateway.last_synced_at = dt.datetime.now()
+            gateway.save()
+
         return response
-    else:
+
+    elif request.method == "POST":
+        response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
+    
+    elif request.method == "PUT":
+        response = requests.put(
+            f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
+            json=payload,
+            headers=HEADERS,
+        )
+        if response.status_code == 404:
+            response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
+
+    elif request.method == "DELETE":
+        response = requests.delete(
+            f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
+            headers=HEADERS,
+        )
+
+    if response is not None and response.status_code == 200:
+        gateway.sync_status = "SYNCED"
+        if gateway.sync_error != "":
+            gateway.sync_error = ""
+        gateway.last_synced_at = dt.datetime.now()
+        gateway.save()
+    elif response is not None:
         gateway.sync_status = "ERROR"
         gateway.sync_error = response.text
         gateway.last_synced_at = dt.datetime.now()
         gateway.save()
-        return response
+
+    return response
 
 
 def sync_api_user_chirpstack_creation(api_user):
@@ -183,20 +315,23 @@ def sync_device_profile_chirpstack_creation(device_profile):
     response = requests.post(
         CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
     )
-    print(response.request.url, response.request.body)
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Request URL: {response.request.url}, Request Body: {response.request.body}")
     
     if response.status_code == 200:
         api_id = response.json()["id"]
         device_profile.cs_device_profile_id = api_id
-        device_profile.sync_status = "SYNCED"
-        device_profile.last_synced_at = dt.datetime.now()
         device_profile.save()
+        import logging
+        logging.info(response.json())
+        return response
         print(response.json())
         return response
     else:
-        device_profile.sync_status = "ERROR"
         device_profile.sync_error = response.text
         device_profile.last_synced_at = dt.datetime.now()
         device_profile.save()
-        print(response.text)
+        logger.error(f"Chirpstack device profile sync error: {response.text}")
+        return response
         return response

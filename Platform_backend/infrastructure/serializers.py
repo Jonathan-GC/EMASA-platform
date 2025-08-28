@@ -38,4 +38,21 @@ class GatewaySerializer(serializers.ModelSerializer):
         location = Location.objects.create(**location_data)
         gateway = Gateway.objects.create(location=location, **validated_data)
         return gateway
+    
+    def update(self, instance, validated_data):
+        location = validated_data.pop('location', None)
+
+        if location:
+            location_instance = instance.location
+
+            for attr, value in location.items():
+                setattr(location_instance, attr, value)
+            location_instance.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
+        
 
