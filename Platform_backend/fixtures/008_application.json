@@ -3,7 +3,7 @@
     "model": "infrastructure.application",
     "pk": 1,
     "fields": {
-      "cs_application_id": "api_id_placeholder",
+      "cs_application_id": "",
       "name": "Servicio de Voltaje",
       "device_type": 1,
       "workspace": 1,
@@ -16,7 +16,7 @@
     "model": "infrastructure.application",
     "pk": 2,
     "fields": {
-      "cs_application_id": "api_id_placeholder",
+      "cs_application_id": "",
       "name": "Servicio de Temperatura",
       "device_type": 2,
       "workspace": 1,
@@ -29,7 +29,7 @@
     "model": "infrastructure.application",
     "pk": 3,
     "fields": {
-      "cs_application_id": "api_id_placeholder",
+      "cs_application_id": "",
       "name": "Servicio de Voltaje",
       "device_type": 2,
       "workspace": 3,
@@ -42,7 +42,7 @@
     "model": "infrastructure.application",
     "pk": 4,
     "fields": {
-      "cs_application_id": "api_id_placeholder",
+      "cs_application_id": "",
       "name": "Servicio de Temperatura",
       "device_type": 2,
       "workspace": 3,

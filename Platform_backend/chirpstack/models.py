@@ -90,6 +90,7 @@ class DeviceProfile(models.Model):
     supports_class_b = models.BooleanField(default=False)
     supports_class_c = models.BooleanField(default=False)
     payload_codec_runtime = models.CharField(max_length=30, default="JS")
+    payload_codec_script = models.CharField(max_length=255, blank=True, null=True)
     is_rlay = models.BooleanField(default=False)
     is_rlay_ed = models.BooleanField(default=False)
     sync_status = models.CharField(

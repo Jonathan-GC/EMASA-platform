@@ -3,7 +3,7 @@
     "model": "chirpstack.deviceprofile",
     "pk": 1,
     "fields": {
-      "cs_device_profile_id": "api_id_placeholder",
+      "cs_device_profile_id": "",
       "name": "North Plant Temperature",
       "description": "Tecnobot North Plant",
       "region": "US915",
@@ -29,7 +29,7 @@
     "model": "chirpstack.deviceprofile",
     "pk": 2,
     "fields": {
-      "cs_device_profile_id": "api_id_placeholder",
+      "cs_device_profile_id": "",
       "name": "North Plant Voltage",
       "description": "Tecnobot North Plant",
       "region": "US915",
