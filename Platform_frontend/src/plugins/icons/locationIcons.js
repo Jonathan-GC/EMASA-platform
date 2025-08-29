@@ -22,5 +22,6 @@ export const locationIcons = {
   'business': businessOutline,
   'car': carOutline,
   'train': trainOutline,
-  'airplane': airplaneOutline
+  'airplane': airplaneOutline,
+  'building':businessOutline
 }

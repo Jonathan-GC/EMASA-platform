@@ -60,10 +60,32 @@
         >
           🔋 Batería
         </router-link>
+        <router-link
+            to="/tenants"
+            class="nav-link"
+            :class="{ active: $route.path === '/tenants' }"
+            @click="closeNavbar"
+        >
+          <ion-icon
+              :icon="icons.building"
+          ></ion-icon>
+           Tenants
+        </router-link>
+        <router-link
+            :to="paths.TENANT_USERS"
+            class="nav-link"
+            :class="{ active: $route.path === paths.TENANT_USERS }"
+            @click="closeNavbar"
+        >
+          <ion-icon
+              :icon="icons.people"
+          ></ion-icon>
+          Users
+        </router-link>
         <router-link 
-          to="/infrastructure/gateways" 
+          to="/infrastructure/gateways"
           class="nav-link"
-          :class="{ active: $route.path === '/gateways' }"
+          :class="{ active: $route.path === paths.GATEWAYS }"
           @click="closeNavbar"
         >
           🛜 Gateways
@@ -82,8 +104,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import {inject, ref} from 'vue'
 import { useRoute } from 'vue-router'
+import { paths } from "@/plugins/router/paths"
+
+const icons = inject('icons', {})
 
 const $route = useRoute()
 const isOpen = ref(false)

@@ -22,6 +22,7 @@ declare module 'vue' {
     DualAxisBatteryChart: typeof import('./src/components/DualAxisBatteryChart.vue')['default']
     GatewaysTable: typeof import('./src/components/tables/gateways/GatewaysTable.vue')['default']
     GatewaysTable_c: typeof import('./src/components/tables/GatewaysTable_c.vue')['default']
+    GatewaysTable_C: typeof import('./src/components/tables/GatewaysTable_C.vue')['default']
     GatewaysTableCopy: typeof import('./src/components/tables/gateways/GatewaysTableCopy.vue')['default']
     IonAvatar: typeof import('@ionic/vue')['IonAvatar']
     IonBackButton: typeof import('@ionic/vue')['IonBackButton']
@@ -33,6 +34,7 @@ declare module 'vue' {
     IonCardHeader: typeof import('@ionic/vue')['IonCardHeader']
     IonCardSubtitle: typeof import('@ionic/vue')['IonCardSubtitle']
     IonCardTitle: typeof import('@ionic/vue')['IonCardTitle']
+    IonChip: typeof import('@ionic/vue')['IonChip']
     IonCol: typeof import('@ionic/vue')['IonCol']
     IonContent: typeof import('@ionic/vue')['IonContent']
     IonGrid: typeof import('@ionic/vue')['IonGrid']
@@ -59,7 +61,10 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SimpleTable: typeof import('./src/components/tables/SimpleTable.vue')['default']
     SingleCurrentChart: typeof import('./src/components/SingleCurrentChart.vue')['default']
-    TableGateways: typeof import('./src/components/tables/gateways/tableGateways.vue')['default']
+    TableGateways: typeof import('./src/components/tables/gateways/TableGateways.vue')['default']
+    TableTenant: typeof import('./src/components/tables/tenants/TableTenant.vue')['default']
+    TableTenants: typeof import('./src/components/tables/tenants/TableTenants.vue')['default']
+    TableUsers: typeof import('./src/components/tables/users/TableUsers.vue')['default']
     VoltageChart: typeof import('./src/components/VoltageChart.vue')['default']
   }
 }

@@ -5,5 +5,7 @@ export const components = {
     VOLTAGE: () => import('@views/voltage/index.vue'),
     CURRENT: () => import('@views/current/index.vue'),
     BATTERY: () => import('@views/battery/index.vue'),
-    GATEWAYS: () => import('@views/Infracstructure/gateways/index.vue')
+    GATEWAYS: () => import('@views/Infracstructure/gateways/index.vue'),
+    TENANTS: () => import('@views/tenants/index.vue'),
+    TENANT_USERS: () => import('@views/users/index.vue')
 }

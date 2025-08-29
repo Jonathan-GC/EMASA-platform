@@ -13,8 +13,10 @@ export const routes = [
             { path: P.ABOUT, component: C.ABOUT },
             { path: P.VOLTAGE, component: C.VOLTAGE },
             { path: P.CURRENT, component: C.CURRENT },
-            { path: P.BATERY, component: C.BATTERY },
-            { path: P.GATEWAYS, component: C.GATEWAYS }
+            { path: P.BATTERY, component: C.BATTERY },
+            { path: P.GATEWAYS, component: C.GATEWAYS },
+            { path: P.TENANTS, component: C.TENANTS },
+            { path: P.TENANT_USERS, component: C.TENANT_USERS }
         ]
     },
 
