@@ -5,7 +5,7 @@
     "fields": {
       "name": "Voltage Intake",
       "description": "Voltage Intake generador principal",
-      "dev_eui": "dev_eui",
+      "dev_eui": "095160bcd3430011",
       "machine": 1,
       "workspace": 3,
       "device_type": 1,
@@ -15,7 +15,7 @@
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": null
+      "activation": 1
     }
   },
   {
@@ -24,7 +24,7 @@
     "fields": {
       "name": "Voltage Intake",
       "description": "Voltage Intake bomba estanque 1",
-      "dev_eui": "dev_eui",
+      "dev_eui": "084160bcd3440012",
       "machine": 2,
       "workspace": 3,
       "device_type": 1,
@@ -34,7 +34,7 @@
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": null
+      "activation": 1
     }
   },
   {
@@ -43,7 +43,7 @@
     "fields": {
       "name": "Core temperature",
       "description": "Core temperature generador principal",
-      "dev_eui": "dev_eui",
+      "dev_eui": "195160acd3430013",
       "machine": 1,
       "workspace": 3,
       "device_type": 2,
@@ -53,7 +53,7 @@
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": null
+      "activation": 1
     }
   },
   {
@@ -62,7 +62,7 @@
     "fields": {
       "name": "Water Temperature",
       "description": "Water temperature estanque 1",
-      "dev_eui": "dev_eui",
+      "dev_eui": "096160bca3430014",
       "machine": 2,
       "workspace": 3,
       "device_type": 2,
@@ -72,7 +72,7 @@
       "sync_error":"",
       "last_synced_at":"2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": null
+      "activation": 1
     }
   }
 ]
