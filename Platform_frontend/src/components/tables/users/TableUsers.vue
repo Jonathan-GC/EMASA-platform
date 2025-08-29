@@ -95,9 +95,6 @@
             >
               <ion-col size="2">
                 <div class="gateway-info">
-                  <ion-avatar aria-hidden="true" slot="start" class="table-avatar">
-                    <img alt="" :src="user.img || 'https://ionicframework.com/docs/img/demos/avatar.svg'" />
-                  </ion-avatar>
                   <div>
                     <div class="gateway-name">{{ user.email }}</div>
                   </div>
@@ -191,6 +188,7 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
+import AvatarSVG from '@assets/svg/Avatar.svg'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})

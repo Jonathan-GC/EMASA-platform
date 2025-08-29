@@ -69,6 +69,7 @@ export const formatRelativeTime = (date) => {
 export const getStatusColor = (status) => {
   const statusMap = {
     'online': 'success',
+    'synced': 'primary',
     'offline': 'danger',
     'warning': 'warning',
     'pending': 'warning',

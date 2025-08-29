@@ -29,7 +29,7 @@ const icons = inject('icons', {})
         </div>
         <!-- Tenants information section -->
         <TableTenants />
-      </div>
+      </  div>
     </ion-content>
   </ion-page>
 

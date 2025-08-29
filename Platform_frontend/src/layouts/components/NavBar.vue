@@ -90,6 +90,14 @@
         >
           🛜 Gateways
         </router-link>
+        <router-link
+            :to=paths.DEVICE_PROFILES
+            class="nav-link"
+            :class="{ active: $route.path === paths.DEVICE_PROFILES }"
+            @click="closeNavbar"
+        >
+          📜 Device Profiles
+        </router-link>
         <router-link 
           to="/about" 
           class="nav-link"

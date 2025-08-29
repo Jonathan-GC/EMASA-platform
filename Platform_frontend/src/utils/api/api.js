@@ -39,9 +39,10 @@ class API {
     MACHINE = 'infrastructure/machine/'
     APPLICATION = 'infrastructure/application/'
     LOCATION = 'infrastructure/location/'
+    DEVICE_PROFILE_TEMPLATE = '/device-profile-template/'
 
     //----[CHIRPSTACK]----
-    DEVICE_PROFILE_TEMPLATE = 'chirpstack/device-profile-template/'
+
     DEVICE_PROFILE = 'chirpstack/device-profile/'
     TENANT_USER = 'chirpstack/tenant-user/'
     API_USER = 'chirpstack/api-user/'
@@ -162,6 +163,7 @@ class API {
                 signal: controller.signal,
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': '', // Agregar token de autorización si existe
                     ...headers, // Agregar headers personalizados si existen
                 },
             });

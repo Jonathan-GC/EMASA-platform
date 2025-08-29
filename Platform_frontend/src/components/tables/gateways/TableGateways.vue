@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ion-card>
+    <ion-card class="table-card">
       <ion-card-header>
         <ion-card-title>🌐 Gateways - Datos desde API</ion-card-title>
         <ion-card-subtitle>
@@ -292,6 +292,12 @@ onMounted(async () => {
 
 
 <style scoped>
+
+.table-card{
+  width: 100%;
+  margin: 0 auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
 .loading-container, .error-container, .empty-state {
   text-align: center;
   padding: 40px 20px;
