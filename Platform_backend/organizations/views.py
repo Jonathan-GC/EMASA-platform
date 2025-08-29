@@ -11,7 +11,7 @@ from roles.mixins import PermissionKeyMixin
 from roles.models import PermissionKey
 from roles.serializers import PermissionKeySerializer
 
-from chirpstack.chirpstack_api import sync_tenant_chirpstack
+from chirpstack.chirpstack_api import sync_tenant_chirpstack, sync_tenant_get
 
 import logging
 
@@ -53,7 +53,7 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         group, created = Group.objects.get_or_create(name=group_name)
 
         if created:
-            print(f"Se ha creado el grupo: {group_name}")
+            logging.info(f"Grupo {group_name} creado exitosamente")
         
         sync_response = sync_tenant_chirpstack(instance, request=self.request)
 
@@ -75,17 +75,20 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        sync_tenant_chirpstack(instance, request)
+        sync_tenant_get(instance)
         instance.refresh_from_db()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
-
         queryset = self.filter_queryset(self.get_queryset())
 
         for tenant in queryset:
-            sync_tenant_chirpstack(tenant, request)
+            sync_response = sync_tenant_get(tenant)
+            if sync_response.status_code != 200:
+                logging.error(f"Error al sincronizar el tenant {tenant.name} con Chirpstack: {sync_response.status_code}")
+            else:
+                logging.info(f"Se ha sincronizado el tenant {tenant.name} con Chirpstack")
             tenant.refresh_from_db()
 
         page = self.paginate_queryset(queryset)
