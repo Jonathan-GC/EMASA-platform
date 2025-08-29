@@ -435,6 +435,8 @@ def sync_api_user_get(api_user):
             api_user.last_synced_at = dt.datetime.now()
             api_user.save()
 
+    return response
+
 
 def sync_api_user_create(api_user):
     """
@@ -560,6 +562,8 @@ def sync_api_user_update(api_user):
             api_user.last_synced_at = dt.datetime.now()
             api_user.save()
 
+    return response
+
 
 def sync_api_user_destroy(api_user):
     """
@@ -581,10 +585,11 @@ def sync_api_user_destroy(api_user):
             logging.error(
                 f"Error deleting user, user not found or try to delete it manually."
             )
-            return response
+    return response
+
 
 # DeviceProfile
-def chirpstack_device_profile_get(device_profile):
+def sync_device_profile_get(device_profile):
     payload = {
         "deviceProfile": {
             "name": device_profile.name,
@@ -643,7 +648,7 @@ def chirpstack_device_profile_get(device_profile):
     return response
 
 
-def chirpstack_device_profile_create(device_profile):
+def sync_device_profile_create(device_profile):
     payload = {
         "deviceProfile": {
             "name": device_profile.name,
@@ -685,7 +690,7 @@ def chirpstack_device_profile_create(device_profile):
     return response
 
 
-def chirpstack_device_profile_update(device_profile):
+def sync_device_profile_update(device_profile):
     """
     Syncs a DeviceProfile with Chirpstack.
 
@@ -723,7 +728,7 @@ def chirpstack_device_profile_update(device_profile):
         }
     }
 
-    response = chirpstack_device_profile_get(device_profile)
+    response = sync_device_profile_get(device_profile)
 
     url = f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}"
 
@@ -752,10 +757,10 @@ def chirpstack_device_profile_update(device_profile):
             f"Error updating device profile: {device_profile.name} \n {response.text}"
         )
 
-    pass
+    return response
 
 
-def chirpstack_device_profile_destroy(device_profile):
+def sync_device_profile_destroy(device_profile):
     url = f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}"
     response = requests.delete(url, headers=HEADERS)
     if response.status_code == 200:
@@ -764,3 +769,260 @@ def chirpstack_device_profile_destroy(device_profile):
         logging.error(
             f"Error deleting device profile: Device Profile does not exist in Chirpstack or try to delete it manually."
         )
+
+    return response
+
+
+# Application
+def sync_application_create(application):
+    payload = {
+        "application": {
+            "name": application.name,
+            "description": application.description,
+            "tenantId": application.tenant.cs_tenant_id,
+        }
+    }
+
+    response = requests.post(CHIRPSTACK_APPLICATION_URL, json=payload, headers=HEADERS)
+
+    if response.status_code == 200:
+        application.cs_application_id = response.json()["id"]
+        application.save()
+        application.sync_status = "SYNCED"
+        application.sync_error = ""
+        application.last_synced_at = dt.datetime.now()
+        application.save()
+    else:
+        application.sync_status = "ERROR"
+        application.sync_error = response.text
+        application.last_synced_at = dt.datetime.now()
+        application.save()
+    return response
+
+
+
+def sync_application_get(application):
+    payload = {
+        "application": {
+            "name": application.name,
+            "description": application.description,
+            "tenantId": application.tenant.cs_tenant_id,
+        }
+    }
+
+    url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code == 200:
+        logging.info(f"Found application in chirpstack: {application.name}")
+        application.cs_application_id = response.json()["id"]
+        application.sync_status = "SYNCED"
+        if application.sync_error != "":
+            application.sync_error = ""
+        application.last_synced_at = dt.datetime.now()
+        application.save()
+    elif application.cs_application_id is None or application.cs_application_id == "":
+        list_response = requests.get(
+            CHIRPSTACK_APPLICATION_URL, headers=HEADERS, params={"limit": 100}
+        )
+        if list_response.status_code == 200:
+            results = list_response.json().get("result", [])
+            match = next((a for a in results if a["name"] == application.name), None)
+            if match:
+                application.cs_application_id = match["id"]
+                application.sync_status = "SYNCED"
+                if application.sync_error != "":
+                    application.sync_error = ""
+                application.last_synced_at = dt.datetime.now()
+                application.save()
+                return list_response
+            else:
+                response = sync_application_create(application)
+    else:
+        application.sync_status = "ERROR"
+        application.sync_error = response.text
+        application.last_synced_at = dt.datetime.now()
+        application.save()
+
+    return response
+
+
+
+def sync_application_update(application):
+    payload = {
+        "application": {
+            "name": application.name,
+            "description": application.description,
+            "tenantId": application.tenant.cs_tenant_id,
+        }
+    }
+
+    url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
+
+    response = sync_application_get(application)
+
+    if response.status_code == 200:
+        response = requests.put(url, json=payload, headers=HEADERS)
+    elif application.cs_application_id is None or application.cs_application_id == "":
+        response = sync_application_create(application)
+
+    if response.status_code == 200:
+        application.sync_status = "SYNCED"
+        application.sync_error = ""
+        application.last_synced_at = dt.datetime.now()
+        application.save()
+    else:
+        application.sync_status = "ERROR"
+        application.sync_error = response.text
+        application.last_synced_at = dt.datetime.now()
+        application.save()
+
+    return response
+
+
+
+def sync_application_destroy(application):
+    url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
+    response = requests.delete(url, headers=HEADERS)
+    if response.status_code == 200:
+        logging.info(f"Deleted application in Chirpstack")
+    else:
+        logging.error(
+            f"Error deleting application: Application does not exist in Chirpstack or try to delete it manually."
+        )
+
+    return response
+
+
+# Device
+def sync_device_create(device):
+    payload = {
+        "device": {
+            "devEui": device.dev_eui,
+            "name": device.name,
+            "applicationId": device.application.cs_application_id,
+            "description": device.description,
+            "deviceProfileId": device.device_profile.cs_device_profile_id,
+            "isDisabled": device.is_disabled
+        }
+    }
+
+    response = requests.post(CHIRPSTACK_DEVICE_URL, json=payload, headers=HEADERS)
+
+    if response.status_code == 200:
+        device.sync_status = "SYNCED"
+        if device.sync_error != "":
+            device.sync_error = ""
+        device.last_synced_at = dt.datetime.now()
+        device.save()
+    else:
+        device.sync_status = "ERROR"
+        device.sync_error = response.text
+        device.last_synced_at = dt.datetime.now()
+        device.save()
+
+    return response
+
+
+def sync_device_get(device):
+    payload = {
+        "device": {
+            "devEui": device.dev_eui,
+            "name": device.name,
+            "applicationId": device.application.cs_application_id,
+            "description": device.description,
+            "deviceProfileId": device.device_profile.cs_device_profile_id,
+            "isDisabled": device.is_disabled
+        }
+    }
+
+    url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code == 200:
+        logging.info(f"Found device in chirpstack: {device.name}")
+        device.sync_status = "SYNCED"
+        if device.sync_error != "":
+            device.sync_error = ""
+        device.last_synced_at = dt.datetime.now()
+        device.save()
+    elif device.dev_eui:
+        response = sync_device_create(device)
+    else:
+        device.sync_status = "ERROR"
+        device.sync_error = response.text
+        device.last_synced_at = dt.datetime.now()
+        device.save()
+
+    return response
+
+
+def sync_device_update(device):
+    payload = {
+        "device": {
+            "devEui": device.dev_eui,
+            "name": device.name,
+            "applicationId": device.application.cs_application_id,
+            "description": device.description,
+            "deviceProfileId": device.device_profile.cs_device_profile_id,
+            "isDisabled": device.is_disabled
+        }
+    }
+
+    url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
+
+    response = sync_device_get(device)
+
+    if response.status_code == 200:
+        response = requests.put(url, json=payload, headers=HEADERS)
+    elif device.dev_eui:
+        response = sync_device_create(device)
+
+    if response.status_code == 200:
+        device.sync_status = "SYNCED"
+        device.sync_error = ""
+        device.last_synced_at = dt.datetime.now()
+        device.save()
+    else:
+        device.sync_status = "ERROR"
+        device.sync_error = response.text
+        device.last_synced_at = dt.datetime.now()
+        device.save()
+
+    return response
+
+
+def sync_device_destroy(device):
+    url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
+    response = requests.delete(url, headers=HEADERS)
+    if response.status_code == 200:
+        logging.info(f"Deleted device in Chirpstack")
+    else:
+        logging.error(
+            f"Error deleting device: Device does not exist in Chirpstack or try to delete it manually."
+        )
+
+    return response
+
+
+def activate_device(device):
+    payload ={    
+        "deviceActivation": {
+            "aFCntDown": device.activation.afcntdown,
+            "appSKey": device.activation.app_s_key,
+            "devAddr": device.activation.dev_addr,
+            "fCntUp": device.activation.f_cnt_up,
+            "fNwkSIntKey": device.activation.f_nwk_s_int_key,
+            "nFCntDown": device.activation.n_f_cnt_down,
+            "nwkSEncKey": device.activation.nwk_s_enc_key
+	}
+    }
+    url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}/activate"
+    response = requests.post(url, json=payload, headers=HEADERS)
+    return response
+
+
+def deactivate_device(device):
+    url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}/activation"
+    response = requests.delete(url, headers=HEADERS)
+    return response

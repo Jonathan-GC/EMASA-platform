@@ -19,10 +19,10 @@ from chirpstack.chirpstack_api import (
     sync_api_user_destroy,
     sync_api_user_update,
     sync_api_user_get,
-    chirpstack_device_profile_create,
-    chirpstack_device_profile_destroy,
-    chirpstack_device_profile_get,
-    chirpstack_device_profile_update,
+    sync_device_profile_create,
+    sync_device_profile_destroy,
+    sync_device_profile_get,
+    sync_device_profile_update,
 )
 
 import logging
@@ -40,7 +40,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="device_profile")
 
-        sync_response = chirpstack_device_profile_create(instance)
+        sync_response = sync_device_profile_create(instance)
 
         if sync_response.status_code != 200:
             logging.error(
@@ -54,7 +54,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_update(self, serializer):
         instance = serializer.save()
 
-        sync_response = chirpstack_device_profile_update(instance)
+        sync_response = sync_device_profile_update(instance)
 
         if sync_response.status_code != 200:
             logging.error(
@@ -66,7 +66,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
 
     def perform_destroy(self, instance):
-        sync_response = chirpstack_device_profile_destroy(instance)
+        sync_response = sync_device_profile_destroy(instance)
 
         if sync_response.status_code != 200:
             logging.error(
@@ -82,7 +82,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        chirpstack_device_profile_get(instance)
+        sync_device_profile_get(instance)
         instance.refresh_from_db()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
@@ -91,7 +91,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         queryset = self.filter_queryset(self.get_queryset())
 
         for device_profile in queryset:
-            chirpstack_device_profile_get(device_profile)
+            sync_device_profile_get(device_profile)
             device_profile.refresh_from_db()
 
         page = self.paginate_queryset(queryset)

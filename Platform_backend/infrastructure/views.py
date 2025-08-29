@@ -22,6 +22,16 @@ from chirpstack.chirpstack_api import (
     sync_gateway_get,
     sync_gateway_update,
     sync_gateway_destroy,
+    sync_application_destroy,
+    sync_application_update,
+    sync_application_create,
+    sync_application_get,
+    sync_device_create,
+    sync_device_update,
+    sync_device_destroy,
+    sync_device_get,
+    activate_device,
+    deactivate_device,
 )
 
 import logging
@@ -219,6 +229,121 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="device")
 
+        sync_response = sync_device_create(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(
+                f"Error al crear el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logging.info(
+                f"Se ha sincronizado el dispositivo {instance.cs_device_id} - {instance.name} con Chirpstack"
+            )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+
+        sync_response = sync_device_update(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(
+                f"Error al sincronizar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logging.info(
+                f"Se ha sincronizado el dispositivo {instance.cs_device_id} - {instance.name} con Chirpstack"
+            )
+
+    def perform_destroy(self, instance):
+        sync_response = sync_device_destroy(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(
+                f"Error al eliminar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logging.info(
+                f"Se ha sincronizado el dispositivo {instance.cs_device_id} - {instance.name} con Chirpstack"
+            )
+
+        instance.delete()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        for device in queryset:
+            sync_device_get(device)
+            device.refresh_from_db()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        sync_device_get(instance)
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermissionKey],
+        scope="device",
+    )
+    def activate(self, request, pk=None):
+        instance = self.get_object()
+        sync_response = activate_device(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(
+                f"Error al activar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+            return Response(
+                {
+                    "message": f"Error al activar el dispositivo {sync_response.status_code} {instance.sync_error}"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            logging.info(
+                f"Se ha activado el dispositivo {instance.cs_device_id} - {instance.name}"
+            )
+
+        return Response({"message": "Device activated"})
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermissionKey],
+        scope="device",
+    )
+    def deactivate(self, request, pk=None):
+        instance = self.get_object()
+        sync_response = deactivate_device(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(
+                f"Error al desactivar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+            return Response(
+                {
+                    "message": f"Error al desactivar el dispositivo {sync_response.status_code} {instance.sync_error}"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            logging.info(
+                f"Se ha desactivado el dispositivo {instance.cs_device_id} - {instance.name}"
+            )
+
+        return Response({"message": "Device deactivated"})
+
     @action(
         detail=True,
         methods=["post"],
@@ -247,6 +372,68 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="application")
+
+        sync_response = sync_application_create(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(
+                f"Error al crear la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logging.info(
+                f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
+            )
+
+    def perform_destroy(self, instance):
+        sync_response = sync_application_destroy(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(
+                f"Error al eliminar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logging.info(
+                f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
+            )
+
+        instance.delete()
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+
+        sync_response = sync_application_update(instance)
+
+        if sync_response.status_code != 200:
+            logging.error(
+                f"Error al sincronizar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logging.info(
+                f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
+            )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        for application in queryset:
+            sync_application_get(application)
+            application.refresh_from_db()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        sync_application_get(instance)
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     @action(
         detail=True,
