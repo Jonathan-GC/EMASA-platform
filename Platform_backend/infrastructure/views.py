@@ -70,7 +70,7 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         queryset = self.filter_queryset(self.get_queryset())
 
         for gateway in queryset:
-            sync_gateway_get(gateway, request)
+            sync_gateway_get(gateway)
             gateway.refresh_from_db()
 
         page = self.paginate_queryset(queryset)
