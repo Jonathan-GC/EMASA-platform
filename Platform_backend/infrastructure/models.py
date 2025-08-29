@@ -31,6 +31,7 @@ class Application(models.Model):
     
     cs_application_id=models.CharField(max_length=36, null=True, blank=True, help_text="Application ID (Chirpstack)") # cs
     name = models.CharField(max_length=30)
+    description = models.CharField(max_length=255, default="")
     device_type = models.ForeignKey(Type, on_delete=models.CASCADE, help_text="You can classify devices by type and set a custom icon") # icon, classification and such
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
     sync_status = models.CharField(
