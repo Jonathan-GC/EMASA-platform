@@ -16,6 +16,7 @@ export const routes = [
             { path: P.BATTERY, component: C.BATTERY },
             { path: P.GATEWAYS, component: C.GATEWAYS },
             { path: P.DEVICE_PROFILES, component: C.DEVICE_PROFILES },
+            { path: P.APPLICATIONS, component: C.APPLICATIONS },
             { path: P.TENANTS, component: C.TENANTS },
             { path: P.TENANT_USERS, component: C.TENANT_USERS }
 

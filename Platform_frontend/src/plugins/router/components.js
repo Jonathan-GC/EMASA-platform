@@ -7,6 +7,7 @@ export const components = {
     BATTERY: () => import('@views/battery/index.vue'),
     GATEWAYS: () => import('@views/infrastructure/gateways/index.vue'),
     DEVICE_PROFILES: () => import('@views/infrastructure/deviceProfiles/index.vue'),
+    APPLICATIONS: () => import('@views/infrastructure/application/index.vue'),
     TENANTS: () => import('@views/tenants/index.vue'),
     TENANT_USERS: () => import('@views/users/index.vue'),
 }

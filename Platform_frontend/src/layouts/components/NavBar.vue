@@ -98,6 +98,15 @@
         >
           📜 Device Profiles
         </router-link>
+
+        <router-link
+            :to=paths.APPLICATIONS
+            class="nav-link"
+            :class="{ active: $route.path === paths.APPLICATIONS }"
+            @click="closeNavbar"
+        >
+          📦 Applications
+        </router-link>
         <router-link 
           to="/about" 
           class="nav-link"
