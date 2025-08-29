@@ -163,8 +163,7 @@ class API {
                 signal: controller.signal,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': '', // Agregar token de autorización si existe
-                    ...headers, // Agregar headers personalizados si existen
+                    
                 },
             });
 

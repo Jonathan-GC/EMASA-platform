@@ -61,6 +61,8 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SimpleTable: typeof import('./src/components/tables/SimpleTable.vue')['default']
     SingleCurrentChart: typeof import('./src/components/SingleCurrentChart.vue')['default']
+    TableApplication: typeof import('./src/components/tables/application/TableApplication.vue')['default']
+    TableDeviceProfiles: typeof import('./src/components/tables/deviceProlfiles/TableDeviceProfiles.vue')['default']
     TableGateways: typeof import('./src/components/tables/gateways/TableGateways.vue')['default']
     TableTenant: typeof import('./src/components/tables/tenants/TableTenant.vue')['default']
     TableTenants: typeof import('./src/components/tables/tenants/TableTenants.vue')['default']

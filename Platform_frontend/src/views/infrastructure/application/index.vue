@@ -16,7 +16,7 @@
           <h1>📦 Services </h1>
         </div>
         <!-- Main applications table with fetch data -->
-
+        <TableApplication />
       </div>
 
       <!-- Loading state while page is preparing -->
