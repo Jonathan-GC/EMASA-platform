@@ -5,24 +5,24 @@
         <ion-buttons slot="start">
           <ion-back-button default-href="/home"></ion-back-button>
         </ion-buttons>
-        <ion-title>Gateways</ion-title>
+        <ion-title>Monitor Clients</ion-title>
       </ion-toolbar>
     </ion-header>
-    
+
     <ion-content :fullscreen="true">
-      <div v-if="pageReady" class="gateways-dashboard">
+      <div v-if="pageReady" class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>🌐 Panel de Gateways</h1>
+          <h1>🛜 Panel de Gateways</h1>
           <div class="header-subtitle">
-            <ConnectionStatus 
-              :is-connected="isConnected" 
-              :reconnect-attempts="reconnectAttempts" 
+            <ConnectionStatus
+              :is-connected="isConnected"
+              :reconnect-attempts="reconnectAttempts"
             />
           </div>
         </div>
         <!-- Main gateways table with fetch data -->
-        <GatewaysTable />
+        <TableGateways />
       </div>
       
       <!-- Loading state while page is preparing -->
@@ -38,7 +38,7 @@
 import { ref, onMounted } from 'vue'
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
-import GatewaysTable from '@components/tables/gateways/GatewaysTable.vue'
+import TableGateways from '@components/tables/gateways/TableGateways.vue'
 
 // State for connection status
 const isConnected = ref(true)
@@ -62,93 +62,58 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.gateways-dashboard {
+@import '@assets/css/dashboard.css';
+
+.current-dashboard {
   padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .header {
-  margin-bottom: 24px;
   text-align: center;
+  margin-bottom: 30px;
 }
 
 .header h1 {
-  margin: 0 0 8px 0;
-  #color: var(--ion-color-primary);
+  margin: 0 0 15px 0;
+  color: #374151;
   font-size: 2rem;
+  font-weight: 600;
 }
 
 .header-subtitle {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
 }
 
-.comparison-section {
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 2px solid var(--ion-color-light);
-}
-
-.comparison-section h2 {
-  text-align: center;
-  color: var(--ion-color-primary);
-  margin-bottom: 8px;
-}
-
-.comparison-note {
-  text-align: center;
-  color: var(--ion-color-medium);
-  font-style: italic;
-  margin-bottom: 24px;
-}
-
-.tables-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.table-section h3 {
-  color: var(--ion-color-secondary);
-  margin-bottom: 16px;
+.no-data {
+  margin: 40px 0;
   text-align: center;
 }
 
-/* Mobile responsive */
+.no-data ion-card {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.no-data h2 {
+  color: #6b7280;
+  margin: 0 0 10px 0;
+}
+
+.no-data p {
+  color: #9ca3af;
+  margin: 8px 0;
+}
+
+/* Mobile responsiveness */
 @media (max-width: 768px) {
-  .gateways-dashboard {
-    padding: 16px;
+  .current-dashboard {
+    padding: 15px;
   }
-  
+
   .header h1 {
     font-size: 1.5rem;
   }
-  
-  .tables-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
-  .header-subtitle {
-    flex-direction: column;
-    gap: 8px;
-  }
-}
-
-.page-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  gap: 16px;
-}
-
-.page-loading p {
-  color: var(--ion-color-medium);
-  margin: 0;
 }
 </style>

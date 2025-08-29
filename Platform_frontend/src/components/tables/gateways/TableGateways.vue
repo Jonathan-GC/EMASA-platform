@@ -46,7 +46,7 @@
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
                 <strong>Nombre</strong>
-                <ion-icon 
+                <ion-icon
                   :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'name'"
                 ></ion-icon>
@@ -58,7 +58,7 @@
                   v-if="sortField === 'cs_gateway_id'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="1" @click="sortBy('status')" class="sortable">
+              <ion-col size="2" @click="sortBy('status')" class="sortable">
                 <strong>Estado</strong>
                 <ion-icon 
                   :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
@@ -95,7 +95,7 @@
                 <div class="gateway-info">
                   <ion-icon 
                     :icon="icons.hardwareChip" 
-                    :color="gateway.status === 'online' ? 'success' : 'danger'"
+                    :color="getStatusColor(gateway.state)"
                   ></ion-icon>
                   <div>
                     <div class="gateway-name">{{ gateway.name }}</div>
@@ -106,12 +106,12 @@
                 <div class="gateway-id">{{ gateway.cs_gateway_id }}</div>
               </ion-col>
 
-              <ion-col size="1">
-                <ion-badge 
-                  :color="getStatusColor(gateway.status)"
+              <ion-col size="2">
+                <ion-chip
+                  :color="getStatusColor(gateway.state)"
                 >
-                  {{ gateway.status }}
-                </ion-badge>
+                  {{ gateway.state }}
+                </ion-chip>
               </ion-col>
               
               <ion-col size="2">
@@ -123,7 +123,7 @@
               
               <ion-col size="2">
                 <div class="time-info">
-                  {{ formatTime(gateway.lastSeen) }}
+                  {{ formatTime(gateway.last_seen_at) }}
                 </div>
               </ion-col>
               
@@ -225,7 +225,6 @@ const fetchGateways = async () => {
   error.value = null
   const headers={
     //Authorization: `Bearer ${localStorage.getItem('token')}`
-    'Authorization': ''
   }
   
   try {
@@ -261,7 +260,7 @@ const viewGateway = (gateway) => {
 
 // Lifecycle
 onMounted(async () => {
-  console.log('🔧 GatewaysTable component mounted')
+  console.log('🔧 TableGateways component mounted')
   
   // Wait for next tick to ensure DOM is ready
   await nextTick()
