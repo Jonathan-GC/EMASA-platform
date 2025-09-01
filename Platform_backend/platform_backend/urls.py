@@ -14,26 +14,50 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
+from users.views import (
+    CookieTokenObtainPairView,
+    CookieTokenRefreshView,
+    LogoutView,
+    csrf_setup,
 )
 
-from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView 
-
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/v1/users/', include('users.urls')),
-    path('api/v1/roles/', include('roles.urls')),
-    path('api/v1/organizations/', include('organizations.urls')),
-    path('api/v1/infrastructure/', include('infrastructure.urls')),
-    path('api/v1/chirpstack/', include('chirpstack.urls')),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path("admin/", admin.site.urls),
+    path("api/v1/users/", include("users.urls")),
+    path("api/v1/roles/", include("roles.urls")),
+    path("api/v1/organizations/", include("organizations.urls")),
+    path("api/v1/infrastructure/", include("infrastructure.urls")),
+    path("api/v1/chirpstack/", include("chirpstack.urls")),
+    path(
+        "api/token/",
+        CookieTokenObtainPairView.as_view(),
+        name="cookie_token_obtain_pair",
+    ),
+    path(
+        "api/token/refresh/",
+        CookieTokenRefreshView.as_view(),
+        name="cookie_token_refresh",
+    ),
+    path("api/logout/", LogoutView.as_view(), name="logout"),
+    path("api/csrf/", csrf_setup, name="csrf_setup"),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/schema/swagger-ui/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    path(
+        "api/schema/redoc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc",
+    ),
 ]

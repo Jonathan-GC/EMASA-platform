@@ -779,7 +779,7 @@ def sync_application_create(application):
         "application": {
             "name": application.name,
             "description": application.description,
-            "tenantId": application.tenant.cs_tenant_id,
+            "tenantId": application.workspace.tenant.cs_tenant_id,
         }
     }
 
@@ -800,13 +800,12 @@ def sync_application_create(application):
     return response
 
 
-
 def sync_application_get(application):
     payload = {
         "application": {
             "name": application.name,
             "description": application.description,
-            "tenantId": application.tenant.cs_tenant_id,
+            "tenantId": application.workspace.tenant.cs_tenant_id,
         }
     }
 
@@ -847,13 +846,12 @@ def sync_application_get(application):
     return response
 
 
-
 def sync_application_update(application):
     payload = {
         "application": {
             "name": application.name,
             "description": application.description,
-            "tenantId": application.tenant.cs_tenant_id,
+            "tenantId": application.workspace.tenant.cs_tenant_id,
         }
     }
 
@@ -880,7 +878,6 @@ def sync_application_update(application):
     return response
 
 
-
 def sync_application_destroy(application):
     url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
     response = requests.delete(url, headers=HEADERS)
@@ -903,7 +900,7 @@ def sync_device_create(device):
             "applicationId": device.application.cs_application_id,
             "description": device.description,
             "deviceProfileId": device.device_profile.cs_device_profile_id,
-            "isDisabled": device.is_disabled
+            "isDisabled": device.is_disabled,
         }
     }
 
@@ -932,7 +929,7 @@ def sync_device_get(device):
             "applicationId": device.application.cs_application_id,
             "description": device.description,
             "deviceProfileId": device.device_profile.cs_device_profile_id,
-            "isDisabled": device.is_disabled
+            "isDisabled": device.is_disabled,
         }
     }
 
@@ -965,7 +962,7 @@ def sync_device_update(device):
             "applicationId": device.application.cs_application_id,
             "description": device.description,
             "deviceProfileId": device.device_profile.cs_device_profile_id,
-            "isDisabled": device.is_disabled
+            "isDisabled": device.is_disabled,
         }
     }
 
@@ -1006,7 +1003,7 @@ def sync_device_destroy(device):
 
 
 def activate_device(device):
-    payload ={    
+    payload = {
         "deviceActivation": {
             "aFCntDown": device.activation.afcntdown,
             "appSKey": device.activation.app_s_key,
@@ -1014,8 +1011,8 @@ def activate_device(device):
             "fCntUp": device.activation.f_cnt_up,
             "fNwkSIntKey": device.activation.f_nwk_s_int_key,
             "nFCntDown": device.activation.n_f_cnt_down,
-            "nwkSEncKey": device.activation.nwk_s_enc_key
-	}
+            "nwkSEncKey": device.activation.nwk_s_enc_key,
+        }
     }
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}/activate"
     response = requests.post(url, json=payload, headers=HEADERS)
