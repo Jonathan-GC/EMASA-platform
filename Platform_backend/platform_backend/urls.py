@@ -38,17 +38,17 @@ urlpatterns = [
     path("api/v1/infrastructure/", include("infrastructure.urls")),
     path("api/v1/chirpstack/", include("chirpstack.urls")),
     path(
-        "api/token/",
+        "api/v1/token/",
         CookieTokenObtainPairView.as_view(),
         name="cookie_token_obtain_pair",
     ),
     path(
-        "api/token/refresh/",
+        "api/v1/token/refresh/",
         CookieTokenRefreshView.as_view(),
         name="cookie_token_refresh",
     ),
-    path("api/logout/", LogoutView.as_view(), name="logout"),
-    path("api/csrf/", csrf_setup, name="csrf_setup"),
+    path("api/v1/logout/", LogoutView.as_view(), name="logout"),
+    path("api/v1/csrf/", csrf_setup, name="csrf_setup"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/schema/swagger-ui/",

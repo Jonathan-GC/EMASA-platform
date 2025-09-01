@@ -10,9 +10,11 @@ from chirpstack.models import DeviceProfile, DeviceProfileTemplate, ApiUser
 class Role(models.Model):
     name = models.CharField(max_length=30)
     description = models.CharField(max_length=255, blank=True)
-    color = models.CharField(max_length=20, default="#bfbfbf") # Hex tag color
+    color = models.CharField(max_length=20, default="#bfbfbf")  # Hex tag color
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
-    is_admin = models.BooleanField(default=False) # Admin in workspace and tenant context
+    is_admin = models.BooleanField(
+        default=False
+    )  # Admin in workspace and tenant context
 
     def __str__(self):
         return f"{self.name} - {self.workspace}"
@@ -37,8 +39,10 @@ class PermissionKey(models.Model):
         "update": ["put"],
         "partial_update": ["put"],
         "destroy": ["delete"],
-    } 
-    code = models.CharField(max_length=50, blank=True, null=True) # Code is auto-generated
+    }
+    code = models.CharField(
+        max_length=50, blank=True, null=True
+    )  # Code is auto-generated
     # Scope may vary depending on the resource and new additions
     scope = models.CharField(
         max_length=30,
@@ -83,10 +87,10 @@ class PermissionKey(models.Model):
     workspace = models.ForeignKey(
         Workspace, on_delete=models.CASCADE, null=True, blank=True
     )
-    tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, null=True, blank=True
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    location = models.ForeignKey(
+        Location, on_delete=models.CASCADE, null=True, blank=True
     )
-    location = models.ForeignKey(Location, on_delete=models.CASCADE, null=True, blank=True)
     gateway = models.ForeignKey(
         Gateway, on_delete=models.CASCADE, null=True, blank=True
     )
@@ -115,7 +119,7 @@ class PermissionKey(models.Model):
         If the entity id is None, it is replaced with "*".
         """
         entity_id = (
-            self.node_id
+            self.device_id
             or self.machine_id
             or self.application_id
             or self.user_id
