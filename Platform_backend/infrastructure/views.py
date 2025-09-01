@@ -416,7 +416,9 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         queryset = self.filter_queryset(self.get_queryset())
 
         for application in queryset:
+            logging.info(f"Syncing application {application.name}")
             sync_application_get(application)
+
             application.refresh_from_db()
 
         page = self.paginate_queryset(queryset)

@@ -812,17 +812,27 @@ def sync_application_get(application):
     url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
     response = requests.get(url, headers=HEADERS)
 
+    logging.info(f"Get response: {response.status_code}, {response.json()}")
+
     if response.status_code == 200:
         logging.info(f"Found application in chirpstack: {application.name}")
-        application.cs_application_id = response.json()["id"]
+        application.cs_application_id = response.json()["application"]["id"]
         application.sync_status = "SYNCED"
         if application.sync_error != "":
             application.sync_error = ""
         application.last_synced_at = dt.datetime.now()
         application.save()
-    elif application.cs_application_id is None or application.cs_application_id == "":
+    elif application.cs_application_id == "" or application.cs_application_id is None:
         list_response = requests.get(
-            CHIRPSTACK_APPLICATION_URL, headers=HEADERS, params={"limit": 100}
+            CHIRPSTACK_APPLICATION_URL,
+            headers=HEADERS,
+            params={
+                "limit": 100,
+                "tenantId": application.workspace.tenant.cs_tenant_id,
+            },
+        )
+        logging.info(
+            f"List response: {list_response.status_code}, {list_response.json()}"
         )
         if list_response.status_code == 200:
             results = list_response.json().get("result", [])
@@ -935,6 +945,7 @@ def sync_device_get(device):
 
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
     response = requests.get(url, headers=HEADERS)
+    print(response.status_code, response.json())
 
     if response.status_code == 200:
         logging.info(f"Found device in chirpstack: {device.name}")
