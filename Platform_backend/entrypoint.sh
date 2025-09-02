@@ -19,6 +19,10 @@ python manage.py regenerate_permissionkeys
 
 echo "✅ Llaves de los modelos iniciales cargadas correctamente."
 
+echo "🔄 Sincronizando datos con ChirpStack..."
+
+python manage.py sync_chirpstack
+
 # Ejecuta el comando final (por defecto el runserver)
 exec "$@"
     

@@ -1,14 +1,21 @@
-from chirpstack_api import (
+from chirpstack.chirpstack_api import (
     sync_device_get,
     sync_tenant_get,
     sync_gateway_get,
     sync_api_user_get,
     sync_application_get,
     sync_device_profile_get,
+    get_api_user_from_chirpstack,
+    get_tenant_from_chirpstack,
+    get_device_profiles_from_chirpstack,
+    get_applications_from_chirpstack,
+    get_devices_from_chirpstack,
+    get_gateway_from_chirpstack,
 )
 
 from infrastructure.models import Device, Gateway, Application
-from chirpstack.models import Tenant, ApiUser, DeviceProfile
+from chirpstack.models import ApiUser, DeviceProfile
+from organizations.models import Workspace, Tenant
 from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.db import transaction
@@ -50,6 +57,14 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(f"✘ Error synchronizing Tenant {tenant.name}: {e}")
                 )
+        self.stdout.write(self.style.NOTICE("Fetching Tenants from ChirpStack..."))
+        response = get_tenant_from_chirpstack()
+        if response.status_code == 200:
+            self.stdout.write(self.style.SUCCESS("✔ Tenants fetched successfully."))
+        else:
+            self.stdout.write(
+                self.style.ERROR(f"✘ Error fetching Tenants: {response.text}")
+            )
 
     def sync_gateways(self):
         self.stdout.write(self.style.NOTICE("Synchronizing Gateways..."))
@@ -64,6 +79,14 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(f"✘ Error synchronizing Gateway {gw.name}: {e}")
                 )
+        self.stdout.write(self.style.NOTICE("Fetching Gateways from ChirpStack..."))
+        response = get_gateway_from_chirpstack()
+        if response.status_code == 200:
+            self.stdout.write(self.style.SUCCESS("✔ Gateways fetched successfully."))
+        else:
+            self.stdout.write(
+                self.style.ERROR(f"✘ Error fetching Gateways: {response.text}")
+            )
 
     def sync_api_users(self):
         self.stdout.write(self.style.NOTICE("Synchronizing APIUsers..."))
@@ -78,6 +101,14 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(f"✘ Error synchronizing APIUser {u.email}: {e}")
                 )
+        self.stdout.write(self.style.NOTICE("Fetching APIUsers from ChirpStack..."))
+        response = get_api_user_from_chirpstack()
+        if response.status_code == 200:
+            self.stdout.write(self.style.SUCCESS("✔ APIUsers fetched successfully."))
+        else:
+            self.stdout.write(
+                self.style.ERROR(f"✘ Error fetching APIUsers: {response.text}")
+            )
 
     def sync_applications(self):
         self.stdout.write(self.style.NOTICE("Synchronizing Applications..."))
@@ -94,6 +125,16 @@ class Command(BaseCommand):
                         f"✘ Error synchronizing Application {app.name}: {e}"
                     )
                 )
+        self.stdout.write(self.style.NOTICE("Fetching Applications from ChirpStack..."))
+        response = get_applications_from_chirpstack()
+        if response.status_code == 200:
+            self.stdout.write(
+                self.style.SUCCESS("✔ Applications fetched successfully.")
+            )
+        else:
+            self.stdout.write(
+                self.style.ERROR(f"✘ Error fetching Applications: {response.text}")
+            )
 
     def sync_device_profiles(self):
         self.stdout.write(self.style.NOTICE("Synchronizing DeviceProfiles..."))
@@ -110,6 +151,15 @@ class Command(BaseCommand):
                         f"✘ Error synchronizing DeviceProfile {dp.name}: {e}"
                     )
                 )
+        response = get_device_profiles_from_chirpstack()
+        if response.status_code == 200:
+            self.stdout.write(
+                self.style.SUCCESS("✔ DeviceProfiles fetched successfully.")
+            )
+        else:
+            self.stdout.write(
+                self.style.ERROR(f"✘ Error fetching DeviceProfiles: {response.text}")
+            )
 
     def sync_devices(self):
         self.stdout.write(self.style.NOTICE("Synchronizing Devices..."))
@@ -124,3 +174,11 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(f"✘ Error synchronizing Device {device.name}: {e}")
                 )
+        self.stdout.write(self.style.NOTICE("Fetching Devices from ChirpStack..."))
+        response = get_devices_from_chirpstack()
+        if response.status_code == 200:
+            self.stdout.write(self.style.SUCCESS("✔ Devices fetched successfully."))
+        else:
+            self.stdout.write(
+                self.style.ERROR(f"✘ Error fetching Devices: {response.text}")
+            )

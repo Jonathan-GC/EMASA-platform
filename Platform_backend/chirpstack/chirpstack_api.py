@@ -263,6 +263,7 @@ def get_tenant_from_chirpstack():
         logging.info(
             f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} has been created from Chirpstack"
         )
+    return list_response
 
 
 # Gateways
@@ -509,7 +510,6 @@ def sync_api_user_get(api_user):
     Returns:
         requests.Response: the response from the API
     """
-    print(api_user.__dict__)
     payload = {
         "password": api_user.password,
         "tenants": [
@@ -736,7 +736,6 @@ def get_api_user_from_chirpstack():
         headers=HEADERS,
         params={"limit": 100},
     )
-    print(list_response.status_code, list_response.text)
     if list_response.status_code == 200:
         users = list_response.json().get("result", [])
     else:
@@ -1087,6 +1086,7 @@ def get_device_profiles_from_chirpstack():
             logging.info(
                 f"DeviceProfile {dp.cs_device_profile_id} - {dp.name} created from Chirpstack"
             )
+    return list_response
 
 
 # Application
@@ -1285,6 +1285,7 @@ def get_applications_from_chirpstack():
             logging.info(
                 f"Application {app.cs_application_id} - {app.name} created from Chirpstack"
             )
+    return list_response
 
 
 # Device
@@ -1331,7 +1332,6 @@ def sync_device_get(device):
 
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
     response = requests.get(url, headers=HEADERS)
-    print(response.status_code, response.json())
 
     if response.status_code == 200:
         logging.info(f"Found device in chirpstack: {device.name}")
@@ -1507,3 +1507,4 @@ def get_devices_from_chirpstack():
             )
             dev.save()
             logging.info(f"Device {dev.dev_eui} - {dev.name} created from Chirpstack")
+    return list_response
