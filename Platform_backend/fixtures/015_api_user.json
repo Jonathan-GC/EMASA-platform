@@ -9,13 +9,13 @@
       "is_admin": true,
       "is_active": true,
       "note": "None",
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00",
-      "tenant":2,
-      "is_tenant_admin":true,
-      "is_tenant_device_admin":true,
-      "is_tenant_gateway_admin":true
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00",
+      "workspace": 1,
+      "is_tenant_admin": true,
+      "is_tenant_device_admin": true,
+      "is_tenant_gateway_admin": true
     }
   },
   {
@@ -28,13 +28,13 @@
       "is_admin": true,
       "is_active": true,
       "note": "None",
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00",
-      "tenant":2,
-      "is_tenant_admin":true,
-      "is_tenant_device_admin":true,
-      "is_tenant_gateway_admin":true
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00",
+      "workspace": 3,
+      "is_tenant_admin": true,
+      "is_tenant_device_admin": true,
+      "is_tenant_gateway_admin": true
     }
   }
 ]

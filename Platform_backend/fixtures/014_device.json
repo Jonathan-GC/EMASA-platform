@@ -11,9 +11,9 @@
       "device_type": 1,
       "device_profile": 2,
       "application": 1,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
       "activation": 1
     }
@@ -30,9 +30,9 @@
       "device_type": 1,
       "device_profile": 2,
       "application": 1,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
       "activation": 1
     }
@@ -49,9 +49,9 @@
       "device_type": 2,
       "device_profile": 1,
       "application": 2,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
       "activation": 1
     }
@@ -68,9 +68,9 @@
       "device_type": 2,
       "device_profile": 1,
       "application": 2,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00",
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
       "activation": 1
     }

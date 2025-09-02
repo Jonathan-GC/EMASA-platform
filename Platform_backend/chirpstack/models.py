@@ -1,5 +1,5 @@
 from django.db import models
-from organizations.models import Tenant
+from organizations.models import Workspace
 
 # Create your models here.
 
@@ -32,7 +32,9 @@ class ApiUser(models.Model):
     is_admin = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     note = models.CharField(max_length=255, blank=True, null=True)
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    workspace = models.ForeignKey(
+        Workspace, on_delete=models.CASCADE, null=True, blank=True
+    )
     is_tenant_admin = models.BooleanField(default=False)
     is_tenant_device_admin = models.BooleanField(default=False)
     is_tenant_gateway_admin = models.BooleanField(default=False)
@@ -57,7 +59,9 @@ class DeviceProfileTemplate(models.Model):
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)
     vendor = models.CharField(max_length=30, default="EMASA")
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    workspace = models.ForeignKey(
+        Workspace, on_delete=models.CASCADE, null=True, blank=True
+    )
     mac_version = models.CharField(max_length=30, default="LORAWAN_1_0_3")
     reg_param_revision = models.CharField(max_length=30, default="A")
     abp_rx1_delay = models.IntegerField()
@@ -79,7 +83,9 @@ class DeviceProfile(models.Model):
     name = models.CharField(max_length=30)
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    workspace = models.ForeignKey(
+        Workspace, on_delete=models.CASCADE, null=True, blank=True
+    )
     mac_version = models.CharField(max_length=30, default="LORAWAN_1_0_3")
     reg_param_revision = models.CharField(max_length=30, default="A")
     abp_rx1_delay = models.IntegerField()

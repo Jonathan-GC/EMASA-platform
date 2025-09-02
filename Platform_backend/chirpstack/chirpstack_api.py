@@ -2,7 +2,9 @@ import requests
 from django.conf import settings
 import datetime as dt
 
-from organizations.models import Tenant
+from organizations.models import Tenant, Subscription, Workspace
+from infrastructure.models import Gateway, Location, Device, Application, Type, Machine
+from chirpstack.models import ApiUser, DeviceProfile
 
 import logging
 
@@ -208,6 +210,61 @@ def sync_tenant_destroy(tenant):
         return response
 
 
+def get_tenant_from_chirpstack():
+    local_instances = Tenant.objects.all()
+
+    list_response = requests.get(
+        CHIRPSTACK_TENANT_URL, headers=HEADERS, params={"limit": 100}
+    )
+    if list_response.status_code == 200:
+        cs_instance_list = list_response.json().get("result", [])
+    else:
+        cs_instance_list = []
+
+    to_remove = []
+    for instance in local_instances:
+        match = next((t for t in cs_instance_list if t["name"] == instance.name), None)
+        if match:
+            to_remove.append(match)
+            if instance.cs_tenant_id != match["id"]:
+                instance.cs_tenant_id = match["id"]
+            instance.sync_status = "SYNCED"
+            instance.sync_error = ""
+            instance.last_synced_at = dt.datetime.now()
+            instance.save()
+            logging.info(
+                f"Tenant {instance.cs_tenant_id} - {instance.name} has been synced with Chirpstack"
+            )
+    for match in to_remove:
+        cs_instance_list.remove(match)
+
+    for new_instance in cs_instance_list:
+
+        subscription, _ = Subscription.objects.get_or_create(
+            max_gateway_count=int(new_instance.get("maxGatewayCount", 10)),
+            defaults={
+                "name": "Base",
+                "description": "Base placeholder Subscription, please modify it",
+                "can_have_gateways": new_instance.get("canHaveGateways", True),
+                "max_device_count": new_instance.get("maxDeviceCount", 100),
+            },
+        )
+
+        new_tenant = Tenant(
+            cs_tenant_id=new_instance["id"],
+            name=new_instance["name"],
+            description=new_instance.get("description", ""),
+            subscription=subscription,
+            sync_status="SYNCED",
+            sync_error="",
+            last_synced_at=dt.datetime.now(),
+        )
+        new_tenant.save()
+        logging.info(
+            f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} has been created from Chirpstack"
+        )
+
+
 # Gateways
 def sync_gateway_get(gateway):
     payload = {
@@ -356,6 +413,88 @@ def sync_gateway_destroy(gateway):
         return response
 
 
+def get_gateway_from_chirpstack():
+    local_instances = Gateway.objects.all()
+    list_response = requests.get(
+        CHIRPSTACK_GATEWAYS_URL, headers=HEADERS, params={"limit": 100}
+    )
+
+    if list_response.status_code == 200:
+        results = list_response.json().get("result", [])
+        to_remove = []
+
+        for item in results:
+            match = next(
+                (g for g in local_instances if g.cs_gateway_id == item["gatewayId"]),
+                None,
+            )
+            if match:
+                to_remove.append(item)
+                match.state = item.get("state", match.state)
+                match.last_seen_at = item.get("lastSeenAt", match.last_seen_at)
+                match.sync_status = "SYNCED"
+                match.sync_error = ""
+                match.last_synced_at = dt.datetime.now()
+                match.save()
+                logging.info(
+                    f"Gateway {match.cs_gateway_id} - {match.name} has been synced with Chirpstack"
+                )
+        for match in to_remove:
+            results.remove(match)
+
+        for new_instance in results:
+            tenant = Tenant.objects.filter(
+                cs_tenant_id=new_instance.get("tenantId")
+            ).first()
+            if tenant:
+                workspace = tenant.workspace_set.first()
+                if not workspace:
+                    workspace = Workspace.objects.create(
+                        name=f"{tenant.name} WS",
+                        tenant=tenant,
+                        description=f"{tenant.name}'s default workspace",
+                    )
+                    workspace.save()
+                cs_location = new_instance.get("location", {})
+
+                location = Location(
+                    name=f"{new_instance['name']} Location",
+                    accuracy=cs_location.get("accuracy", 0.0),
+                    altitude=cs_location.get("altitude", 0.0),
+                    latitude=cs_location.get("latitude", 0.0),
+                    longitude=cs_location.get("longitude", 0.0),
+                    source=cs_location.get("source", "UNKNOWN"),
+                )
+                location.save()
+                new_gw = Gateway(
+                    cs_gateway_id=new_instance["gatewayId"],
+                    name=new_instance["name"],
+                    description=new_instance.get("description", ""),
+                    stats_interval=new_instance.get("statsInterval", 0),
+                    state=new_instance.get("state", "unknown"),
+                    last_seen_at=new_instance.get("lastSeenAt", None),
+                    location=location,
+                    workspace=workspace,
+                    sync_status="SYNCED",
+                    sync_error="",
+                    last_synced_at=dt.datetime.now(),
+                )
+                new_gw.save()
+                logging.info(
+                    f"Gateway {new_gw.cs_gateway_id} - {new_gw.name} has been created from Chirpstack"
+                )
+
+            else:
+                logging.warning(
+                    f"No tenant found with cs_tenant_id {new_instance.get('tenantId')}. Gateway {new_instance['gatewayId']} was not created."
+                )
+
+    else:
+        logging.error(f"Error fetching gateways from Chirpstack.")
+
+    return list_response
+
+
 # Chirpstack user
 def sync_api_user_get(api_user):
     """
@@ -370,6 +509,7 @@ def sync_api_user_get(api_user):
     Returns:
         requests.Response: the response from the API
     """
+    print(api_user.__dict__)
     payload = {
         "password": api_user.password,
         "tenants": [
@@ -377,7 +517,7 @@ def sync_api_user_get(api_user):
                 "isAdmin": api_user.is_tenant_admin,
                 "isDeviceAdmin": api_user.is_tenant_device_admin,
                 "isGatewayAdmin": api_user.is_tenant_gateway_admin,
-                "tenantId": api_user.tenant.cs_tenant_id,
+                "tenantId": api_user.workspace.tenant.cs_tenant_id,
             }
         ],
         "user": {
@@ -458,7 +598,7 @@ def sync_api_user_create(api_user):
                 "isAdmin": api_user.is_tenant_admin,
                 "isDeviceAdmin": api_user.is_tenant_device_admin,
                 "isGatewayAdmin": api_user.is_tenant_gateway_admin,
-                "tenantId": api_user.tenant.cs_tenant_id,
+                "tenantId": api_user.workspace.tenant.cs_tenant_id,
             }
         ],
         "user": {
@@ -510,7 +650,7 @@ def sync_api_user_update(api_user):
                 "isAdmin": api_user.is_tenant_admin,
                 "isDeviceAdmin": api_user.is_tenant_device_admin,
                 "isGatewayAdmin": api_user.is_tenant_gateway_admin,
-                "tenantId": api_user.tenant.cs_tenant_id,
+                "tenantId": api_user.workspace.tenant.cs_tenant_id,
             }
         ],
         "user": {
@@ -588,6 +728,97 @@ def sync_api_user_destroy(api_user):
     return response
 
 
+def get_api_user_from_chirpstack():
+    local_instances = ApiUser.objects.all()
+
+    list_response = requests.get(
+        CHIRPSTACK_API_URL,
+        headers=HEADERS,
+        params={"limit": 100},
+    )
+    print(list_response.status_code, list_response.text)
+    if list_response.status_code == 200:
+        users = list_response.json().get("result", [])
+    else:
+        users = []
+
+    user_tenant_mapping = {}
+    for tenant in Tenant.objects.exclude(cs_tenant_id__isnull=True):
+        resp = requests.get(
+            f"{CHIRPSTACK_API_URL}/tenants/{tenant.cs_tenant_id}/users",
+            headers=HEADERS,
+            params={"limit": 100},
+        )
+        if resp.status_code != 200:
+            continue
+        tenant_users = resp.json().get("result", [])
+        for tu in tenant_users:
+            uid = tu["userId"]
+            if uid not in user_tenant_mapping:
+                user_tenant_mapping[uid] = []
+            user_tenant_mapping[uid].append(
+                {
+                    "tenant": tenant,
+                    "isAdmin": tu.get("isAdmin", False),
+                    "isDeviceAdmin": tu.get("isDeviceAdmin", False),
+                    "isGatewayAdmin": tu.get("isGatewayAdmin", False),
+                }
+            )
+
+    to_remove = []
+    for instance in local_instances:
+        match = next((u for u in users if u["email"] == instance.email), None)
+        if match:
+            to_remove.append(match)
+            instance.cs_user_id = match["id"]
+            instance.is_active = match.get("isActive", instance.is_active)
+            instance.is_admin = match.get("isAdmin", instance.is_admin)
+            instance.note = match.get("note", instance.note)
+            instance.sync_status = "SYNCED"
+            instance.sync_error = ""
+            instance.last_synced_at = dt.datetime.now()
+
+            for tinfo in user_tenant_mapping.get(instance.cs_user_id, []):
+                workspace = tinfo["tenant"].workspace_set.first()
+                instance.workspace = workspace
+                instance.is_tenant_admin = tinfo["isAdmin"]
+                instance.is_tenant_device_admin = tinfo["isDeviceAdmin"]
+                instance.is_tenant_gateway_admin = tinfo["isGatewayAdmin"]
+
+            instance.save()
+
+    for new_instance in users:
+        if ApiUser.objects.filter(email=new_instance["email"]).exists():
+            continue
+
+        tenant_info = user_tenant_mapping.get(new_instance["id"], [])
+        workspace = (
+            tenant_info[0]["tenant"].workspace_set.first() if tenant_info else None
+        )
+
+        api_user = ApiUser(
+            email=new_instance["email"],
+            cs_user_id=new_instance["id"],
+            is_active=new_instance["isActive"],
+            is_admin=new_instance["isAdmin"],
+            note=new_instance.get("note", ""),
+            workspace=workspace,
+            password="",
+            sync_error="Please set a new password",
+            sync_status="SYNCED",
+            last_synced_at=dt.datetime.now(),
+        )
+
+        if tenant_info:
+            api_user.is_tenant_admin = tenant_info[0]["isAdmin"]
+            api_user.is_tenant_device_admin = tenant_info[0]["isDeviceAdmin"]
+            api_user.is_tenant_gateway_admin = tenant_info[0]["isGatewayAdmin"]
+
+        api_user.save()
+
+    return list_response
+
+
 # DeviceProfile
 def sync_device_profile_get(device_profile):
     payload = {
@@ -608,7 +839,7 @@ def sync_device_profile_get(device_profile):
             "payloadCodecScript": device_profile.payload_codec_script,
             "isRelay": device_profile.is_rlay,
             "isRelayEd": device_profile.is_rlay_ed,
-            "tenantId": device_profile.tenant.cs_tenant_id,
+            "tenantId": device_profile.workspace.tenant.cs_tenant_id,
         }
     }
     url = f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}"
@@ -667,7 +898,7 @@ def sync_device_profile_create(device_profile):
             "payloadCodecScript": device_profile.payload_codec_script,
             "isRelay": device_profile.is_rlay,
             "isRelayEd": device_profile.is_rlay_ed,
-            "tenantId": device_profile.tenant.cs_tenant_id,
+            "tenantId": device_profile.workspace.tenant.cs_tenant_id,
         }
     }
     response = requests.post(
@@ -724,7 +955,7 @@ def sync_device_profile_update(device_profile):
             "payloadCodecScript": device_profile.payload_codec_script,
             "isRelay": device_profile.is_rlay,
             "isRelayEd": device_profile.is_rlay_ed,
-            "tenantId": device_profile.tenant.cs_tenant_id,
+            "tenantId": device_profile.workspace.tenant.cs_tenant_id,
         }
     }
 
@@ -771,6 +1002,91 @@ def sync_device_profile_destroy(device_profile):
         )
 
     return response
+
+
+def get_device_profiles_from_chirpstack():
+    local_tenants = Tenant.objects.exclude(cs_tenant_id__isnull=True)
+    for tenant in local_tenants:
+        workspace = tenant.workspace_set.first()
+        if not workspace:
+            logging.warning(
+                f"Tenant {tenant.name} does not have an associated workspace. Skipping..."
+            )
+            continue
+
+        list_response = requests.get(
+            CHIRPSTACK_DEVICE_PROFILE_URL,
+            headers=HEADERS,
+            params={"limit": 100, "tenantId": tenant.cs_tenant_id},
+        )
+
+        if list_response.status_code != 200:
+            logging.error(
+                f"Error fetching device profiles for tenant {tenant.cs_tenant_id}"
+            )
+            continue
+
+        cs_profiles = list_response.json().get("result", [])
+        local_profiles = DeviceProfile.objects.filter(workspace=workspace)
+
+        to_remove = []
+        for local_dp in local_profiles:
+            match = next(
+                (dp for dp in cs_profiles if dp["id"] == local_dp.cs_device_profile_id),
+                None,
+            )
+            if match:
+                to_remove.append(match)
+                local_dp.name = match.get("name", local_dp.name)
+                local_dp.region = match.get("region", local_dp.region)
+                local_dp.mac_version = match.get("macVersion", local_dp.mac_version)
+                local_dp.reg_param_revision = match.get(
+                    "regParamsRevision", local_dp.reg_param_revision
+                )
+                local_dp.supports_otaa = match.get(
+                    "supportsOtaa", local_dp.supports_otaa
+                )
+                local_dp.supports_class_b = match.get(
+                    "supportsClassB", local_dp.supports_class_b
+                )
+                local_dp.supports_class_c = match.get(
+                    "supportsClassC", local_dp.supports_class_c
+                )
+                local_dp.sync_status = "SYNCED"
+                local_dp.sync_error = ""
+                local_dp.last_synced_at = dt.datetime.now()
+                local_dp.save()
+                logging.info(
+                    f"DeviceProfile {local_dp.cs_device_profile_id} - {local_dp.name} updated"
+                )
+        for match in to_remove:
+            cs_profiles.remove(match)
+
+        # crear los nuevos
+        for new_dp in cs_profiles:
+            dp = DeviceProfile(
+                cs_device_profile_id=new_dp["id"],
+                name=new_dp["name"],
+                description="Imported from Chirpstack",
+                region=new_dp.get("region", ""),
+                workspace=workspace,
+                mac_version=new_dp.get("macVersion", "LORAWAN_1_0_3"),
+                reg_param_revision=new_dp.get("regParamsRevision", "A"),
+                abp_rx1_delay=1,
+                abp_rx1_dr_offset=0,
+                abp_rx2_dr=0,
+                abp_rx2_freq=0,
+                supports_otaa=new_dp.get("supportsOtaa", False),
+                supports_class_b=new_dp.get("supportsClassB", False),
+                supports_class_c=new_dp.get("supportsClassC", False),
+                sync_status="SYNCED",
+                sync_error="",
+                last_synced_at=dt.datetime.now(),
+            )
+            dp.save()
+            logging.info(
+                f"DeviceProfile {dp.cs_device_profile_id} - {dp.name} created from Chirpstack"
+            )
 
 
 # Application
@@ -899,6 +1215,76 @@ def sync_application_destroy(application):
         )
 
     return response
+
+
+def get_applications_from_chirpstack():
+    local_tenants = Tenant.objects.exclude(cs_tenant_id__isnull=True)
+
+    for tenant in local_tenants:
+        workspace = tenant.workspace_set.first()
+        if not workspace:
+            logging.warning(
+                f"Tenant {tenant.name} does not have an associated workspace. Skipping..."
+            )
+            continue
+
+        list_response = requests.get(
+            CHIRPSTACK_APPLICATION_URL,
+            headers=HEADERS,
+            params={"limit": 100, "tenantId": tenant.cs_tenant_id},
+        )
+
+        if list_response.status_code != 200:
+            logging.error(
+                f"Error fetching applications for tenant {tenant.cs_tenant_id}"
+            )
+            continue
+
+        cs_apps = list_response.json().get("result", [])
+        local_apps = Application.objects.filter(workspace=workspace)
+
+        to_remove = []
+        for local_app in local_apps:
+            match = next(
+                (a for a in cs_apps if a["id"] == local_app.cs_application_id), None
+            )
+            if match:
+                to_remove.append(match)
+                # actualizar campos
+                local_app.name = match.get("name", local_app.name)
+                local_app.description = match.get("description", local_app.description)
+                local_app.sync_status = "SYNCED"
+                local_app.sync_error = ""
+                local_app.last_synced_at = dt.datetime.now()
+                local_app.save()
+                logging.info(
+                    f"Application {local_app.cs_application_id} - {local_app.name} updated"
+                )
+
+        for match in to_remove:
+            cs_apps.remove(match)
+
+        # obtener un Type genérico si no existe relación explícita
+        default_type, _ = Type.objects.get_or_create(
+            name="Generic", defaults={"description": "Generic device type"}
+        )
+
+        # crear los nuevos
+        for new_app in cs_apps:
+            app = Application(
+                cs_application_id=new_app["id"],
+                name=new_app.get("name", ""),
+                description=new_app.get("description", ""),
+                workspace=workspace,
+                device_type=default_type,
+                sync_status="SYNCED",
+                sync_error="",
+                last_synced_at=dt.datetime.now(),
+            )
+            app.save()
+            logging.info(
+                f"Application {app.cs_application_id} - {app.name} created from Chirpstack"
+            )
 
 
 # Device
@@ -1034,3 +1420,90 @@ def deactivate_device(device):
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}/activation"
     response = requests.delete(url, headers=HEADERS)
     return response
+
+
+def get_devices_from_chirpstack():
+    local_apps = Application.objects.exclude(cs_application_id__isnull=True)
+
+    for app in local_apps:
+        workspace = app.workspace
+        list_response = requests.get(
+            CHIRPSTACK_DEVICE_URL,
+            headers=HEADERS,
+            params={"limit": 100, "applicationId": app.cs_application_id},
+        )
+
+        if list_response.status_code != 200:
+            logging.error(
+                f"Error fetching devices for application {app.cs_application_id}"
+            )
+            continue
+
+        cs_devices = list_response.json().get("result", [])
+        local_devices = Device.objects.filter(application=app)
+
+        to_remove = []
+        for local_dev in local_devices:
+            match = next(
+                (d for d in cs_devices if d["devEui"] == local_dev.dev_eui), None
+            )
+            if match:
+                to_remove.append(match)
+
+                try:
+                    dp = DeviceProfile.objects.get(
+                        cs_device_profile_id=match["deviceProfileId"]
+                    )
+                except DeviceProfile.DoesNotExist:
+                    logging.warning(
+                        f"DeviceProfile {match['deviceProfileId']} not found for device {match['devEui']}"
+                    )
+                    dp = None
+
+                local_dev.name = match.get("name", local_dev.name)
+                local_dev.description = match.get("description", local_dev.description)
+                local_dev.device_profile = dp if dp else local_dev.device_profile
+                local_dev.last_seen_at = match.get("lastSeenAt")
+                local_dev.sync_status = "SYNCED"
+                local_dev.sync_error = ""
+                local_dev.last_synced_at = dt.datetime.now()
+                local_dev.save()
+                logging.info(f"Device {local_dev.dev_eui} updated")
+
+        for match in to_remove:
+            cs_devices.remove(match)
+
+        default_type, _ = Type.objects.get_or_create(
+            name="Generic", defaults={"description": "Generic type"}
+        )
+        default_machine, _ = Machine.objects.get_or_create(
+            name="Generic Machine",
+            workspace=workspace,
+            defaults={"description": "Default machine"},
+        )
+
+        for new_dev in cs_devices:
+            try:
+                dp = DeviceProfile.objects.get(
+                    cs_device_profile_id=new_dev["deviceProfileId"]
+                )
+            except DeviceProfile.DoesNotExist:
+                dp = None
+
+            dev = Device(
+                dev_eui=new_dev["devEui"],
+                name=new_dev.get("name", ""),
+                description=new_dev.get("description", ""),
+                application=app,
+                workspace=workspace,
+                machine=default_machine,
+                device_type=default_type,
+                device_profile=dp,
+                is_disabled=False,
+                last_seen_at=new_dev.get("lastSeenAt"),
+                sync_status="SYNCED",
+                sync_error="",
+                last_synced_at=dt.datetime.now(),
+            )
+            dev.save()
+            logging.info(f"Device {dev.dev_eui} - {dev.name} created from Chirpstack")

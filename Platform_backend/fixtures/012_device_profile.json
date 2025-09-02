@@ -7,7 +7,7 @@
       "name": "North Plant Temperature",
       "description": "Tecnobot North Plant",
       "region": "US915",
-      "tenant": 2,
+      "workspace": 3,
       "mac_version": "LORAWAN_1_0_3",
       "reg_param_revision": "A",
       "abp_rx1_delay": 0,
@@ -20,9 +20,9 @@
       "payload_codec_runtime": "JS",
       "is_rlay": false,
       "is_rlay_ed": false,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00"
     }
   },
   {
@@ -33,7 +33,7 @@
       "name": "North Plant Voltage",
       "description": "Tecnobot North Plant",
       "region": "US915",
-      "tenant": 2,
+      "workspace": 3,
       "mac_version": "LORAWAN_1_0_3",
       "reg_param_revision": "A",
       "abp_rx1_delay": 0,
@@ -46,9 +46,9 @@
       "payload_codec_runtime": "JS",
       "is_rlay": false,
       "is_rlay_ed": false,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00"
     }
   }
 ]
