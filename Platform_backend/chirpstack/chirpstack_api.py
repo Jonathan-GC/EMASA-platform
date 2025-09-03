@@ -260,8 +260,14 @@ def get_tenant_from_chirpstack():
             last_synced_at=dt.datetime.now(),
         )
         new_tenant.save()
+        workspace = Workspace.objects.create(
+            name=f"{new_instance['name']} WS",
+            description=f"{new_instance['name']}'s default Workspace",
+            tenant=new_tenant,
+        )
+        workspace.save()
         logging.info(
-            f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} has been created from Chirpstack"
+            f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} with it's default workspace {workspace.id} has been created from Chirpstack"
         )
     return list_response
 
@@ -729,6 +735,16 @@ def sync_api_user_destroy(api_user):
 
 
 def get_api_user_from_chirpstack():
+    """
+    Syncs API users from Chirpstack to the local database.
+
+    Side Effects:
+        Updates existing users and creates new users in the local database.
+        For new users, the sync_error field is set to "Please set a new password".
+
+    Returns:
+        requests.Response: the response from the Chirpstack API
+    """
     local_instances = ApiUser.objects.all()
 
     list_response = requests.get(
@@ -744,7 +760,7 @@ def get_api_user_from_chirpstack():
     user_tenant_mapping = {}
     for tenant in Tenant.objects.exclude(cs_tenant_id__isnull=True):
         resp = requests.get(
-            f"{CHIRPSTACK_API_URL}/tenants/{tenant.cs_tenant_id}/users",
+            f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}/users",
             headers=HEADERS,
             params={"limit": 100},
         )
@@ -764,9 +780,11 @@ def get_api_user_from_chirpstack():
                 }
             )
 
+    users_by_email = {u["email"]: u for u in users}
+
     to_remove = []
     for instance in local_instances:
-        match = next((u for u in users if u["email"] == instance.email), None)
+        match = users_by_email.get(instance.email)
         if match:
             to_remove.append(match)
             instance.cs_user_id = match["id"]
@@ -777,12 +795,47 @@ def get_api_user_from_chirpstack():
             instance.sync_error = ""
             instance.last_synced_at = dt.datetime.now()
 
-            for tinfo in user_tenant_mapping.get(instance.cs_user_id, []):
-                workspace = tinfo["tenant"].workspace_set.first()
+            tenant_info_list = user_tenant_mapping.get(instance.cs_user_id, [])
+            if tenant_info_list:
+                workspace = tenant_info_list[0]["tenant"].workspace_set.first()
                 instance.workspace = workspace
-                instance.is_tenant_admin = tinfo["isAdmin"]
-                instance.is_tenant_device_admin = tinfo["isDeviceAdmin"]
-                instance.is_tenant_gateway_admin = tinfo["isGatewayAdmin"]
+                instance.is_tenant_admin = tenant_info_list[0]["isAdmin"]
+                default_tenant = Tenant.objects.first()
+                if default_tenant:
+                    workspaces = default_tenant.workspace_set.all()
+                    if workspaces.exists():
+                        workspace = workspaces.first()
+                    else:
+                        workspace = Workspace.objects.create(
+                            tenant=default_tenant,
+                            name=f"{default_tenant.name} Default WS",
+                            description="Default workspace for orphan users",
+                        )
+                    instance.workspace = workspace
+
+                    payload = {
+                        "tenantUser": {
+                            "email": instance.email,
+                            "isAdmin": True,
+                            "isDeviceAdmin": True,
+                            "isGatewayAdmin": True,
+                            "userId": instance.cs_user_id,
+                        }
+                    }
+                    try:
+                        requests.post(
+                            f"{CHIRPSTACK_API_URL}/tenants/{default_tenant.cs_tenant_id}/users",
+                            json=payload,
+                            headers=HEADERS,
+                        )
+                    except Exception as e:
+                        logging.warning(
+                            f"No se pudo asociar el usuario {instance.email} al tenant {default_tenant.name}: {e}"
+                        )
+                else:
+                    logging.warning(
+                        f"No tenants exist in the database. Cannot associate user {instance.email} to any tenant."
+                    )
 
             instance.save()
 
@@ -790,10 +843,26 @@ def get_api_user_from_chirpstack():
         if ApiUser.objects.filter(email=new_instance["email"]).exists():
             continue
 
-        tenant_info = user_tenant_mapping.get(new_instance["id"], [])
+        tenant_info_list = user_tenant_mapping.get(new_instance["id"], [])
         workspace = (
-            tenant_info[0]["tenant"].workspace_set.first() if tenant_info else None
+            tenant_info_list[0]["tenant"].workspace_set.first()
+            if tenant_info_list
+            else None
         )
+
+        if not workspace:
+            default_tenant = Tenant.objects.first()
+            if default_tenant:
+                workspaces = default_tenant.workspace_set.all()
+                if workspaces.exists():
+                    workspace = workspaces.first()
+                else:
+                    workspace = Workspace.objects.create(
+                        tenant=default_tenant,
+                        name=f"{default_tenant.name} Default WS",
+                        description="Default workspace for orphan users",
+                    )
+                instance.workspace = workspace
 
         api_user = ApiUser(
             email=new_instance["email"],
@@ -803,15 +872,15 @@ def get_api_user_from_chirpstack():
             note=new_instance.get("note", ""),
             workspace=workspace,
             password="",
-            sync_error="Please set a new password",
+            sync_error="Please set a new password and assign this user to a desired workspace",
             sync_status="SYNCED",
             last_synced_at=dt.datetime.now(),
         )
 
-        if tenant_info:
-            api_user.is_tenant_admin = tenant_info[0]["isAdmin"]
-            api_user.is_tenant_device_admin = tenant_info[0]["isDeviceAdmin"]
-            api_user.is_tenant_gateway_admin = tenant_info[0]["isGatewayAdmin"]
+        if tenant_info_list:
+            api_user.is_tenant_admin = tenant_info_list[0]["isAdmin"]
+            api_user.is_tenant_device_admin = tenant_info_list[0]["isDeviceAdmin"]
+            api_user.is_tenant_gateway_admin = tenant_info_list[0]["isGatewayAdmin"]
 
         api_user.save()
 
