@@ -1,5 +1,6 @@
 export const components = {
-    DEFAULT_LAYOUT: () => import('../../layouts/default.vue'),
+    DEFAULT_LAYOUT: () => import('@layouts/default.vue'),
+    BLANK_LAYOUT: () => import('@layouts/blank.vue'),
     HOME: () => import('@views/home/index.vue'),
     ABOUT: () => import('@views/about/index.vue'),
     VOLTAGE: () => import('@views/voltage/index.vue'),
@@ -10,4 +11,5 @@ export const components = {
     APPLICATIONS: () => import('@views/infrastructure/application/index.vue'),
     TENANTS: () => import('@views/tenants/index.vue'),
     TENANT_USERS: () => import('@views/users/index.vue'),
+    LOGIN: () => import('@views/login/index.vue'),
 }

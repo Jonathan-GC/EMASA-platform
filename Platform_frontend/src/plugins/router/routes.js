@@ -4,7 +4,7 @@ import { components as C } from './components'
 
 export const routes = [
 
-    { path: '/', redirect: P.HOME },
+    { path: '/', redirect: P.LOGIN },
     {
         path: P.ROOT,
         component: C.DEFAULT_LAYOUT,
@@ -18,10 +18,17 @@ export const routes = [
             { path: P.DEVICE_PROFILES, component: C.DEVICE_PROFILES },
             { path: P.APPLICATIONS, component: C.APPLICATIONS },
             { path: P.TENANTS, component: C.TENANTS },
-            { path: P.TENANT_USERS, component: C.TENANT_USERS }
-
+            { path: P.TENANT_USERS, component: C.TENANT_USERS },
+            //{ path: P.LOGIN, component: C.LOGIN }
         ]
     },
+    {
+        path: P.ROOT,
+        component: C.BLANK_LAYOUT,
+        children: [
+            { path: P.LOGIN, component: C.LOGIN },
+        ]
+    }
 
 
 ]

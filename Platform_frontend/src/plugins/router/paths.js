@@ -9,5 +9,6 @@ export const paths = {
     DEVICE_PROFILES: '/infrastructure/device-profiles',
     APPLICATIONS: '/infrastructure/appointments',
     TENANTS: '/tenants',
-    TENANT_USERS: '/users'
+    TENANT_USERS: '/users',
+    LOGIN: '/login'
 }

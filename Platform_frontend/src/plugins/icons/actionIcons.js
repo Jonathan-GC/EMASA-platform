@@ -13,7 +13,10 @@ import {
   shareOutline,
   playOutline,
   pauseOutline,
-  stopOutline
+  stopOutline,
+  keyOutline,
+  logOutOutline,
+  shieldOutline
 } from 'ionicons/icons'
 
 export const actionIcons = {
@@ -30,5 +33,8 @@ export const actionIcons = {
   'share': shareOutline,
   'play': playOutline,
   'pause': pauseOutline,
-  'stop': stopOutline
+  'stop': stopOutline,
+  'key': keyOutline,
+  'logOut': logOutOutline,
+  'shield': shieldOutline
 }

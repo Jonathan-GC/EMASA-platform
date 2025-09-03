@@ -108,6 +108,14 @@
           📦 Applications
         </router-link>
         <router-link 
+          to="/login" 
+          class="nav-link"
+          :class="{ active: $route.path === '/login' }"
+          @click="closeNavbar"
+        >
+          🔑 Iniciar Sesión
+        </router-link>
+        <router-link 
           to="/about" 
           class="nav-link"
           :class="{ active: $route.path === '/about' }"
