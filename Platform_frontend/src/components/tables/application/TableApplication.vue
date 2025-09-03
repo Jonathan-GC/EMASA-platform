@@ -83,11 +83,12 @@
               </ion-col>
             </ion-row>
 
+
             <!-- Data rows -->
             <ion-row
                 v-for="deviceProfile in paginatedItems"
                 :key="deviceProfile.id"
-                class="table-row"
+                class="table-row-stylized"
 
                 :class="{ 'row-selected': selectedApplication?.id === deviceProfile.id }"
             >
@@ -99,13 +100,13 @@
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.cs_device_profile_id }}</div>
+                <div class="gateway-id">{{ deviceProfile.cs_application_id }}</div>
               </ion-col>
 
 
               <ion-col size="2">
-                <ion-chip>
-                  {{ deviceProfile.workspace }}
+                <ion-chip class="p-2.5 rounded-full">
+                  {{ deviceProfile.workspace.tenant }}
                 </ion-chip>
               </ion-col>
 
@@ -344,13 +345,13 @@ onMounted(async () => {
   background-color: var(--ion-color-light-tint);
 }
 
-.table-row {
+.table-row-stylized {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
 }
 
-.table-row:hover {
+.table-row-stylized:hover {
   background-color: var(--ion-color-light-tint);
 }
 
@@ -358,7 +359,7 @@ onMounted(async () => {
   background-color: var(--ion-color-primary-tint) !important;
 }
 
-.table-row ion-col {
+.table-row-stylized ion-col {
   padding: 12px;
   display: flex;
   align-items: center;
@@ -413,7 +414,7 @@ onMounted(async () => {
   }
 
   .table-header ion-col,
-  .table-row ion-col {
+  .table-row-stylized ion-col {
     padding: 8px 6px;
   }
 

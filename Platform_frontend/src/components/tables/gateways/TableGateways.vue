@@ -87,7 +87,7 @@
             <ion-row 
               v-for="gateway in paginatedItems" 
               :key="gateway.id"
-              class="table-row"
+              class="table-row-stylized"
              
               :class="{ 'row-selected': selectedGateway?.id === gateway.id }"
             >
@@ -348,13 +348,13 @@ onMounted(async () => {
   background-color: var(--ion-color-light-tint);
 }
 
-.table-row {
+.table-row-stylized {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
 }
 
-.table-row:hover {
+.table-row-stylized:hover {
   background-color: var(--ion-color-light-tint);
 }
 
@@ -362,7 +362,7 @@ onMounted(async () => {
   background-color: var(--ion-color-primary-tint) !important;
 }
 
-.table-row ion-col {
+.table-row-stylized ion-col {
   padding: 12px;
   display: flex;
   align-items: center;
@@ -417,7 +417,7 @@ onMounted(async () => {
   }
   
   .table-header ion-col,
-  .table-row ion-col {
+  .table-row-stylized ion-col {
     padding: 8px 6px;
   }
   

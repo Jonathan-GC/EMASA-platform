@@ -1,0 +1,6 @@
+@import "tailwindcss/utilities";
+@import "tailwindcss/theme";
+
+body a {
+    color: var(--color-amber-700);
+}
