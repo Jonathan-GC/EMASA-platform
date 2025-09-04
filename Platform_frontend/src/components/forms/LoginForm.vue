@@ -104,7 +104,11 @@
 
 <script setup>
 import { ref, inject, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import API from '@utils/api/index.js'
+
+// Router instance
+const router = useRouter()
 
 // Iconos desde el plugin
 const icons = inject('icons', {})
@@ -157,6 +161,7 @@ const tokenStatus = computed(() => {
         token: token.substring(0, 20) + '...',
         minutesLeft
       };
+
     } else {
       return {
         message: '⚠️ Access token expirado',
@@ -262,6 +267,11 @@ const handleLogin = async () => {
     
     success.value = '¡Login exitoso! Tokens guardados.'
     
+    // Redirigir a /tenants después de un segundo
+    setTimeout(() => {
+      router.push('/tenants');
+    }, 500);
+
     // Verificar cookies después del login
     setTimeout(checkCookies, 1000)
 

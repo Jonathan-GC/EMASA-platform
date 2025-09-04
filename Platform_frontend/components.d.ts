@@ -10,6 +10,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     BatteryDeviceInfo: typeof import('./src/components/BatteryDeviceInfo.vue')['default']
     Blank: typeof import('./src/layouts/blank.vue')['default']
+    BtnLogout: typeof import('./src/layouts/components/BtnLogout.vue')['default']
     ChartsGrid: typeof import('./src/components/ChartsGrid.vue')['default']
     ConnectionStatus: typeof import('./src/components/ConnectionStatus.vue')['default']
     CurrentDeviceInfo: typeof import('./src/components/CurrentDeviceInfo.vue')['default']

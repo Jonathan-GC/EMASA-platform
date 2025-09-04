@@ -123,6 +123,7 @@
         >
           ℹ️ Acerca de
         </router-link>
+        <BtnLogout/>
       </div>
     </div>
   </nav>
@@ -132,6 +133,7 @@
 import {inject, ref} from 'vue'
 import { useRoute } from 'vue-router'
 import { paths } from "@/plugins/router/paths"
+import BtnLogout from "@layouts/components/BtnLogout.vue";
 
 const icons = inject('icons', {})
 
