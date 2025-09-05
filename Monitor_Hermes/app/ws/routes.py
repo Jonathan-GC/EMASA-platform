@@ -2,13 +2,18 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from app.ws.manager import ConnectionManager
 from app.auth.jwt import verify_jwt
+import loguru
 
 router = APIRouter()
 manager = ConnectionManager()
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
+async def websocket_endpoint(websocket: WebSocket):
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=1008)
+        return
     try:
         info = verify_jwt(token)
     except Exception:

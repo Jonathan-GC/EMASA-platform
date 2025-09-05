@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "Monitor Hermes"
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
+    MONGO_DB: str = "hermes"
+    MONGO_URI: str
 
     class Config:
         env_file = ".env"
