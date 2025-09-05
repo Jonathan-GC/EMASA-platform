@@ -13,8 +13,10 @@ idna==3.10
 loguru==0.7.3
 pyasn1==0.6.1
 pydantic==2.11.7
+pydantic-settings==2.10.1
 pydantic_core==2.33.2
 pymongo==4.14.1
+python-dotenv==1.1.1
 python-jose==3.5.0
 redis==6.4.0
 rsa==4.9.1

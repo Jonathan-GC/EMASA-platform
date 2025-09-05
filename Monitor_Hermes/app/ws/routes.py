@@ -1,18 +1,28 @@
 # Here we define the WebSocket routes for the application.
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from app.ws.manager import ConnectionManager
+from app.auth.jwt import verify_jwt
 
 router = APIRouter()
 manager = ConnectionManager()
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
+    try:
+        info = verify_jwt(token)
+    except Exception:
+        await websocket.close(code=1008)
+        return
+
+    await manager.connect(websocket, info)
     try:
         while True:
             data = await websocket.receive_text()
-            await manager.send_personal_message(f"Message text was: {data}", websocket)
+            tenant_id = info.get("tenant_id")
+            if tenant_id:
+                await manager.broadcast(
+                    f"Message from tenant {tenant_id}: {data}", tenant_id
+                )
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        await manager.broadcast("A user has disconnected")
+        manager.disconnect(websocket, info)

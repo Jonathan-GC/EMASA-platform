@@ -2,7 +2,44 @@ from rest_framework import serializers
 from django.core.validators import validate_email
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from roles.models import WorkspaceMembership
 from .models import User
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        membership = (
+            WorkspaceMembership.objects.filter(user=user)
+            .select_related("workspace__tenant")
+            .first()
+        )
+        is_superuser = user.is_superuser
+
+        if membership and membership.workspace and membership.workspace.tenant:
+            tenant = membership.workspace.tenant
+            cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+            if tenant.name == "EMASA":
+                is_global = True
+            else:
+                is_global = False
+        else:
+            is_global = False
+            cs_tenant_id = None
+
+        token["user_id"] = user.id
+        token["username"] = user.username
+        token["is_global"] = is_global
+        token["cs_tenant_id"] = cs_tenant_id
+        token["is_superuser"] = is_superuser
+
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        return data
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -21,6 +58,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "address",
         ]
+
     def validate_username(self, value):
         """
         Validates the username field to ensure that the username is unique
@@ -42,10 +80,7 @@ class UserSerializer(serializers.ModelSerializer):
         Raises a ValidationError if any of them contain numbers or special characters.
         """
         user = User.objects.filter(username=value)
-        if (
-            not user.name.isalpha()
-            or not user.last_name.isalpha()
-        ):
+        if not user.name.isalpha() or not user.last_name.isalpha():
             raise serializers.ValidationError(
                 "First name, middle name or last name must contain only letters."
             )
@@ -58,7 +93,7 @@ class UserSerializer(serializers.ModelSerializer):
         phone number contains any non-digit characters or if its length is less
         than 10 characters.
         """
-        if not value.isdigit() or len(value) < 10:        
+        if not value.isdigit() or len(value) < 10:
             raise serializers.ValidationError(
                 "Phone number must be at least 10 digits long and contain only numbers."
             )

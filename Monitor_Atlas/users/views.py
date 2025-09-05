@@ -1,4 +1,4 @@
-from .serializers import UserSerializer
+from .serializers import UserSerializer, CustomTokenObtainPairSerializer
 from .models import User
 from roles.permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
 from roles.mixins import PermissionKeyMixin
@@ -94,6 +94,8 @@ REFRESH_COOKIE_PATH = "/"
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
     @method_decorator(csrf_protect)
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
