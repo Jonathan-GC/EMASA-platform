@@ -1,6 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/django,text
 # Edit at https://www.toptal.com/developers/gitignore?templates=django,text
-
+.env
+.env.*
 ### Django ###
 *.log
 *.pot
