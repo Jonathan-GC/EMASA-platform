@@ -9,11 +9,17 @@ from app.persistence.mongo import (
     save_message,
 )
 from app.persistence.models import MessageIn
+from app.mqtt.client import start_mqtt
+import loguru
+import asyncio
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_to_mongo()
+    loop = asyncio.get_event_loop()
+    db = await get_db()
+    start_mqtt(db, loop)
     yield
     await close_mongo_connection()
 
