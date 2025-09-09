@@ -1,11 +1,13 @@
 # Here we define the WebSocket routes for the application.
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from app.ws.manager import ConnectionManager
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+# from app.ws.manager import ConnectionManager
+from app.ws.manager import manager
 from app.auth.jwt import verify_jwt
 import loguru
 
 router = APIRouter()
-manager = ConnectionManager()
+# manager = ConnectionManager()
 
 
 @router.websocket("/ws")

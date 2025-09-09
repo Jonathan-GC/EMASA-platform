@@ -26,7 +26,7 @@ class ConnectionManager:
             )
             self.super_connections.append(websocket)
         else:
-            tenant_id = info.get("tenant_id")
+            tenant_id = str(info.get("tenant_id"))
             loguru.logger.info(
                 f"User connection established: \n User: {str(info.get('username'))} \n Tenant: {str(tenant_id)}"
             )
@@ -42,7 +42,7 @@ class ConnectionManager:
             loguru.logger.info("Superuser connection closed")
             self.super_connections.remove(websocket)
         else:
-            tenant_id = info.get("tenant_id")
+            tenant_id = str(info.get("tenant_id"))
             loguru.logger.info(f"Tenant {tenant_id} connection closed")
             if tenant_id in self.tenants:
                 self.tenants[tenant_id].remove(websocket)
@@ -52,8 +52,25 @@ class ConnectionManager:
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
 
-    async def broadcast(self, message: str, tenant_id: str):
-        for connection in self.tenants.get(tenant_id, []):
-            await connection.send_text(message)
-        for connection in self.super_connections + self.global_connections:
-            await connection.send_text(message)
+    async def broadcast(self, message: dict, tenant_id: str):
+        tenant_key = str(tenant_id)
+        # Specific tenant
+        for connection in list(self.tenants.get(tenant_key, [])):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                self.tenants[tenant_key].remove(connection)
+
+        # Global and superuser
+        for connection in list(self.super_connections + self.global_connections):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                (
+                    self.super_connections.remove(connection)
+                    if connection in self.super_connections
+                    else self.global_connections.remove(connection)
+                )
+
+
+manager = ConnectionManager()

@@ -6,7 +6,7 @@ ALGORITHM = settings.JWT_ALGORITHM
 SECRET_KEY = settings.JWT_SECRET_KEY
 
 
-def verify_jwt(token: str) -> dict | None:
+def verify_jwt(token: str) -> dict:
     """
     Verifies and decodes a JWT token.
 
