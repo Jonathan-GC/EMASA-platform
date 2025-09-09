@@ -3,9 +3,10 @@ import json
 from app.mqtt.handlers import handle_message
 from app.persistence.mongo import get_db
 import loguru
+from app.settings import settings
 
-BROKER_HOST = "192.168.0.107"
-BROKER_PORT = 1883
+BROKER_HOST = settings.BROKER_URL
+BROKER_PORT = settings.BROKER_PORT
 TOPIC = "applications/+/devices/+/event/up"
 
 client = mqtt.Client()
