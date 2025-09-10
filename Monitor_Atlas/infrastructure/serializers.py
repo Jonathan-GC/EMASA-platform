@@ -1,6 +1,7 @@
 from .models import Machine, Type, Device, Application, Gateway, Location
 from rest_framework import serializers
 from organizations.serializers import WorkspaceSerializer
+from organizations.models import Workspace
 
 
 class MachineSerializer(serializers.ModelSerializer):
@@ -74,7 +75,12 @@ class LocationSerializer(serializers.ModelSerializer):
 
 class GatewaySerializer(serializers.ModelSerializer):
     location = LocationSerializer()
+    # keep a read-only formatted workspace for responses
     workspace = serializers.SerializerMethodField(read_only=True)
+    # accept workspace id in requests and map it to the model's workspace FK
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
 
     class Meta:
         model = Gateway
@@ -82,6 +88,7 @@ class GatewaySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         location_data = validated_data.pop("location")
+        # 'workspace' will be present in validated_data thanks to workspace_id source
         location = Location.objects.create(**location_data)
         gateway = Gateway.objects.create(location=location, **validated_data)
         return gateway
