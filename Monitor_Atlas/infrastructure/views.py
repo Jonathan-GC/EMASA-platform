@@ -10,7 +10,7 @@ from .serializers import (
     ApplicationSerializer,
     LocationSerializer,
 )
-from .models import Gateway, Machine, Type, Device, Application, Location
+from .models import Gateway, Machine, Type, Device, Application, Location, Activation
 
 from roles.permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
 from roles.mixins import PermissionKeyMixin
