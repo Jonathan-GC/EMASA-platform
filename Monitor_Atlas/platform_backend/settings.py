@@ -25,8 +25,8 @@ env = environ.Env(DJANGO_DEBUG=(bool, False))
 
 environ.Env.read_env(os.path.join(BASE_DIR, "..", ".env"))
 
-SECRET_KEY = env("DJANGO_SECRET_KEY")
-DEBUG = env("DJANGO_DEBUG")
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="dev")
+DEBUG = env("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
 
 ACCESS_TOKEN_DURATION = config("ACCESS_TOKEN_DURATION", default=5, cast=int)

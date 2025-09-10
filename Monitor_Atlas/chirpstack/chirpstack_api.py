@@ -1469,6 +1469,9 @@ def sync_device_destroy(device):
 
 
 def activate_device(device):
+    if not device.activation:
+        raise ValueError("Device has no activation data")
+
     payload = {
         "deviceActivation": {
             "aFCntDown": device.activation.afcntdown,
@@ -1489,6 +1492,27 @@ def deactivate_device(device):
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}/activation"
     response = requests.delete(url, headers=HEADERS)
     return response
+
+
+def device_activation_status(device):
+    status = False
+    url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
+    response = requests.get(url, headers=HEADERS)
+    if response.status_code == 200:
+        activation = response.json().get("device", {}).get("isDisabled", True)
+
+        if not activation:
+            last_seen = response.json().get("device", {}).get("lastSeenAt", None)
+            if last_seen or last_seen != None:
+                status = True
+        return status
+
+    else:
+        logging.error(
+            f"Error fetching device activation status: Device does not exist in Chirpstack or try to check it manually. {response.text} {response.request.url}"
+        )
+
+    return status
 
 
 def get_devices_from_chirpstack():

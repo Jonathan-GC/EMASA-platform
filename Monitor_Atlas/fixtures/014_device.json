@@ -15,6 +15,7 @@
       "sync_error": "",
       "last_synced_at": "2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
+      "is_active": false,
       "activation": 1
     }
   },
@@ -34,6 +35,7 @@
       "sync_error": "",
       "last_synced_at": "2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
+      "is_active": false,
       "activation": 1
     }
   },
@@ -53,6 +55,7 @@
       "sync_error": "",
       "last_synced_at": "2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
+      "is_active": false,
       "activation": 1
     }
   },
@@ -72,7 +75,8 @@
       "sync_error": "",
       "last_synced_at": "2023-01-01T00:00:00+00:00",
       "enabled_activation": false,
-      "activation": 1
+      "activation": 1,
+      "is_active": false
     }
   }
 ]

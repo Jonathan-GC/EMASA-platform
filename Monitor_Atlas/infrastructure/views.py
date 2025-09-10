@@ -32,6 +32,7 @@ from chirpstack.chirpstack_api import (
     sync_device_get,
     activate_device,
     deactivate_device,
+    device_activation_status,
 )
 
 import logging
@@ -290,6 +291,49 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"], permission_classes=[HasPermissionKey])
+    def set_activation(self, request, pk=None):
+        device = self.get_object()
+
+        data = request.data
+        required_fields = [
+            "dev_eui",
+            "app_s_key",
+            "nwk_s_key",
+            "dev_addr",
+            "f_nwk_s_int_key",
+            "s_nwk_s_int_key",
+            "nwk_s_enc_key",
+        ]
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return Response(
+                {"message": f"Missing required fields: {', '.join(missing_fields)}"},
+                status=400,
+            )
+        try:
+            activation = Activation.objects.create(
+                dev_eui=data["dev_eui"],
+                app_s_key=data["app_s_key"],
+                nwk_s_key=data["nwk_s_key"],
+                dev_addr=data["dev_addr"],
+                f_nwk_s_int_key=data["f_nwk_s_int_key"],
+                s_nwk_s_int_key=data["s_nwk_s_int_key"],
+                nwk_s_enc_key=data["nwk_s_enc_key"],
+            )
+            device.activation = activation
+            device.save()
+            serializer = self.get_serializer(device)
+            return Response(serializer.data)
+        except Exception as e:
+            logging.error(
+                f"Error setting activation for device {device.name}: {str(e)}"
+            )
+            return Response(
+                {"message": f"Error setting activation: {str(e)}"},
+                status=500,
+            )
+
     @action(
         detail=True,
         methods=["post"],
@@ -297,25 +341,51 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         scope="device",
     )
     def activate(self, request, pk=None):
-        instance = self.get_object()
-        sync_response = activate_device(instance)
+        device = self.get_object()
 
-        if sync_response.status_code != 200:
-            logging.error(
-                f"Error al activar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
-            )
+        if not device.activation:
             return Response(
-                {
-                    "message": f"Error al activar el dispositivo {sync_response.status_code} {instance.sync_error}"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        else:
-            logging.info(
-                f"Se ha activado el dispositivo {instance.cs_device_id} - {instance.name}"
+                {"message": "Device has no activation data"},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response({"message": "Device activated"})
+        if not device_activation_status(device):
+            return Response(
+                {"message": "Device activation data is invalid"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
+            sync_response = activate_device(device)
+
+            if sync_response.status_code != 200:
+                device.is_active = False
+                device.sync_error = sync_response.text
+                device.save(update_fields=["is_active", "sync_error"])
+                logging.error(
+                    f"Activation failed for {device.name}: {sync_response.status_code} {sync_response.text}"
+                )
+                return Response(
+                    {
+                        "message": "Error activating device",
+                        "details": sync_response.text,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            device.is_active = True
+            device.save(update_fields=["is_active"])
+            logging.info(f"Device {device.cs_device_id} - {device.name} activated")
+
+            serializer = self.get_serializer(device)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logging.exception(f"Unexpected error activating device {device.name}")
+            return Response(
+                {"message": "Unexpected error activating device", "error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(
         detail=True,
