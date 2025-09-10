@@ -137,7 +137,7 @@ class Device(models.Model):
 
 class Location(models.Model):
     # Chirpstack
-    name = models.CharField(max_length=30, default="Unknown", null=True, blank=True)
+    name = models.CharField(max_length=255, default="Unknown", null=True, blank=True)
     accuracy = models.FloatField(default=0.0, null=True, blank=True)
     altitude = models.FloatField(default=0.0, null=True, blank=True)
     latitude = models.FloatField(default=0.0, null=True, blank=True)
