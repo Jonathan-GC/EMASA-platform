@@ -87,6 +87,7 @@ class DeviceProfile(models.Model):
         Workspace, on_delete=models.CASCADE, null=True, blank=True
     )
     mac_version = models.CharField(max_length=30, default="LORAWAN_1_0_3")
+    adr_algorithm_id = models.CharField(max_length=30, default="default")
     reg_param_revision = models.CharField(max_length=30, default="A")
     abp_rx1_delay = models.IntegerField()
     abp_rx1_dr_offset = models.IntegerField()

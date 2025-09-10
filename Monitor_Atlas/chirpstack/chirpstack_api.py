@@ -897,6 +897,7 @@ def sync_device_profile_get(device_profile):
             "macVersion": device_profile.mac_version,
             "regParamsRevision": device_profile.reg_param_revision,
             "supportsOtaa": device_profile.supports_otaa,
+            "adrAlgorithmId": device_profile.adr_algorithm_id,
             "abpRx1Delay": device_profile.abp_rx1_delay,
             "abpRx1DrOffset": device_profile.abp_rx1_dr_offset,
             "abpRx2Dr": device_profile.abp_rx2_dr,
@@ -956,6 +957,7 @@ def sync_device_profile_create(device_profile):
             "macVersion": device_profile.mac_version,
             "regParamsRevision": device_profile.reg_param_revision,
             "supportsOtaa": device_profile.supports_otaa,
+            "adrAlgorithmId": device_profile.adr_algorithm_id,
             "abpRx1Delay": device_profile.abp_rx1_delay,
             "abpRx1DrOffset": device_profile.abp_rx1_dr_offset,
             "abpRx2Dr": device_profile.abp_rx2_dr,
@@ -1013,6 +1015,7 @@ def sync_device_profile_update(device_profile):
             "macVersion": device_profile.mac_version,
             "regParamsRevision": device_profile.reg_param_revision,
             "supportsOtaa": device_profile.supports_otaa,
+            "adrAlgorithmId": device_profile.adr_algorithm_id,
             "abpRx1Delay": device_profile.abp_rx1_delay,
             "abpRx1DrOffset": device_profile.abp_rx1_dr_offset,
             "abpRx2Dr": device_profile.abp_rx2_dr,
@@ -1107,6 +1110,9 @@ def get_device_profiles_from_chirpstack():
                 to_remove.append(match)
                 local_dp.name = match.get("name", local_dp.name)
                 local_dp.region = match.get("region", local_dp.region)
+                local_dp.adr_algorithm_id = match.get(
+                    "adrAlgorithmId", local_dp.adr_algorithm_id
+                )
                 local_dp.mac_version = match.get("macVersion", local_dp.mac_version)
                 local_dp.reg_param_revision = match.get(
                     "regParamsRevision", local_dp.reg_param_revision
@@ -1140,6 +1146,11 @@ def get_device_profiles_from_chirpstack():
                 workspace=workspace,
                 mac_version=new_dp.get("macVersion", "LORAWAN_1_0_3"),
                 reg_param_revision=new_dp.get("regParamsRevision", "A"),
+                adr_algorithm_id=new_dp.get("adrAlgorithmId", "default"),
+                payload_codec_runtime=new_dp.get("payloadCodecRuntime", ""),
+                payload_codec_script=new_dp.get("payloadCodecScript", ""),
+                is_rlay=new_dp.get("isRelay", False),
+                is_rlay_ed=new_dp.get("isRelayEd", False),
                 abp_rx1_delay=1,
                 abp_rx1_dr_offset=0,
                 abp_rx2_dr=0,
