@@ -238,7 +238,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
         else:
             logging.info(
-                f"Se ha sincronizado el dispositivo {instance.cs_device_id} - {instance.name} con Chirpstack"
+                f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
     def perform_update(self, serializer):
@@ -252,7 +252,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
         else:
             logging.info(
-                f"Se ha sincronizado el dispositivo {instance.cs_device_id} - {instance.name} con Chirpstack"
+                f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
     def perform_destroy(self, instance):
@@ -264,7 +264,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
         else:
             logging.info(
-                f"Se ha sincronizado el dispositivo {instance.cs_device_id} - {instance.name} con Chirpstack"
+                f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
         instance.delete()
@@ -375,7 +375,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
             device.is_active = True
             device.save(update_fields=["is_active"])
-            logging.info(f"Device {device.cs_device_id} - {device.name} activated")
+            logging.info(f"Device {device.dev_eui} - {device.name} activated")
 
             serializer = self.get_serializer(device)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -409,7 +409,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
         else:
             logging.info(
-                f"Se ha desactivado el dispositivo {instance.cs_device_id} - {instance.name}"
+                f"Se ha desactivado el dispositivo {instance.dev_eui} - {instance.name}"
             )
 
         return Response({"message": "Device deactivated"})
