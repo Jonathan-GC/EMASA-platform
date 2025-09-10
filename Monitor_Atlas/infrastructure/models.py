@@ -4,7 +4,7 @@ from chirpstack.models import DeviceProfile
 
 
 class Machine(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=255)
     img = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
@@ -14,7 +14,7 @@ class Machine(models.Model):
 
 
 class Type(models.Model):
-    name = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=255, unique=True)
     img = models.CharField(max_length=255, blank=True, null=True)  # icon
     description = models.CharField(max_length=255)
 
@@ -35,7 +35,7 @@ class Application(models.Model):
     cs_application_id = models.CharField(
         max_length=36, null=True, blank=True, help_text="Application ID (Chirpstack)"
     )  # cs
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, default="")
     device_type = models.ForeignKey(
         Type,
@@ -101,7 +101,7 @@ class Device(models.Model):
     """
 
     dev_eui = models.CharField(max_length=16, help_text="Device EUI (Chirpstack)")  # cs
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
     workspace = models.ForeignKey(

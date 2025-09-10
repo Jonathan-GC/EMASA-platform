@@ -8,7 +8,7 @@ from chirpstack.models import DeviceProfile, DeviceProfileTemplate, ApiUser
 
 
 class Role(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, blank=True)
     color = models.CharField(max_length=20, default="#bfbfbf")  # Hex tag color
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)

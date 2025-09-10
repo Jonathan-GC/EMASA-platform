@@ -55,7 +55,7 @@ class DeviceProfileTemplate(models.Model):
     This model is not necesary for chirpstack, but we left it to help make device profile creation easier
     """
 
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)
     vendor = models.CharField(max_length=30, default="EMASA")
@@ -80,7 +80,7 @@ class DeviceProfileTemplate(models.Model):
 
 class DeviceProfile(models.Model):
     cs_device_profile_id = models.CharField(max_length=36, null=True, blank=True)
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)
     workspace = models.ForeignKey(
