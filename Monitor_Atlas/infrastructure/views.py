@@ -291,7 +291,12 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["post"], permission_classes=[HasPermissionKey])
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermissionKey],
+        scope="device",
+    )
     def set_activation(self, request, pk=None):
         device = self.get_object()
 
