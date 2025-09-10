@@ -34,6 +34,7 @@ from chirpstack.chirpstack_api import (
     deactivate_device,
     device_activation_status,
 )
+from rest_framework import status
 
 import logging
 
