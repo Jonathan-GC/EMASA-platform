@@ -87,7 +87,7 @@ class Activation(models.Model):
         max_length=32, help_text="Network session key (Chirpstack)"
     )  # cs
     s_nwk_s_int_key = models.CharField(
-        max_length=32, help_text="Network session key (Chirpstack)"
+        max_length=32, help_text="Network session key (Chirpstack)", default=""
     )  # cs
 
 
