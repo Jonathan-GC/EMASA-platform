@@ -298,16 +298,26 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         scope="device",
     )
     def set_activation(self, request, pk=None):
+        """
+        "aFCntDown": 0,
+        "appSKey": "53C020841486263981FA77355D278762",
+        "devAddr": "260CB229",
+        "fCntUp": 0,
+        "fNwkSIntKey": "4978CB8E7FFBD46BC570FE11F17FA56E",
+        "nFCntDown": 0,
+        "nwkSEncKey": "4978CB8E7FFBD46BC570FE11F17FA56E"
+        """
+
         device = self.get_object()
 
         data = request.data
         required_fields = [
-            "dev_eui",
+            "afcntdown",
             "app_s_key",
-            "nwk_s_key",
             "dev_addr",
+            "f_cnt_up",
             "f_nwk_s_int_key",
-            "s_nwk_s_int_key",
+            "n_f_cnt_down",
             "nwk_s_enc_key",
         ]
         missing_fields = [field for field in required_fields if field not in data]
@@ -318,12 +328,12 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
         try:
             activation = Activation.objects.create(
-                dev_eui=data["dev_eui"],
+                afcntdown=data["afcntdown"],
                 app_s_key=data["app_s_key"],
-                nwk_s_key=data["nwk_s_key"],
                 dev_addr=data["dev_addr"],
+                f_cnt_up=data["f_cnt_up"],
                 f_nwk_s_int_key=data["f_nwk_s_int_key"],
-                s_nwk_s_int_key=data["s_nwk_s_int_key"],
+                n_f_cnt_down=data["n_f_cnt_down"],
                 nwk_s_enc_key=data["nwk_s_enc_key"],
             )
             device.activation = activation
