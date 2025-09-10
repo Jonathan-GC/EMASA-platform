@@ -1499,6 +1499,7 @@ def device_activation_status(device):
     status = False
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
     response = requests.get(url, headers=HEADERS)
+    print(response.status_code, response.text)
     if response.status_code == 200:
         activation = response.json().get("device", {}).get("isDisabled", True)
 

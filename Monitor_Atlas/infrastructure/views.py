@@ -367,10 +367,10 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if not device_activation_status(device):
+        if device_activation_status(device):
             return Response(
-                {"message": "Device activation data is invalid"},
-                status=status.HTTP_409_CONFLICT,
+                {"message": "Device is already active"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
