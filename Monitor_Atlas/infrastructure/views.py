@@ -319,6 +319,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             "f_nwk_s_int_key",
             "n_f_cnt_down",
             "nwk_s_enc_key",
+            "s_nwk_s_int_key",
         ]
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
@@ -335,6 +336,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 f_nwk_s_int_key=data["f_nwk_s_int_key"],
                 n_f_cnt_down=data["n_f_cnt_down"],
                 nwk_s_enc_key=data["nwk_s_enc_key"],
+                s_nwk_s_int_key=data["s_nwk_s_int_key"],
             )
             device.activation = activation
             device.save()

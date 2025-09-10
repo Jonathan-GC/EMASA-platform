@@ -1481,6 +1481,7 @@ def activate_device(device):
             "fNwkSIntKey": device.activation.f_nwk_s_int_key,
             "nFCntDown": device.activation.n_f_cnt_down,
             "nwkSEncKey": device.activation.nwk_s_enc_key,
+            "sNwkSIntKey": device.activation.s_nwk_s_int_key,
         }
     }
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}/activate"

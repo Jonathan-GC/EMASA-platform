@@ -66,7 +66,8 @@ class Activation(models.Model):
                 "fCntUp": 0,
                 "fNwkSIntKey": "4978CB8E7FFBD46BC570FE11F17FA56E",
                 "nFCntDown": 0,
-                "nwkSEncKey": "4978CB8E7FFBD46BC570FE11F17FA56E"
+                "nwkSEncKey": "4978CB8E7FFBD46BC570FE11F17FA56E",
+                "sNwkSIntKey": "4978CB8E7FFBD46BC570FE11F17FA56E"
         }
     """
 
@@ -83,6 +84,9 @@ class Activation(models.Model):
     )  # cs
     n_f_cnt_down = models.IntegerField()
     nwk_s_enc_key = models.CharField(
+        max_length=32, help_text="Network session key (Chirpstack)"
+    )  # cs
+    s_nwk_s_int_key = models.CharField(
         max_length=32, help_text="Network session key (Chirpstack)"
     )  # cs
 
