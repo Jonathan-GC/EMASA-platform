@@ -72,7 +72,7 @@ class WorkspaceMembershipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkspaceMembership
-        fields = ["id", "workspace", "user", "role"]
+        fields = "__all__"
 
     def validate(self, data):
         """
