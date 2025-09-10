@@ -40,6 +40,8 @@ class PermissionKey(models.Model):
         "partial_update": ["put"],
         "destroy": ["delete"],
         "set_activation": ["post"],
+        "activate": ["post"],
+        "deactivate": ["post"],
     }
     code = models.CharField(
         max_length=50, blank=True, null=True
