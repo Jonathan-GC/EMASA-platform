@@ -6,6 +6,9 @@ from organizations.models import Workspace
 
 class MachineSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
 
     class Meta:
         model = Machine
@@ -31,6 +34,9 @@ class TypeSerializer(serializers.ModelSerializer):
 
 class DeviceSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
 
     class Meta:
         model = Device
@@ -50,6 +56,9 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 class ApplicationSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
 
     class Meta:
         model = Application

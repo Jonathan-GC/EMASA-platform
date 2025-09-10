@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Role, WorkspaceMembership, PermissionKey, RolePermission
+from organizations.models import Workspace
+from users.models import User
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -9,6 +11,9 @@ class RoleSerializer(serializers.ModelSerializer):
     """
 
     workspace = serializers.SerializerMethodField(read_only=True)
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
 
     class Meta:
         model = Role
@@ -55,6 +60,15 @@ class WorkspaceMembershipSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField(read_only=True)
     role = serializers.SerializerMethodField(read_only=True)
     workspace = serializers.SerializerMethodField(read_only=True)
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), write_only=True, source="user"
+    )
+    role_id = serializers.PrimaryKeyRelatedField(
+        queryset=Role.objects.all(), write_only=True, source="role"
+    )
 
     class Meta:
         model = WorkspaceMembership

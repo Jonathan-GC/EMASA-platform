@@ -1,9 +1,13 @@
 from .models import DeviceProfile, DeviceProfileTemplate, ApiUser
 from rest_framework import serializers
+from organizations.models import Workspace
 
 
 class DeviceProfileSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
 
     class Meta:
         model = DeviceProfile
@@ -23,6 +27,9 @@ class DeviceProfileSerializer(serializers.ModelSerializer):
 
 class DeviceProfileTemplateSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
 
     class Meta:
         model = DeviceProfileTemplate
@@ -42,6 +49,9 @@ class DeviceProfileTemplateSerializer(serializers.ModelSerializer):
 
 class ApiUserSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
+    workspace_id = serializers.PrimaryKeyRelatedField(
+        queryset=Workspace.objects.all(), write_only=True, source="workspace"
+    )
 
     class Meta:
         model = ApiUser
