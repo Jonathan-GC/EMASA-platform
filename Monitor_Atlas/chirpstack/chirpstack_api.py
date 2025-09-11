@@ -909,9 +909,33 @@ def sync_device_profile_get(device_profile):
             "isRelay": device_profile.is_rlay,
             "isRelayEd": device_profile.is_rlay_ed,
             "tenantId": device_profile.workspace.tenant.cs_tenant_id,
+            "flushQueueOnActivate": device_profile.flush_queue_on_activate,
+            "uplinkInterval": device_profile.uplink_interval,
         }
     }
-    url = f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}"
+
+    dp_id = device_profile.cs_device_profile_id
+
+    if not dp_id or dp_id.strip() == "":
+        search_response = requests.get(
+            CHIRPSTACK_DEVICE_PROFILE_URL,
+            headers=HEADERS,
+            params={"limit": 100},
+        )
+        if search_response.status_code == 200:
+            results = search_response.json().get("result", [])
+            match = next(
+                (dp for dp in results if dp["name"] == device_profile.name), None
+            )
+            if match:
+                device_profile.cs_device_profile_id = match["id"]
+                device_profile.sync_status = "SYNCED"
+                device_profile.sync_error = ""
+                device_profile.last_synced_at = dt.datetime.now()
+                device_profile.save()
+                return search_response
+
+    url = f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{dp_id}"
 
     response = requests.get(url, headers=HEADERS)
 
@@ -969,6 +993,8 @@ def sync_device_profile_create(device_profile):
             "isRelay": device_profile.is_rlay,
             "isRelayEd": device_profile.is_rlay_ed,
             "tenantId": device_profile.workspace.tenant.cs_tenant_id,
+            "flushQueueOnActivate": device_profile.flush_queue_on_activate,
+            "uplinkInterval": device_profile.uplink_interval,
         }
     }
     response = requests.post(
@@ -1027,6 +1053,8 @@ def sync_device_profile_update(device_profile):
             "isRelay": device_profile.is_rlay,
             "isRelayEd": device_profile.is_rlay_ed,
             "tenantId": device_profile.workspace.tenant.cs_tenant_id,
+            "flushQueueOnActivate": device_profile.flush_queue_on_activate,
+            "uplinkInterval": device_profile.uplink_interval,
         }
     }
 
@@ -1109,6 +1137,7 @@ def get_device_profiles_from_chirpstack():
             if match:
                 to_remove.append(match)
                 local_dp.name = match.get("name", local_dp.name)
+                local_dp.description = match.get("description", local_dp.description)
                 local_dp.region = match.get("region", local_dp.region)
                 local_dp.adr_algorithm_id = match.get(
                     "adrAlgorithmId", local_dp.adr_algorithm_id
@@ -1126,6 +1155,23 @@ def get_device_profiles_from_chirpstack():
                 local_dp.supports_class_c = match.get(
                     "supportsClassC", local_dp.supports_class_c
                 )
+                local_dp.abp_rx1_delay = match.get(
+                    "abpRx1Delay", local_dp.abp_rx1_delay
+                )
+                local_dp.abp_rx1_dr_offset = match.get(
+                    "abpRx1DrOffset", local_dp.abp_rx1_dr_offset
+                )
+                local_dp.abp_rx2_dr = match.get("abpRx2Dr", local_dp.abp_rx2_dr)
+                local_dp.abp_rx2_freq = match.get("abpRx2Freq", local_dp.abp_rx2_freq)
+                local_dp.is_rlay = match.get("isRelay", local_dp.is_rlay)
+                local_dp.is_rlay_ed = match.get("isRelayEd", local_dp.is_rlay_ed)
+                local_dp.flush_queue_on_activate = match.get(
+                    "flushQueueOnActivate", local_dp.flush_queue_on_activate
+                )
+                local_dp.uplink_interval = match.get(
+                    "uplinkInterval", local_dp.uplink_interval
+                )
+                local_dp.workspace = workspace
                 local_dp.sync_status = "SYNCED"
                 local_dp.sync_error = ""
                 local_dp.last_synced_at = dt.datetime.now()

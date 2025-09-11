@@ -100,6 +100,8 @@ class DeviceProfile(models.Model):
     payload_codec_script = models.TextField(blank=True, null=True)
     is_rlay = models.BooleanField(default=False)
     is_rlay_ed = models.BooleanField(default=False)
+    flush_queue_on_activate = models.BooleanField(default=True)
+    uplink_interval = models.IntegerField(default=3000)  # in seconds
     sync_status = models.CharField(
         default="PENDING",
         choices=[("PENDING", "Pending"), ("SYNCED", "Synced"), ("ERROR", "Error")],

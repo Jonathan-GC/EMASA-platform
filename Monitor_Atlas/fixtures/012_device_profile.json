@@ -21,6 +21,8 @@
       "payload_codec_runtime": "JS",
       "is_rlay": false,
       "is_rlay_ed": false,
+      "flush_queue_on_activate": true,
+      "uplink_interval": 3000,
       "sync_status": "PENDING",
       "sync_error": "",
       "last_synced_at": "2023-01-01T00:00:00+00:00"
@@ -48,6 +50,8 @@
       "payload_codec_runtime": "JS",
       "is_rlay": false,
       "is_rlay_ed": false,
+      "flush_queue_on_activate": true,
+      "uplink_interval": 3000,
       "sync_status": "PENDING",
       "sync_error": "",
       "last_synced_at": "2023-01-01T00:00:00+00:00"
