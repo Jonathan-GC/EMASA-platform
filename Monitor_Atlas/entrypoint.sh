@@ -1,28 +1,11 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Ejecutando migraciones..."
-python manage.py makemigrations
+echo "🚀 Running migrations..."
 python manage.py migrate
 
-echo "📦 Cargando fixtures..."
-for fixture in $(ls fixtures/*.json | sort); do
-  echo "   -> $fixture"
-  python manage.py loaddata "$fixture"
-done
-
-echo "✅ Fixtures cargadas correctamente."
-
-echo "🔑 Cargando llaves de los modelos iniciales..."
-
-python manage.py regenerate_permissionkeys
-
-echo "✅ Llaves de los modelos iniciales cargadas correctamente."
-
-echo "🔄 Sincronizando datos con ChirpStack..."
-
+echo "🔄 Syncing data with ChirpStack..."
 python manage.py sync_chirpstack
 
-# Ejecuta el comando final (por defecto el runserver)
+# Execute the final command (by default runserver)
 exec "$@"
-    
