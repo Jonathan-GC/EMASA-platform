@@ -16,6 +16,9 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
 class TenantSerializer(serializers.ModelSerializer):
     subscription = serializers.SerializerMethodField(read_only=True)
+    subscription_id = serializers.PrimaryKeyRelatedField(
+        queryset=Subscription.objects.all(), write_only=True, source="subscription"
+    )
 
     class Meta:
         model = Tenant

@@ -7,7 +7,7 @@ from app.settings import settings
 
 BROKER_HOST = settings.BROKER_URL
 BROKER_PORT = settings.BROKER_PORT
-TOPIC = "applications/+/devices/+/event/up"
+TOPIC = "application/+/device/+/event/up"
 
 client = mqtt.Client()
 

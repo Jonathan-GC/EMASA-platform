@@ -17,13 +17,17 @@ def verify_jwt(token: str) -> dict:
         dict | None: A dictionary containing user information if the token is valid, otherwise raises ValueError.
     """
     try:
+        loguru.logger.info("Decoding JWT token")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        loguru.logger.info(f"Decoded JWT payload: {payload}")
         if payload:
             user_id: str = payload.get("user_id")
             username: str = payload.get("username")
             tenant_id: str = payload.get("cs_tenant_id", None)
             is_superuser: bool = payload.get("is_superuser", False)
             is_global: bool = payload.get("is_global", False)
+
+            loguru.logger.info(f"Decoded JWT user: {username}, tenant_id: {tenant_id}")
         else:
             raise ValueError("Invalid token: empty payload")
 
