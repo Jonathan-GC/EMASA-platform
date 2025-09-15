@@ -15,9 +15,9 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . /app
 
-# Copiamos entrypoint al final para no perder permisos
 COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+COPY initial_setup.sh /app/initial_setup.sh
+RUN chmod +x /app/entrypoint.sh /app/initial_setup.sh
 
 EXPOSE 8000
 

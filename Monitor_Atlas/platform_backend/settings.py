@@ -18,24 +18,25 @@ from decouple import config
 from datetime import timedelta
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Replace BASE_DIR and env loading with Path based implementation
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DJANGO_DEBUG=(bool, False))
 
-environ.Env.read_env(os.path.join(BASE_DIR, "..", ".env"))
+# Load .env from repo root (where manage.py is)
+environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="dev")
-DEBUG = env("DJANGO_DEBUG", default=False)
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
 
-ACCESS_TOKEN_DURATION = config("ACCESS_TOKEN_DURATION", default=5, cast=int)
-
-REFRESH_TOKEN_DURATION = config("REFRESH_TOKEN_DURATION", default=30, cast=int)
+# Use env for tokens / durations (avoid mixing decouple)
+ACCESS_TOKEN_DURATION = env.int("ACCESS_TOKEN_DURATION", default=5)
+REFRESH_TOKEN_DURATION = env.int("REFRESH_TOKEN_DURATION", default=30)
 
 # Environment variables
-CHIRPSTACK_BASE_URL = os.environ.get("CHIRPSTACK_BASE_URL")
-CHIRPSTACK_JWT_TOKEN = os.environ.get("CHIRPSTACK_JWT_TOKEN")
+CHIRPSTACK_BASE_URL = env("CHIRPSTACK_BASE_URL", default=None)
+CHIRPSTACK_JWT_TOKEN = env("CHIRPSTACK_JWT_TOKEN", default=None)
 
 
 # Application definition
@@ -63,7 +64,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
