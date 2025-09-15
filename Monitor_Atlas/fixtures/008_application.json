@@ -1,0 +1,58 @@
+[
+  {
+    "model": "infrastructure.application",
+    "pk": 1,
+    "fields": {
+      "cs_application_id": "",
+      "name": "Servicio de Voltaje",
+      "description": "Nodos de tipo voltaje",
+      "device_type": 1,
+      "workspace": 1,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  },
+  {
+    "model": "infrastructure.application",
+    "pk": 2,
+    "fields": {
+      "cs_application_id": "",
+      "name": "Servicio de Temperatura",
+      "description": "Nodos de tipo temperatura",
+      "device_type": 2,
+      "workspace": 1,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  },
+  {
+    "model": "infrastructure.application",
+    "pk": 3,
+    "fields": {
+      "cs_application_id": "",
+      "name": "Servicio de Voltaje",
+      "description": "Nodos de tipo voltaje",
+      "device_type": 2,
+      "workspace": 3,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  },
+  {
+    "model": "infrastructure.application",
+    "pk": 4,
+    "fields": {
+      "cs_application_id": "",
+      "name": "Servicio de Temperatura",
+      "description": "Nodos de tipo temperatura",
+      "device_type": 2,
+      "workspace": 3,
+      "sync_status":"PENDING",
+      "sync_error":"",
+      "last_synced_at":"2023-01-01T00:00:00+00:00"
+    }
+  }
+]
