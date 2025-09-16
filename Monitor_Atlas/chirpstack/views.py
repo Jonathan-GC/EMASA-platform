@@ -26,19 +26,28 @@ from chirpstack.chirpstack_api import (
 )
 
 import logging
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema_view, extend_schema
 
 
 # Create your views here.
 
 
+@extend_schema_view(
+    list=extend_schema(description="Device Profile List (ChirpStack)"),
+    create=extend_schema(description="Device Profile Create (ChirpStack)"),
+    retrieve=extend_schema(description="Device Profile Retrieve (ChirpStack)"),
+    update=extend_schema(description="Device Profile Update (ChirpStack)"),
+    partial_update=extend_schema(
+        description="Device Profile Partial Update (ChirpStack)"
+    ),
+    destroy=extend_schema(description="Device Profile Destroy (ChirpStack)"),
+)
 class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = DeviceProfile.objects.all()
     serializer_class = DeviceProfileSerializer
     permission_classes = [HasPermissionKey]
     scope = "device_profile"
 
-    @extend_schema(tags=["ChirpStack"], operation_id="Device_Profile")
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="device_profile")
@@ -105,62 +114,42 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "device_profile"
 
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
-
-
+@extend_schema_view(
+    list=extend_schema(description="(Unused) Device Profile Template List"),
+    create=extend_schema(description="(Unused) Device Profile Template Create"),
+    retrieve=extend_schema(description="(Unused) Device Profile Template Retrieve"),
+    update=extend_schema(description="(Unused) Device Profile Template Update"),
+    partial_update=extend_schema(
+        description="(Unused) Device Profile Template Partial Update"
+    ),
+    destroy=extend_schema(description="(Unused) Device Profile Template Destroy"),
+)
 class DeviceProfileTemplateViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = DeviceProfileTemplate.objects.all()
     serializer_class = DeviceProfileTemplateSerializer
     permission_classes = [HasPermissionKey]
     scope = "device_profile_template"
 
-    @extend_schema(tags=["ChirpStack"], operation_id="Device_Profile_Template")
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="device_profile_template")
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "device_profile_template"
 
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
-
-
+@extend_schema_view(
+    list=extend_schema(description="Api User List (ChirpStack)"),
+    create=extend_schema(description="Api User Create (ChirpStack)"),
+    retrieve=extend_schema(description="Api User Retrieve (ChirpStack)"),
+    update=extend_schema(description="Api User Update (ChirpStack)"),
+    partial_update=extend_schema(description="Api User Partial Update (ChirpStack)"),
+    destroy=extend_schema(description="Api User Destroy (ChirpStack)"),
+)
 class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = ApiUser.objects.all()
     serializer_class = ApiUserSerializer
     permission_classes = [HasPermissionKey]
     scope = "api_user"
 
-    @extend_schema(tags=["ChirpStack"], operation_id="Api_User")
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="api_user")
@@ -226,22 +215,4 @@ class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "api_user"
-
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
         return Response(serializer.data)
