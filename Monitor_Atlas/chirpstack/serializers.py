@@ -1,8 +1,10 @@
 from .models import DeviceProfile, DeviceProfileTemplate, ApiUser
 from rest_framework import serializers
 from organizations.models import Workspace
+from drf_spectacular.utils import extend_schema
 
 
+@extend_schema(tags=["ChirpStack"], operation_id="Device_Profile")
 class DeviceProfileSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
     workspace_id = serializers.PrimaryKeyRelatedField(
@@ -25,6 +27,7 @@ class DeviceProfileSerializer(serializers.ModelSerializer):
         return None
 
 
+@extend_schema(tags=["ChirpStack"], operation_id="Device_Profile_Template")
 class DeviceProfileTemplateSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
     workspace_id = serializers.PrimaryKeyRelatedField(
@@ -47,6 +50,7 @@ class DeviceProfileTemplateSerializer(serializers.ModelSerializer):
         return None
 
 
+@extend_schema(tags=["ChirpStack"], operation_id="API_User")
 class ApiUserSerializer(serializers.ModelSerializer):
     workspace = serializers.SerializerMethodField(read_only=True)
     workspace_id = serializers.PrimaryKeyRelatedField(

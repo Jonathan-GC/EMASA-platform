@@ -23,6 +23,8 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    networks:
+      - chirp-django-net
 
   redis:
     image: redis:7.2-alpine
@@ -33,6 +35,9 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - chirp-django-net
+      
 volumes:
   mongo_data:
   redis_data:

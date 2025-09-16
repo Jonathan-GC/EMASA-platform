@@ -1,19 +1,17 @@
-# EMASA Platform: Monitor $backend$ 😊
+# EMASA Platform: Monitor $Atlas API$ 🌎
 
 []()
 <a name=""></a>
 
 
-- [EMASA Platform: Monitor $backend$ 😊](#emasa-platform-monitor-backend-)
-  - [Environment variables](#environment-variables)
+- [EMASA Platform: Monitor $Atlas API$ 🌎](#emasa-platform-monitor-atlas-api-)
+  - [Deployment config](#deployment-config)
     - [Django Settings](#django-settings)
     - [PostgreSQL Database Settings](#postgresql-database-settings)
-    - [Database Prefix](#database-prefix)
     - [DB Prefix usage ](#db-prefix-usage-)
-    - [Default .env template](#default-env-template)
   - [Backend setup](#backend-setup)
   - [API Docs (Swagger, ReDoc)](#api-docs-swagger-redoc)
-  - [Authentication with EchoAPI](#authentication-with-echoapi)
+  - [Authentication with EchoAPI, Postman and such](#authentication-with-echoapi-postman-and-such)
     - [Get tokens:](#get-tokens)
     - [Refresh tokens](#refresh-tokens)
     - [Token usage](#token-usage)
@@ -26,15 +24,19 @@
     - [Automatic group creation method](#automatic-group-creation-method)
 
 
-## <a name="env_var">Environment variables</a>
+## Deployment config
 
-The following environment variables are used to configure the application:
+The following environment variables are used to setup the app:
 
 ### Django Settings
 
-* `DJANGO_DEBUG`: Enables debug mode for the Django application. Set to `1` to enable.
-* `DJANGO_SECRET_KEY`: Secret key for the Django application. **Must be changed to a unique and secret value**.
-* `DJANGO_ALLOWED_HOSTS`: Comma-separated list of allowed hosts for the Django application. Set to `*` to allow all hosts.
+* `DJANGO_DEBUG`: Enables debug mode for the Django application. Set to `1` to enable `0` to disable.
+* `DJANGO_SECRET_KEY`: Secret key for the Django application. **Must be changed to a unique and secret value** you can generate a new secure & unique one with: 
+```bash
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+```
+
+* `DJANGO_ALLOWED_HOSTS`: Comma-separated list of allowed hosts for the Django application. Set to `*` to allow all hosts in development. It's important to change this if you're on production, check your host or vps address and add it.
 
 ### PostgreSQL Database Settings
 
@@ -43,10 +45,7 @@ The following environment variables are used to configure the application:
 * `POSTGRES_PASSWORD`: Password for the PostgreSQL database.
 * `POSTGRES_HOST`: Hostname or IP address of the PostgreSQL database.
 * `POSTGRES_PORT`: Port number for the PostgreSQL database.
-
-### Database Prefix
-
-* `DB_PREFIX`: Prefix for the database tables. Set to `monitor_test_` for testing purposes.
+* `DB_PREFIX`: Use this to prefix the name of the DB tables if needed (see [DB Prefix usage](#db_prefix)).
 
 **Note**: These environment variables are used to configure the application and should be set accordingly. The `DJANGO_SECRET_KEY` should be kept secret and not committed to version control.
 
@@ -54,54 +53,34 @@ The following environment variables are used to configure the application:
 
 (UPDATE) Just add it to your .env, can be whatever you need it to be. (Make sure you name it something like `your_prefix_` end it with a "_")
 
-### <a name="env_template">Default .env template</a>
-
-This file should be created where your manage.py file is located, **please don't forget to modify the fields according to your needs**.
-
-```ini
-DJANGO_DEBUG=1
-DJANGO_SECRET_KEY=switch-to-a-super-secret-one
-DJANGO_ALLOWED_HOSTS=*
-
-POSTGRES_DB=appdb
-POSTGRES_USER=appuser
-POSTGRES_PASSWORD=apppass
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-DB_PREFIX=monitor_test_
-```
-
 
 ## <a name="setup">Backend setup</a>
 
 This is a guide step by step to set up the backend in your environment.
 1. Clone the repository (if from scratch) and checkout to branch **feature/backend**, just in case if this isn't in the main branch yet. If not from scratch, pull and checkout.
-2. Give permissions to the `entrypoint.sh` file, just in case:
+2. Give permissions to the `initial_setup.sh`, `entrypoint.sh`, `chirpstack_sync.sh` files, if in linux:
 ```bash
 sudo chmod +x entrypoint.sh
+sudo chmod +x initial_setup.sh
+sudo chmod +x chirpstack_sync.sh
 ```
-3. Locate with your terminal the `docker-compose.yml` and enter this command:
+3. In the same directory `Monitor_Atlas/` where the `docker-compose.yml` is located, enter this command:
 ```bash
-sudo docker compose build
+sudo docker compose up --build -d
 ```
-And when it's done:
-```bash
-sudo docker compose up -d
-```
-1. Check if everything went right with:
+4. Check if everything went right with:
 ```bash
 sudo docker compose logs -f django_backend
 ```
-
-Next step will be **login** to **/admin/** and check everything.
+Default por for the Atlas API is `8000`.
 
 ## <a name="docs">API Docs (Swagger, ReDoc)</a>
 
-For endpoints or API Docs you can access `/api/schema/swagger-ui/` for swagger or `/api/schema/redoc/`. 
+For endpoints auto schema or API Docs you can access `/api/schema/swagger-ui/` for swagger or `/api/schema/redoc/` powered by `drf-spectacular` 😊. 
 
-## <a name="auth">Authentication with EchoAPI</a>
+## <a name="auth">Authentication with EchoAPI, Postman and such</a>
 
-There's an *📂Auth* folder in EchoAPI's: **📂Monitor | Emasa**. There you can found 2 elements: *Get tokens* and *Refresh Token*. Make sure the server is running (`python3 manage.py runserver`)
+( $EchoAPI$ )There's an *📂Auth* folder in EchoAPI's: **📂Monitor | Emasa**. There you can found 2 elements: *Get tokens* and *Refresh Token*. Make sure the server is running (`python3 manage.py runserver`)
 
 ### Get tokens:
 
@@ -170,13 +149,13 @@ Contained in the json files located in 📂fixtures, it's a set test data. It is
 
 User account/pass relation classified by role, organization and workspace:
 
-|User|Password|Organization|Role|Workspace|
-|---|---|---|---|---|
-|weedo|estrellita123|None|superuser|None|
-|emasa_admin|estrellita123|EMASA|Admin|Principal|
-|emasa_employee|estrellita123|EMASA|Sin rol|Principal|
-|tec_admin|estrellita123|Tecnobot|Admin|Principal|
-|tec_employee|estrellita123|Tecnobot|Sin rol|Principal|
+| User           | Password      | Organization | Role      | Workspace |
+| -------------- | ------------- | ------------ | --------- | --------- |
+| weedo          | estrellita123 | None         | superuser | None      |
+| emasa_admin    | estrellita123 | EMASA        | Admin     | Principal |
+| emasa_employee | estrellita123 | EMASA        | Sin rol   | Principal |
+| tec_admin      | estrellita123 | Tecnobot     | Admin     | Principal |
+| tec_employee   | estrellita123 | Tecnobot     | Sin rol   | Principal |
 
 ## Special Methods
 
