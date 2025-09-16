@@ -7,6 +7,13 @@
     { "key": "subscription_id", "label": "Subscripción", "type": "text" }
   ],
 
+  "gateway": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "url", "label": "URL", "type": "text" },
+    { "key": "token", "label": "Token", "type": "text" }
+  ],
+
 
   "period": [
     { "key": "name", "label": "Nombre", "type": "text" },

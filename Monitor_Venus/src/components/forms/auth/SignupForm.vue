@@ -105,7 +105,7 @@
               region-placeholder="Select state/province"
               :country-options="null"  <!-- or provide your own list -->
               :region-options="null"   <!-- or provide your own list -->
-          />
+          > </CountryRegionSelect>
 
           <!-- Info note -->
 

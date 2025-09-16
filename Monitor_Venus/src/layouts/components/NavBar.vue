@@ -60,28 +60,10 @@
         >
           🔋 Batería
         </router-link>
-        <router-link
-            to="/tenants"
-            class="nav-link"
-            :class="{ active: $route.path === '/tenants' }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.building"
-          ></ion-icon>
-           Tenants
-        </router-link>
-        <router-link
-            :to="paths.TENANT_USERS"
-            class="nav-link"
-            :class="{ active: $route.path === paths.TENANT_USERS }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.people"
-          ></ion-icon>
-          Users
-        </router-link>
+
+        <hr class="divider"/>
+
+
         <router-link 
           to="/infrastructure/gateways"
           class="nav-link"
@@ -107,11 +89,61 @@
         >
           📦 Applications
         </router-link>
+
+        <hr class="divider"/>
+        <router-link
+            to="/tenants"
+            class="nav-link"
+            :class="{ active: $route.path === '/tenants' }"
+            @click="closeNavbar"
+        >
+          <ion-icon
+              :icon="icons.building"
+          ></ion-icon>
+          Tenants
+        </router-link>
+
+        <router-link
+            :to=paths.TENANT_WORKSPACES
+            class="nav-link"
+            :class="{ active: $route.path === paths.TENANT_WORKSPACES }"
+            @click="closeNavbar"
+        >
+          <ion-icon
+              :icon="icons.building"
+          ></ion-icon>
+          Workspaces
+        </router-link>
+
+        <router-link
+            :to="paths.TENANT_USERS"
+            class="nav-link"
+            :class="{ active: $route.path === paths.TENANT_USERS }"
+            @click="closeNavbar"
+        >
+          <ion-icon
+              :icon="icons.people"
+          ></ion-icon>
+          Users
+        </router-link>
+
+        <router-link
+            :to=paths.TENANT_LOCATIONS
+            class="nav-link"
+            :class="{ active: $route.path === paths.TENANT_LOCATIONS }"
+            @click="closeNavbar"
+        >
+          📍 Locations
+        </router-link>
+
+        <hr class="divider"/>
+
         <router-link 
           to="/login" 
           class="nav-link"
           :class="{ active: $route.path === '/auth' }"
           @click="closeNavbar"
+
         >
           🔑 Iniciar Sesión
         </router-link>
@@ -268,6 +300,11 @@ const closeNavbar = () => {
   display: none;
 }
 
+.divider{
+  margin: 1rem 0;
+  border-top: 1px solid #e9ecef;
+}
+
 /* Estilos para móvil - OVERLAY VERTICAL */
 @media (max-width: 768px) {
   /* Navbar como overlay fijo */
@@ -363,6 +400,7 @@ const closeNavbar = () => {
     padding: 14px 16px;
     font-size: 0.9rem;
   }
+
 
 }
 </style>
