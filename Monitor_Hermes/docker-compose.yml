@@ -10,7 +10,7 @@ services:
       - "5000:5000"
     depends_on:
       - mongo
-      - redis
+      - redis-hermes
     networks:
       - chirp-django-net
 
@@ -26,7 +26,7 @@ services:
     networks:
       - chirp-django-net
 
-  redis:
+  redis-hermes:
     image: redis:7.2-alpine
     container_name: redis_cache
     command: redis-server --requirepass ${REDIS_PASSWORD}

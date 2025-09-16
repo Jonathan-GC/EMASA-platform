@@ -2,7 +2,7 @@ class API {
     static instance = null;
 
     API_VERSION = 'v1/';
-    API_BASE_URL = 'http://localhost:8000/api/' + this.API_VERSION;
+    API_BASE_URL = 'http://localhost/api/' + this.API_VERSION;
 
     // Interceptors básicos
     requestInterceptors = [];
