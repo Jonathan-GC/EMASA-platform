@@ -196,7 +196,7 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
-import OrganizationSVG from '@assets/svg/organization.svg'
+import OrganizationSVG from '@assets/svg/Organization.svg'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
