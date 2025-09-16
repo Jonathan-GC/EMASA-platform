@@ -11,6 +11,8 @@ services:
       - chirp-django-net
     depends_on:
       - frontend
+    environment:
+      - HOST_ADDR=192.168.0.105
 
 
   # Frontend Production Build
