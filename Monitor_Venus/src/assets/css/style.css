@@ -1,0 +1,24 @@
+@import "tailwindcss/utilities";
+@import "tailwindcss/theme";
+
+body a {
+    color: var(--color-amber-700);
+}
+
+
+
+
+ion-item.custom ion-input.custom {
+    --placeholder-color: #858585;
+    --border-color: #cccccc;
+    --highlight-color-focused: #000000;
+    --border-width: 0px
+
+}
+
+ion-item.custom{
+    --padding-start: 0px;
+    --font-size: 14px;
+    --inner-padding-end: 0px;
+}
+

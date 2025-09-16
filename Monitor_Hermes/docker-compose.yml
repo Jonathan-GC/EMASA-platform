@@ -10,12 +10,12 @@ services:
       - "5000:5000"
     depends_on:
       - mongo
-      - redis
+      - redis-hermes
     networks:
       - chirp-django-net
 
   mongo:
-    image: mongo:6.0
+    image: mongo:4.4
     container_name: mongo_db
     restart: always
     env_file: .env
@@ -26,7 +26,7 @@ services:
     networks:
       - chirp-django-net
 
-  redis:
+  redis-hermes:
     image: redis:7.2-alpine
     container_name: redis_cache
     command: redis-server --requirepass ${REDIS_PASSWORD}
@@ -37,7 +37,6 @@ services:
       - redis_data:/data
     networks:
       - chirp-django-net
-      
 volumes:
   mongo_data:
   redis_data:

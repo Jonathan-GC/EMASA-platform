@@ -1,0 +1,29 @@
+name: Unified Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    uses: ./.github/workflows/deploy_component.yml
+    with:
+      component-path: 'frontend'
+    secrets: inherit
+
+  cleanup-volumes:
+    name: Cleanup Unused Docker Volumes
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          
+      - name: Prune unused Docker volumes
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            docker volume prune -f
+          EOF
