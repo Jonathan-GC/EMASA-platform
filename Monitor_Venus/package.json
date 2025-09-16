@@ -37,8 +37,8 @@
     "vue3-country-region-select": "^1.0.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.0",
+    "@vitejs/plugin-vue": "^5.1.4",
     "unplugin-vue-components": "^29.0.0",
-    "vite": "^7.0.0"
+    "vite": "^6.0.1"
   }
 }

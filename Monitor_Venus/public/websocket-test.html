@@ -90,7 +90,7 @@
 <body>
     <div class="container">
         <h1>🔌 WebSocket Test</h1>
-        <p><strong>Target:</strong> ws://localhost/ws</p>
+        <p><strong>Target:</strong> <span id="wsTarget">Detectando...</span></p>
 
         <div class="info">
             <strong>📱 Device Info:</strong><br>
@@ -128,7 +128,21 @@
         let messagesReceived = 0;
         let isConnecting = false;
 
-        const wsURL = 'ws://localhost/ws';
+        // Use environment variable or fallback to default
+        // In production, this will be replaced by the build process
+        function getWebSocketURL() {
+            // Check if we're in development mode (localhost)
+            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                return 'ws://localhost/ws';
+            }
+
+            // In production, construct WebSocket URL based on current location
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = location.host;
+            return `${protocol}//${host}/ws`;
+        }
+
+        const wsURL = getWebSocketURL();
 
         // Initialize device info
         document.getElementById('userAgent').textContent = navigator.userAgent;
@@ -136,6 +150,9 @@
         document.getElementById('isAndroid').textContent = /android/i.test(navigator.userAgent) ? 'Sí' : 'No';
         document.getElementById('isIOS').textContent = /iphone|ipad|ipod/i.test(navigator.userAgent) ? 'Sí' : 'No';
         document.getElementById('protocol').textContent = location.protocol;
+
+        // Show the detected WebSocket URL
+        document.getElementById('wsTarget').textContent = wsURL;
 
         function log(message) {
             const timestamp = new Date().toISOString();
