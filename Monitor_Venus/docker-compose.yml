@@ -11,8 +11,8 @@ services:
       - chirp-django-net
     depends_on:
       - frontend
-    environment:
-      - HOST_ADDR=192.168.0.105
+    env_file:
+      - .env
 
 
   # Frontend Production Build
@@ -21,12 +21,14 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_WEBSOCKET_URL=ws://localhost/ws
+        - VITE_WEBSOCKET_URL= ${VITE_WEBSOCKET_URL}
     restart: unless-stopped
     volumes:
       - frontend-dist:/app/dist
     networks:
       - chirp-django-net
+    env_file:
+      - .env
 
 
 volumes:
