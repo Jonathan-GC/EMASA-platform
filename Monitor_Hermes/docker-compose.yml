@@ -37,7 +37,6 @@ services:
       - redis_data:/data
     networks:
       - chirp-django-net
-
 volumes:
   mongo_data:
   redis_data:
