@@ -20,6 +20,8 @@ export const routes = [
             { path: P.APPLICATIONS, component: C.APPLICATIONS, beforeEnter: requireAuth },
             { path: P.TENANTS, component: C.TENANTS },
             { path: P.TENANT_USERS, component: C.TENANT_USERS, beforeEnter: requireAuth },
+            { path: P.TENANT_LOCATIONS, component: C.TENANT_LOCATIONS, beforeEnter: requireAuth },
+            { path: P.TENANT_WORKSPACES, component: C.TENANT_WORKSPACES, beforeEnter: requireAuth }
             //{ path: P.LOGIN, component: C.LOGIN }
         ]
     },

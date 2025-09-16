@@ -10,6 +10,8 @@ export const paths = {
     APPLICATIONS: '/infrastructure/appointments',
     TENANTS: '/tenants',
     TENANT_USERS: '/users',
+    TENANT_LOCATIONS: '/locations',
+    TENANT_WORKSPACES: '/workspaces',
     LOGIN: '/login',
     REGISTER: '/register'
 }

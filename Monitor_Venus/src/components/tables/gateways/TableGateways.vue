@@ -38,6 +38,12 @@
             <ion-button @click="fetchGateways" fill="clear">
               <ion-icon :icon="icons.refresh"></ion-icon>
             </ion-button>
+
+            <QuickControl
+                :toCreate="true"
+                type="gateway"
+                @itemCreated="handleItemRefresh"
+            />
           </div>
 
           <!-- Table using ion-grid -->
