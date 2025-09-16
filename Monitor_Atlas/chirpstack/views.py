@@ -26,6 +26,8 @@ from chirpstack.chirpstack_api import (
 )
 
 import logging
+from drf_spectacular.utils import extend_schema
+
 
 # Create your views here.
 
@@ -36,6 +38,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     permission_classes = [HasPermissionKey]
     scope = "device_profile"
 
+    @extend_schema(tags=["ChirpStack"], operation_id="Device_Profile")
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="device_profile")
@@ -127,6 +130,7 @@ class DeviceProfileTemplateViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     permission_classes = [HasPermissionKey]
     scope = "device_profile_template"
 
+    @extend_schema(tags=["ChirpStack"], operation_id="Device_Profile_Template")
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="device_profile_template")
@@ -156,6 +160,7 @@ class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     permission_classes = [HasPermissionKey]
     scope = "api_user"
 
+    @extend_schema(tags=["ChirpStack"], operation_id="Api_User")
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="api_user")
