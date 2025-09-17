@@ -180,6 +180,7 @@ async function createItem() {
     // Map of types to API endpoints
     const apiEndpoints = {
       'tenant': API.TENANT,
+      'gateway': API.GATEWAY,
       'group': API.INVESTIGATION_GROUPS,
       'seedbed': API.RESEARCH_SEEDBEDS,
       'user_integra': API.USERS_INTEGRA,
