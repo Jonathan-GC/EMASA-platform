@@ -184,7 +184,7 @@ class Gateway(models.Model):
         }
     """
 
-    cs_gateway_id = models.CharField(max_length=36)  # cs
+    cs_gateway_id = models.CharField(max_length=36, unique=True)  # cs
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     stats_interval = models.IntegerField(default=30)  # Cs in seconds
