@@ -3,7 +3,7 @@ function getApiBaseUrl() {
     const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
         ? import.meta.env.VITE_API_URL
         : 'http://localhost/api/';
-    return String(base).replace(/\/+$/, '');
+    return String(base);
 }
 
 class API {
