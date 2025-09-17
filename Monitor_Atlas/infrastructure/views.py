@@ -125,7 +125,7 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
 
     def perform_destroy(self, instance):
-        sync_response = sync_gateway_destroy(instance, request=self.request)
+        sync_response = sync_gateway_destroy(instance)
 
         if sync_response.status_code != 200:
             logging.error(
