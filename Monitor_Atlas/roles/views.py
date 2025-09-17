@@ -2,12 +2,19 @@ from rest_framework import viewsets
 
 from .permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
 
-from .serializers import PermissionKeySerializer, RoleSerializer, WorkspaceMembershipSerializer, RolePermissionSerializer
+from .serializers import (
+    PermissionKeySerializer,
+    RoleSerializer,
+    WorkspaceMembershipSerializer,
+    RolePermissionSerializer,
+)
 from .models import PermissionKey, Role, WorkspaceMembership, RolePermission
 from .mixins import PermissionKeyMixin
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema_view, extend_schema
+
 
 class PermissionKeyViewSet(viewsets.ModelViewSet):
 
@@ -16,6 +23,17 @@ class PermissionKeyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrIsAuthenticatedReadOnly]
 
 
+@extend_schema_view(
+    list=extend_schema(description="Role List"),
+    create=extend_schema(description="Role Create"),
+    retrieve=extend_schema(description="Role Retrieve"),
+    update=extend_schema(description="Role Update"),
+    partial_update=extend_schema(description="Role Partial Update"),
+    destroy=extend_schema(description="Role Destroy"),
+    get_all_permission_keys_by_role=extend_schema(
+        description="Get all permission keys by role ID"
+    ),
+)
 class RoleViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
     queryset = Role.objects.all()
@@ -33,21 +51,16 @@ class RoleViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         permission_keys = PermissionKey.objects.filter(role_id=role_id)
         serializer = PermissionKeySerializer(permission_keys, many=True)
         return self.get_paginated_response(serializer.data)
-    
-    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "role"
 
-        self.create_permission_keys(instance, scope)
 
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-        
-        return Response(serializer.data)
-
+@extend_schema_view(
+    list=extend_schema(description="Workspace Membership List"),
+    create=extend_schema(description="Workspace Membership Create"),
+    retrieve=extend_schema(description="Workspace Membership Retrieve"),
+    update=extend_schema(description="Workspace Membership Update"),
+    partial_update=extend_schema(description="Workspace Membership Partial Update"),
+    destroy=extend_schema(description="Workspace Membership Destroy"),
+)
 class WorkspaceMembershipViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
     queryset = WorkspaceMembership.objects.all()
@@ -59,24 +72,17 @@ class WorkspaceMembershipViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="workspace")
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrIsAuthenticatedReadOnly])
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "workspace"
 
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-        
-        return Response(serializer.data)
-
+@extend_schema_view(
+    list=extend_schema(description="Role Permission List"),
+    create=extend_schema(description="Role Permission Create"),
+    retrieve=extend_schema(description="Role Permission Retrieve"),
+    update=extend_schema(description="Role Permission Update"),
+    partial_update=extend_schema(description="Role Permission Partial Update"),
+    destroy=extend_schema(description="Role Permission Destroy"),
+)
 class RolePermissionViewSet(viewsets.ModelViewSet):
 
     queryset = RolePermission.objects.all()
     serializer_class = RolePermissionSerializer
     permission_classes = [IsAdminOrIsAuthenticatedReadOnly]
-
-        

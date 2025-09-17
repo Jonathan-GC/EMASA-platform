@@ -209,8 +209,8 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Your Project API",
-    "DESCRIPTION": "Your project description",
+    "TITLE": "Monitor Atlas API",
+    "DESCRIPTION": "API para la plataforma de monitorización Monitor Atlas - Powered by Weedo",
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": "/api/v1/",
 }

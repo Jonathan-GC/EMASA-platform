@@ -19,8 +19,17 @@ from chirpstack.chirpstack_api import (
 )
 
 import logging
+from drf_spectacular.utils import extend_schema_view, extend_schema
 
 
+@extend_schema_view(
+    list=extend_schema(description="Workspace List"),
+    create=extend_schema(description="Workspace Create"),
+    retrieve=extend_schema(description="Workspace Retrieve"),
+    update=extend_schema(description="Workspace Update"),
+    partial_update=extend_schema(description="Workspace Partial Update"),
+    destroy=extend_schema(description="Workspace Destroy"),
+)
 class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
@@ -31,25 +40,15 @@ class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="workspace")
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "workspace"
 
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
-
-
+@extend_schema_view(
+    list=extend_schema(description="Tenant List"),
+    create=extend_schema(description="Tenant Create"),
+    retrieve=extend_schema(description="Tenant Retrieve"),
+    update=extend_schema(description="Tenant Update"),
+    partial_update=extend_schema(description="Tenant Partial Update"),
+    destroy=extend_schema(description="Tenant Destroy"),
+)
 class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
@@ -128,25 +127,15 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         else:
             logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "tenant"
 
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
-
-
+@extend_schema_view(
+    list=extend_schema(description="Subscription List"),
+    create=extend_schema(description="Subscription Create"),
+    retrieve=extend_schema(description="Subscription Retrieve"),
+    update=extend_schema(description="Subscription Update"),
+    partial_update=extend_schema(description="Subscription Partial Update"),
+    destroy=extend_schema(description="Subscription Destroy"),
+)
 class SubscriptionViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
@@ -156,21 +145,3 @@ class SubscriptionViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="subscription")
-
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "subscription"
-
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)

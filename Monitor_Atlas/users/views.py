@@ -23,9 +23,22 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from drf_spectacular.utils import extend_schema_view, extend_schema
+
 # User ViewSet
 
 
+@extend_schema_view(
+    list=extend_schema(description="User List"),
+    create=extend_schema(description="User Create"),
+    retrieve=extend_schema(description="User Retrieve"),
+    update=extend_schema(description="User Update"),
+    partial_update=extend_schema(description="User Partial Update"),
+    destroy=extend_schema(description="User Destroy"),
+    set_user_image=extend_schema(description="Set user image"),
+    disable_user=extend_schema(description="Disable a user"),
+    enable_user=extend_schema(description="Enable a user"),
+)
 class UserViewSet(ModelViewSet, PermissionKeyMixin):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -35,33 +48,6 @@ class UserViewSet(ModelViewSet, PermissionKeyMixin):
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="user")
-
-    @action(detail=False, methods=["get"])
-    def get_all_permission_keys_by_user(self, request):
-        user_id = request.query_params.get("user_id")
-        permission_keys = PermissionKey.objects.filter(user_id=user_id)
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-        return self.get_paginated_response(serializer.data)
-
-        # TODO: CORREGIR
-
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "user"
-
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
 
     @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
     def set_user_image(self, request, pk=None):

@@ -38,7 +38,17 @@ from rest_framework import status
 
 import logging
 
+from drf_spectacular.utils import extend_schema_view, extend_schema
 
+
+@extend_schema_view(
+    list=extend_schema(description="Gateway List (ChirpStack)"),
+    create=extend_schema(description="Gateway Create (ChirpStack)"),
+    retrieve=extend_schema(description="Gateway Retrieve (ChirpStack)"),
+    update=extend_schema(description="Gateway Update (ChirpStack)"),
+    partial_update=extend_schema(description="Gateway Partial Update (ChirpStack)"),
+    destroy=extend_schema(description="Gateway Destroy (ChirpStack)"),
+)
 class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Gateway.objects.all()
     serializer_class = GatewaySerializer
@@ -128,25 +138,16 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         instance.delete()
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "gateway"
 
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
-
-
+@extend_schema_view(
+    list=extend_schema(description="Machine List"),
+    create=extend_schema(description="Machine Create"),
+    retrieve=extend_schema(description="Machine Retrieve"),
+    update=extend_schema(description="Machine Update"),
+    partial_update=extend_schema(description="Machine Partial Update"),
+    destroy=extend_schema(description="Machine Destroy"),
+    set_machine_image=extend_schema(description="Set Machine Image"),
+)
 class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Machine.objects.all()
     serializer_class = MachineSerializer
@@ -157,24 +158,6 @@ class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="machine")
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "machine"
-
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
-
     @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
     def set_machine_image(self, request, pk=None):
         instance = self.get_object()
@@ -184,6 +167,15 @@ class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         return Response(serializer.data)
 
 
+@extend_schema_view(
+    list=extend_schema(description="Type List"),
+    create=extend_schema(description="Type Create"),
+    retrieve=extend_schema(description="Type Retrieve"),
+    update=extend_schema(description="Type Update"),
+    partial_update=extend_schema(description="Type Partial Update"),
+    destroy=extend_schema(description="Type Destroy"),
+    set_type_image=extend_schema(description="Set Type Image (icon)"),
+)
 class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Type.objects.all()
     serializer_class = TypeSerializer
@@ -194,24 +186,6 @@ class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="type")
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "type"
-
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
-
     @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
     def set_type_image(self, request, pk=None):
         instance = self.get_object()
@@ -221,6 +195,17 @@ class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         return Response(serializer.data)
 
 
+@extend_schema_view(
+    list=extend_schema(description="Device List (ChirpStack)"),
+    create=extend_schema(description="Device Create (ChirpStack)"),
+    retrieve=extend_schema(description="Device Retrieve (ChirpStack)"),
+    update=extend_schema(description="Device Update (ChirpStack)"),
+    partial_update=extend_schema(description="Device Partial Update (ChirpStack)"),
+    destroy=extend_schema(description="Device Destroy (ChirpStack)"),
+    set_activation=extend_schema(description="Set Device Activation Data"),
+    activate=extend_schema(description="Activate Device"),
+    deactivate=extend_schema(description="Deactivate Device"),
+)
 class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
@@ -451,6 +436,14 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         return Response(serializer.data)
 
 
+@extend_schema_view(
+    list=extend_schema(description="Application List (ChirpStack)"),
+    create=extend_schema(description="Application Create (ChirpStack)"),
+    retrieve=extend_schema(description="Application Retrieve (ChirpStack)"),
+    update=extend_schema(description="Application Update (ChirpStack)"),
+    partial_update=extend_schema(description="Application Partial Update (ChirpStack)"),
+    destroy=extend_schema(description="Application Destroy (ChirpStack)"),
+)
 class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Application.objects.all()
     serializer_class = ApplicationSerializer
@@ -525,25 +518,15 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "application"
 
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
-
-
+@extend_schema_view(
+    list=extend_schema(description="Location List"),
+    create=extend_schema(description="Location Create"),
+    retrieve=extend_schema(description="Location Retrieve"),
+    update=extend_schema(description="Location Update"),
+    partial_update=extend_schema(description="Location Partial Update"),
+    destroy=extend_schema(description="Location Destroy"),
+)
 class LocationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
@@ -553,21 +536,3 @@ class LocationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="location")
-
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
-    )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "location"
-
-        self.create_permission_keys(instance, scope)
-
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-
-        return Response(serializer.data)
