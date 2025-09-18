@@ -6,7 +6,7 @@ export const paths = {
     CURRENT: '/current',
     BATTERY: '/battery',
     GATEWAYS: '/infrastructure/gateways',
-    DEVICE_PROFILES: '/infrastructure/device-profiles',
+    DEVICE_PROFILES: '/infrastructure/device_profiles',
     APPLICATIONS: '/infrastructure/appointments',
     TENANTS: '/tenants',
     TENANT_USERS: '/users',

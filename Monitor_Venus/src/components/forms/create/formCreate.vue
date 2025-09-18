@@ -182,6 +182,7 @@ async function createItem() {
       'tenant': API.TENANT,
       'gateway': API.GATEWAY,
       'location': API.LOCATION,
+      'device_profile': API.DEVICE_PROFILE,
       'group': API.INVESTIGATION_GROUPS,
       'seedbed': API.RESEARCH_SEEDBEDS,
       'user_integra': API.USERS_INTEGRA,
