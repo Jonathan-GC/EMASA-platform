@@ -10,8 +10,9 @@
   "gateway": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "url", "label": "URL", "type": "text" },
-    { "key": "token", "label": "Token", "type": "text" }
+    { "key": "cs_gateway_id", "label":"EUID", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "text" },
+    { "key": "location_id", "label": "Nombre de locacion", "type": "text" }
   ],
 
 
