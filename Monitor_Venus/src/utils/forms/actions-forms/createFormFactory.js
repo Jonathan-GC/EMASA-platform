@@ -19,6 +19,7 @@ const CreateSeedbedMember = defineAsyncComponent(() => import("@/components/form
 
 const CreateTenants = defineAsyncComponent(() => import("@components/forms/create/tenants/formCreateTenants.vue"));
 const CreateGateways = defineAsyncComponent(() => import("@components/forms/create/gateways/formCreateGateways.vue"));
+const CreateLocations = defineAsyncComponent(() => import("@components/forms/create/locations/formCreateLocations.vue"));
 
 
 
@@ -41,6 +42,14 @@ export class CreateFormFactory extends AbstractFormFactory {
                 fields: schema.gateway,
             }
         },
+        location: {
+            component: CreateLocations,
+            props: {
+                type: type,
+                label: 'location',
+                fields: schema.location,
+            }
+        }
       /*period: {
         component: CreatePeriod,
         props: {

@@ -15,6 +15,15 @@
     { "key": "location_id", "label": "Nombre de locacion", "type": "text" }
   ],
 
+  "location": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "accuracy", "label":  "descripción", "type": "text" },
+    { "key": "latitude", "label":"Latitud", "type": "text" },
+    { "key": "longitude", "label": "Longitud", "type": "text" },
+    { "key": "altitude", "label": "Altitud", "type": "text" },
+    { "key": "source", "label": "Fuente", "type": "text" }
+  ],
+
 
   "period": [
     { "key": "name", "label": "Nombre", "type": "text" },
