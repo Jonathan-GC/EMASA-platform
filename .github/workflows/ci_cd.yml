@@ -11,13 +11,13 @@ jobs:
   deploy-backend-atlas:
     uses: ./.github/workflows/deploy_component.yml
     with:
-      componenet-path: 'Monitor_Atlas'
+      component-path: 'Monitor_Atlas'
     secrets: inherit
 
   deploy-backend-hermes:
     uses: ./.github/workflows/deploy_component.yml
     with:
-      componenet-path: 'Monitor_Hermes'
+      component-path: 'Monitor_Hermes'
     secrets: inherit
     
   deploy-venus:
