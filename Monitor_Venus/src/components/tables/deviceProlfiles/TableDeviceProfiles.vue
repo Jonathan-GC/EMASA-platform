@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🌐 Device Profiles - Datos desde API</ion-card-title>
+        <ion-card-title>🌐 Gateways - Datos desde API</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${deviceProfiles.length} gateways encontrados` }}
+          {{ loading ? 'Cargando...' : `${gateways.length} gateways encontrados` }}
         </ion-card-subtitle>
       </ion-card-header>
 
@@ -12,32 +12,38 @@
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
-          <p>Obteniendo datos de los Device profiles...</p>
+          <p>Obteniendo datos de gateways...</p>
         </div>
 
         <!-- Error state -->
         <div v-else-if="error" class="error-container">
           <ion-icon :icon="icons.alertCircle" color="danger"></ion-icon>
           <p>Error: {{ error }}</p>
-          <ion-button @click="fetchDeviceProfiles" fill="outline" color="danger">
+          <ion-button @click="GetDeviceProfiles" fill="outline" color="danger">
             Reintentar
           </ion-button>
         </div>
 
         <!-- Data table -->
-        <div v-else-if="deviceProfiles.length > 0">
+        <div v-else-if="gateways.length > 0">
           <!-- Controls -->
           <div class="table-controls">
             <ion-searchbar
                 v-model="searchText"
-                placeholder="Buscar device profile..."
+                placeholder="Buscar gateway..."
                 @ionInput="handleSearch"
                 show-clear-button="focus"
             ></ion-searchbar>
 
-            <ion-button @click="fetchDeviceProfiles" fill="clear">
+            <ion-button @click="GetDeviceProfiles" fill="clear">
               <ion-icon :icon="icons.refresh"></ion-icon>
             </ion-button>
+
+            <QuickControl
+                :toCreate="true"
+                type="device_profile"
+                @itemCreated="handleItemRefresh"
+            />
           </div>
 
           <!-- Table using ion-grid -->
@@ -58,25 +64,25 @@
                     v-if="sortField === 'cs_gateway_id'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
-                <strong>Cliente</strong>
-                <ion-icon
-                    :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'lastSeen'"
-                ></ion-icon>
-              </ion-col>
-              <ion-col size="2">
-                <strong>Región</strong>
-              </ion-col>
-              <ion-col size="1">
-                <strong>Dispositivos</strong>
-              </ion-col>
               <ion-col size="2" @click="sortBy('status')" class="sortable">
                 <strong>Estado</strong>
                 <ion-icon
                     :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
                     v-if="sortField === 'status'"
                 ></ion-icon>
+              </ion-col>
+              <ion-col size="2">
+                <strong>Ubicación</strong>
+              </ion-col>
+              <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
+                <strong>Última conexión</strong>
+                <ion-icon
+                    :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
+                    v-if="sortField === 'lastSeen'"
+                ></ion-icon>
+              </ion-col>
+              <ion-col size="1">
+                <strong>Dispositivos</strong>
               </ion-col>
               <ion-col size="1">
                 <strong>Acciones</strong>
@@ -85,56 +91,60 @@
 
             <!-- Data rows -->
             <ion-row
-                v-for="deviceProfile in paginatedItems"
-                :key="deviceProfile.id"
+                v-for="gateway in paginatedItems"
+                :key="gateway.id"
                 class="table-row-stylized"
 
-                :class="{ 'row-selected': selectedDeviceProfile?.id === deviceProfile.id }"
+                :class="{ 'row-selected': selectedGateway?.id === gateway.id }"
             >
               <ion-col size="2">
                 <div class="gateway-info">
+                  <ion-icon
+                      :icon="icons.hardwareChip"
+                      :color="getStatusColor(gateway.state)"
+                  ></ion-icon>
                   <div>
-                    <div class="gateway-name">{{ deviceProfile.name }}</div>
+                    <div class="gateway-name">{{ gateway.name }}</div>
                   </div>
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.cs_device_profile_id }}</div>
+                <div class="gateway-id">{{ gateway.cs_gateway_id }}</div>
               </ion-col>
 
-
               <ion-col size="2">
-                <ion-chip>
-                  {{ deviceProfile.tenant }}
+                <ion-chip
+                    :color="getStatusColor(gateway.state)"
+                >
+                  {{ gateway.state }}
                 </ion-chip>
               </ion-col>
 
               <ion-col size="2">
                 <div class="location-info">
-                  <ion-icon :icon="icons.globe" size="small"></ion-icon>
-                  {{ deviceProfile.region }}
+                  <ion-icon :icon="icons.location" size="small"></ion-icon>
+                  {{ gateway.location }}
+                </div>
+              </ion-col>
+
+              <ion-col size="2">
+                <div class="time-info">
+                  {{ formatTime(gateway.last_seen_at) }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
                 <div class="devices-info">
                   <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
-                  {{ deviceProfile.connectedDevices || 0 }}
+                  {{ gateway.connectedDevices || 0 }}
                 </div>
-              </ion-col>
-              <ion-col size="2">
-                <ion-chip
-                    :color="getStatusColor(deviceProfile.sync_status)"
-                >
-                  {{ deviceProfile.sync_status }}
-                </ion-chip>
               </ion-col>
 
               <ion-col size="1">
                 <ion-button
                     fill="clear"
                     size="small"
-                    @click.stop="viewGateway(deviceProfile)"
+                    @click.stop="viewGateway(gateway)"
                 >
                   <ion-icon :icon="icons.eye"></ion-icon>
                 </ion-button>
@@ -171,7 +181,7 @@
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
           <h3>No hay gateways</h3>
           <p>No se encontraron gateways en el sistema</p>
-          <ion-button @click="fetchDeviceProfiles" fill="outline">
+          <ion-button @click="GetDeviceProfiles" fill="outline">
             Buscar gateways
           </ion-button>
         </div>
@@ -192,14 +202,14 @@ import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 const icons = inject('icons', {})
 
 // Component-specific state
-const deviceProfiles = ref([])
+const gateways = ref([])
 const loading = ref(false)
 const error = ref(null)
-const selectedDeviceProfile = ref(null)
+const selectedGateway = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(deviceProfiles, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(gateways, ['name', 'cs_gateway_id', 'location'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -210,7 +220,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ejemplo.com'
 
 
 // Fetch data from API
-const fetchDeviceProfiles = async () => {
+const GetDeviceProfiles = async () => {
   // Ensure component is mounted before fetching
   if (!isMounted.value) {
     console.log('⏳ Component not ready, waiting...')
@@ -224,19 +234,19 @@ const fetchDeviceProfiles = async () => {
   }
 
   try {
-    console.log('🔄 Fetching deviceProfiles data...')
+    console.log('🔄 Fetching device profiles data...')
 
     // Real API call using await
     const response = await API.get(API.DEVICE_PROFILE, headers);
     // Ensure response is an array, if not, wrap it or use a default
     const mockData = Array.isArray(response) ? response : (response?.data || []);
 
-    deviceProfiles.value = mockData
+    gateways.value = mockData
     console.log('✅ Gateways cargados:', mockData.length)
 
   } catch (err) {
     error.value = `❌Error al cargar gateways: ${err.message}`
-    console.error('❌ Error fetching deviceProfiles:', err)
+    console.error('❌ Error fetching gateways:', err)
   } finally {
     loading.value = false
   }
@@ -244,14 +254,14 @@ const fetchDeviceProfiles = async () => {
 
 // Component-specific methods
 const selectGateway = (gateway) => {
-  selectedDeviceProfile.value = gateway
+  selectedGateway.value = gateway
   console.log('Gateway seleccionado:', gateway)
 }
 
 const viewGateway = (gateway) => {
   console.log('Ver detalles del gateway:', gateway)
   // Aquí podrías navegar a una página de detalles
-  // router.push(`/deviceProfiles/${gateway.id}`)
+  // router.push(`/gateways/${gateway.id}`)
 }
 
 // Lifecycle
@@ -266,7 +276,7 @@ onMounted(async () => {
 
   // Small delay to ensure Ionic page transition is complete
   setTimeout(() => {
-    fetchDeviceProfiles()
+    GetDeviceProfiles()
   }, 100)
 })
 </script>

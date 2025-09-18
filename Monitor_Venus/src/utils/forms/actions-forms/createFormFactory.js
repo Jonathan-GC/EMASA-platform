@@ -20,147 +20,51 @@ const CreateSeedbedMember = defineAsyncComponent(() => import("@/components/form
 const CreateTenants = defineAsyncComponent(() => import("@components/forms/create/tenants/formCreateTenants.vue"));
 const CreateGateways = defineAsyncComponent(() => import("@components/forms/create/gateways/formCreateGateways.vue"));
 const CreateLocations = defineAsyncComponent(() => import("@components/forms/create/locations/formCreateLocations.vue"));
+const CreateDeviceProfiles = defineAsyncComponent(() => import("@components/forms/create/device_profiles/formCreateDeviceProfiles.vue"));
 
 
 
 export class CreateFormFactory extends AbstractFormFactory {
-  getComponentConfig(type) {
-    const componentMap = {
-        tenant: {
-            component: CreateTenants,
-            props: {
-                type: type,
-                label: 'tenant',
-                fields: schema.tenant,
+    getComponentConfig(type) {
+        const componentMap = {
+            tenant: {
+                component: CreateTenants,
+                props: {
+                    type: type,
+                    label: 'tenant',
+                    fields: schema.tenant,
+                }
+            },
+            gateway: {
+                component: CreateGateways,
+                props: {
+                    type: type,
+                    label: 'gateway',
+                    fields: schema.gateway,
+                }
+            },
+            location: {
+                component: CreateLocations,
+                props: {
+                    type: type,
+                    label: 'location',
+                    fields: schema.location,
+                }
+            },
+            device_profile: {
+                component: CreateDeviceProfiles,
+                props: {
+                    type: type,
+                    label: 'device profile',
+                    fields: schema.device_profile,
+                }
             }
-        },
-        gateway: {
-            component: CreateGateways,
-            props: {
-                type: type,
-                label: 'gateway',
-                fields: schema.gateway,
-            }
-        },
-        location: {
-            component: CreateLocations,
-            props: {
-                type: type,
-                label: 'location',
-                fields: schema.location,
-            }
         }
-      /*period: {
-        component: CreatePeriod,
-        props: {
-          type: type,
-          label: 'periodo',
-          fields: schema.period
-        }
-      },
-      group: {
-        component: CreateGroup,
-        props: {
-          type: type,
-          label: "grupo",
-          fields: schema.group,
-        }
-      },
-      user_integra: {
-        component: CreateUser,
-        props: {
-          type: type,
-          label: "usuario",
-          fields: schema.user_integra
-        }
-      },
-      user_external: {
-        component: CreateUser,
-        props: {
-          type: type,
-          label: "usuario externo",
-          fields: schema.user_external
-        }
-      },
-      role: {
-        component: CreateRole,
-        props: {
-          type: type,
-          label: "rol",
-          fields: schema.role
-        }
-      },
-      seedbed: {
-        component: CreateSeedbed,
-        props: {
-          type: type,
-          label: "semillero",
-          fields: schema.seedbed
-        }
-      },
-      functionary_profile: {
-        component: CreateInternalProfile,
-        props: {
-          type: type,
-          label: "perfil de funcionario",
-          fields: schema.internal_profile
-        }
-      },
-      student_profile: {
-        component: CreateInternalProfile,
-        props: {
-          type: type,
-          label: "perfil de estudiante",
-          fields: schema.internal_profile
-        }
-      },
-      external_profile: {
-        component: CreateExternalProfile,
-        props: {
-          type: type,
-          label: "perfil de aliado externo",
-          fields: schema.external_profile
-        }
-      },
-      external_seedbed_profile: {
-        component: CreateExternalProfile,
-        props: {
-          type: type,
-          label: "perfil de aliado externo en semillero",
-          fields: schema.external_seedbed_profile
-        }
-      },
-      group_profile: {
-        component: CreateGroupProfile,
-        props: {
-          type: type,
-          label: "perfil de grupo",
-          fields: schema.group_profile
-        }
-      },
-      seedbed_profile: {
-        component: CreateSeedbedProfile,
-        props: {
-          type: type,
-          label: "perfil de semillero",
-          fields: schema.seedbed_profile
-        }
-      },
-      seedbed_member: {
-        component: CreateSeedbedMember,
-        props: {
-          type: type,
-          label: "miembro de semillero",
-          fields: schema.seedbed_member
-        }
-      },*/
-    };
 
-    if (!(type in componentMap) || !EntityTypes.includes(type)) {
-      console.log(`Componente no encontrado para el tipo: ${type}`);
-      return this.getDefaultComponent();
+        if (!(type in componentMap) || !EntityTypes.includes(type)) {
+            console.log(`Componente no encontrado para el tipo: ${type}`);
+            return this.getDefaultComponent();
+        }
+        return componentMap[type];
     }
-
-    return componentMap[type];
-  }
 }
