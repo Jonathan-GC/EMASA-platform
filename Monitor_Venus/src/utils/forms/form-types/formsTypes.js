@@ -10,6 +10,7 @@ export const ActionTypes = [
 export const EntityTypes = [
   "tenant",
   "gateway",
+  "location",
   "device_profile",
   "application",
   "device",

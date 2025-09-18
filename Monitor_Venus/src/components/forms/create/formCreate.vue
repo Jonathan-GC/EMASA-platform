@@ -181,6 +181,7 @@ async function createItem() {
     const apiEndpoints = {
       'tenant': API.TENANT,
       'gateway': API.GATEWAY,
+      'location': API.LOCATION,
       'group': API.INVESTIGATION_GROUPS,
       'seedbed': API.RESEARCH_SEEDBEDS,
       'user_integra': API.USERS_INTEGRA,
