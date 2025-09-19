@@ -1,0 +1,83 @@
+/* Material Design Color Palette for Ionic */
+:root {
+  /* Primary - Material Blue */
+  --ion-color-primary: #1976d2;
+  --ion-color-primary-rgb: 25, 118, 210;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #1565c0;
+  --ion-color-primary-tint: #1e88e5;
+
+  /* Secondary - Material Teal */
+  --ion-color-secondary: #00796b;
+  --ion-color-secondary-rgb: 0, 121, 107;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #00695c;
+  --ion-color-secondary-tint: #26a69a;
+
+  /* Success - Material Green */
+  --ion-color-success: #388e3c;
+  --ion-color-success-rgb: 56, 142, 60;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #2e7d32;
+  --ion-color-success-tint: #4caf50;
+
+  /* Warning - Material Orange */
+  --ion-color-warning: #f57c00;
+  --ion-color-warning-rgb: 245, 124, 0;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #ef6c00;
+  --ion-color-warning-tint: #ff9800;
+
+  /* Danger - Material Red */
+  --ion-color-danger: #d32f2f;
+  --ion-color-danger-rgb: 211, 47, 47;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #c62828;
+  --ion-color-danger-tint: #f44336;
+
+  /* Background colors - Material */
+  --ion-background-color: #fafafa;
+  --ion-background-color-rgb: 250, 250, 250;
+  
+  /* Surface colors */
+  --ion-color-step-50: #f5f5f5;
+  --ion-color-step-100: #eeeeee;
+  --ion-color-step-150: #e0e0e0;
+  --ion-color-step-200: #d5d5d5;
+
+  /* Text colors - Material */
+  --ion-text-color: rgba(0, 0, 0, 0.87);
+  --ion-text-color-rgb: 0, 0, 0;
+  --ion-color-step-400: rgba(0, 0, 0, 0.54);
+  --ion-color-step-600: rgba(0, 0, 0, 0.38);
+
+  /* Material Design elevation shadows */
+  --material-shadow-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  --material-shadow-2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  --material-shadow-3: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+  --material-shadow-4: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+  --material-shadow-5: 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22);
+
+  /* Material Design border radius */
+  --material-radius-small: 4px;
+  --material-radius-medium: 8px;
+  --material-radius-large: 12px;
+}
+
+/* Dark theme variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-background-color: #121212;
+    --ion-background-color-rgb: 18, 18, 18;
+    --ion-text-color: rgba(255, 255, 255, 0.87);
+    --ion-text-color-rgb: 255, 255, 255;
+    --ion-color-step-50: #1e1e1e;
+    --ion-color-step-100: #2a2a2a;
+    --ion-color-step-150: #363636;
+  }
+}

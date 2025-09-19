@@ -1,0 +1,130 @@
+/* Material Design Elevation System */
+
+/* Elevation utility classes */
+.material-elevation-0 { box-shadow: none; }
+.material-elevation-1 { box-shadow: var(--material-shadow-1); }
+.material-elevation-2 { box-shadow: var(--material-shadow-2); }
+.material-elevation-3 { box-shadow: var(--material-shadow-3); }
+.material-elevation-4 { box-shadow: var(--material-shadow-4); }
+.material-elevation-5 { box-shadow: var(--material-shadow-5); }
+
+/* Apply Material elevation to Ionic components */
+ion-card {
+  box-shadow: var(--material-shadow-1);
+  border-radius: var(--material-radius-medium);
+  transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+ion-card:hover {
+  box-shadow: var(--material-shadow-2);
+}
+
+ion-button {
+  border-radius: var(--material-radius-small);
+  box-shadow: var(--material-shadow-1);
+  transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+ion-button:hover {
+  box-shadow: var(--material-shadow-2);
+}
+
+ion-button[fill="clear"] {
+  box-shadow: none;
+}
+
+ion-button[fill="outline"] {
+  box-shadow: none;
+  border: 1px solid var(--ion-color-primary);
+}
+
+/* Material Design floating action button */
+.material-fab {
+  border-radius: 50%;
+  box-shadow: var(--material-shadow-3);
+  transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.material-fab:hover {
+  box-shadow: var(--material-shadow-4);
+}
+
+/* Material Design cards with different elevations */
+.material-card {
+  background: var(--ion-color-step-50);
+  border-radius: var(--material-radius-medium);
+  padding: 16px;
+  margin: 8px;
+}
+
+.material-card-elevated {
+  box-shadow: var(--material-shadow-2);
+}
+
+.material-card-filled {
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+}
+
+/* Material Design surfaces */
+.material-surface {
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
+}
+
+.material-surface-variant {
+  background: var(--ion-color-step-100);
+  color: var(--ion-text-color);
+}
+
+/* Material Design shape system */
+.material-shape-small { border-radius: var(--material-radius-small); }
+.material-shape-medium { border-radius: var(--material-radius-medium); }
+.material-shape-large { border-radius: var(--material-radius-large); }
+
+/* Apply shapes to Ionic components */
+ion-chip {
+  border-radius: 16px; /* Material pill shape */
+}
+
+ion-badge {
+  border-radius: 12px;
+  font: var(--material-caption);
+  letter-spacing: 0.4px;
+  padding: 4px 8px;
+}
+
+ion-avatar {
+  border-radius: 50%; /* Always circular in Material */
+}
+
+/* Material Design state layers (hover, focus, etc.) */
+.material-state-layer {
+  position: relative;
+  overflow: hidden;
+}
+
+.material-state-layer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.material-state-layer:hover::before {
+  opacity: 0.04;
+}
+
+.material-state-layer:focus::before {
+  opacity: 0.12;
+}
+
+.material-state-layer:active::before {
+  opacity: 0.16;
+}
