@@ -33,6 +33,7 @@ jobs:
           rsync -avz --delete \
           --exclude '.env.prod' \
           --exclude '**/.env.prod' \
+          --exclude '.env.db.prod' \
           -e "ssh -o StrictHostKeyChecking=no" \
           ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.PROJECT_PATH }}
 
