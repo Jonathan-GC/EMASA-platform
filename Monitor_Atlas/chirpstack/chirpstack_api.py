@@ -797,9 +797,19 @@ def get_api_user_from_chirpstack():
 
             tenant_info_list = user_tenant_mapping.get(instance.cs_user_id, [])
             if tenant_info_list:
-                workspace = tenant_info_list[0]["tenant"].workspace_set.first()
+                tenant = tenant_info_list[0]["tenant"]
+                workspace = tenant.workspace_set.first()
+                # if the tenant has no workspace, create one for that tenant
+                if not workspace:
+                    workspace = Workspace.objects.create(
+                        tenant=tenant,
+                        name=f"{tenant.name} Default WS",
+                        description="Default workspace for orphan users",
+                    )
                 instance.workspace = workspace
                 instance.is_tenant_admin = tenant_info_list[0]["isAdmin"]
+            else:
+                # no tenant info from Chirpstack -> associate to a default tenant workspace if available
                 default_tenant = Tenant.objects.first()
                 if default_tenant:
                     workspaces = default_tenant.workspace_set.all()
@@ -824,7 +834,7 @@ def get_api_user_from_chirpstack():
                     }
                     try:
                         requests.post(
-                            f"{CHIRPSTACK_API_URL}/tenants/{default_tenant.cs_tenant_id}/users",
+                            f"{CHIRPSTACK_TENANT_URL}/{default_tenant.cs_tenant_id}/users",
                             json=payload,
                             headers=HEADERS,
                         )
