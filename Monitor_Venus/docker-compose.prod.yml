@@ -4,7 +4,7 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     env_file:
-      - ./.env.prod
+      - .env.prod
     ports:
       - "80:80"
       - "443:443"
@@ -31,7 +31,7 @@ services:
         VITE_WEBSOCKET_URL: ${VITE_WEBSOCKET_URL}
     restart: unless-stopped
     env_file:
-      - ./.env.prod
+      - .env.prod
     volumes:
       - frontend-dist:/app/dist
     networks:
