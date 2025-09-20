@@ -4,10 +4,12 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Accept build arguments
-ARG VITE_WEBSOCKET_URL=ws://localhost/ws
+ARG VITE_WEBSOCKET_URL
+ARG VITE_API_URL
 
 # Set environment variables for build
 ENV VITE_WEBSOCKET_URL=$VITE_WEBSOCKET_URL
+ENV VITE_API_URL=$VITE_API_URL
 
 # Copy package files
 COPY package*.json ./
