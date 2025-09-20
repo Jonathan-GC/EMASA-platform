@@ -22,7 +22,7 @@ services:
       - chirp-django-net
 
   mongo:
-    image: mongo:4.4
+    image: mongo:6.0
     container_name: mongo_db
     restart: always
     env_file: .env.prod
