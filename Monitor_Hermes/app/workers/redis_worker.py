@@ -19,6 +19,9 @@ async def process_messages(db):
 
             _, raw = await client.brpop("messages")
             payload = json.loads(raw)
+            loguru.logger.info(
+                f"Processing message from Redis: {payload['deviceInfo']['devEui']}"
+            )
 
             message = MessageIn(
                 tenant_id=payload["deviceInfo"]["tenantId"],
@@ -30,6 +33,9 @@ async def process_messages(db):
                     if "deviceProfileId" in payload["deviceInfo"]
                     else {}
                 ),
+            )
+            loguru.logger.info(
+                f"Message created for device {message.device_id} in tenant {message.tenant_id}"
             )
             await save_message(db, message)
             loguru.logger.info(
