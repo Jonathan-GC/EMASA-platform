@@ -12,9 +12,9 @@ export const routes = [
         children: [
             { path: P.HOME, component: C.HOME, beforeEnter: allowAll },
             { path: P.ABOUT, component: C.ABOUT, beforeEnter: requireAuth },
-            { path: P.VOLTAGE, component: C.VOLTAGE, },
-            { path: P.CURRENT, component: C.CURRENT, beforeEnter: requireAuth },
-            { path: P.BATTERY, component: C.BATTERY,  beforeEnter: requireAuth},
+            { path: P.VOLTAGE, component: C.VOLTAGE},
+            { path: P.CURRENT, component: C.CURRENT},
+            { path: P.BATTERY, component: C.BATTERY},
             { path: P.GATEWAYS, component: C.GATEWAYS, beforeEnter: requireAuth },
             { path: P.DEVICE_PROFILES, component: C.DEVICE_PROFILES, beforeEnter: requireAuth },
             { path: P.APPLICATIONS, component: C.APPLICATIONS, beforeEnter: requireAuth },
