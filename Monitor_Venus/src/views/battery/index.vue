@@ -22,11 +22,24 @@
           </div>
         </div>
 
-        <!-- Device information section with battery details -->
-        <BatteryDeviceInfo 
-          :device="lastDevice" 
-          :battery-percentage="batteryPercentage"
-        />
+        <!-- Device information section with battery details for each channel -->
+        <template v-if="lastDevice && Object.keys(channelChartData).length > 0">
+          <div v-for="(data, channel, idx) in channelChartData" :key="channel">
+            <BatteryDeviceInfo
+              :device="lastDevice"
+              :battery-percentage="data.percentage.length > 0 ? data.percentage[data.percentage.length - 1].y : 0"
+              :channel="channel"
+            />
+            <DualAxisBatteryChart
+              :chart-data="{ datasets: [
+                { label: `Batería (V) ${channel}`, data: data.voltage, borderColor: 'rgba(4, 116, 0, 1)', backgroundColor: 'rgba(4, 116, 0, 0.1)', borderWidth: 2, tension: 0.1, pointRadius: 1, pointHoverRadius: 4, fill: false, yAxisID: 'y-left' },
+                { label: `Batería (%) ${channel}`, data: data.percentage, borderColor: 'rgba(116, 0, 87, 1)', backgroundColor: 'rgba(116, 0, 87, 0.1)', borderWidth: 2, tension: 0.1, pointRadius: 1, pointHoverRadius: 4, fill: false, yAxisID: 'y-right' }
+              ] }"
+              :chart-key="chartKey + idx"
+              :device-name="lastDevice?.device_name || 'Dispositivo IoT' + ' ' + channel"
+            />
+          </div>
+        </template>
 
         <!-- No data placeholder -->
         <div v-if="!lastDevice" class="no-data">
@@ -34,14 +47,6 @@
           <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
           <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
         </div>
-
-        <!-- Dual-axis battery chart -->
-        <DualAxisBatteryChart 
-          v-if="lastDevice && chartData.datasets[0].data.length > 0"
-          :chart-data="chartData"
-          :chart-key="chartKey"
-          :device-name="lastDevice?.device_name || 'Dispositivo IoT'"
-        />
 
         <!-- Recent messages -->
         <RecentMessages :messages="recentMessages" />
@@ -51,8 +56,8 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { 
+import { ref, computed, onMounted } from 'vue'
+import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -65,10 +70,13 @@ import {
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
 
-
 // Import our composables
 import { useWebSocket } from '@composables/useWebSocket.js'
 import { useBatteryDataProcessor } from '@composables/useBatteryDataProcessor.js'
+import DualAxisBatteryChart from '@/components/charts/DualAxisBatteryChart.vue'
+import BatteryDeviceInfo from '@/components/BatteryDeviceInfo.vue'
+import ConnectionStatus from '@/components/ConnectionStatus.vue'
+import RecentMessages from '@/components/RecentMessages.vue'
 
 // Register Chart.js components
 ChartJS.register(
@@ -85,8 +93,8 @@ ChartJS.register(
 // Use our composables
 const { isConnected, reconnectAttempts, setOnMessage } = useWebSocket()
 const { 
-  chartData, 
-  lastDevice, 
+  channelChartData,
+  lastDevice,
   recentMessages, 
   chartKey, 
   batteryPercentage,
