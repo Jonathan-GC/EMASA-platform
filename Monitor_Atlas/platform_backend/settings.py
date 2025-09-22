@@ -167,6 +167,9 @@ CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
 CSRF_COOKIE_SAMESITE = config("CSRF_COOKIE_SAMESITE", default="Lax", cast=str)
 COOKIE_SECURE = config("COOKIE_SECURE", default=False, cast=bool)
 
+REFRESH_COOKIE_NAME = env("REFRESH_COOKIE_NAME", default="refresh_token")
+REFRESH_COOKIE_PATH = env("REFRESH_COOKIE_PATH", default="/")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -214,3 +217,7 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": "/api/v1/",
 }
+
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default=None)
+GOOGLE_SECRET = env("GOOGLE_SECRET", default=None)
+GOOGLE_ISS = env("GOOGLE_ISS", default=None)

@@ -2,11 +2,16 @@ from django.db import models
 
 # Create your models here.
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 
 
 class UserBase(models.Model):
     code = models.CharField(max_length=80, unique=True)
+    sub = models.CharField(max_length=80, unique=True, null=True, blank=True)
     img = models.CharField(max_length=255, blank=True, null=True)
     name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
@@ -17,17 +22,18 @@ class UserBase(models.Model):
     class Meta:
         abstract = True
 
+
 class UserManager(BaseUserManager):
     def create_user(self, username, password=None, **extra_fields):
         if not username:
-            raise ValueError('Users must have a username')
+            raise ValueError("Users must have a username")
 
         user = self.model(username=username, **extra_fields)
 
         user.set_password(password)
         user.save(using=self._db)
         return user
-    
+
     def create_superuser(self, username, password=None, **extra_fields):
         user = self.create_user(username, password, **extra_fields)
         user.is_superuser = True
@@ -35,20 +41,21 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+
 class User(UserBase, AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=80, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
-    USERNAME_FIELD = 'username'
+    USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []
 
     objects = UserManager()
 
     def has_module_perms(self, app_label):
         return self.is_superuser
-    
+
     def has_perm(self, perm, obj=None):
         if self.is_superuser:
             return True

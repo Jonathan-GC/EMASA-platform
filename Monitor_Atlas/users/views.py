@@ -1,9 +1,7 @@
 from .serializers import UserSerializer, CustomTokenObtainPairSerializer
 from .models import User
-from roles.permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
+from roles.permissions import HasPermissionKey
 from roles.mixins import PermissionKeyMixin
-from roles.serializers import PermissionKeySerializer
-from roles.models import PermissionKey
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
@@ -24,6 +22,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from drf_spectacular.utils import extend_schema_view, extend_schema
+
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 # User ViewSet
 
@@ -75,8 +76,8 @@ class UserViewSet(ModelViewSet, PermissionKeyMixin):
 
 
 # Authentication
-REFRESH_COOKIE_NAME = "refresh_token"
-REFRESH_COOKIE_PATH = "/"
+REFRESH_COOKIE_NAME = settings.REFRESH_COOKIE_NAME
+REFRESH_COOKIE_PATH = settings.REFRESH_COOKIE_PATH
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):
@@ -158,6 +159,81 @@ class LogoutView(APIView):
         response = Response(status=status.HTTP_204_NO_CONTENT)
         response.delete_cookie(
             key=REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH, samesite="Lax"
+        )
+        return response
+
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        token = request.data.get("id_token")
+        if not token:
+            return Response(
+                {"detail": "ID token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            idinfo = id_token.verify_oauth2_token(token, requests.Request())
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if idinfo["aud"] != settings.GOOGLE_CLIENT_ID:
+            return Response(
+                {"detail": "Invalid audience."}, status=status.HTTP_401_UNAUTHORIZED
+            )
+        if idinfo.get("iss") not in [settings.GOOGLE_ISS, "accounts.google.com"]:
+            return Response(
+                {"detail": "Invalid issuer."}, status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        email = idinfo.get("email")
+        base_username = email.split("@")[0]
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}_{counter}"
+            counter += 1
+
+        sub = idinfo.get("sub")
+
+        if not email or not sub:
+            return Response(
+                {"detail": "Invalid token payload."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user, created = User.objects.get_or_create(
+            username=username,
+            defaults={
+                "email": email,
+                "sub": sub,
+                "name": idinfo.get("given_name", ""),
+                "last_name": idinfo.get("family_name", ""),
+                "is_active": True,
+            },
+        )
+
+        refresh = RefreshToken.for_user(user)
+        access = str(refresh.access_token)
+
+        refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
+        if not isinstance(refresh_lifetime, timedelta):
+            refresh_lifetime = timedelta(days=1)
+        max_age = int(refresh_lifetime.total_seconds())
+
+        response = Response({"access": access}, status=status.HTTP_200_OK)
+
+        response.set_cookie(
+            key=REFRESH_COOKIE_NAME,
+            value=refresh,
+            max_age=max_age,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite="Lax",
+            path=REFRESH_COOKIE_PATH,
         )
         return response
 
