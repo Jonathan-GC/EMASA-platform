@@ -11,4 +11,20 @@ routers.register(r"user", views.UserViewSet)
 urlpatterns = [
     path("", include(routers.urls)),
     path("auth/google/", views.GoogleLoginView.as_view(), name="google-login"),
+    path("auth/register/", views.RegisterView.as_view(), name="register"),
+    path(
+        "auth/verify-account/",
+        views.AccountVerificationView.as_view(),
+        name="verify-account",
+    ),
+    path(
+        "auth/request-password-reset/",
+        views.PasswordResetView.as_view(),
+        name="request-password-reset",
+    ),
+    path(
+        "auth/reset-password-confirm/",
+        views.PasswordResetConfirmView.as_view(),
+        name="reset-password-confirm",
+    ),
 ]

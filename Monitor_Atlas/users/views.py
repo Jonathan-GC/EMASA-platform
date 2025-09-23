@@ -26,6 +26,9 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
+from .emails import send_verification_email, send_password_reset_email
+from .jwt import generate_token, verify_token
+
 # User ViewSet
 
 
@@ -236,6 +239,97 @@ class GoogleLoginView(APIView):
             path=REFRESH_COOKIE_PATH,
         )
         return response
+
+
+class RegisterView(APIView, PermissionKeyMixin):
+    permission_classes = [AllowAny]
+
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save(is_active=False)
+
+            self.create_permission_keys(user, scope="user")
+
+            token = generate_token(user.id, scope="verify_email", expires_minutes=60)
+
+            send_verification_email(user, token)
+
+            return Response(
+                {"detail": "User registered successfully. Please verify your email."},
+                status=201,
+            )
+        return Response(serializer.errors, status=400)
+
+
+class PasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response({"detail": "Email is required."}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "If the email is registered, a reset link has been sent."},
+                status=200,
+            )
+
+        token = generate_token(user.id, scope="password_reset", expires_minutes=30)
+
+        send_password_reset_email(user, token)
+
+        return Response(
+            {"detail": "If the email is registered, a reset link has been sent."},
+            status=200,
+        )
+
+
+class AccountVerificationView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        token = request.data.get("token")
+        if not token:
+            return Response({"detail": "Token is required."}, status=400)
+
+        try:
+            payload = verify_token(token, scope="verify_email")
+            user_id = payload.get("user_id")
+            user = User.objects.get(id=user_id)
+            user.is_active = True
+            user.save()
+            return Response({"detail": "Account verified successfully."}, status=200)
+        except (ValueError, User.DoesNotExist) as e:
+            return Response({"detail": str(e)}, status=400)
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        token = request.data.get("token")
+        new_password = request.data.get("new_password")
+        if not token or not new_password:
+            return Response(
+                {"detail": "Token and new password are required."}, status=400
+            )
+        try:
+            payload = verify_token(token, scope="password_reset")
+            user_id = payload.get("user_id")
+            user = User.objects.get(id=user_id)
+            user.set_password(new_password)
+            user.save()
+            return Response({"detail": "Password reset successfully."}, status=200)
+        except (ValueError, User.DoesNotExist) as e:
+            return Response({"detail": str(e)}, status=400)
 
 
 @ensure_csrf_cookie

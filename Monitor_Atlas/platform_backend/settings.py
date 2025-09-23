@@ -221,3 +221,9 @@ SPECTACULAR_SETTINGS = {
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default=None)
 GOOGLE_SECRET = env("GOOGLE_SECRET", default=None)
 GOOGLE_ISS = env("GOOGLE_ISS", default=None)
+
+# Email configuration using Mailgun
+MAILGUN_API_KEY = env("MAILGUN_API_KEY", default=None)
+MAILGUN_DOMAIN = env("MAILGUN_DOMAIN", default=None)
+MAILGUN_FROM = env("MAILGUN_FROM", default="no-reply@yourdomain.com")
+APP_URL = env("APP_URL", default="http://localhost:5173")
