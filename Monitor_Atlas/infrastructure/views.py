@@ -61,6 +61,12 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_gateway_create(instance)
 
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
             logging.error(
                 f"Error al crear el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
@@ -115,6 +121,12 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_gateway_update(instance)
 
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
             logging.error(
                 f"Error al actualizar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
@@ -126,6 +138,12 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
     def perform_destroy(self, instance):
         sync_response = sync_gateway_destroy(instance)
+
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
 
         if sync_response.status_code != 200:
             logging.error(
@@ -218,6 +236,12 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_device_create(instance)
 
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
             logging.error(
                 f"Error al crear el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
@@ -232,6 +256,12 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_device_update(instance)
 
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
             logging.error(
                 f"Error al sincronizar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
@@ -243,6 +273,12 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
     def perform_destroy(self, instance):
         sync_response = sync_device_destroy(instance)
+
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
 
         if sync_response.status_code != 200:
             logging.error(

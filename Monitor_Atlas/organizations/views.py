@@ -67,6 +67,12 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_tenant_create(instance)
 
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
             logging.error(
                 f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}"
@@ -78,6 +84,12 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
 
         sync_response = sync_tenant_update(instance)
+
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
 
         if sync_response.status_code != 200:
             logging.error(
@@ -99,6 +111,12 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         for tenant in queryset:
             sync_response = sync_tenant_get(tenant)
+            if sync_response is None:
+                logging.error(
+                    f"No se han realizado cambios en Chirpstack, verifique en los logs"
+                )
+                return
+
             if sync_response.status_code != 200:
                 logging.error(
                     f"Error al sincronizar el tenant {tenant.name} con Chirpstack: {sync_response.status_code}"
@@ -120,12 +138,20 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_destroy(self, instance):
         sync_response = sync_tenant_destroy(instance)
 
+        if sync_response is None:
+            logging.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
             logging.error(
                 f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}"
             )
         else:
             logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+
+        instance.delete()
 
 
 @extend_schema_view(

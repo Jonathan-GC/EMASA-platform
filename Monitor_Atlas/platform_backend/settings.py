@@ -227,3 +227,6 @@ MAILGUN_API_KEY = env("MAILGUN_API_KEY", default=None)
 MAILGUN_DOMAIN = env("MAILGUN_DOMAIN", default=None)
 MAILGUN_FROM = env("MAILGUN_FROM", default="no-reply@yourdomain.com")
 APP_URL = env("APP_URL", default="http://localhost:5173")
+
+
+MTR_LOGO_URL = env("MTR_LOGO_URL", default="https://placehold.co/500x200")

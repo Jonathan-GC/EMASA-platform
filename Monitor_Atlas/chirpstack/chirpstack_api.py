@@ -2,9 +2,14 @@ import requests
 from django.conf import settings
 import datetime as dt
 
-from organizations.models import Tenant, Subscription, Workspace
+from organizations.models import Tenant, Workspace
 from infrastructure.models import Gateway, Location, Device, Application, Type, Machine
 from chirpstack.models import ApiUser, DeviceProfile
+
+from organizations.helpers import (
+    get_or_create_default_workspace,
+    get_or_create_default_subscription,
+)
 
 import logging
 
@@ -24,7 +29,89 @@ HEADERS = {
 }
 
 
+# Local actions
+def error_syncing(instance, response):
+    instance.sync_status = "ERROR"
+    instance.sync_error = response.text
+    instance.last_synced_at = dt.datetime.now()
+    instance.save()
+    logging.error(f"Error syncing {instance}: {response.text}")
+
+
+def set_status(instance, response):
+    if response is None:
+        logging.error(f"No response from Chirpstack API for {instance}")
+        return
+    if response.status_code == 200:
+        instance.sync_status = "SYNCED"
+        instance.sync_error = ""
+        instance.last_synced_at = dt.datetime.now()
+        instance.save()
+        logging.info(f"{instance} synced successfully")
+    else:
+        error_syncing(instance, response)
+
+
 # Tenants
+def has_tenant_id(tenant):
+    return tenant.cs_tenant_id is not None and tenant.cs_tenant_id != ""
+
+
+def get_tenant_by_id(tenant):
+    found = False
+    if has_tenant_id(tenant):
+        response = requests.get(
+            f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}",
+            headers=HEADERS,
+        )
+        if response.status_code == 200:
+            found = True
+    return found
+
+
+def create_tenant_in_chirpstack(tenant):
+    payload = {
+        "tenant": {
+            "name": tenant.name,
+            "description": tenant.description,
+            "canHaveGateways": tenant.subscription.can_have_gateways,
+            "maxDeviceCount": tenant.subscription.max_device_count,
+            "maxGatewayCount": tenant.subscription.max_gateway_count,
+        }
+    }
+
+    if not has_tenant_id(tenant):
+        search_instance = requests.get(
+            CHIRPSTACK_TENANT_URL,
+            headers=HEADERS,
+            params={"limit": 100},
+        )
+        if search_instance.status_code == 200:
+            results = search_instance.json().get("result", [])
+            match = next((t for t in results if t["name"] == tenant.name), None)
+            if match:
+                tenant.cs_tenant_id = match["id"]
+                tenant.sync_status = "SYNCED"
+                tenant.sync_error = ""
+                tenant.last_synced_at = dt.datetime.now()
+                tenant.save()
+                return search_instance
+            else:
+                response = requests.post(
+                    CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS
+                )
+                set_status(tenant, response)
+                return response
+    else:
+        found = get_tenant_by_id(tenant)
+        if not found:
+            response = requests.post(
+                CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS
+            )
+            set_status(tenant, response)
+            return response
+
+
 def sync_tenant_get(tenant):
     """
     Syncs a tenant with Chirpstack.
@@ -41,64 +128,20 @@ def sync_tenant_get(tenant):
     Raises:
         May set tenant.sync_status to "ERROR" and tenant.sync_error if the API call fails.
     """
-    payload = {
-        "tenant": {
-            "name": tenant.name,
-            "description": tenant.description,
-            "canHaveGateways": tenant.subscription.can_have_gateways,
-            "maxDeviceCount": tenant.subscription.max_device_count,
-            "maxGatewayCount": tenant.subscription.max_gateway_count,
-        }
-    }
-    tenant_id = tenant.cs_tenant_id
+    tenant_id = has_tenant_id(tenant)
 
     response = None
 
-    url = f"{CHIRPSTACK_TENANT_URL}/{tenant_id}"
-    response = requests.get(url, headers=HEADERS)
-
-    if response.status_code == 200:
-        logging.info(f"Tenant found in Chirpstack: {tenant.name}")
-        tenant.sync_status = "SYNCED"
-        if tenant.sync_error != "":
-            tenant.sync_error = ""
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
-    elif tenant.cs_tenant_id == "" or tenant.cs_tenant_id is None:
-        list_response = requests.get(
-            CHIRPSTACK_TENANT_URL,
-            headers=HEADERS,
-            params={"limit": 100},
-        )
-
-        if list_response.status_code == 200:
-            results = list_response.json().get("result", [])
-            match = next((t for t in results if t["name"] == tenant.name), None)
-            if match:
-                tenant.cs_tenant_id = match["id"]
-                tenant.sync_status = "SYNCED"
-                tenant.sync_error = ""
-                tenant.last_synced_at = dt.datetime.now()
-                tenant.save()
-                return list_response
-            else:
-                response = requests.post(
-                    CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS
-                )
-                tenant.cs_tenant_id = response.json()["id"]
-                tenant.sync_status = "SYNCED"
-                tenant.sync_error = ""
-                tenant.last_synced_at = dt.datetime.now()
-                tenant.save()
-                return list_response
+    if tenant_id:
+        cs_tenant_id = tenant.cs_tenant_id
+        url = f"{CHIRPSTACK_TENANT_URL}/{cs_tenant_id}"
+        response = requests.get(url, headers=HEADERS)
     else:
-        logging.error(f"Error getting tenant: {tenant.name} \n {response.text}")
-        tenant.sync_status = "ERROR"
-        tenant.sync_error = response.text
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
+        response = create_tenant_in_chirpstack(tenant)
+
+    set_status(tenant, response)
+
+    return response
 
 
 def sync_tenant_create(tenant):
@@ -111,33 +154,8 @@ def sync_tenant_create(tenant):
     Returns:
         requests.Response: the response from the API
     """
-    payload = {
-        "tenant": {
-            "name": tenant.name,
-            "description": tenant.description,
-            "canHaveGateways": tenant.subscription.can_have_gateways,
-            "maxDeviceCount": tenant.subscription.max_device_count,
-            "maxGatewayCount": tenant.subscription.max_gateway_count,
-        }
-    }
-
-    response = requests.post(CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS)
-
-    if response.status_code == 200:
-        logging.info(f"Tenant created in Chirpstack: {tenant.name}")
-        tenant.cs_tenant_id = response.json()["id"]
-        tenant.sync_status = "SYNCED"
-        tenant.sync_error = ""
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
-    else:
-        logging.error(f"Error creating tenant: {tenant.name} \n {response.text}")
-        tenant.sync_status = "ERROR"
-        tenant.sync_error = response.text
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
+    response = create_tenant_in_chirpstack(tenant)
+    return response
 
 
 def sync_tenant_update(tenant):
@@ -170,23 +188,10 @@ def sync_tenant_update(tenant):
 
     if response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
-    elif tenant.cs_tenant_id == "" or tenant.cs_tenant_id is None:
-        response = requests.post(CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS)
 
-    if response.status_code == 200:
-        logging.info(f"Tenant updated in Chirpstack: {tenant.name}")
-        tenant.sync_status = "SYNCED"
-        tenant.sync_error = ""
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
-    else:
-        logging.error(f"Error updating tenant: {tenant.name} \n {response.text}")
-        tenant.sync_status = "ERROR"
-        tenant.sync_error = response.text
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
+    set_status(tenant, response)
+
+    return response
 
 
 def sync_tenant_destroy(tenant):
@@ -205,9 +210,9 @@ def sync_tenant_destroy(tenant):
     if response.status_code == 200:
         logging.info(f"Tenant deleted in Chirpstack")
         return response
-    else:
-        logging.error(f"Error deleting tenant try to delete it manually.")
-        return response
+
+    logging.error(f"Error deleting tenant try to delete it manually.")
+    return response
 
 
 def get_tenant_from_chirpstack():
@@ -239,33 +244,20 @@ def get_tenant_from_chirpstack():
         cs_instance_list.remove(match)
 
     for new_instance in cs_instance_list:
-
-        subscription, _ = Subscription.objects.get_or_create(
-            max_gateway_count=int(new_instance.get("maxGatewayCount", 10)),
-            defaults={
-                "name": "Base",
-                "description": "Base placeholder Subscription, please modify it",
-                "can_have_gateways": new_instance.get("canHaveGateways", True),
-                "max_device_count": new_instance.get("maxDeviceCount", 100),
-            },
-        )
-
+        subscription = get_or_create_default_subscription()
         new_tenant = Tenant(
             cs_tenant_id=new_instance["id"],
             name=new_instance["name"],
-            description=new_instance.get("description", ""),
+            description=new_instance.get(
+                "description", f"{new_instance['name']}: synced tenant"
+            ),
             subscription=subscription,
             sync_status="SYNCED",
             sync_error="",
             last_synced_at=dt.datetime.now(),
         )
         new_tenant.save()
-        workspace = Workspace.objects.create(
-            name=f"{new_instance['name']} WS",
-            description=f"{new_instance['name']}'s default Workspace",
-            tenant=new_tenant,
-        )
-        workspace.save()
+        workspace = get_or_create_default_workspace(new_tenant)
         logging.info(
             f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} with it's default workspace {workspace.id} has been created from Chirpstack"
         )
@@ -273,7 +265,18 @@ def get_tenant_from_chirpstack():
 
 
 # Gateways
-def sync_gateway_get(gateway):
+def get_gateway_by_id(gateway):
+    found = False
+    response = requests.get(
+        f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
+        headers=HEADERS,
+    )
+    if response.status_code == 200:
+        found = True
+    return found
+
+
+def create_gateway_in_chirpstack(gateway):
     payload = {
         "gateway": {
             "gatewayId": gateway.cs_gateway_id,
@@ -290,75 +293,54 @@ def sync_gateway_get(gateway):
             },
         }
     }
+
+    found = get_gateway_by_id(gateway)
+    if not found:
+        response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
+        set_status(gateway, response)
+        return response
+    return None
+
+
+def sync_gateway_status(gateway):
     response = requests.get(
         CHIRPSTACK_GATEWAYS_URL,
         headers=HEADERS,
-        params={"tenant_id": gateway.workspace.tenant.cs_tenant_id, "limit": 100},
+        params={"tenantId": gateway.workspace.tenant.cs_tenant_id, "limit": 100},
     )
-
     if response.status_code == 200:
-        data = response.json().get("result", [])
-        gw_data = next(
-            (g for g in data if g["gatewayId"] == gateway.cs_gateway_id), None
+        results = response.json().get("result", [])
+        match = next(
+            (g for g in results if g["gatewayId"] == gateway.cs_gateway_id), None
         )
-
-        if gw_data:
-            gateway.state = gw_data.get("state", gateway.state)
-            gateway.last_seen_at = gw_data.get("lastSeenAt", gateway.last_seen_at)
-            if gateway.sync_error != "":
-                gateway.sync_error = ""
-            gateway.sync_status = "SYNCED"
-            gateway.last_synced_at = dt.datetime.now()
-            gateway.save()
+        if match:
+            gateway.state = match.get("state", gateway.state)
+            gateway.last_seen_at = match.get("lastSeenAt", gateway.last_seen_at)
         else:
-            response = requests.post(
-                CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS
-            )
-            if response.status_code == 200:
-                gateway.sync_status = "SYNCED"
-                if gateway.sync_error != "":
-                    gateway.sync_error = ""
-                gateway.last_synced_at = dt.datetime.now()
-                gateway.save()
-    else:
-        gateway.sync_status = "ERROR"
-        gateway.sync_error = response.text
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
+            logging.warning(f"Gateway {gateway.cs_gateway_id} not found in Chirpstack.")
+        set_status(gateway, response)
+    return response
 
+
+def sync_gateway_get(gateway):
+    response = create_gateway_in_chirpstack(gateway)
+
+    created = False
+    if response is not None and response.status_code == 200:
+        created = True
+
+    if created:
+        response = sync_gateway_status(gateway)
+
+    set_status(gateway, response)
     return response
 
 
 def sync_gateway_create(gateway):
-    payload = {
-        "gateway": {
-            "gatewayId": gateway.cs_gateway_id,
-            "name": gateway.name,
-            "description": gateway.description,
-            "statsInterval": gateway.stats_interval,
-            "tenantId": gateway.workspace.tenant.cs_tenant_id,
-            "location": {
-                "accuracy": gateway.location.accuracy,
-                "altitude": gateway.location.altitude,
-                "latitude": gateway.location.latitude,
-                "longitude": gateway.location.longitude,
-                "source": gateway.location.source,
-            },
-        }
-    }
-    response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
+    response = create_gateway_in_chirpstack(gateway)
 
-    if response.status_code == 200:
-        gateway.sync_status = "SYNCED"
-        if gateway.sync_error != "":
-            gateway.sync_error = ""
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
-    else:
-        gateway.sync_status = "ERROR"
-        gateway.sync_error = response.text
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
+    if response is not None and response.status_code == 200:
+        response = sync_gateway_status(gateway)
 
     return response
 
@@ -381,7 +363,7 @@ def sync_gateway_update(gateway):
         }
     }
 
-    response = sync_gateway_get(gateway)
+    response = create_gateway_in_chirpstack(gateway)
 
     if response.status_code == 200:
         response = requests.put(
@@ -389,35 +371,24 @@ def sync_gateway_update(gateway):
             json=payload,
             headers=HEADERS,
         )
-    else:
-        response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
-
-    if response.status_code == 200:
-        gateway.sync_status = "SYNCED"
-        if gateway.sync_error != "":
-            gateway.sync_error = ""
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
-    else:
-        gateway.sync_status = "ERROR"
-        gateway.sync_error = response.text
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
-
+    set_status(gateway, response)
     return response
 
 
 def sync_gateway_destroy(gateway):
-    response = requests.delete(
-        f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
-        headers=HEADERS,
-    )
-    if response.status_code == 200:
-        logging.info(f"Gateway deleted in Chirpstack")
-        return response
-    else:
+    found = get_gateway_by_id(gateway)
+    if found:
+        response = requests.delete(
+            f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
+            headers=HEADERS,
+        )
+        if response.status_code == 200:
+            logging.info(f"Gateway deleted in Chirpstack")
+            return response
+
         logging.error(f"Error deleting gateway try to delete it manually.")
         return response
+    return None
 
 
 def get_gateway_from_chirpstack():
@@ -454,14 +425,7 @@ def get_gateway_from_chirpstack():
                 cs_tenant_id=new_instance.get("tenantId")
             ).first()
             if tenant:
-                workspace = tenant.workspace_set.first()
-                if not workspace:
-                    workspace = Workspace.objects.create(
-                        name=f"{tenant.name} WS",
-                        tenant=tenant,
-                        description=f"{tenant.name}'s default workspace",
-                    )
-                    workspace.save()
+                workspace = get_or_create_default_workspace(tenant)
                 cs_location = new_instance.get("location", {})
 
                 location = Location(
