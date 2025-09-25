@@ -72,45 +72,18 @@ def send_verification_email(user, token: str):
     subject = "Verify your email"
     verify_link = f"{APP_URL}/verify-email?{urlencode({'token': token})}"
     text = f"Please verify your email by clicking the following link: {verify_link}"
-    html = f"""
-    <html>
-        <body>
-            <h1>Verify your email</h1>
-            <p>Hi {user.name},</p>
-            <p>Please verify your email by clicking the following link:</p>
-            <a href="{verify_link}">Verify Email</a>
-        </body>
-    </html>
-    """
-    return send_email(to, subject, text, html)
+    vars = {
+        "logo_url": MTR_LOGO_URL,
+        "urltoken": verify_link,
+        "name": user.name,
+        "username": user.username,
+    }
+    return send_email(
+        to, subject, text=text, template="account.verification", vars=vars
+    )
 
 
 def send_password_reset_email(user, token: str):
-    """Send a password reset email to the user.
-
-    param user: User object with 'email', 'name', and 'id' attributes
-    param token: Password reset token string
-    """
-    to = user.email
-    subject = "Reset your password"
-    reset_link = (
-        f"{APP_URL}/reset-password?{urlencode({'token': token, 'uid': user.id})}"
-    )
-    text = f"Please reset your password by clicking the following link: {reset_link}"
-    html = f"""
-    <html>
-        <body>
-            <h1>Reset your password</h1>
-            <p>Hi {user.name},</p>
-            <p>Please reset your password by clicking the following link:</p>
-            <a href="{reset_link}">Reset Password</a>
-        </body>
-    </html>
-    """
-    return send_email(to, subject, text, html)
-
-
-def send_password_reset_email_with_template(user, token: str):
     """Send a password reset email to the user using a Mailgun template.
 
     param user: User object with 'email', 'name', and 'id' attributes
@@ -122,6 +95,6 @@ def send_password_reset_email_with_template(user, token: str):
         f"{APP_URL}/reset-password?{urlencode({'token': token, 'uid': user.id})}"
     )
     text = f"Please reset your password by clicking the following link: {reset_link}"
-    vars = {"logo_url": MTR_LOGO_URL, "urltoken": reset_link, "nombre": user.name}
+    vars = {"logo_url": MTR_LOGO_URL, "urltoken": reset_link, "name": user.name}
 
     return send_email(to, subject, text=text, template="password.recovery", vars=vars)
