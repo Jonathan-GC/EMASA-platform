@@ -1,4 +1,4 @@
-from .models import Workspace, Subscription
+from .models import Workspace, Subscription, Tenant
 from roles.models import Role, WorkspaceMembership, RolePermission, PermissionKey
 
 
@@ -37,6 +37,11 @@ def get_or_create_default_subscription():
         },
     )
     return subscription
+
+
+def get_emasa_tenant():
+    tenant = Tenant.objects.get(name="EMASA")
+    return tenant
 
 
 def get_no_role(workspace):

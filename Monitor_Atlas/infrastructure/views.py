@@ -60,10 +60,9 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         self.create_permission_keys(instance, scope="gateway")
 
         sync_response = sync_gateway_create(instance)
-
         if sync_response is None:
-            logging.error(
-                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            logging.info(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
@@ -120,10 +119,9 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
 
         sync_response = sync_gateway_update(instance)
-
         if sync_response is None:
-            logging.error(
-                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            logging.info(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
@@ -138,14 +136,13 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
     def perform_destroy(self, instance):
         sync_response = sync_gateway_destroy(instance)
-
         if sync_response is None:
-            logging.error(
-                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            logging.info(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
             )
-            return
+            # proceed to delete locally
 
-        if sync_response.status_code != 200:
+        elif sync_response.status_code != 200:
             logging.error(
                 f"Error al eliminar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
@@ -235,10 +232,9 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         self.create_permission_keys(instance, scope="device")
 
         sync_response = sync_device_create(instance)
-
         if sync_response is None:
-            logging.error(
-                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            logging.info(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
@@ -255,10 +251,9 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
 
         sync_response = sync_device_update(instance)
-
         if sync_response is None:
-            logging.error(
-                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            logging.info(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
@@ -273,14 +268,13 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
     def perform_destroy(self, instance):
         sync_response = sync_device_destroy(instance)
-
         if sync_response is None:
-            logging.error(
-                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            logging.info(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
             )
-            return
+            # proceed to delete locally
 
-        if sync_response.status_code != 200:
+        elif sync_response.status_code != 200:
             logging.error(
                 f"Error al eliminar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
@@ -397,6 +391,20 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         try:
             sync_response = activate_device(device)
 
+            if sync_response is None:
+                device.is_active = False
+                device.sync_error = "No response from Chirpstack (no-op)"
+                device.save(update_fields=["is_active", "sync_error"])
+                logging.info(
+                    f"No changes made in Chirpstack for activation of {device.name}, if this is not expected please check manually or try again"
+                )
+                return Response(
+                    {
+                        "message": "No changes made in Chirpstack for activation",
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
             if sync_response.status_code != 200:
                 device.is_active = False
                 device.sync_error = sync_response.text
@@ -435,6 +443,11 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def deactivate(self, request, pk=None):
         instance = self.get_object()
         sync_response = deactivate_device(instance)
+        if sync_response is None:
+            logging.info(
+                f"No changes made in Chirpstack for deactivation of {instance.name}, if this is not expected please check manually or try again"
+            )
+            return Response({"message": "Device deactivated (no-op in Chirpstack)"})
 
         if sync_response.status_code != 200:
             logging.error(
@@ -491,6 +504,11 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         self.create_permission_keys(instance, scope="application")
 
         sync_response = sync_application_create(instance)
+        if sync_response is None:
+            logging.info(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
 
         if sync_response.status_code != 200:
             logging.error(
@@ -503,8 +521,13 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
     def perform_destroy(self, instance):
         sync_response = sync_application_destroy(instance)
+        if sync_response is None:
+            logging.info(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            # proceed to delete locally
 
-        if sync_response.status_code != 200:
+        elif sync_response.status_code != 200:
             logging.error(
                 f"Error al eliminar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
@@ -519,6 +542,11 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
 
         sync_response = sync_application_update(instance)
+        if sync_response is None:
+            logging.info(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
 
         if sync_response.status_code != 200:
             logging.error(
