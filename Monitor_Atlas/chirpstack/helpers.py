@@ -212,9 +212,11 @@ def update_local_application(local_app, match):
 
 def create_local_application(new_app, workspace):
     """Create a new Application in the local DB from Chirpstack data."""
-    default_type, _ = Type.objects.get_or_create(
-        name="Generic", defaults={"description": "Generic device type"}
-    )
+    default_type = Type.objects.filter(name="Generic").first()
+    if not default_type:
+        default_type = Type.objects.create(
+            name="Generic", description="Generic device type"
+        )
 
     app = Application(
         cs_application_id=new_app["id"],
@@ -257,7 +259,9 @@ def get_device_profile(profile_id):
 
 def update_local_device(local_dev, match):
     """Update an existing local Device with Chirpstack data."""
-    dp = get_device_profile(match["deviceProfileId"])
+    dp = DeviceProfile.objects.filter(
+        cs_device_profile_id=match["deviceProfileId"]
+    ).first()
 
     local_dev.name = match.get("name", local_dev.name)
     local_dev.description = match.get("description", local_dev.description)
@@ -272,16 +276,23 @@ def update_local_device(local_dev, match):
 
 def create_local_device(new_dev, app, workspace):
     """Create a new Device in the local DB from Chirpstack data."""
-    dp = get_device_profile(new_dev["deviceProfileId"])
+    dp = DeviceProfile.objects.filter(
+        cs_device_profile_id=new_dev["deviceProfileId"]
+    ).first()
 
-    default_type, _ = Type.objects.get_or_create(
-        name="Generic", defaults={"description": "Generic type"}
-    )
-    default_machine, _ = Machine.objects.get_or_create(
-        name="Generic Machine",
-        workspace=workspace,
-        defaults={"description": "Default machine"},
-    )
+    default_type = Type.objects.filter(name="Generic").first()
+    if not default_type:
+        default_type = Type.objects.create(
+            name="Generic", description="Generic device type"
+        )
+
+    default_machine = Machine.objects.filter(name="Generic Machine").first()
+    if not default_machine:
+        default_machine = Machine.objects.create(
+            name="Generic Machine",
+            workspace=workspace,
+            description="Default machine",
+        )
 
     dev = Device(
         dev_eui=new_dev["devEui"],

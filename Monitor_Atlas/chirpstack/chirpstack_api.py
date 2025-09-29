@@ -56,7 +56,7 @@ def error_syncing(instance, response):
 
 def set_status(instance, response):
     if response is None:
-        logging.error(f"No response from Chirpstack API for {instance}")
+        logging.info(f"No changes made to {instance} in chirpstack")
         return
     if response.status_code == 200:
         instance.sync_status = "SYNCED"

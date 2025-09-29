@@ -8,15 +8,13 @@ def get_or_create_default_workspace(tenant):
     If it doesn't exist, creates one.
     Also ensures that a "No Role" role exists within that workspace.
     """
-    workspace, created = Workspace.objects.get_or_create(
-        tenant=tenant, defaults={"name": f"{tenant.name} Workspace"}
-    )
-
-    no_role = Role.objects.get_or_create(
-        workspace=workspace,
-        name="Sin Rol",
-        defaults={"description": "Usuario sin rol ni permisos", "color": "#cccccc"},
-    )
+    workspace = Workspace.objects.filter(tenant=tenant, name="Default").first()
+    if not workspace:
+        workspace = Workspace.objects.create(
+            tenant=tenant,
+            name="Default",
+            description="Default workspace",
+        )
 
     return workspace
 

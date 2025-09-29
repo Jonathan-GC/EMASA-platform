@@ -29,7 +29,6 @@ from google.auth.transport import requests
 from .emails import (
     send_verification_email,
     send_password_reset_email,
-    send_password_reset_email_with_template,
 )
 from .jwt import generate_token, verify_token
 
@@ -286,7 +285,7 @@ class PasswordResetView(APIView):
 
         token = generate_token(user.id, scope="password_reset", expires_minutes=30)
 
-        send_password_reset_email_with_template(user, token)
+        send_password_reset_email(user, token)
 
         return Response(
             {"detail": "If the email is registered, a reset link has been sent."},
