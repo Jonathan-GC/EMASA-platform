@@ -1,15 +1,12 @@
 from rest_framework import viewsets
-from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth.models import Group
 
 from .models import Workspace, Tenant, Subscription
 from .serializers import WorkspaceSerializer, TenantSerializer, SubscriptionSerializer
 
-from roles.permissions import IsAdminOrIsAuthenticatedReadOnly, HasPermissionKey
+from roles.permissions import HasPermissionKey
 from roles.mixins import PermissionKeyMixin
-from roles.models import PermissionKey
-from roles.serializers import PermissionKeySerializer
 
 from chirpstack.chirpstack_api import (
     sync_tenant_get,
