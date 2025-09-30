@@ -48,7 +48,6 @@ def _normalize_payload(payload: dict) -> dict:
 async def process_messages(db):
     while True:
         try:
-            # get redis client at runtime (may be set by connect_to_redis)
             redis_mod = importlib.import_module("app.redis.redis")
             client = getattr(redis_mod, "redis_client", None)
             if client is None:
@@ -97,6 +96,22 @@ async def process_messages(db):
             loguru.logger.info(
                 f"Message saved to database for device {message.device_id} in tenant {message.tenant_id}"
             )
+            # try to notify websocket subscribers for this device on this instance
+            try:
+                ws_mod = importlib.import_module("app.ws.manager")
+                ws_manager = getattr(ws_mod, "manager", None)
+                if ws_manager is not None and dev_eui:
+                    # prepare a small payload for websockets
+                    ws_payload = {
+                        "type": "uplink",
+                        "tenantId": tenant_id,
+                        "devEui": dev_eui,
+                        "devAddr": dev_addr,
+                        "object": object_payload,
+                    }
+                    await ws_manager.broadcast_to_device(ws_payload, dev_eui)
+            except Exception:
+                loguru.logger.exception("Failed to notify WS subscribers for device")
         except Exception as e:
             loguru.logger.error(f"Failed to process message: {e}")
         await asyncio.sleep(1)

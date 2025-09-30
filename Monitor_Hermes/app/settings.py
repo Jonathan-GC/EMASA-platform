@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     REDIS_PORT: int
     REDIS_PASSWORD: str
 
+    WS_SECRET: str
+
     class Config:
         env_file = ".env"
         extra = "ignore"
