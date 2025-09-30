@@ -35,13 +35,11 @@ def has_permission(user, scope, action, obj=None):
 
     membership = user.workspacemembership_set.first()
 
-    
-
     if not membership:
         # User must have a workspace membership
         logger.warning("User has no workspace memberships")
         return False
-    
+
     role = membership.role
 
     if isinstance(action, list):
@@ -155,6 +153,8 @@ class HasPermissionKey(BasePermission):
 
     def has_permission(self, request, view):
         action_value = getattr(view, "action", None)
+        print(f"Action value: {action_value}")
+
         action = PermissionKey.from_view_action(action_value)
         if not action:
             logger.warning(f"Invalid action: {action_value}")

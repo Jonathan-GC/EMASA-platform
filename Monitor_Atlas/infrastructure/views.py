@@ -9,13 +9,12 @@ from .serializers import (
     DeviceSerializer,
     ApplicationSerializer,
     LocationSerializer,
+    ActivationSerializer,
 )
 from .models import Gateway, Machine, Type, Device, Application, Location, Activation
 
-from roles.permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
+from roles.permissions import HasPermissionKey
 from roles.mixins import PermissionKeyMixin
-from roles.models import PermissionKey
-from roles.serializers import PermissionKeySerializer
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -38,7 +37,10 @@ from rest_framework import status
 
 import logging
 
-from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
+
+from .helpers import encrypt_dev_eui
+from django.conf import settings
 
 
 @extend_schema_view(
@@ -161,7 +163,17 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Machine Update"),
     partial_update=extend_schema(description="Machine Partial Update"),
     destroy=extend_schema(description="Machine Destroy"),
-    set_machine_image=extend_schema(description="Set Machine Image"),
+    set_machine_image=extend_schema(
+        description="Set Machine Image",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set machine image",
+                value={"image": "image_url"},
+            )
+        ],
+    ),
 )
 class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Machine.objects.all()
@@ -189,7 +201,17 @@ class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Type Update"),
     partial_update=extend_schema(description="Type Partial Update"),
     destroy=extend_schema(description="Type Destroy"),
-    set_type_image=extend_schema(description="Set Type Image (icon)"),
+    set_type_image=extend_schema(
+        description="Set Type Image (icon)",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set type image",
+                value={"image": "image_url"},
+            )
+        ],
+    ),
 )
 class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Type.objects.all()
@@ -217,9 +239,40 @@ class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Device Update (ChirpStack)"),
     partial_update=extend_schema(description="Device Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Device Destroy (ChirpStack)"),
-    set_activation=extend_schema(description="Set Device Activation Data"),
+    set_activation=extend_schema(
+        description="Set Device Activation Data",
+        request=ActivationSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set device activation data",
+                value={
+                    "afcntdown": 0,
+                    "app_s_key": "E81B6C49A0F57D92C3FE21B4D6A98F3C",
+                    "dev_addr": "260CA2F1",
+                    "f_cnt_up": 0,
+                    "f_nwk_s_int_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                    "n_f_cnt_down": 0,
+                    "nwk_s_enc_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                    "s_nwk_s_int_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                },
+            )
+        ],
+    ),
     activate=extend_schema(description="Activate Device"),
     deactivate=extend_schema(description="Deactivate Device"),
+    get_ws_link=extend_schema(
+        description="Get Device WebSocket Link",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to get device WebSocket link",
+                value={"access_token": "your_access_token_here"},
+            ),
+        ],
+    ),
 )
 class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Device.objects.all()
@@ -469,20 +522,32 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
+        permission_classes=[HasPermissionKey],
+        scope="device",
     )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "device"
+    def get_ws_link(self, request, pk=None):
+        dev_eui = self.get_object().dev_eui
+        access_token = request.data.get("access_token", None)
 
-        self.create_permission_keys(instance, scope)
+        if not access_token:
+            return Response(
+                {"message": "No access token found in request"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
+        try:
+            encrypted_dev_eui = encrypt_dev_eui(dev_eui)
+        except ValueError as e:
+            logging.error(f"Error encrypting DevEUI for device {dev_eui}: {str(e)}")
+            return Response(
+                {"message": f"Error generating WebSocket link: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        ws_url = (
+            f"{settings.HERMES_URL}/ws?token={access_token}&device={encrypted_dev_eui}"
         )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
 
-        return Response(serializer.data)
+        return Response({"ws_url": ws_url})
 
 
 @extend_schema_view(
