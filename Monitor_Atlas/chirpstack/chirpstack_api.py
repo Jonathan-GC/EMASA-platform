@@ -244,11 +244,11 @@ def get_tenant_from_chirpstack():
     else:
         cs_instance_list = []
 
-    to_remove = []
+    to_remove_ids = []
     for instance in local_instances:
         match = next((t for t in cs_instance_list if t["name"] == instance.name), None)
         if match:
-            to_remove.append(match)
+            to_remove_ids.append(match["id"])
             if instance.cs_tenant_id != match["id"]:
                 instance.cs_tenant_id = match["id"]
             instance.sync_status = "SYNCED"
@@ -258,9 +258,11 @@ def get_tenant_from_chirpstack():
             logging.info(
                 f"Tenant {instance.cs_tenant_id} - {instance.name} has been synced with Chirpstack"
             )
-    for match in to_remove:
-        cs_instance_list.remove(match)
 
+    # remover los que ya están sincronizados, por id
+    cs_instance_list = [t for t in cs_instance_list if t["id"] not in to_remove_ids]
+
+    # crear los que faltan en local
     for new_instance in cs_instance_list:
         subscription = get_or_create_default_subscription()
         new_tenant = Tenant(
@@ -277,7 +279,7 @@ def get_tenant_from_chirpstack():
         new_tenant.save()
         workspace = get_or_create_default_workspace(new_tenant)
         logging.info(
-            f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} with it's default workspace {workspace.id} has been created from Chirpstack"
+            f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} with its default workspace {workspace.id} has been created from Chirpstack"
         )
     return list_response
 
