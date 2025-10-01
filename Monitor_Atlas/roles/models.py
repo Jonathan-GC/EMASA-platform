@@ -43,6 +43,7 @@ class PermissionKey(models.Model):
         "activate": ["post"],
         "deactivate": ["post"],
         "get_ws_link": ["post"],
+        "get_all_permission_keys_by_role": ["get"],
     }
     code = models.CharField(
         max_length=50, blank=True, null=True

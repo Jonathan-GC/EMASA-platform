@@ -15,7 +15,6 @@ class ConnectionManager:
         self.device_subs: Dict[str, Set[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, info: dict):
-        await websocket.accept()
         if info.get("is_global"):
             loguru.logger.info(
                 f"Global connection established: \n User: {str(info.get('username'))} \n Tenant: {str(info.get('tenant_id'))}"

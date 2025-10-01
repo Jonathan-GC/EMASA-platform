@@ -45,10 +45,10 @@ class RoleViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="role")
 
-    @action(detail=False, methods=["get"])
-    def get_all_permission_keys_by_role(self, request):
-        role_id = request.query_params.get("role_id")
-        permission_keys = PermissionKey.objects.filter(role_id=role_id)
+    @action(detail=True, methods=["get"], scope="role")
+    def get_all_permission_keys_by_role(self, request, pk=None):
+        role = self.get_object()
+        permission_keys = role.permission_keys.all()
         serializer = PermissionKeySerializer(permission_keys, many=True)
         return self.get_paginated_response(serializer.data)
 
