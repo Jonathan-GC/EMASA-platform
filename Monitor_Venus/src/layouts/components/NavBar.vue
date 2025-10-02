@@ -116,15 +116,15 @@
         </router-link>
 
         <router-link
-            :to="paths.TENANT_USERS"
+            :to="paths.TENANT_MANAGERS"
             class="nav-link"
-            :class="{ active: $route.path === paths.TENANT_USERS }"
+            :class="{ active: $route.path === paths.TENANT_MANAGERS }"
             @click="closeNavbar"
         >
           <ion-icon
               :icon="icons.people"
           ></ion-icon>
-          Users
+          Managers
         </router-link>
 
         <router-link

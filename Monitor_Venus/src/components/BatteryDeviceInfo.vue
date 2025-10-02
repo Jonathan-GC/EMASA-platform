@@ -24,7 +24,7 @@
 
     <ion-card class="info-card battery-card">
       <ion-card-header>
-        <ion-card-title>🔋 Porcentaje de Batería <span v-if="channel">({{ channel }})</span></ion-card-title>
+        <ion-card-title>🔋 Porcentaje de Batería</ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <div class="battery-level">
@@ -67,10 +67,6 @@ const props = defineProps({
   batteryPercentage: {
     type: Number,
     default: 0
-  },
-  channel: {
-    type: String,
-    default: ''
   }
 })
 

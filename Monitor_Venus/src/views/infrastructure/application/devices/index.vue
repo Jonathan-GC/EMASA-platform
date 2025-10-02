@@ -1,10 +1,3 @@
-<script setup>
-import {inject} from "vue";
-
-const icons = inject('icons', {})
-
-</script>
-
 <template>
   <ion-page>
     <ion-header :translucent="true">
@@ -12,28 +5,55 @@ const icons = inject('icons', {})
         <ion-buttons slot="start">
           <ion-back-button default-href="/home"></ion-back-button>
         </ion-buttons>
-        <ion-title>Monitor Clients admins</ion-title>
+        <ion-title>Monitor Application Devices</ion-title>
       </ion-toolbar>
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div class="current-dashboard">
+      <div v-if="pageReady" class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>
-            <ion-icon
-                :icon="icons.building"
-            ></ion-icon>
-            Administradores de Clientes
-          </h1>
+          <h1>📦 Services </h1>
         </div>
-        <!-- Tenants information section -->
-        <TableUsers />
+        <!-- Main applications table with fetch data -->
+        <TableApplications/>
+      </div>
+
+      <!-- Loading state while page is preparing -->
+      <div v-else class="page-loading">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Preparando página...</p>
       </div>
     </ion-content>
   </ion-page>
-
 </template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
+import ConnectionStatus from '@/components/ConnectionStatus.vue'
+import TableGateways from '@components/tables/gateways/TableGateways.vue'
+
+// State for connection status
+const isConnected = ref(true)
+const reconnectAttempts = ref(0)
+const pageReady = ref(false)
+
+// Ionic lifecycle hooks
+onIonViewWillEnter(() => {
+  console.log('🚀 Gateway page will enter')
+  pageReady.value = false
+})
+
+onIonViewDidEnter(() => {
+  console.log('✅ Gateway page did enter')
+  pageReady.value = true
+})
+
+onMounted(() => {
+  console.log('🔧 Gateway page mounted')
+})
+</script>
 
 <style scoped>
 @import '@assets/css/dashboard.css';

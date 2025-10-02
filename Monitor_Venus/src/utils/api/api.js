@@ -1,19 +1,17 @@
+// Helper to get API base URL from env or fallback
+function getApiBaseUrl() {
+    const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
+        ? import.meta.env.VITE_API_URL
+        : 'http://localhost:8000/api/';
+    return String(base);
+}
+
 class API {
     static instance = null;
 
     API_VERSION = 'v1/';
-    API_BASE_URL = 'http://localhost:8000/api/' + this.API_VERSION;
+    API_BASE_URL = getApiBaseUrl() + 'v1/';
 
-    // Interceptors básicos
-    requestInterceptors = [];
-    responseInterceptors = [];
-
-    // Flag para evitar loops de refresh
-    isRefreshing = false;
-    failedQueue = [];
-
-    // 🔐 SISTEMA HÍBRIDO DE TOKENS
-    // Tokens en memoria para máxima seguridad (primera opción)
     _accessToken = null;
     _refreshToken = null;
     _tokenExpiry = null;

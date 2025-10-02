@@ -25,37 +25,6 @@ export function useCurrentDataProcessor() {
     })
 
     /**
-     * Helper: extract samples for a given sensor from different payload shapes
-     */
-    const extractSensorSamples = (data, sensor) => {
-        if (Array.isArray(data.measurement_values)) {
-            return data.measurement_values
-                .filter(s => s.sensor_type === sensor && s.value !== undefined)
-                .map(s => ({ time: s.time || s.time_iso || s.arrival_date || data.object?.arrival_date, value: s.value }))
-        }
-
-        if (data.measurements && data.measurements[sensor]) {
-            const channels = data.measurements[sensor]
-            const samples = []
-            Object.values(channels).forEach(arr => {
-                if (Array.isArray(arr)) arr.forEach(s => samples.push({ time: s.time || s.time_iso || data.arrival_date, value: s.value }))
-            })
-            return samples
-        }
-
-        if (data.object && data.object.measurements && data.object.measurements[sensor]) {
-            const channels = data.object.measurements[sensor]
-            const samples = []
-            Object.values(channels).forEach(arr => {
-                if (Array.isArray(arr)) arr.forEach(s => samples.push({ time: s.time || s.time_iso || data.object.arrival_date || data.arrival_date, value: s.value }))
-            })
-            return samples
-        }
-
-        return null
-    }
-
-    /**
      * Processes incoming WebSocket data for current measurements
      */
     const processIncomingData = (data) => {
@@ -65,13 +34,9 @@ export function useCurrentDataProcessor() {
             return
         }
 
-        // Determine if payload contains current measurements
-        const hasCurrent = (
-            Array.isArray(data.measurement_values) && data.measurement_values.some(s => s.sensor_type === 'current')
-        ) || !!(data.measurements && data.measurements.current) || !!(data.object && data.object.measurements && data.object.measurements.current) || data.object?.type === 'current'
-
-        if (!hasCurrent) {
-            console.log('ℹ️ Datos ignorados - no contienen corriente')
+        // Only process current data
+        if (data.object?.type !== 'current') {
+            console.log(`ℹ️ Datos ignorados - tipo: ${data.object?.type}, esperando 'current'`)
             return
         }
 
@@ -84,14 +49,14 @@ export function useCurrentDataProcessor() {
             recentMessages.value.pop()
         }
 
-        // Extract current samples
-        const currentSamples = extractSensorSamples(data, 'current')
-        if (currentSamples && Array.isArray(currentSamples) && currentSamples.length > 0) {
-            console.log(`📊 Procesando ${currentSamples.length} muestras de corriente`)
+        // Process current values for the chart
+        const currentValues = data.object?.values || data.measurement_values
+        if (currentValues && Array.isArray(currentValues)) {
+            console.log(`📊 Procesando ${currentValues.length} muestras de corriente`)
 
             // Convert all samples to chart points
-            const newPoints = currentSamples.map(sample => ({
-                x: new Date(sample.time),
+            const newPoints = currentValues.map(sample => ({
+                x: new Date(sample.time_iso),
                 y: sample.value
             }))
 

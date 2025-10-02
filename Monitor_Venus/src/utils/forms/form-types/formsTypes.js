@@ -14,4 +14,7 @@ export const EntityTypes = [
   "device_profile",
   "application",
   "device",
+  "application",
+  "workspace",
+  "manager",
 ];

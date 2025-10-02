@@ -1,5 +1,6 @@
 <script setup>
 import {inject} from "vue";
+import TableWorkspaces from "../../components/tables/workspaces/TableWorkspaces.vue";
 
 const icons = inject('icons', {})
 
@@ -28,7 +29,7 @@ const icons = inject('icons', {})
           </h1>
         </div>
         <!-- Tenants information section -->
-        <TableUsers />
+        <TableWorkspaces   />
       </div>
     </ion-content>
   </ion-page>

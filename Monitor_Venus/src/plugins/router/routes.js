@@ -1,5 +1,6 @@
 import { paths as P } from './paths'
 import { components as C } from './components'
+import { parameters as V } from './parameters';
 import { requireAuth, requireGuest, allowAll } from "@utils/auth/guards.js";
 
 
@@ -12,14 +13,18 @@ export const routes = [
         children: [
             { path: P.HOME, component: C.HOME, beforeEnter: allowAll },
             { path: P.ABOUT, component: C.ABOUT, beforeEnter: requireAuth },
-            { path: P.VOLTAGE, component: C.VOLTAGE},
-            { path: P.CURRENT, component: C.CURRENT},
-            { path: P.BATTERY, component: C.BATTERY},
+            { path: P.VOLTAGE, component: C.VOLTAGE, },
+            { path: P.CURRENT, component: C.CURRENT, beforeEnter: requireAuth },
+            { path: P.BATTERY, component: C.BATTERY,  beforeEnter: requireAuth},
             { path: P.GATEWAYS, component: C.GATEWAYS, beforeEnter: requireAuth },
             { path: P.DEVICE_PROFILES, component: C.DEVICE_PROFILES, beforeEnter: requireAuth },
-            { path: P.APPLICATIONS, component: C.APPLICATIONS, beforeEnter: requireAuth },
+            { path: P.APPLICATIONS, component: C.APPLICATIONS, beforeEnter: requireAuth,
+                children: [
+                    { name: 'application_devices', path: V.DEVICE_ID + P.DEVICES, component: C.DEVICES, beforeEnter: requireAuth },
+                ]
+             },
             { path: P.TENANTS, component: C.TENANTS },
-            { path: P.TENANT_USERS, component: C.TENANT_USERS, beforeEnter: requireAuth },
+            { path: P.TENANT_MANAGERS, component: C.TENANT_MANAGERS, beforeEnter: requireAuth },
             { path: P.TENANT_LOCATIONS, component: C.TENANT_LOCATIONS, beforeEnter: requireAuth },
             { path: P.TENANT_WORKSPACES, component: C.TENANT_WORKSPACES, beforeEnter: requireAuth }
             //{ path: P.LOGIN, component: C.LOGIN }

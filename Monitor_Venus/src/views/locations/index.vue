@@ -16,7 +16,7 @@
           <h1>📍 Locations </h1>
         </div>
         <!-- Main applications table with fetch data -->
-        <TableApplication />
+        <TableLocations />
       </div>
 
       <!-- Loading state while page is preparing -->
@@ -33,6 +33,7 @@ import { ref, onMounted } from 'vue'
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import TableGateways from '@components/tables/gateways/TableGateways.vue'
+import TableLocations from '../../components/tables/locations/TableLocations.vue'
 
 // State for connection status
 const isConnected = ref(true)

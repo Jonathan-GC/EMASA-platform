@@ -12,8 +12,35 @@ export function useBatteryDataProcessor() {
     const BATTERY_MIN_V = 10.5
     const BATTERY_MAX_V = 13.2
 
-    // Chart data for battery measurements (multi-channel)
-    const channelChartData = reactive({}); // { ch1: { data: [...] }, ch2: { data: [...] }, ... }
+    // Chart data for battery measurements (dual-axis)
+    const chartData = reactive({
+        datasets: [
+            {
+                label: 'Batería (V)',
+                data: [],
+                borderColor: 'rgba(4, 116, 0, 1)',
+                backgroundColor: 'rgba(4, 116, 0, 0.1)',
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 1,
+                pointHoverRadius: 4,
+                fill: false,
+                yAxisID: 'y-left'
+            },
+            {
+                label: 'Batería (%)',
+                data: [],
+                borderColor: 'rgba(116, 0, 87, 1)',
+                backgroundColor: 'rgba(116, 0, 87, 0.1)',
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 1,
+                pointHoverRadius: 4,
+                fill: false,
+                yAxisID: 'y-right'
+            }
+        ]
+    })
 
     // Computed battery percentage
     const batteryPercentage = computed(() => {
@@ -32,50 +59,58 @@ export function useBatteryDataProcessor() {
         return Math.round(percent)
     }
 
-    // Process incoming data (multi-channel battery)
+    // Process incoming data
     const processIncomingData = (data) => {
         if (data.error) {
             console.warn('⚠️ Datos con error recibidos:', data.error)
             return
         }
 
-        // Support new structure: measurements.battery
-        const batteryMeasurements = data.measurements?.battery;
-        if (!batteryMeasurements || typeof batteryMeasurements !== 'object') {
-            console.log('ℹ️ Datos ignorados - esperando measurements.battery')
+        if (data.object?.type !== 'battery') {
+            console.log(`ℹ️ Datos ignorados - tipo: ${data.object?.type}, esperando 'battery'`)
             return
         }
 
-        lastDevice.value = data;
-        recentMessages.value.unshift(data);
+        lastDevice.value = data
+
+        recentMessages.value.unshift(data)
         if (recentMessages.value.length > 10) {
-            recentMessages.value.pop();
+            recentMessages.value.pop()
         }
 
-        // For each channel, create chart data
-        Object.keys(batteryMeasurements).forEach(channel => {
-            const samples = batteryMeasurements[channel];
-            if (!Array.isArray(samples)) return;
-            channelChartData[channel] = {
-                voltage: samples.map(sample => ({ x: new Date(sample.time), y: sample.value })),
-                percentage: samples.map(sample => ({ x: new Date(sample.time), y: voltageToPercentage(sample.value) }))
-            };
-        });
-        chartKey.value++;
-        console.log('✅ Gráfico de batería actualizado para canales:', Object.keys(channelChartData));
+        const batteryValues = data.object?.values || data.measurement_values
+        if (batteryValues && Array.isArray(batteryValues)) {
+            console.log(`📊 Procesando ${batteryValues.length} muestras de batería`)
+
+            const voltagePoints = batteryValues.map(sample => ({
+                x: new Date(sample.time_iso),
+                y: sample.value
+            }))
+
+            const percentagePoints = batteryValues.map(sample => ({
+                x: new Date(sample.time_iso),
+                y: voltageToPercentage(sample.value)
+            }))
+
+            chartData.datasets[0].data = voltagePoints
+            chartData.datasets[1].data = percentagePoints
+
+            chartKey.value++
+
+            console.log(`✅ Gráfico de batería actualizado con ${voltagePoints.length} puntos`)
+        }
     }
 
     const clearData = () => {
-        Object.keys(channelChartData).forEach(channel => {
-            channelChartData[channel] = { voltage: [], percentage: [] };
-        });
-        lastDevice.value = null;
-        recentMessages.value = [];
-        chartKey.value++;
+        chartData.datasets[0].data = []
+        chartData.datasets[1].data = []
+        lastDevice.value = null
+        recentMessages.value = []
+        chartKey.value++
     }
 
     return {
-        channelChartData,
+        chartData,
         lastDevice,
         recentMessages,
         chartKey,

@@ -38,6 +38,12 @@
             <ion-button @click="fetchUsers" fill="clear">
               <ion-icon :icon="icons.refresh"></ion-icon>
             </ion-button>
+
+            <QuickControl
+                :toCreate="true"
+                type="manager"
+                @itemCreated="handleItemRefresh"
+            />
           </div>
 
           <!-- Table using ion-grid -->
@@ -255,6 +261,10 @@ const viewUser = (user) => {
   // Aquí podrías navegar a una página de detalles
   // router.push(`/users/${gateway.id}`)
 }
+
+const handleItemRefresh = () => {
+  fetchUsers();
+};
 
 // Lifecycle
 onMounted(async () => {

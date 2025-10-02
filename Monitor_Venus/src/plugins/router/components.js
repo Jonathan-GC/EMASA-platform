@@ -10,9 +10,10 @@ export const components = {
     DEVICE_PROFILES: () => import('@views/infrastructure/deviceProfiles/index.vue'),
     APPLICATIONS: () => import('@views/infrastructure/application/index.vue'),
     TENANTS: () => import('@views/tenants/index.vue'),
-    TENANT_USERS: () => import('@views/users/index.vue'),
+    TENANT_MANAGERS: () => import('@views/managers/index.vue'),
     TENANT_LOCATIONS: () => import('@views/locations/index.vue' ),
     TENANT_WORKSPACES: () => import('@views/workspaces/index.vue' ),
     LOGIN: () => import('@views/auth/login/index.vue'),
     REGISTER: () => import('@views/auth/signup/index.vue'),
+    DEVICES: () => import('@views/infrastructure/application/devices/index.vue'),
 }
