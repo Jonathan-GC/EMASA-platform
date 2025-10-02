@@ -96,3 +96,14 @@ def handle_message(payload: dict, db, loop):
 
     except Exception:
         loguru.logger.exception("Failed to handle message")
+
+
+def handle_uplink(payload):
+    dev_eui = payload.get("devEui") or payload.get("dev_eui")
+    tenant_id = payload.get("tenantId") or payload.get("tenant_id")
+    if dev_eui and tenant_id and redis_client:
+        try:
+            redis_client.hset("device_tenant_mapping", dev_eui, tenant_id)
+        except Exception:
+            # optional: log
+            pass

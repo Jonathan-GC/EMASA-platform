@@ -1,5 +1,7 @@
+import sys
 import redis.asyncio as aioredis
 from app.settings import settings
+from loguru import logger
 
 redis_client: aioredis.Redis | None = None
 
@@ -12,6 +14,9 @@ async def connect_to_redis():
     )
 
     await redis_client.set("healthcheck", "ok", ex=10)
+    logger.info("Connected to Redis")
+    logger.info(f"[connect_to_redis] redis_client id: {id(redis_client)}")
+    logger.info(f"[connect_to_redis] modules: {list(sys.modules.keys())}")
 
 
 async def close_redis_connection():

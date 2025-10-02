@@ -123,11 +123,6 @@ def has_permission(user, scope, action, obj=None):
                             else False
                         ),
                         (
-                            key.tenant_user_id == getattr(obj, "id", None)
-                            if is_internal
-                            else False
-                        ),
-                        (
                             key.type_id == getattr(obj, "id", None)
                             if is_internal
                             else False

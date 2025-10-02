@@ -34,6 +34,11 @@ class PermissionKey(models.Model):
     # ACTION_MAP Translates DRF actions to permission keys
     ACTION_MAP = {
         "list": ["get"],
+        "get": ["get", "get_by_id"],
+        "post": ["post"],
+        "put": ["put"],
+        "delete": ["delete"],
+        "patch": ["put"],
         "retrieve": ["get", "get_by_id"],
         "create": ["post"],
         "update": ["put"],

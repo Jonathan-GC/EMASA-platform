@@ -37,6 +37,7 @@ urlpatterns = [
     path("api/v1/organizations/", include("organizations.urls")),
     path("api/v1/infrastructure/", include("infrastructure.urls")),
     path("api/v1/chirpstack/", include("chirpstack.urls")),
+    path("api/v1/support/", include("support.urls")),
     path(
         "api/v1/token/",
         CookieTokenObtainPairView.as_view(),

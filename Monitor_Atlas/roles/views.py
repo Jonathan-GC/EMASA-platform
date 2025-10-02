@@ -48,9 +48,18 @@ class RoleViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(detail=True, methods=["get"], scope="role")
     def get_all_permission_keys_by_role(self, request, pk=None):
         role = self.get_object()
-        permission_keys = role.permission_keys.all()
-        serializer = PermissionKeySerializer(permission_keys, many=True)
-        return self.get_paginated_response(serializer.data)
+        role_permission = RolePermission.objects.filter(role=role)
+        permission_keys_queryset = PermissionKey.objects.filter(
+            id__in=role_permission.values_list("permission_key_id", flat=True)
+        ).order_by("id")
+
+        page = self.paginate_queryset(permission_keys_queryset)
+        if page is not None:
+            serializer = PermissionKeySerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = PermissionKeySerializer(permission_keys_queryset, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema_view(

@@ -75,7 +75,7 @@ class Command(BaseCommand):
             )
 
             for instance in model.objects.all():
-                for action in ["create", "read", "update", "delete"]:
+                for action in ["get", "post", "put", "delete"]:
                     pk_data = {
                         "code": f"{scope}:{instance.id}:{action}",
                         "scope": scope,

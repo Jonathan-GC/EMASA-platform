@@ -1,10 +1,11 @@
 from rest_framework import viewsets
-from .models import Ticket, Comment, Attachment, CommentAttachment
+from .models import Ticket, Comment, Attachment, CommentAttachment, Notification
 from .serializers import (
     TicketSerializer,
     CommentSerializer,
     AttachmentSerializer,
     CommentAttachmentSerializer,
+    NotificationSerializer,
 )
 
 import logging
@@ -20,7 +21,7 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
     partial_update=extend_schema(description="Ticket Partial Update"),
     destroy=extend_schema(description="Ticket Destroy"),
 )
-class TicketViewSet(viewsets.ModelViewSet):
+class TickeViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
 
@@ -62,3 +63,16 @@ class AttachmentViewSet(viewsets.ModelViewSet):
 class CommentAttachmentViewSet(viewsets.ModelViewSet):
     queryset = CommentAttachment.objects.all()
     serializer_class = CommentAttachmentSerializer
+
+
+@extend_schema_view(
+    list=extend_schema(description="Notification List"),
+    create=extend_schema(description="Notification Create"),
+    retrieve=extend_schema(description="Notification Retrieve"),
+    update=extend_schema(description="Notification Update"),
+    partial_update=extend_schema(description="Notification Partial Update"),
+    destroy=extend_schema(description="Notification Destroy"),
+)
+class NotificationViewSet(viewsets.ModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer

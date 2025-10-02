@@ -544,7 +544,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         ws_url = (
-            f"{settings.HERMES_URL}/ws?token={access_token}&device={encrypted_dev_eui}"
+            f"{settings.HERMES_URL}/ws/device/{encrypted_dev_eui}?token={access_token}"
         )
 
         return Response({"ws_url": ws_url})

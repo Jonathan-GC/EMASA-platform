@@ -15,6 +15,12 @@ STATUS_CHOICES = [
     ("Closed", "Closed"),
 ]
 
+NOTIFICATION_TYPE_CHOICES = [
+    ("info", "Info"),
+    ("warning", "Warning"),
+    ("error", "Error"),
+]
+
 
 # Create your models here.
 class Ticket(models.Model):
@@ -84,3 +90,18 @@ class CommentAttachment(models.Model):
 
     def __str__(self):
         return f"Attachment for comment {self.comment.id} on ticket {self.comment.ticket.title}"
+
+
+class Notification(models.Model):
+    title = models.CharField(max_length=200, default="Notification")
+    message = models.TextField()
+    type = models.CharField(
+        max_length=20, choices=NOTIFICATION_TYPE_CHOICES, default="info"
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.username} - {self.type}"

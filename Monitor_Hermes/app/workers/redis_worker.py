@@ -6,6 +6,13 @@ from app.persistence.models import MessageIn
 from app.persistence.mongo import save_message
 
 
+async def save_mapping(dev_eui: str, tenant_id: str, redis_client):
+    try:
+        await redis_client.hset("device_tenant_mapping", dev_eui, tenant_id)
+    except Exception:
+        loguru.logger.exception("Failed to save device_tenant_mapping")
+
+
 def _normalize_payload(payload: dict) -> dict:
     """Normalize incoming payload to a consistent shape used by the worker."""
     if not isinstance(payload, dict):
@@ -80,6 +87,17 @@ async def process_messages(db):
             dev_addr = payload.get("devAddr") or payload.get("dev_addr")
             object_payload = payload.get("object") or payload.get("payload") or {}
 
+            if not dev_eui or not tenant_id:
+                loguru.logger.warning(
+                    f"Skipping message without dev_eui or tenant_id: {payload}"
+                )
+                await asyncio.sleep(1)
+                continue
+
+            redis_mod = importlib.import_module("app.redis.redis")
+            client = getattr(redis_mod, "redis_client", None)
+            if dev_eui and tenant_id:
+                await save_mapping(dev_eui, tenant_id, client)
             loguru.logger.info(f"Processing message from Redis: {dev_eui}")
 
             message = MessageIn(
