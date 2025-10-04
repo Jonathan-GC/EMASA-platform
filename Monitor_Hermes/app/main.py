@@ -14,6 +14,7 @@ from app.persistence.models import MessageIn
 from app.mqtt.client import start_mqtt
 import loguru
 import asyncio
+from app.ws.manager import manager
 
 
 @asynccontextmanager
@@ -38,3 +39,23 @@ app.include_router(ws_router)
 async def create_message(message: MessageIn, db=Depends(get_db)):
     insert_id = await save_message(db, message)
     return {"insert_id": insert_id}
+
+@app.post("/notify")
+async def notify_user(user_id: str, title: str, message: str, type: str = "info"):
+    loguru.logger.info(f"Notificando al usuario {user_id}: {message}")
+    # Build notification payload targeted to the user's `notifications` channel
+    payload = {
+        "channel": "notifications",
+        "title": title,
+        "message": message,
+        "type": type,
+    }
+
+    # Try to send via websocket manager; schedule as task to avoid blocking
+    try:
+        # schedule sending but await it to surface errors when called directly
+        await manager.send_to_user(user_id, payload)
+        return {"status": "success", "sent": True}
+    except Exception:
+        loguru.logger.exception(f"Failed to notify user {user_id} via websocket")
+        return {"status": "error", "sent": False}

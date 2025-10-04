@@ -557,6 +557,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Application Update (ChirpStack)"),
     partial_update=extend_schema(description="Application Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Application Destroy (ChirpStack)"),
+    devices=extend_schema(description="List Devices in Application (ChirpStack)"),
 )
 class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Application.objects.all()
@@ -645,6 +646,23 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         sync_application_get(instance)
         instance.refresh_from_db()
         serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermissionKey],
+        scope="application",
+    )
+    def devices(self, request, pk=None):
+        application = self.get_object()
+        devices = Device.objects.filter(application=application)
+        page = self.paginate_queryset(devices)
+        if page is not None:
+            serializer = DeviceSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = DeviceSerializer(devices, many=True)
         return Response(serializer.data)
 
 

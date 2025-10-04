@@ -70,6 +70,73 @@ class ConnectionManager:
                 except Exception:
                     self.device_subscriptions[dev_eui].remove(connection)
 
+    @router.websocket("/ws/tenant/{enc_tenant_id}")
+    async def websocket_tenant(websocket: WebSocket, enc_tenant_id: str):
+        token = websocket.query_params.get("token")
+        await websocket.accept()
+        if not token:
+            await websocket.close(code=1008)
+            return
+
+        try:
+            info = verify_jwt(token)
+        except Exception:
+            await websocket.close(code=1008)
+            return
+
+        # desencriptar tenant id si viene cifrado
+        tenant_id = enc_tenant_id
+        if settings.WS_SECRET:
+            try:
+                key = settings.WS_SECRET.encode("utf-8")
+                f = Fernet(key)
+                tenant_id = f.decrypt(enc_tenant_id.encode("utf-8")).decode("utf-8")
+            except Exception:
+                loguru.logger.exception("No se pudo desencriptar tenant id en WS")
+                await websocket.close(code=1008)
+                return
+
+        # validar que el usuario tiene acceso a ese tenant según token (o es superuser)
+        if not info.get("is_superuser") and str(info.get("tenant_id")) != str(
+            tenant_id
+        ):
+            loguru.logger.warning(
+                f"User {info.get('username')} tried to access tenant channel {tenant_id} without permission"
+            )
+            await websocket.close(code=1008)
+            return
+
+        # Aceptar y registrar la conexión como perteneciente a ese tenant
+        try:
+            info_for_tenant = dict(info)
+            # force this connection to be treated as a tenant-scoped connection
+            info_for_tenant["is_global"] = False
+            info_for_tenant["is_superuser"] = False
+            info_for_tenant["device_only"] = False
+            info_for_tenant["tenant_id"] = tenant_id
+            await manager.connect(websocket, info_for_tenant)
+            loguru.logger.info(
+                f"Conectado al canal tenant {tenant_id} para user {info.get('username')}"
+            )
+        except Exception:
+            loguru.logger.exception("Error registrando conexión tenant")
+            await websocket.close(code=500)
+            return
+
+        # Escuchar mensajes entrantes (si quieres recibir pings del cliente)
+        try:
+            while True:
+                data = await websocket.receive_text()
+                loguru.logger.debug(
+                    f"Mensaje entrante en canal tenant {tenant_id}: {data}"
+                )
+                # aqui puedes responder si lo necesitas
+        except WebSocketDisconnect:
+            manager.disconnect(
+                websocket, info_for_tenant if "info_for_tenant" in locals() else info
+            )
+            loguru.logger.info(f"Conexión cerrada para tenant {tenant_id}")
+
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

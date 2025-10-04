@@ -1,5 +1,9 @@
 from django.db import models
 from users.models import User
+import requests
+from django.conf import settings
+
+HERMES_URL = getattr(settings, "HERMES_WS_URL", "http://localhost:5000")
 
 PRIORITY_CHOICES = [
     ("Low", "Low"),
@@ -19,6 +23,7 @@ NOTIFICATION_TYPE_CHOICES = [
     ("info", "Info"),
     ("warning", "Warning"),
     ("error", "Error"),
+    ("success", "Success"),
 ]
 
 
@@ -102,6 +107,23 @@ class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def mark_as_read(self):
+        self.is_read = True
+        self.save()
+
+    def notify_ws(self):
+        try:
+            payload = {
+                "user_id": self.user.id,
+                "title": self.title,
+                "message": self.message,
+                "type": self.type,
+            }
+            response = requests.post(f"{HERMES_URL}/notify", json=payload)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            print(f"Failed to send notification via WebSocket: {e}")
 
     def __str__(self):
         return f"Notification for {self.user.username} - {self.type}"

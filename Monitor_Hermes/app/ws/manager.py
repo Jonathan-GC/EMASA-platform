@@ -16,6 +16,8 @@ class ConnectionManager:
         self.global_connections: List[WebSocket] = []
         self.super_connections: List[WebSocket] = []
         self.device_subs: Dict[str, Set[WebSocket]] = {}
+        # Map user_id -> list of websockets for sending user-targeted messages
+        self.users: Dict[str, List[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, info: dict):
         # If this connection is intended only for a single device, do not
@@ -44,6 +46,17 @@ class ConnectionManager:
             if tenant_id not in self.tenants:
                 self.tenants[tenant_id] = []
             self.tenants[tenant_id].append(websocket)
+        # Register websocket under user mapping if we have a user_id
+        try:
+            user_id = info.get("user_id")
+            if user_id is not None:
+                key = str(user_id)
+                if key not in self.users:
+                    self.users[key] = []
+                self.users[key].append(websocket)
+                loguru.logger.debug(f"Registered websocket for user {key}")
+        except Exception:
+            loguru.logger.exception("Error registering websocket under user mapping")
 
     def disconnect(self, websocket: WebSocket, info: dict):
         if info.get("is_global"):
@@ -71,6 +84,18 @@ class ConnectionManager:
                         del self.device_subs[dev]
         except Exception:
             loguru.logger.exception("Error cleaning device subscriptions on disconnect")
+        # Remove from user mapping if present
+        try:
+            user_id = info.get("user_id")
+            if user_id is not None:
+                key = str(user_id)
+                if key in self.users and websocket in self.users[key]:
+                    self.users[key].remove(websocket)
+                    if not self.users[key]:
+                        del self.users[key]
+                    loguru.logger.debug(f"Removed websocket from user {key} mapping")
+        except Exception:
+            loguru.logger.exception("Error cleaning user mapping on disconnect")
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
@@ -137,6 +162,29 @@ class ConnectionManager:
                 )
         if key in self.device_subs and not self.device_subs[key]:
             del self.device_subs[key]
+
+    async def send_to_user(self, user_id: str, message: dict):
+        """Send a message dict to all websockets associated with a user_id.
+
+        Cleans up dead connections on error.
+        """
+        if user_id is None:
+            return
+        key = str(user_id)
+        conns = list(self.users.get(key, []))
+        for conn in conns:
+            try:
+                await conn.send_json(message)
+            except Exception:
+                # remove dead connection
+                if key in self.users and conn in self.users[key]:
+                    try:
+                        self.users[key].remove(conn)
+                    except Exception:
+                        pass
+                loguru.logger.exception(f"Failed to send message to user {key}")
+        if key in self.users and not self.users[key]:
+            del self.users[key]
 
     def route_device_message(self, msg):
         # Called by producers when a device-originated message arrives.
