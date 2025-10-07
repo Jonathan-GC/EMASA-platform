@@ -11,18 +11,57 @@ export const routes = [
         path: P.ROOT,
         component: C.DEFAULT_LAYOUT,
         children: [
-            { path: P.HOME, component: C.HOME, beforeEnter: allowAll },
-            { path: P.ABOUT, component: C.ABOUT, beforeEnter: requireAuth },
-            { path: P.VOLTAGE, component: C.VOLTAGE, },
-            { path: P.CURRENT, component: C.CURRENT, beforeEnter: requireAuth },
-            { path: P.BATTERY, component: C.BATTERY,  beforeEnter: requireAuth},
-            { path: P.GATEWAYS, component: C.GATEWAYS, beforeEnter: requireAuth },
-            { path: P.DEVICE_PROFILES, component: C.DEVICE_PROFILES, beforeEnter: requireAuth },
-            { path: P.APPLICATIONS, component: C.APPLICATIONS, beforeEnter: requireAuth,
-                children: [
-                    { name: 'application_devices', path: V.DEVICE_ID + P.DEVICES, component: C.DEVICES, beforeEnter: requireAuth },
-                ]
-             },
+            {
+                path: P.HOME,
+                component: C.HOME,
+                beforeEnter: allowAll
+            },
+            {
+                path: P.ABOUT,
+                component: C.ABOUT,
+                beforeEnter: requireAuth
+            },
+            {
+                path: P.VOLTAGE,
+                component: C.VOLTAGE,
+            },
+            {
+                path: P.CURRENT,
+                component: C.CURRENT,
+                beforeEnter: requireAuth
+            },
+            {
+                path: P.BATTERY,
+                component: C.BATTERY,
+                beforeEnter: requireAuth
+            },
+            {
+                path: P.GATEWAYS,
+                component: C.GATEWAYS,
+                beforeEnter: requireAuth
+            },
+            {
+                path: P.DEVICE_PROFILES,
+                component: C.DEVICE_PROFILES,
+                beforeEnter: requireAuth
+            },
+            {
+                path: P.APPLICATIONS,
+                component: C.APPLICATIONS,
+                beforeEnter: requireAuth
+            },
+            {
+                name: 'application_devices',
+                path: P.APPLICATIONS + V.APPLICATION_ID + P.DEVICES,
+                component: C.DEVICES,
+                beforeEnter: requireAuth
+            },
+            {
+                name: 'device_details',
+                path: P.APPLICATIONS + V.APPLICATION_ID + P.DEVICES + V.DEVICE_ID,
+                component: C.DEVICE_MEASUREMENTS,
+                beforeEnter: requireAuth
+            },
             { path: P.TENANTS, component: C.TENANTS },
             { path: P.TENANT_MANAGERS, component: C.TENANT_MANAGERS, beforeEnter: requireAuth },
             { path: P.TENANT_LOCATIONS, component: C.TENANT_LOCATIONS, beforeEnter: requireAuth },
@@ -35,7 +74,7 @@ export const routes = [
         component: C.BLANK_LAYOUT,
         children: [
             { path: P.LOGIN, component: C.LOGIN, beforeEnter: allowAll },
-            { path: P.REGISTER, component: C.REGISTER, beforeEnter: requireGuest },
+            { path: P.REGISTER, component: C.REGISTER },
         ]
     }
 

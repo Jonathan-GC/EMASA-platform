@@ -13,10 +13,10 @@
       <div v-if="pageReady" class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>📦 Services </h1>
+          <h1>📟 Devices </h1>
         </div>
         <!-- Main applications table with fetch data -->
-        <TableApplications/>
+        <TableDevices/>
       </div>
 
       <!-- Loading state while page is preparing -->

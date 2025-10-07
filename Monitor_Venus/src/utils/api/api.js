@@ -49,6 +49,44 @@ class API {
     LOCATION = 'infrastructure/location/'
     DEVICE_PROFILE_TEMPLATE = '/device-profile-template/'
 
+
+    //----[WEBSOCKET]----
+    
+
+    // ===== MÉTODOS PARA ENDPOINTS DINÁMICOS =====
+    // Usar estos en lugar de constantes para rutas con IDs
+
+    /**
+     * Endpoint para dispositivos de una aplicación
+     * @param {string|number} applicationId - ID de la aplicación
+     * @returns {string} - Endpoint completo
+     */
+    APPLICATION_DEVICES(applicationId) {
+        return `infrastructure/application/${applicationId}/devices/`
+    }
+
+    /**
+     * Endpoint para un dispositivo específico de una aplicación
+     * @param {string|number} applicationId - ID de la aplicación
+     * @param {string|number} deviceId - ID del dispositivo
+     * @returns {string} - Endpoint completo
+     */
+    APPLICATION_DEVICE_DETAIL(applicationId, deviceId) {
+        return `infrastructure/application/${applicationId}/devices/${deviceId}/`
+    }
+
+    /**
+     * Endpoint para dispositivos de un gateway
+     * @param {string|number} gatewayId - ID del gateway
+     * @returns {string} - Endpoint completo
+     */
+    GATEWAY_DEVICES(gatewayId) {
+        return `infrastructure/gateway/${gatewayId}/devices/`
+    }
+
+    DEVICE_WEBSOCKET_URL(deviceId) {
+        return `infrastructure/device/${deviceId}/get_ws_link/`
+    }
     //----[CHIRPSTACK]----
 
     DEVICE_PROFILE = 'chirpstack/device-profile/'
