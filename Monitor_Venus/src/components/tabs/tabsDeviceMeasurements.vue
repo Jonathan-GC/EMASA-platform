@@ -1,0 +1,372 @@
+<template>
+  <div class="tabs-device-measurements">
+    <ion-tabs>
+      <ion-tab-bar slot="bottom">
+        <ion-tab-button tab="voltage">
+          <ion-icon :icon="icons.flash"></ion-icon>
+          <ion-label>Voltaje</ion-label>
+        </ion-tab-button>
+
+        <ion-tab-button tab="current">
+          <ion-icon :icon="icons.analytics"></ion-icon>
+          <ion-label>Corriente</ion-label>
+        </ion-tab-button>
+
+        <ion-tab-button tab="battery">
+          <ion-icon :icon="icons.batteryFull"></ion-icon>
+          <ion-label>Batería</ion-label>
+        </ion-tab-button>
+      </ion-tab-bar>
+
+      <!-- Voltage Tab -->
+      <ion-tab tab="voltage">
+        <ion-content class="ion-padding">
+          <div class="tab-content">
+            <!-- Header with connection status -->
+            <div class="header">
+              <h1>Voltaje IoT</h1>
+              <div class="header-subtitle">
+                <ConnectionStatus
+                  :is-connected="isConnected"
+                  :reconnect-attempts="reconnectAttempts"
+                />
+              </div>
+            </div>
+
+            <!-- Device information section -->
+            <DeviceInfo :device="device" />
+
+            <!-- No data placeholder -->
+            <div v-if="!device" class="no-data">
+              <h2>🔍 Esperando datos del dispositivo...</h2>
+              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
+              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
+            </div>
+
+            <!-- Charts grid -->
+            <ChartsGrid
+              :chart-fragments="chartDataFragments"
+              :chart-key="chartKey"
+              :device-name="device?.device_name || deviceName"
+            />
+
+            <!-- Recent messages -->
+            <RecentMessages :messages="recentMessages" />
+          </div>
+        </ion-content>
+      </ion-tab>
+
+      <!-- Current Tab -->
+      <ion-tab tab="current">
+        <ion-content class="ion-padding">
+          <div class="tab-content">
+            <!-- Header with connection status -->
+            <div class="header">
+              <h1>Corriente IoT</h1>
+              <div class="header-subtitle">
+                <ConnectionStatus
+                  :is-connected="isConnected"
+                  :reconnect-attempts="reconnectAttempts"
+                />
+              </div>
+            </div>
+
+            <!-- Device information section -->
+            <CurrentDeviceInfo :device="currentDevice" />
+
+            <!-- No data placeholder -->
+            <div v-if="!currentDevice" class="no-data">
+              <h2>🔍 Esperando datos del dispositivo...</h2>
+              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
+              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
+            </div>
+
+            <!-- Current chart -->
+            <div v-if="currentDevice" class="chart-container">
+              <SingleCurrentChart
+                :chart-data="currentChartData"
+                :chart-key="currentChartKey"
+                :device-name="currentDevice?.device_name || 'Dispositivo IoT'"
+              />
+            </div>
+
+            <!-- Recent messages -->
+            <RecentMessages :messages="recentMessages" />
+          </div>
+        </ion-content>
+      </ion-tab>
+
+      <!-- Battery Tab -->
+      <ion-tab tab="battery">
+        <ion-content class="ion-padding">
+          <div class="tab-content">
+            <!-- Header with connection status -->
+            <div class="header">
+              <h1>Batería IoT</h1>
+              <div class="header-subtitle">
+                <ConnectionStatus
+                  :is-connected="isConnected"
+                  :reconnect-attempts="reconnectAttempts"
+                />
+              </div>
+            </div>
+
+            <!-- Device information section -->
+            <BatteryDeviceInfo
+              :device="batteryDevice"
+              :battery-percentage="batteryPercentage"
+            />
+
+            <!-- No data placeholder -->
+            <div v-if="!batteryDevice" class="no-data">
+              <h2>🔍 Esperando datos del dispositivo...</h2>
+              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
+              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
+            </div>
+
+            <!-- Battery chart -->
+            <div class="chart-container">
+              <DualAxisBatteryChart
+                :chart-data="batteryChartData"
+                :chart-key="batteryChartKey"
+                :device-name="batteryDevice?.device_name || 'Dispositivo IoT'"
+              />
+            </div>
+
+            <!-- Recent messages -->
+            <RecentMessages :messages="recentMessages" />
+          </div>
+        </ion-content>
+      </ion-tab>
+    </ion-tabs>
+  </div>
+</template>
+
+<script setup>
+import { ref, inject, onMounted } from 'vue'
+import {
+  IonTabs,
+  IonTabBar,
+  IonTabButton,
+  IonContent,
+  IonIcon,
+  IonLabel
+} from '@ionic/vue'
+
+// Chart.js imports and registration
+import { 
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale
+} from 'chart.js'
+import 'chartjs-adapter-date-fns'
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale
+)
+
+// Import device info components
+import VoltageDeviceInfo from '@/components/cards/VoltageDeviceInfo.vue'
+import CurrentDeviceInfo from '@/components/cards/CurrentDeviceInfo.vue'
+import BatteryDeviceInfo from '@/components/cards/BatteryDeviceInfo.vue'
+import RecentMessages from '@/components/cards/RecentMessages.vue'
+
+// Import voltage view components
+import ConnectionStatus from '@/components/ConnectionStatus.vue'
+import DeviceInfo from '@/components/cards/DeviceInfo.vue'
+import ChartsGrid from '@/components/charts/ChartsGrid.vue'
+import SingleCurrentChart from '@/components/charts/SingleCurrentChart.vue'
+import DualAxisBatteryChart from '@/components/charts/DualAxisBatteryChart.vue'
+
+// Props
+const props = defineProps({
+  device: {
+    type: Object,
+    default: null
+  },
+  batteryPercentage: {
+    type: Number,
+    default: 0
+  },
+  recentMessages: {
+    type: Array,
+    default: () => []
+  },
+  // Additional props for voltage view layout
+  isConnected: {
+    type: Boolean,
+    default: false
+  },
+  reconnectAttempts: {
+    type: Number,
+    default: 0
+  },
+  chartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  chartKey: {
+    type: Number,
+    default: 0
+  },
+  deviceName: {
+    type: String,
+    default: 'Dispositivo IoT'
+  },
+  // Current tab props
+  currentChartData: {
+    type: Object,
+    default: () => ({ datasets: [] })
+  },
+  currentDevice: {
+    type: Object,
+    default: null
+  },
+  currentChartKey: {
+    type: Number,
+    default: 0
+  },
+  // Battery tab props
+  batteryChartData: {
+    type: Object,
+    default: () => ({ datasets: [] })
+  },
+  batteryDevice: {
+    type: Object,
+    default: null
+  },
+  batteryChartKey: {
+    type: Number,
+    default: 0
+  },
+  batteryPercentage: {
+    type: Number,
+    default: 0
+  }
+})
+
+// Inject icons
+const icons = inject('icons', {})
+
+// Component state
+const isMounted = ref(false)
+
+onMounted(() => {
+  isMounted.value = true
+})
+</script>
+
+<style scoped>
+.tabs-device-measurements {
+  height: 100%;
+  width: 100%;
+}
+
+.tab-content {
+  padding: 16px 0;
+}
+
+/* Ensure tabs take full height */
+ion-tabs {
+  height: 100%;
+}
+
+ion-tab {
+  height: 100%;
+}
+
+/* Custom styling for tab content */
+ion-content {
+  --background: transparent;
+}
+
+/* Tab button styling */
+ion-tab-button {
+  --color-selected: #3b82f6;
+  --color: #6b7280;
+}
+
+ion-tab-button.tab-selected {
+  --color: #3b82f6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tab-content {
+    padding: 8px 0;
+  }
+
+  ion-tab-button ion-label {
+    display: none;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .no-data {
+    margin: 20px 0;
+  }
+}
+
+/* Voltage tab specific styles */
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  margin: 0 0 15px 0;
+  color: #374151;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.header-subtitle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.no-data {
+  margin: 40px 0;
+  text-align: center;
+}
+
+.no-data ion-card {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.no-data h2 {
+  color: #6b7280;
+  margin: 0 0 10px 0;
+}
+
+.no-data p {
+  color: #9ca3af;
+  margin: 8px 0;
+}
+
+.chart-container {
+  margin: 20px 0;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+</style>

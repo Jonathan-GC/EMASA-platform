@@ -2,7 +2,7 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🌐 Applications - Datos desde API</ion-card-title>
+        <ion-card-title>📟 Devices - Datos desde API</ion-card-title>
         <ion-card-subtitle>
           {{ loading ? 'Cargando...' : `${application.length} applications encontrados` }}
         </ion-card-subtitle>
@@ -19,7 +19,7 @@
         <div v-else-if="error" class="error-container">
           <ion-icon :icon="icons.alertCircle" color="danger"></ion-icon>
           <p>Error: {{ error }}</p>
-          <ion-button @click="fetchDeviceProfiles" fill="outline" color="danger">
+          <ion-button @click="fetchApplications" fill="outline" color="danger">
             Reintentar
           </ion-button>
         </div>
@@ -35,9 +35,15 @@
                 show-clear-button="focus"
             ></ion-searchbar>
 
-            <ion-button @click="fetchDeviceProfiles" fill="clear">
+            <ion-button @click="fetchApplications" fill="clear">
               <ion-icon :icon="icons.refresh"></ion-icon>
             </ion-button>
+
+            <QuickControl
+                :toCreate="true"
+                type="application"
+                @itemCreated="handleItemRefresh"
+            />
           </div>
 
           <!-- Table using ion-grid -->
@@ -100,7 +106,7 @@
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.cs_application_id }}</div>
+                <div class="gateway-id">{{ deviceProfile.dev_eui }}</div>
               </ion-col>
 
 
@@ -135,9 +141,11 @@
                 <ion-button
                     fill="clear"
                     size="small"
-                    @click.stop="viewGateway(deviceProfile)"
+                    @click="router.push(`devices/${deviceProfile.id}`)"
                 >
                   <ion-icon :icon="icons.eye"></ion-icon>
+
+                  
                 </ion-button>
               </ion-col>
             </ion-row>
@@ -172,7 +180,7 @@
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
           <h3>No hay gateways</h3>
           <p>No se encontraron gateways en el sistema</p>
-          <ion-button @click="fetchDeviceProfiles" fill="outline">
+          <ion-button @click="fetchApplications" fill="outline">
             Buscar gateways
           </ion-button>
         </div>
@@ -183,7 +191,9 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, inject } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import API from '@utils/api/api'
+import { parameters } from '@/plugins/router/parameters.js'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
@@ -191,6 +201,8 @@ import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+const router = useRouter()
+const route = useRoute()
 
 // Component-specific state
 const application = ref([])
@@ -211,7 +223,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ejemplo.com'
 
 
 // Fetch data from API
-const fetchDeviceProfiles = async () => {
+const fetchApplications = async () => {
   // Ensure component is mounted before fetching
   if (!isMounted.value) {
     console.log('⏳ Component not ready, waiting...')
@@ -228,7 +240,7 @@ const fetchDeviceProfiles = async () => {
     console.log('🔄 Fetching Application data...')
 
     // Real API call using await
-    const response = await API.get(API.APPLICATION, headers);
+    const response = await API.get(API.APPLICATION_DEVICES(route.params.application_id), headers);
     // Ensure response is an array, if not, wrap it or use a default
     const mockData = Array.isArray(response) ? response : (response?.data || []);
 
@@ -255,6 +267,10 @@ const viewGateway = (gateway) => {
   // router.push(`/Application/${gateway.id}`)
 }
 
+const handleItemRefresh = () => {
+  fetchApplications();
+};
+
 // Lifecycle
 onMounted(async () => {
   console.log('🔧 TableGateways component mounted')
@@ -267,7 +283,7 @@ onMounted(async () => {
 
   // Small delay to ensure Ionic page transition is complete
   setTimeout(() => {
-    fetchDeviceProfiles()
+    fetchApplications()
   }, 100)
 })
 </script>

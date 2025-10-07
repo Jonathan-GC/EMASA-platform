@@ -141,11 +141,9 @@
                 <ion-button
                     fill="clear"
                     size="small"
-                    @click.stop="viewGateway(deviceProfile)"
+                    @click="router.push(`/infrastructure/applications/${deviceProfile.id}/devices`)"
                 >
                   <ion-icon :icon="icons.eye"></ion-icon>
-
-                  
                 </ion-button>
               </ion-col>
             </ion-row>
@@ -191,6 +189,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, inject } from 'vue'
+import { useRouter } from 'vue-router'
 import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
@@ -199,6 +198,7 @@ import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+const router = useRouter()
 
 // Component-specific state
 const application = ref([])
@@ -266,7 +266,6 @@ const viewGateway = (gateway) => {
 const handleItemRefresh = () => {
   fetchApplications();
 };
-
 // Lifecycle
 onMounted(async () => {
   console.log('🔧 TableGateways component mounted')
@@ -283,6 +282,8 @@ onMounted(async () => {
   }, 100)
 })
 </script>
+
+
 
 
 
