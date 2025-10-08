@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-// Minimal, safe voltage processor (alternate module to avoid Vite import issues)
+// Minimal, safe voltage processor (alternate module to import issues)
 export function useVoltageDataProcessor() {
   const chartDataFragments = ref([])
   const lastDevice = ref(null)
@@ -39,6 +39,45 @@ export function useVoltageDataProcessor() {
     const m2 = String(ch).match(/(\d+)$/)
     if (m2 && m2[1]) return parseInt(m2[1], 10)
     return Number.MAX_SAFE_INTEGER
+  }
+
+  // Calculate buffer statistics from WebSocket measurements
+  const calculateBufferStats = (data) => {
+    const stats = {
+      total_samples: 0,
+      avg_voltage: 0,
+      min_voltage: 0,
+      max_voltage: 0
+    }
+
+    if (!data.object?.measurements?.voltage) return stats
+
+    const voltageData = data.object.measurements.voltage
+    let totalSamples = 0
+    let sumVoltage = 0
+    let minVoltage = Infinity
+    let maxVoltage = -Infinity
+
+    // Count samples and calculate voltage stats from all channels
+    Object.values(voltageData).forEach(channelSamples => {
+      if (Array.isArray(channelSamples)) {
+        channelSamples.forEach(sample => {
+          if (sample && typeof sample.value === 'number') {
+            totalSamples++
+            sumVoltage += sample.value
+            minVoltage = Math.min(minVoltage, sample.value)
+            maxVoltage = Math.max(maxVoltage, sample.value)
+          }
+        })
+      }
+    })
+
+    stats.total_samples = totalSamples
+    stats.avg_voltage = totalSamples > 0 ? sumVoltage / totalSamples : 0
+    stats.min_voltage = minVoltage === Infinity ? 0 : minVoltage
+    stats.max_voltage = maxVoltage === -Infinity ? 0 : maxVoltage
+
+    return stats
   }
 
   const extractSensorChannels = (data, sensor) => {
@@ -83,10 +122,25 @@ export function useVoltageDataProcessor() {
     const channels = extractSensorChannels(data, 'voltage')
     if (!channels) return
 
-    // update seen device/messages
-    lastDevice.value = data
-    recentMessages.value.unshift(data)
-    if (recentMessages.value.length > 50) recentMessages.value.pop()
+    // Create enhanced device object with available WebSocket data
+    const enhancedDevice = {
+      ...data,
+      device_name: data.devEui || `Device ${data.object?.id || 'Unknown'}`,
+      dev_eui: data.devEui,
+      tenant_name: data.tenantId,
+      buffer_stats: calculateBufferStats(data),
+      reception_timestamp: data.object?.arrival_date || data.arrival_date || new Date().toISOString()
+    }
+    lastDevice.value = enhancedDevice
+
+    // Add to recent messages with reception_timestamp and device_name
+    const messageWithTimestamp = {
+      ...enhancedDevice,
+      reception_timestamp: enhancedDevice.reception_timestamp,
+      device_name: enhancedDevice.device_name
+    }
+    recentMessages.value.unshift(messageWithTimestamp)
+    if (recentMessages.value.length > 15) recentMessages.value.pop()
 
     // determine numeric indices present in incoming payload and update maxChannelIndex
     const incomingKeys = Object.keys(channels)

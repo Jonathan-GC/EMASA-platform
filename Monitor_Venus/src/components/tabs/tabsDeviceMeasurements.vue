@@ -8,12 +8,12 @@
         </ion-tab-button>
 
         <ion-tab-button tab="current">
-          <ion-icon :icon="icons.analytics"></ion-icon>
+          <ion-icon :icon="icons.plug"></ion-icon>
           <ion-label>Corriente</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="battery">
-          <ion-icon :icon="icons.batteryFull"></ion-icon>
+          <ion-icon :icon="icons.batteryHalf"></ion-icon>
           <ion-label>Batería</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
@@ -23,9 +23,9 @@
         <ion-content class="ion-padding">
           <div class="tab-content">
             <!-- Header with connection status -->
-            <div class="header">
-              <h1>Voltaje IoT</h1>
-              <div class="header-subtitle">
+            <div class="header flex">
+              <h1>📟 Device Measurements - Voltage</h1>
+              <div class="header-subtitle connection-status">
                 <ConnectionStatus
                   :is-connected="isConnected"
                   :reconnect-attempts="reconnectAttempts"
@@ -62,7 +62,7 @@
           <div class="tab-content">
             <!-- Header with connection status -->
             <div class="header">
-              <h1>Corriente IoT</h1>
+              <h1>📟 Device Measurements - Current</h1>
               <div class="header-subtitle">
                 <ConnectionStatus
                   :is-connected="isConnected"
@@ -102,7 +102,7 @@
           <div class="tab-content">
             <!-- Header with connection status -->
             <div class="header">
-              <h1>Batería IoT</h1>
+              <h1>📟 Device Measurements - Battery</h1>
               <div class="header-subtitle">
                 <ConnectionStatus
                   :is-connected="isConnected"
@@ -272,21 +272,11 @@ onMounted(() => {
 
 <style scoped>
 .tabs-device-measurements {
-  height: 100%;
   width: 100%;
 }
 
 .tab-content {
   padding: 16px 0;
-}
-
-/* Ensure tabs take full height */
-ion-tabs {
-  height: 100%;
-}
-
-ion-tab {
-  height: 100%;
 }
 
 /* Custom styling for tab content */

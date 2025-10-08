@@ -11,8 +11,12 @@ import {
   tabletPortraitOutline,
   cameraOutline,
   videocamOutline,
-  micOutline
+  micOutline,
+  batteryFullOutline,
+  batteryHalfOutline,
 } from 'ionicons/icons'
+
+import plugOutline from '@assets/icons/plug.svg'
 
 export const hardwareIcons = {
   'hardwareChip': hardwareChipOutline,
@@ -26,5 +30,8 @@ export const hardwareIcons = {
   'tablet': tabletPortraitOutline,
   'camera': cameraOutline,
   'video': videocamOutline,
-  'microphone': micOutline
+  'microphone': micOutline,
+  'batteryFull': batteryFullOutline,
+  'batteryHalf': batteryHalfOutline,
+  'plug': plugOutline
 }

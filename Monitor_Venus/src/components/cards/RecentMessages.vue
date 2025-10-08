@@ -54,6 +54,22 @@ const formatTime = (timestamp) => {
 }
 
 const getSampleCount = (message) => {
+  // Handle WebSocket data structure: count samples across all channels
+  if (message.object?.measurements) {
+    let totalSamples = 0
+    Object.values(message.object.measurements).forEach(sensorData => {
+      if (typeof sensorData === 'object') {
+        Object.values(sensorData).forEach(channelData => {
+          if (Array.isArray(channelData)) {
+            totalSamples += channelData.length
+          }
+        })
+      }
+    })
+    return totalSamples
+  }
+  
+  // Fallback to old structure
   return message.object?.values?.length || message.measurement_values?.length || 0
 }
 </script>
@@ -99,7 +115,7 @@ const getSampleCount = (message) => {
   font-weight: 500;
   min-width: 80px;
   padding: 2px 6px;
-  order-radius: 4px;
+  border-radius: 4px;
   font-size: 0.8em;
 }
 

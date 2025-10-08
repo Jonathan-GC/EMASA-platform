@@ -4,10 +4,6 @@
 
     <ion-content :fullscreen="true">
       <div v-if="pageReady" class="current-dashboard">
-        <!-- Header with connection status -->
-        <div class="header">
-          <h1>📟 Devices </h1>
-        </div>
         <!-- Main applications table with fetch data -->
         <TabsDeviceMeasurements
           :is-connected="isConnected"

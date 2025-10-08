@@ -55,6 +55,45 @@ export function useCurrentDataProcessor() {
         return null
     }
 
+    // Calculate buffer statistics from WebSocket measurements
+    const calculateBufferStats = (data) => {
+        const stats = {
+            total_samples: 0,
+            avg_voltage: 0,
+            min_voltage: 0,
+            max_voltage: 0
+        }
+
+        if (!data.object?.measurements?.current) return stats
+
+        const currentData = data.object.measurements.current
+        let totalSamples = 0
+        let sumCurrent = 0
+        let minCurrent = Infinity
+        let maxCurrent = -Infinity
+
+        // Count samples and calculate current stats from all channels
+        Object.values(currentData).forEach(channelSamples => {
+            if (Array.isArray(channelSamples)) {
+                channelSamples.forEach(sample => {
+                    if (sample && typeof sample.value === 'number') {
+                        totalSamples++
+                        sumCurrent += sample.value
+                        minCurrent = Math.min(minCurrent, sample.value)
+                        maxCurrent = Math.max(maxCurrent, sample.value)
+                    }
+                })
+            }
+        })
+
+        stats.total_samples = totalSamples
+        stats.avg_voltage = totalSamples > 0 ? sumCurrent / totalSamples : 0
+        stats.min_voltage = minCurrent === Infinity ? 0 : minCurrent
+        stats.max_voltage = maxCurrent === -Infinity ? 0 : maxCurrent
+
+        return stats
+    }
+
     /**
      * Processes incoming WebSocket data for current measurements
      */
@@ -78,9 +117,25 @@ export function useCurrentDataProcessor() {
         // Update device information
         lastDevice.value = data
 
-        // Add to recent messages
-        recentMessages.value.unshift(data)
-        if (recentMessages.value.length > 10) {
+        // Create enhanced device object with available WebSocket data
+        const enhancedDevice = {
+            ...data,
+            device_name: data.devEui || `Device ${data.object?.id || 'Unknown'}`,
+            dev_eui: data.devEui,
+            tenant_name: data.tenantId,
+            buffer_stats: calculateBufferStats(data),
+            reception_timestamp: data.object?.arrival_date || data.arrival_date || new Date().toISOString()
+        }
+        lastDevice.value = enhancedDevice
+
+        // Add to recent messages with reception_timestamp and device_name
+        const messageWithTimestamp = {
+            ...enhancedDevice,
+            reception_timestamp: enhancedDevice.reception_timestamp,
+            device_name: enhancedDevice.device_name
+        }
+        recentMessages.value.unshift(messageWithTimestamp)
+        if (recentMessages.value.length > 15) {
             recentMessages.value.pop()
         }
 

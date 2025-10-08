@@ -5,26 +5,8 @@ import { hardwareIcons } from './hardwareIcons.js'
 import { locationIcons } from './locationIcons.js'
 import { uiIcons } from './uiIcons.js'
 import { dataIcons } from './dataIcons.js'
+import { statusIcons } from './statusIcons.js'
 import { communicationIcons } from './communicationIcons.js'
-import { 
-  alertCircleOutline,
-  checkmarkCircleOutline,
-  warningOutline,
-  informationCircleOutline,
-  closeCircleOutline,
-  helpCircleOutline
-} from 'ionicons/icons'
-
-// Status icons
-const statusIcons = {
-  'alertCircle': alertCircleOutline,
-  'success': checkmarkCircleOutline,
-  'warning': warningOutline,
-  'info': informationCircleOutline,
-  'error': closeCircleOutline,
-  'help': helpCircleOutline
-}
-
 // Combinar todos los iconos en un solo objeto
 const allIcons = {
   ...navigationIcons,

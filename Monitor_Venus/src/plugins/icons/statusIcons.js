@@ -7,6 +7,7 @@ import {
   closeCircleOutline,
   helpCircleOutline,
   timeOutline,
+  powerOutline,
   flashOutline,
   shieldOutline,
   lockClosedOutline,
@@ -15,14 +16,16 @@ import {
 
 export const statusIcons = {
   'alert': alertCircleOutline,
+  'alertCircle': alertCircleOutline,
   'success': checkmarkCircleOutline,
   'warning': warningOutline,
   'info': informationCircleOutline,
   'error': closeCircleOutline,
   'help': helpCircleOutline,
   'time': timeOutline,
-  'flash': flashOutline,
+  'power': powerOutline,
   'shield': shieldOutline,
   'lock-closed': lockClosedOutline,
-  'lock-open': lockOpenOutline
+  'lock-open': lockOpenOutline,
+  'flash': flashOutline,
 }

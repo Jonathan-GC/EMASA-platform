@@ -11,7 +11,8 @@ import {
   codeSlashOutline,
   terminalOutline,
   libraryOutline,
-  bookmarkOutline
+  bookmarkOutline,
+  analyticsOutline
 } from 'ionicons/icons'
 
 export const dataIcons = {
@@ -26,5 +27,6 @@ export const dataIcons = {
   'code': codeSlashOutline,
   'terminal': terminalOutline,
   'library': libraryOutline,
-  'bookmark': bookmarkOutline
+  'bookmark': bookmarkOutline,
+  'analytics': analyticsOutline
 }
