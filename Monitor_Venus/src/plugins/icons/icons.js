@@ -1,0 +1,237 @@
+// Consolidated icon system - All icons in one file
+import {
+  // Action icons
+  eyeOutline,
+  refreshOutline,
+  addOutline,
+  createOutline,
+  trashOutline,
+  downloadOutline,
+  arrowUpOutline,
+  copyOutline,
+  saveOutline,
+  printOutline,
+  shareOutline,
+  playOutline,
+  pauseOutline,
+  stopOutline,
+  keyOutline,
+  logOutOutline,
+  shieldOutline,
+
+  // Communication icons
+  mailOutline,
+  chatbubbleOutline,
+  callOutline,
+  videocamOutline,
+  heartOutline,
+  thumbsUpOutline,
+  thumbsDownOutline,
+  starOutline,
+  personOutline,
+  peopleOutline,
+  notificationsOutline,
+
+  // Data icons
+  documentOutline,
+  folderOutline,
+  folderOpenOutline,
+  archiveOutline,
+  cloudDownloadOutline,
+  cloudOutline,
+  attachOutline,
+  linkOutline,
+  codeSlashOutline,
+  terminalOutline,
+  libraryOutline,
+  bookmarkOutline,
+  analyticsOutline,
+
+  // Hardware icons
+  hardwareChipOutline,
+  phonePortraitOutline,
+  serverOutline,
+  wifiOutline,
+  bluetoothOutline,
+  desktopOutline,
+  laptopOutline,
+  tabletPortraitOutline,
+  cameraOutline,
+  micOutline,
+  batteryFullOutline,
+  batteryHalfOutline,
+
+  // Location icons
+  locationOutline,
+  mapOutline,
+  navigateOutline,
+  compassOutline,
+  globeOutline,
+  homeOutline,
+  businessOutline,
+  carOutline,
+  trainOutline,
+  airplaneOutline,
+
+  // Navigation icons
+  chevronUpOutline,
+  chevronDownOutline,
+  chevronBackOutline,
+  chevronForwardOutline,
+  arrowBackOutline,
+  arrowForwardOutline,
+  caretUpOutline,
+  caretDownOutline,
+
+  // Status icons
+  alertCircleOutline,
+  checkmarkCircleOutline,
+  warningOutline,
+  informationCircleOutline,
+  closeCircleOutline,
+  helpCircleOutline,
+  timeOutline,
+  powerOutline,
+  flashOutline,
+  lockClosedOutline,
+  lockOpenOutline,
+
+  // UI icons
+  searchOutline,
+  filterOutline,
+  menuOutline,
+  settingsOutline,
+  optionsOutline,
+  listOutline,
+  gridOutline,
+  appsOutline,
+  layersOutline,
+  swapHorizontalOutline,
+  swapVerticalOutline,
+  resizeOutline
+} from 'ionicons/icons'
+
+// Custom SVG icon
+import plugOutline from '@assets/icons/plug.svg'
+
+export const icons = {
+  // Action icons
+  'eye': eyeOutline,
+  'refresh': refreshOutline,
+  'add': addOutline,
+  'edit': createOutline,
+  'delete': trashOutline,
+  'download': downloadOutline,
+  'upload': arrowUpOutline,
+  'copy': copyOutline,
+  'save': saveOutline,
+  'print': printOutline,
+  'share': shareOutline,
+  'play': playOutline,
+  'pause': pauseOutline,
+  'stop': stopOutline,
+  'key': keyOutline,
+  'logOut': logOutOutline,
+  'shield': shieldOutline,
+
+  // Communication icons
+  'mail': mailOutline,
+  'chat': chatbubbleOutline,
+  'call': callOutline,
+  'video-call': videocamOutline,
+  'heart': heartOutline,
+  'thumbs-up': thumbsUpOutline,
+  'thumbs-down': thumbsDownOutline,
+  'star': starOutline,
+  'person': personOutline,
+  'people': peopleOutline,
+  'notifications': notificationsOutline,
+
+  // Data icons
+  'document': documentOutline,
+  'folder': folderOutline,
+  'folder-open': folderOpenOutline,
+  'archive': archiveOutline,
+  'cloud-download': cloudDownloadOutline,
+  'cloud-upload': cloudOutline,
+  'attach': attachOutline,
+  'link': linkOutline,
+  'code': codeSlashOutline,
+  'terminal': terminalOutline,
+  'library': libraryOutline,
+  'bookmark': bookmarkOutline,
+  'analytics': analyticsOutline,
+
+  // Hardware icons
+  'hardwareChip': hardwareChipOutline,
+  'phonePortrait': phonePortraitOutline,
+  'server': serverOutline,
+  'cloud': cloudOutline,
+  'wifi': wifiOutline,
+  'bluetooth': bluetoothOutline,
+  'desktop': desktopOutline,
+  'laptop': laptopOutline,
+  'tablet': tabletPortraitOutline,
+  'camera': cameraOutline,
+  'video': videocamOutline,
+  'microphone': micOutline,
+  'batteryFull': batteryFullOutline,
+  'batteryHalf': batteryHalfOutline,
+  'plug': plugOutline,
+
+  // Location icons
+  'location': locationOutline,
+  'map': mapOutline,
+  'navigate': navigateOutline,
+  'compass': compassOutline,
+  'globe': globeOutline,
+  'home': homeOutline,
+  'business': businessOutline,
+  'car': carOutline,
+  'train': trainOutline,
+  'airplane': airplaneOutline,
+  'building': businessOutline,
+
+  // Navigation icons
+  'chevronUp': chevronUpOutline,
+  'chevronDown': chevronDownOutline,
+  'chevronBack': chevronBackOutline,
+  'chevronForward': chevronForwardOutline,
+  'arrowBack': arrowBackOutline,
+  'arrowForward': arrowForwardOutline,
+  'caretUp': caretUpOutline,
+  'caretDown': caretDownOutline,
+
+  // Status icons
+  'alert': alertCircleOutline,
+  'alertCircle': alertCircleOutline,
+  'success': checkmarkCircleOutline,
+  'warning': warningOutline,
+  'info': informationCircleOutline,
+  'error': closeCircleOutline,
+  'help': helpCircleOutline,
+  'time': timeOutline,
+  'power': powerOutline,
+  'lock-closed': lockClosedOutline,
+  'lock-open': lockOpenOutline,
+  'flash': flashOutline,
+
+  // UI icons
+  'search': searchOutline,
+  'filter': filterOutline,
+  'menu': menuOutline,
+  'settings': settingsOutline,
+  'options': optionsOutline,
+  'list': listOutline,
+  'grid': gridOutline,
+  'apps': appsOutline,
+  'layers': layersOutline,
+  'swap-horizontal': swapHorizontalOutline,
+  'swap-vertical': swapVerticalOutline,
+  'resize': resizeOutline
+}
+
+// Helper function to get icon by name
+export const getIcon = (name) => {
+  return icons[name] || null
+}
