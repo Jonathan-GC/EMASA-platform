@@ -106,7 +106,7 @@
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.dev_eui }}</div>
+                <div class="gateway-id">{{ deviceProfile.cs_application_id }}</div>
               </ion-col>
 
 

@@ -110,7 +110,7 @@
             @click="closeNavbar"
         >
           <ion-icon
-              :icon="icons.building"
+              :icon="icons.layers"
           ></ion-icon>
           Workspaces
         </router-link>
