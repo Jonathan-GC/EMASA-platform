@@ -49,6 +49,9 @@ import {splineCurveMonotone} from "chart.js/helpers";
 .login-background {
   background-image: url("/login.png");
   background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .logo{

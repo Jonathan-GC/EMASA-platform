@@ -22,7 +22,7 @@
               <ion-input
                 v-model="credentials.name"
                 type="text"
-                placeholder="Joe"
+                placeholder="Fulano"
                 :disabled="loading"
                 class="custom"
                 fill="solid"
@@ -34,7 +34,7 @@
             <ion-input
                 v-model="credentials.last_name"
                 type="text"
-                placeholder="Doe"
+                placeholder="Detal"
                 :disabled="loading"
                 class="bg-zinc-300 rounded-md p-100 custom"
                 fill="solid"
@@ -44,24 +44,40 @@
           </ion-item>
 
           <ion-item class="custom">
-            <div class="flex">
-              <div class="flex-1 mr-2">
+            <div>
                 <ion-label position="stacked" class="!mb-2">Correo</ion-label>
                 <ion-input
                     v-model="credentials.email"
                     type="text"
-                    placeholder="example@mail.com"
+                    placeholder="ejemplo@mail.com"
                     :disabled="loading"
                     class="bg-zinc-300 rounded-md p-100 custom"
                     fill="solid"
                 ></ion-input>
               </div>
-              <div class="flex-1 ml-2">
+          </ion-item>
+          
+          
+          <ion-item class="custom">
+            <div class="flex">
+              <div class="flex-0 mr-2">
+                <ion-label position="stacked" class="!mb-2">País</ion-label>
+                <div 
+                  @click="openCountrySelector"
+                  class="country-selector-button bg-zinc-300 rounded-md custom"
+                  :class="{ 'disabled': loading }"
+                >
+                  <span :class="`fi fi-${countries.find(c => c.phoneCode === selectedCountryCode)?.code.toLowerCase()}`" class="flag-icon"></span>
+                  <span>{{ selectedCountryCode }}</span>
+                  <ion-icon :icon="icons.chevronDown" class="dropdown-icon"></ion-icon>
+                </div>
+              </div>
+              <div class="flex-2 ml-2">
                 <ion-label position="stacked" class="!mb-2">Teléfono</ion-label>
                 <ion-input
                     v-model="credentials.phone"
-                    type="text"
-                    placeholder="example@mail.com"
+                    type="tel"
+                    placeholder="000000000"
                     :disabled="loading"
                     class="bg-zinc-300 rounded-md p-100 custom"
                     fill="solid"
@@ -69,32 +85,60 @@
               </div>
             </div>
           </ion-item>
-
-
-          <ion-item class="custom">
-            <ion-label position="stacked" class="!mb-2">Constraseña</ion-label>
-            <ion-input
-                v-model="credentials.password"
-                type="password"
-                placeholder="example@mail.com"
-                :disabled="loading"
-                class="bg-zinc-300 rounded-md p-100 custom"
-                fill="solid"
-            ></ion-input>
-          </ion-item>
-
 
           <ion-item class="custom">
             <ion-label position="stacked" class="!mb-2">Address</ion-label>
             <ion-input
                 v-model="credentials.address"
                 type="text"
-                placeholder="example@mail.com"
+                placeholder="Calle Falsa #12-3"
                 :disabled="loading"
                 class="bg-zinc-300 rounded-md p-100 custom"
                 fill="solid"
             ></ion-input>
           </ion-item>
+
+          <ion-item class="custom">
+            <ion-label position="stacked" class="!mb-2">Usuario</ion-label>
+            <ion-input
+                v-model="credentials.username"
+                type="text"
+                placeholder="nombre.usuario"
+                :disabled="loading"
+                class="bg-zinc-300 rounded-md p-100 custom"
+                fill="solid"
+            >
+              
+            </ion-input>
+          </ion-item>
+
+          <ion-item class="custom">
+            <ion-label position="stacked" class="!mb-2">Constraseña</ion-label>
+            <ion-input
+                v-model="credentials.password"
+                :type="passwordInputType"
+                placeholder="*****"
+                :disabled="loading"
+                class="bg-zinc-300 rounded-md p-100 custom"
+                fill="solid"
+            >
+              <ion-button
+                fill="clear"
+                slot="end"
+                @click="togglePasswordVisibility"
+                class="password-toggle-btn rounded-full"
+              >
+                <ion-icon
+                  :icon="showPassword ? icons.eyeOff : icons.eye"
+                  color="medium"
+                  slot="icon-only"
+                ></ion-icon>
+              </ion-button>
+            </ion-input>
+          </ion-item>
+
+
+          
 
           <CountryRegionSelect
               v-model:country="address.country"
@@ -124,7 +168,7 @@
                 :disabled="loading || !credentials.username || !credentials.password"
             >
               <ion-icon :icon="icons.key" slot="start"></ion-icon>
-              Iniciar Sesión
+              Registrar
             </ion-button>
 
             <ion-button
@@ -151,15 +195,44 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Country Selector Modal -->
+    <ion-modal :is-open="isCountrySelectorOpen" @did-dismiss="isCountrySelectorOpen = false">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Selecciona tu país</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="isCountrySelectorOpen = false">
+              <ion-icon :icon="icons.close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item 
+            v-for="country in countries" 
+            :key="country.code"
+            button
+            @click="selectCountry(country.phoneCode)"
+          >
+            <span :class="`fi fi-${country.code.toLowerCase()}`" class="flag-icon" slot="start"></span>
+            <ion-label>{{ country.name }} ({{ country.phoneCode }})</ion-label>
+            <ion-note></ion-note>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ion-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, inject, computed, onMounted } from 'vue'
+import { ref, inject, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import API from '@utils/api/index.js'
 import {paths}  from '@/plugins/router/paths.js'
 import { CountryRegionSelect } from 'vue3-country-region-select'
+import { countries } from '@/data/countries.js'
 
 
 // Router instance
@@ -173,6 +246,27 @@ const loading = ref(false)
 const error = ref(null)
 const success = ref(null)
 const cookieInfo = ref(null)
+const showPassword = ref(false)
+const selectedCountryCode = ref('+57') // Default to Argentina
+const isCountrySelectorOpen = ref(false)
+
+// Functions for country selector
+const openCountrySelector = () => {
+  if (!loading.value) {
+    isCountrySelectorOpen.value = true
+  }
+}
+
+const selectCountry = (phoneCode) => {
+  selectedCountryCode.value = phoneCode
+  isCountrySelectorOpen.value = false
+}
+
+// Computed property to get the selected country flag
+const selectedCountryFlag = computed(() => {
+  const country = countries.find(c => c.phoneCode === selectedCountryCode.value)
+  return country ? country.flag : '🌐'
+})
 
 // Credenciales del usuario
 const credentials = ref({
@@ -182,7 +276,13 @@ const credentials = ref({
   last_name: '',
   email: '',
   phone: '',
-  address: ''
+  address: '',
+  countryCode: selectedCountryCode
+})
+
+// Watcher para mantener sincronizado el countryCode
+watch(selectedCountryCode, (newCode) => {
+  credentials.value.countryCode = newCode
 })
 
 // Dirección reactiva para CountryRegionSelect
@@ -246,10 +346,18 @@ const tokenStatus = computed(() => {
   }
 })
 
+// Computed property for password input type
+const passwordInputType = computed(() => showPassword.value ? 'text' : 'password')
+
 // Función para limpiar mensajes
 const clearMessages = () => {
   error.value = null
   success.value = null
+}
+
+// Función para alternar visibilidad de contraseña
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
 }
 
 // Función helper para obtener el valor de una cookie
@@ -586,7 +694,51 @@ checkCookies()
   margin: 0;
 }
 
+/* Country flag fallback for Windows */
+.country-flag {
+  font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Apple Color Emoji', sans-serif;
+  font-size: 1.2em;
+  margin-right: 4px;
+}
 
+/* Flag icon styling */
+.flag-icon {
+  width: 20px;
+  height: 15px;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+
+/* Country select label styling */
+.country-select [slot="label"] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Custom country selector button */
+.country-selector-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  min-height: 48px;
+  position: relative;
+}
+
+.country-selector-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.country-selector-button .dropdown-icon {
+  margin-left: auto;
+  font-size: 16px;
+  color: #666;
+}
 
 /* Mobile responsive */
 @media (max-width: 768px) {

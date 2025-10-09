@@ -15,19 +15,19 @@
 
         <!-- Login form -->
         <div v-else>
-          <ion-item>
+          <ion-item class="custom">
             <ion-label position="stacked" class="!mb-2">Email</ion-label>
             <ion-input 
               v-model="credentials.username"
               type="text"
               placeholder="example@mail.com"
               :disabled="loading"
-              class="bg-zinc-300 rounded-md p-100 form-field"
+              class="bg-zinc-300 rounded-md p-100 form-field custom"
               fill="solid"
             ></ion-input>
           </ion-item>
 
-          <ion-item>
+          <ion-item class="custom">
             <ion-label position="stacked" class="!mb-2">Contraseña</ion-label>
             <ion-input 
               v-model="credentials.password"
@@ -35,7 +35,7 @@
               placeholder="*****"
               :disabled="loading"
               @keyup.enter="handleLogin"
-              class="bg-zinc-300 rounded-md p-100"
+              class="bg-zinc-300 rounded-md p-100 custom"
               fill="solid"
             ></ion-input>
           </ion-item>
@@ -95,7 +95,7 @@
               <ion-icon :icon="icons.logOut" slot="start"></ion-icon>
               Cerrar Sesión
             </ion-button>
-            <p class="text-center">¿No tienes cuenta? <router-link :to="paths.REGISTER">Regístrate</router-link></p>
+            <p class="text-center">¿No tienes cuenta? <router-link :to="paths.SIGNUP">Regístrate</router-link></p>
           </div>
         </div>
       </ion-card-content>
@@ -524,6 +524,7 @@ ion-item {
 ion-input {
   margin-top: 5px;
 }
+
 
 /* Mobile responsive */
 @media (max-width: 768px) {

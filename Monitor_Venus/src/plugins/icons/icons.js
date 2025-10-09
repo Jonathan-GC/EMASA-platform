@@ -2,6 +2,7 @@
 import {
   // Action icons
   eyeOutline,
+  eyeOffOutline,
   refreshOutline,
   addOutline,
   createOutline,
@@ -108,7 +109,8 @@ import {
   layersOutline,
   swapHorizontalOutline,
   swapVerticalOutline,
-  resizeOutline
+  resizeOutline,
+  close,
 } from 'ionicons/icons'
 
 // Custom SVG icon
@@ -117,6 +119,7 @@ import plugOutline from '@assets/icons/plug.svg'
 export const icons = {
   // Action icons
   'eye': eyeOutline,
+  'eyeOff': eyeOffOutline,
   'refresh': refreshOutline,
   'add': addOutline,
   'edit': createOutline,
@@ -228,7 +231,8 @@ export const icons = {
   'layers': layersOutline,
   'swap-horizontal': swapHorizontalOutline,
   'swap-vertical': swapVerticalOutline,
-  'resize': resizeOutline
+  'resize': resizeOutline,
+  'close': close,
 }
 
 // Helper function to get icon by name

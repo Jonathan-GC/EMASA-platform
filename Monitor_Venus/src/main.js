@@ -10,6 +10,9 @@ import '@ionic/vue/css/normalize.css'
 import '@ionic/vue/css/structure.css'
 import '@ionic/vue/css/typography.css'
 
+// Import flag-icons CSS for country flags
+import 'flag-icons/css/flag-icons.min.css'
+
 // Optional: Import Ionic theme utilities
 import '@ionic/vue/css/padding.css'
 import '@ionic/vue/css/float-elements.css'

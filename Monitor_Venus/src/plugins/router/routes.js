@@ -22,20 +22,6 @@ export const routes = [
                 beforeEnter: requireAuth
             },
             {
-                path: P.VOLTAGE,
-                component: C.VOLTAGE,
-            },
-            {
-                path: P.CURRENT,
-                component: C.CURRENT,
-                beforeEnter: requireAuth
-            },
-            {
-                path: P.BATTERY,
-                component: C.BATTERY,
-                beforeEnter: requireAuth
-            },
-            {
                 path: P.GATEWAYS,
                 component: C.GATEWAYS,
                 beforeEnter: requireAuth
@@ -66,7 +52,7 @@ export const routes = [
             { path: P.TENANT_MANAGERS, component: C.TENANT_MANAGERS, beforeEnter: requireAuth },
             { path: P.TENANT_LOCATIONS, component: C.TENANT_LOCATIONS, beforeEnter: requireAuth },
             { path: P.TENANT_WORKSPACES, component: C.TENANT_WORKSPACES, beforeEnter: requireAuth }
-            //{ path: P.LOGIN, component: C.LOGIN }
+
         ]
     },
     {
@@ -74,7 +60,7 @@ export const routes = [
         component: C.BLANK_LAYOUT,
         children: [
             { path: P.LOGIN, component: C.LOGIN, beforeEnter: allowAll },
-            { path: P.REGISTER, component: C.REGISTER },
+            { path: P.SIGNUP, component: C.REGISTER },
         ]
     }
 

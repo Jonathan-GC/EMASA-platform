@@ -37,59 +37,14 @@
           🏠 Inicio
         </router-link>
         <router-link 
-          to="/voltage" 
+          to="/about" 
           class="nav-link"
-          :class="{ active: $route.path === '/voltage' }"
+          :class="{ active: $route.path === '/about' }"
           @click="closeNavbar"
         >
-          ⚡ Voltaje
+          ℹ️ Acerca de
         </router-link>
-        <router-link 
-          to="/current" 
-          class="nav-link"
-          :class="{ active: $route.path === '/current' }"
-          @click="closeNavbar"
-        >
-          🔌 Corriente
-        </router-link>
-        <router-link 
-          to="/battery" 
-          class="nav-link"
-          :class="{ active: $route.path === '/battery' }"
-          @click="closeNavbar"
-        >
-          🔋 Batería
-        </router-link>
-
-        <hr class="divider"/>
-
-
-        <router-link 
-          to="/infrastructure/gateways"
-          class="nav-link"
-          :class="{ active: $route.path === paths.GATEWAYS }"
-          @click="closeNavbar"
-        >
-          🛜 Gateways
-        </router-link>
-        <router-link
-            :to=paths.DEVICE_PROFILES
-            class="nav-link"
-            :class="{ active: $route.path === paths.DEVICE_PROFILES }"
-            @click="closeNavbar"
-        >
-          📜 Device Profiles
-        </router-link>
-
-        <router-link
-            :to=paths.APPLICATIONS
-            class="nav-link"
-            :class="{ active: $route.path === paths.APPLICATIONS }"
-            @click="closeNavbar"
-        >
-          📦 Applications
-        </router-link>
-
+        
         <hr class="divider"/>
         <router-link
             to="/tenants"
@@ -139,7 +94,35 @@
         <hr class="divider"/>
 
         <router-link 
-          to="/login" 
+          to="/infrastructure/gateways"
+          class="nav-link"
+          :class="{ active: $route.path === paths.GATEWAYS }"
+          @click="closeNavbar"
+        >
+          🛜 Gateways
+        </router-link>
+        <router-link
+            :to=paths.DEVICE_PROFILES
+            class="nav-link"
+            :class="{ active: $route.path === paths.DEVICE_PROFILES }"
+            @click="closeNavbar"
+        >
+          📜 Device Profiles
+        </router-link>
+
+        <router-link
+            :to=paths.APPLICATIONS
+            class="nav-link"
+            :class="{ active: $route.path === paths.APPLICATIONS }"
+            @click="closeNavbar"
+        >
+          📦 Applications
+        </router-link>
+
+        <hr class="divider"/>
+
+        <router-link 
+          to="/" 
           class="nav-link"
           :class="{ active: $route.path === '/auth' }"
           @click="closeNavbar"
@@ -147,14 +130,7 @@
         >
           🔑 Iniciar Sesión
         </router-link>
-        <router-link 
-          to="/about" 
-          class="nav-link"
-          :class="{ active: $route.path === '/about' }"
-          @click="closeNavbar"
-        >
-          ℹ️ Acerca de
-        </router-link>
+        
         <BtnLogout/>
       </div>
     </div>

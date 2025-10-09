@@ -14,7 +14,7 @@ export const paths = {
     TENANT_LOCATIONS: '/locations',
     TENANT_WORKSPACES: '/workspaces',
     LOGIN: '/login',
-    REGISTER: '/register',
+    SIGNUP: '/signup',
 
     // Relative paths
     DEVICES: '/devices',
