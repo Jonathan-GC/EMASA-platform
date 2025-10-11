@@ -41,7 +41,7 @@
 
             <QuickControl
                 :toCreate="true"
-                type="application"
+                type="device"
                 @itemCreated="handleItemRefresh"
             />
           </div>

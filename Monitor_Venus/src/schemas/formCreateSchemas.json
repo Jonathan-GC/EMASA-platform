@@ -60,6 +60,17 @@
     { "key": "is_gateway_admin", "label": "Es administrador de gateways", "type": "checkbox" }
   ],
 
+  "device": [
+    { "key": "dev_eui", "label": "Dev eui", "type": "text" },
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "workspace_id", "label": "Id del workspace", "type": "text" },
+    { "key": "application", "label": "Aplicación", "type": "text" },
+    { "key": "device_type", "label": "Tipo de dispositivo", "type": "text" },
+    { "key": "device_profile", "label": "Perfil del dispositivo", "type": "text" },
+    { "key": "machine", "label": "Máquina", "type": "text" }
+  ],
+
 
   "period": [
     { "key": "name", "label": "Nombre", "type": "text" },

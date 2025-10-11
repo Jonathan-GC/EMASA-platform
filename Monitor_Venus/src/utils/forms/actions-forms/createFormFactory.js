@@ -21,6 +21,7 @@ const CreateTenants = defineAsyncComponent(() => import("@components/forms/creat
 const CreateGateways = defineAsyncComponent(() => import("@components/forms/create/gateways/formCreateGateways.vue"));
 const CreateLocations = defineAsyncComponent(() => import("@components/forms/create/locations/formCreateLocations.vue"));
 const CreateDeviceProfiles = defineAsyncComponent(() => import("@components/forms/create/device_profiles/formCreateDeviceProfiles.vue"));
+const CreateDevices = defineAsyncComponent(() => import("@components/forms/create/device/formCreateDevices.vue"));
 const CreateApplications = defineAsyncComponent(() => import("@components/forms/create/applications/formCreateApplications.vue"));
 const CreateWorkspaces = defineAsyncComponent(() => import("@components/forms/create/workspaces/formCreateWorkspaces.vue"));
 const CreateManagers = defineAsyncComponent(() => import("@components/forms/create/managers/formCreateManagers.vue"));
@@ -60,6 +61,14 @@ export class CreateFormFactory extends AbstractFormFactory {
                     type: type,
                     label: 'device profile',
                     fields: schema.device_profile,
+                }
+            },
+            device: {
+                component: CreateDevices,
+                props: {
+                    type: type,
+                    label: 'device',
+                    fields: schema.device,
                 }
             },
             application: {

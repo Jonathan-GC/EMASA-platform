@@ -183,6 +183,7 @@ async function createItem() {
       'gateway': API.GATEWAY,
       'location': API.LOCATION,
       'device_profile': API.DEVICE_PROFILE,
+      'device': API.DEVICE,
       'application': API.APPLICATION,
       'workspace': API.WORKSPACE,
       'manager': API.API_USER,
