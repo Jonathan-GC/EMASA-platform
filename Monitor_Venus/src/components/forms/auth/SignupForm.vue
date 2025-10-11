@@ -36,7 +36,7 @@
                 type="text"
                 placeholder="Detal"
                 :disabled="loading"
-                class="bg-zinc-300 rounded-md p-100 custom"
+                class="bg-zinc-300 rounded-md custom"
                 fill="solid"
             ></ion-input>
               </div>
@@ -51,7 +51,7 @@
                     type="text"
                     placeholder="ejemplo@mail.com"
                     :disabled="loading"
-                    class="bg-zinc-300 rounded-md p-100 custom"
+                    class="bg-zinc-300 rounded-md custom"
                     fill="solid"
                 ></ion-input>
               </div>
@@ -61,39 +61,102 @@
           <ion-item class="custom">
             <div class="flex">
               <div class="flex-0 mr-2">
-                <ion-label position="stacked" class="!mb-2">País</ion-label>
-                <div 
-                  @click="openCountrySelector"
-                  class="country-selector-button bg-zinc-300 rounded-md custom"
-                  :class="{ 'disabled': loading }"
+                <ion-label position="stacked" class="!mb-2">Indicativo</ion-label>
+                <ModalSelector
+                  v-model="selectedCountryCode"
+                  :options="countries"
+                  :value-field="'phoneCode'"
+                  :display-field="country => `${country.phoneCode}`"
+                  :search-fields="['name', 'phoneCode']"
+                  title="Seleccionar Indicativo"
+                  placeholder="Selecciona un indicativo"
+                  search-placeholder="Buscar país..."
+                  :disabled="loading"
                 >
-                  <span :class="`fi fi-${countries.find(c => c.phoneCode === selectedCountryCode)?.code.toLowerCase()}`" class="flag-icon"></span>
-                  <span>{{ selectedCountryCode }}</span>
-                  <ion-icon :icon="icons.chevronDown" class="dropdown-icon"></ion-icon>
-                </div>
+                  <template #display="{ selected }">
+                    <span :class="`fi fi-${selected?.code.toLowerCase()}`" class="flag-icon"></span>
+                    <span>{{ selected?.phoneCode }}</span>
+                  </template>
+                  
+                  <template #option="{ option }">
+                    <span :class="`fi fi-${option.code.toLowerCase()}`" class="flag-icon" slot="start"></span>
+                    <ion-label>{{ option.name }} ({{ option.phoneCode }})</ion-label>
+                  </template>
+                </ModalSelector>
               </div>
               <div class="flex-2 ml-2">
                 <ion-label position="stacked" class="!mb-2">Teléfono</ion-label>
                 <ion-input
-                    v-model="credentials.phone"
+                    v-model="credentials.phone.number"
                     type="tel"
                     placeholder="000000000"
                     :disabled="loading"
-                    class="bg-zinc-300 rounded-md p-100 custom"
+                    class="bg-zinc-300 rounded-md custom"
                     fill="solid"
                 ></ion-input>
               </div>
             </div>
           </ion-item>
 
+           <div class="flex">
+          <!-- Country Selection -->
+          <ion-item class="custom flex-2 mr-2 !pl-0 !pr-0">
+            <ion-label position="stacked" class="!mb-2">País</ion-label>
+            <ModalSelector
+              v-model="address.country"
+              :options="countries"
+              :value-field="'name'"
+              :display-field="'name'"
+              :search-fields="['name']"
+              title="Selecciona tu país"
+              placeholder=" -"
+              search-placeholder="Buscar país..."
+              :disabled="loading"
+            >
+              <template #option="{ option }">
+                <span :class="`fi fi-${option.code.toLowerCase()}`" class="flag-icon" slot="start"></span>
+                <ion-label>{{ option.name }}</ion-label>
+              </template>
+            </ModalSelector>
+          </ion-item>
+
+          <!-- State Selection -->
+          <ion-item class="custom flex-2 mr-2 !pl-0 !pr-0">
+            <ion-label position="stacked" class="!mb-2">Provincia</ion-label>
+            <ModalSelector
+              v-model="address.state"
+              :options="availableStates"
+              :display-field="state => state"
+              title="Selecciona tu provincia"
+              placeholder=" -"
+              search-placeholder="Buscar provincia..."
+              :disabled="loading || !address.country"
+            />
+          </ion-item>
+
+          <!-- City Selection -->
+          <ion-item class="custom flex-2 !pl-0 !pr-0">
+            <ion-label position="stacked" class="!mb-2">Ciudad</ion-label>
+            <ModalSelector
+              v-model="address.city"
+              :options="availableCities"
+              :display-field="city => city"
+              title="Selecciona tu ciudad"
+              placeholder=" -"
+              search-placeholder="Buscar ciudad..."
+              :disabled="loading || !address.country || !address.state"
+            />
+          </ion-item>
+          </div>
+
           <ion-item class="custom">
-            <ion-label position="stacked" class="!mb-2">Address</ion-label>
+            <ion-label position="stacked" class="!mb-2">Dirección</ion-label>
             <ion-input
-                v-model="credentials.address"
+                v-model="credentials.address.street"
                 type="text"
                 placeholder="Calle Falsa #12-3"
                 :disabled="loading"
-                class="bg-zinc-300 rounded-md p-100 custom"
+                class="bg-zinc-300 rounded-md custom"
                 fill="solid"
             ></ion-input>
           </ion-item>
@@ -105,7 +168,7 @@
                 type="text"
                 placeholder="nombre.usuario"
                 :disabled="loading"
-                class="bg-zinc-300 rounded-md p-100 custom"
+                class="bg-zinc-300 rounded-md custom"
                 fill="solid"
             >
               
@@ -119,7 +182,7 @@
                 :type="passwordInputType"
                 placeholder="*****"
                 :disabled="loading"
-                class="bg-zinc-300 rounded-md p-100 custom"
+                class="bg-zinc-300 rounded-md custom"
                 fill="solid"
             >
               <ion-button
@@ -139,17 +202,7 @@
 
 
           
-
-          <CountryRegionSelect
-              v-model:country="address.country"
-              v-model:region="address.state"
-              country-label="Country"
-              region-label="State/Province"
-              country-placeholder="Select country"
-              region-placeholder="Select state/province"
-              :country-options="null"  <!-- or provide your own list -->
-              :region-options="null"   <!-- or provide your own list -->
-          > </CountryRegionSelect>
+         
 
           <!-- Info note -->
 
@@ -195,34 +248,6 @@
         </div>
       </ion-card-content>
     </ion-card>
-
-    <!-- Country Selector Modal -->
-    <ion-modal :is-open="isCountrySelectorOpen" @did-dismiss="isCountrySelectorOpen = false">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Selecciona tu país</ion-title>
-          <ion-buttons slot="end">
-            <ion-button @click="isCountrySelectorOpen = false">
-              <ion-icon :icon="icons.close" slot="icon-only"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        <ion-list>
-          <ion-item 
-            v-for="country in countries" 
-            :key="country.code"
-            button
-            @click="selectCountry(country.phoneCode)"
-          >
-            <span :class="`fi fi-${country.code.toLowerCase()}`" class="flag-icon" slot="start"></span>
-            <ion-label>{{ country.name }} ({{ country.phoneCode }})</ion-label>
-            <ion-note></ion-note>
-          </ion-item>
-        </ion-list>
-      </ion-content>
-    </ion-modal>
   </div>
 </template>
 
@@ -231,8 +256,9 @@ import { ref, inject, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import API from '@utils/api/index.js'
 import {paths}  from '@/plugins/router/paths.js'
-import { CountryRegionSelect } from 'vue3-country-region-select'
 import { countries } from '@/data/countries.js'
+import { cities } from '@/data/cities.js'
+import ModalSelector from '@/components/ui/ModalSelector.vue'
 
 
 // Router instance
@@ -247,26 +273,7 @@ const error = ref(null)
 const success = ref(null)
 const cookieInfo = ref(null)
 const showPassword = ref(false)
-const selectedCountryCode = ref('+57') // Default to Argentina
-const isCountrySelectorOpen = ref(false)
-
-// Functions for country selector
-const openCountrySelector = () => {
-  if (!loading.value) {
-    isCountrySelectorOpen.value = true
-  }
-}
-
-const selectCountry = (phoneCode) => {
-  selectedCountryCode.value = phoneCode
-  isCountrySelectorOpen.value = false
-}
-
-// Computed property to get the selected country flag
-const selectedCountryFlag = computed(() => {
-  const country = countries.find(c => c.phoneCode === selectedCountryCode.value)
-  return country ? country.flag : '🌐'
-})
+const selectedCountryCode = ref('+57') // Default to Colombia
 
 // Credenciales del usuario
 const credentials = ref({
@@ -275,20 +282,44 @@ const credentials = ref({
   name: '',
   last_name: '',
   email: '',
-  phone: '',
-  address: '',
-  countryCode: selectedCountryCode
+  phone: {
+    countryCode: selectedCountryCode.value,
+    number: ''
+  },
+  address: {
+    country: '',
+    state: '',
+    city: '',
+    street: ''
+  }
 })
 
 // Watcher para mantener sincronizado el countryCode
 watch(selectedCountryCode, (newCode) => {
-  credentials.value.countryCode = newCode
+  credentials.value.phone.countryCode = newCode
 })
 
 // Dirección reactiva para CountryRegionSelect
 const address = ref({
   country: '',
-  state: ''
+  state: '',
+  city: ''
+})
+
+// Watchers para sincronizar address con credentials.address
+watch(() => address.value.country, (newVal) => {
+  credentials.value.address.country = newVal
+  // Reset dependent fields when country changes
+  address.value.state = ''
+  address.value.city = ''
+})
+watch(() => address.value.state, (newVal) => {
+  credentials.value.address.state = newVal
+  // Reset city when state changes
+  address.value.city = ''
+})
+watch(() => address.value.city, (newVal) => {
+  credentials.value.address.city = newVal
 })
 
 // Estado del CSRF token (reactivo)
@@ -349,6 +380,49 @@ const tokenStatus = computed(() => {
 // Computed property for password input type
 const passwordInputType = computed(() => showPassword.value ? 'text' : 'password')
 
+// Computed property for available states based on selected country
+const availableStates = computed(() => {
+  const countryName = address.value.country
+
+  if (!countryName) return []
+
+  // Find the country code from the country name
+  const country = countries.find(c => c.name === countryName)
+  if (!country) return []
+
+  const countryCode = country.code
+
+  // Get states for the country
+  const countryCities = cities[countryCode]
+  if (!countryCities) return []
+
+  return Object.keys(countryCities)
+})
+
+// Computed property for available cities based on selected country and state
+const availableCities = computed(() => {
+  const countryName = address.value.country
+  const stateName = address.value.state
+
+  if (!countryName || !stateName) return []
+
+  // Find the country code from the country name
+  const country = countries.find(c => c.name === countryName)
+
+  if (!country) return []
+
+  const countryCode = country.code
+
+  // Get cities for the country and state
+  const countryCities = cities[countryCode]
+
+  if (!countryCities) return []
+
+  const stateCities = countryCities[stateName] || []
+
+  return stateCities
+})
+
 // Función para limpiar mensajes
 const clearMessages = () => {
   error.value = null
@@ -383,10 +457,10 @@ const getHeadersWithCSRF = (additionalHeaders = {}) => {
   return headers;
 }
 
-// Función principal de auth
+// Función principal de registro
 const handleLogin = async () => {
-  if (!credentials.value.username || !credentials.value.password) {
-    error.value = 'Por favor ingresa usuario y contraseña'
+  if (!credentials.value.username || !credentials.value.password || !credentials.value.name || !credentials.value.email || !credentials.value.phone.number || !credentials.value.address.country || !credentials.value.address.city) {
+    error.value = 'Por favor completa todos los campos requeridos'
     return
   }
 
@@ -394,8 +468,11 @@ const handleLogin = async () => {
   clearMessages()
 
   try {
-    console.log('🔑 Intentando auth con:', {
+    console.log('🔑 Intentando registro con:', {
       username: credentials.value.username,
+      email: credentials.value.email,
+      name: credentials.value.name,
+      address: credentials.value.address,
       password: '***'
     })
 
@@ -411,35 +488,12 @@ const handleLogin = async () => {
     // Obtener headers con CSRF token
     const headers = getHeadersWithCSRF();
 
-    // Realizar auth con CSRF token
-    const response = await API.post(API.TOKEN, {
-      username: credentials.value.username,
-      password: credentials.value.password
-    }, headers)
+    // Realizar registro con CSRF token
+    const response = await API.post(API.REGISTER, credentials.value, headers)
 
-    console.log('✅ Login exitoso:', response)
+    console.log('✅ Registro exitoso:', response)
 
-    // Guardar tokens en sessionStorage
-    if (response && response.length > 0) {
-      const loginData = response[0]; // API.handleResponse retorna array
-
-      if (loginData.access) {
-        sessionStorage.setItem('access_token', loginData.access);
-        console.log('💾 Access token guardado en sessionStorage');
-
-        // Calcular tiempo de expiración (60 minutos)
-        const expirationTime = Date.now() + (60 * 60 * 1000);
-        sessionStorage.setItem('access_token_expiry', expirationTime.toString());
-        console.log('⏰ Token expira en 60 minutos');
-      }
-
-      if (loginData.refresh) {
-        // El refresh se maneja por cookies, pero podemos loggearlo
-        console.log('🔄 Refresh token recibido (manejado por cookies)');
-      }
-    }
-
-    success.value = '¡Login exitoso! Tokens guardados.'
+    success.value = '¡Registro exitoso! Revisa tu email para confirmar.'
 
     // Redirigir a /tenants después de un segundo
     setTimeout(() => {
@@ -716,28 +770,6 @@ checkCookies()
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-/* Custom country selector button */
-.country-selector-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  cursor: pointer;
-  min-height: 48px;
-  position: relative;
-}
-
-.country-selector-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.country-selector-button .dropdown-icon {
-  margin-left: auto;
-  font-size: 16px;
-  color: #666;
 }
 
 /* Mobile responsive */

@@ -28,6 +28,7 @@ class API {
     REFRESH_TOKEN = 'token/refresh'
     CSRF_TOKEN = 'csrf/'
     LOGOUT = 'logout/';
+    REGISTER = 'users/auth/register/';
 
     //----[ORGANIZATIONS]----
     TENANT = 'organizations/tenant/'

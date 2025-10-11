@@ -258,6 +258,16 @@ export const cities = {
       'San Gil',
       'Socorro',
       'Málaga'
+    ],
+    'Tolima': [
+      'Ibagué',
+      'Espinal',
+      'Girardot',
+      'Lérida',
+      'Honda',
+      'Mariquita',
+      'Flandes',
+      'Villahermosa'
     ]
   },
   'CR': {
