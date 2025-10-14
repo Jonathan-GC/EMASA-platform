@@ -6,7 +6,11 @@ from typing import Optional, Any, Dict
 class MessageIn(BaseModel):
     tenant_id: str
     device_id: str
-    dev_addr: str
+    dev_addr: Optional[str] = None
+    device_name: Optional[str] = None
+    frequency: Optional[int] = None
+    f_cnt: Optional[int] = None
+    region: Optional[str] = None
     payload: Dict[str, Any]
     metadata: Optional[Dict[str, Any]] = None
 

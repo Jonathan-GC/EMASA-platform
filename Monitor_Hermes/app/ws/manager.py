@@ -1,7 +1,3 @@
-# Manager in charge of:
-# - Saving active connections in a list
-# - Allowing to connect and disconnect
-# - Broadcast messages to all active connections
 import loguru
 import asyncio
 from typing import List, Dict, Set
@@ -12,16 +8,15 @@ from loguru import logger
 
 class ConnectionManager:
     def __init__(self):
-        self.tenants: Dict[str, List[WebSocket]] = {}
-        self.global_connections: List[WebSocket] = []
-        self.super_connections: List[WebSocket] = []
-        self.device_subs: Dict[str, Set[WebSocket]] = {}
-        # Map user_id -> list of websockets for sending user-targeted messages
-        self.users: Dict[str, List[WebSocket]] = {}
+        self.tenants: Dict[str, List[WebSocket]] = {}  # tenant connections
+        self.global_connections: List[WebSocket] = []  # global connections
+        self.super_connections: List[WebSocket] = []  # superuser connections
+        self.device_subs: Dict[str, Set[WebSocket]] = {}  # device subscriptions
+        self.users: Dict[str, List[WebSocket]] = (
+            {}
+        )  # user connections for notifications
 
     async def connect(self, websocket: WebSocket, info: dict):
-        # If this connection is intended only for a single device, do not
-        # register it under tenant lists (so it won't receive tenant broadcasts).
         if info.get("is_global"):
             loguru.logger.info(
                 f"Global connection established as global: \n User: {str(info.get('username'))} \n Tenant: {str(info.get('tenant_id'))}"
@@ -33,7 +28,6 @@ class ConnectionManager:
             )
             self.super_connections.append(websocket)
         elif info.get("device_only"):
-            # device-only connection: keep out of tenant lists
             tenant_id = str(info.get("tenant_id"))
             loguru.logger.info(
                 f"Device-only connection established: \n User: {str(info.get('username'))} \n Tenant: {str(tenant_id)}"
@@ -46,7 +40,6 @@ class ConnectionManager:
             if tenant_id not in self.tenants:
                 self.tenants[tenant_id] = []
             self.tenants[tenant_id].append(websocket)
-        # Register websocket under user mapping if we have a user_id
         try:
             user_id = info.get("user_id")
             if user_id is not None:
@@ -66,7 +59,6 @@ class ConnectionManager:
             loguru.logger.info("Superuser connection closed")
             self.super_connections.remove(websocket)
         elif info.get("device_only"):
-            # nothing to remove from tenants (was not registered there)
             tenant_id = str(info.get("tenant_id"))
             loguru.logger.info(f"Device-only connection closed for tenant {tenant_id}")
         else:
@@ -84,7 +76,6 @@ class ConnectionManager:
                         del self.device_subs[dev]
         except Exception:
             loguru.logger.exception("Error cleaning device subscriptions on disconnect")
-        # Remove from user mapping if present
         try:
             user_id = info.get("user_id")
             if user_id is not None:
@@ -102,14 +93,12 @@ class ConnectionManager:
 
     async def broadcast(self, message: dict, tenant_id: str):
         tenant_key = str(tenant_id)
-        # Specific tenant
         for connection in list(self.tenants.get(tenant_key, [])):
             try:
                 await connection.send_json(message)
             except Exception:
                 self.tenants[tenant_key].remove(connection)
 
-        # Global and superuser
         for connection in list(self.super_connections + self.global_connections):
             try:
                 await connection.send_json(message)
@@ -176,7 +165,6 @@ class ConnectionManager:
             try:
                 await conn.send_json(message)
             except Exception:
-                # remove dead connection
                 if key in self.users and conn in self.users[key]:
                     try:
                         self.users[key].remove(conn)
@@ -187,8 +175,6 @@ class ConnectionManager:
             del self.users[key]
 
     def route_device_message(self, msg):
-        # Called by producers when a device-originated message arrives.
-        # Deliver only to websockets subscribed to that device (no tenant-wide broadcast).
         dev_eui = msg.get("devEui") or msg.get("dev_eui")
         if not dev_eui:
             logger.debug("route_device_message: no devEui in message")
@@ -197,7 +183,6 @@ class ConnectionManager:
         if tenant is None:
             logger.debug("no tenant mapping for %s", dev_eui)
             return
-        # schedule async delivery to avoid blocking the producer
         try:
             asyncio.create_task(self.broadcast_to_device(msg, dev_eui))
         except Exception:

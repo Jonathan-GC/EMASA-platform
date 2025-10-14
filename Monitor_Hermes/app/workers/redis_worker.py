@@ -13,46 +13,8 @@ async def save_mapping(dev_eui: str, tenant_id: str, redis_client):
         loguru.logger.exception("Failed to save device_tenant_mapping")
 
 
-def _normalize_payload(payload: dict) -> dict:
-    """Normalize incoming payload to a consistent shape used by the worker."""
-    if not isinstance(payload, dict):
-        return payload
-
-    # Already normalized by handlers.format_payload
-    if "tenant_id" in payload and "dev_eui" in payload:
-        return {
-            "tenantId": payload.get("tenant_id"),
-            "devEui": payload.get("dev_eui"),
-            "devAddr": payload.get("dev_addr") or payload.get("devAddr"),
-            "object": payload.get("payload") or payload.get("object") or {},
-            "deviceProfileId": payload.get("device_profile_id")
-            or payload.get("deviceProfileId"),
-        }
-
-    # legacy shape with nested deviceInfo
-    device_info = payload.get("deviceInfo") or payload.get("device_info")
-    if isinstance(device_info, dict):
-        return {
-            "deviceInfo": device_info,
-            "devAddr": payload.get("devAddr") or payload.get("dev_addr"),
-            "object": payload.get("object") or payload.get("payload") or {},
-        }
-
-    # try to normalize top-level keys if present
-    if any(k in payload for k in ("devEui", "dev_eui", "devAddr", "dev_addr")):
-        return {
-            "tenantId": payload.get("tenantId") or payload.get("tenant_id"),
-            "devEui": payload.get("devEui") or payload.get("dev_eui"),
-            "devAddr": payload.get("devAddr") or payload.get("dev_addr"),
-            "object": payload.get("object") or payload.get("payload") or {},
-            "deviceProfileId": payload.get("deviceProfileId")
-            or payload.get("device_profile_id"),
-        }
-
-    return payload
-
-
 async def process_messages(db):
+    """Process messages from Redis queue."""
     while True:
         try:
             redis_mod = importlib.import_module("app.redis.redis")
@@ -64,28 +26,29 @@ async def process_messages(db):
 
             _, raw = await client.brpop("messages")
             payload = json.loads(raw)
-            payload = _normalize_payload(payload)
 
-            # extract identifiers from normalized payload
-            dev_eui = None
-            tenant_id = None
-            dev_addr = None
-            metadata = {}
+            # Expected structure (snake_case):
+            # {
+            #   "tenant_id": str,
+            #   "dev_eui": str,
+            #   "dev_addr": str | None,
+            #   "device_name": str | None,
+            #   "frequency": int | None,
+            #   "f_cnt": int | None,
+            #   "region": str | None,
+            #   "payload": dict,
+            #   "metadata": dict | None
+            # }
 
-            if "deviceInfo" in payload and isinstance(payload["deviceInfo"], dict):
-                device_info = payload["deviceInfo"]
-                dev_eui = device_info.get("devEui") or device_info.get("dev_eui")
-                tenant_id = device_info.get("tenantId") or device_info.get("tenant_id")
-                if "deviceProfileId" in device_info:
-                    metadata = {"deviceProfileId": device_info.get("deviceProfileId")}
-            else:
-                dev_eui = payload.get("devEui") or payload.get("dev_eui")
-                tenant_id = payload.get("tenantId") or payload.get("tenant_id")
-                if "deviceProfileId" in payload:
-                    metadata = {"deviceProfileId": payload.get("deviceProfileId")}
-
-            dev_addr = payload.get("devAddr") or payload.get("dev_addr")
-            object_payload = payload.get("object") or payload.get("payload") or {}
+            dev_eui = payload.get("dev_eui")
+            tenant_id = payload.get("tenant_id")
+            dev_addr = payload.get("dev_addr")
+            device_name = payload.get("device_name")
+            frequency = payload.get("frequency")
+            f_cnt = payload.get("f_cnt")
+            region = payload.get("region")
+            object_payload = payload.get("payload", {})
+            metadata = payload.get("metadata")
 
             if not dev_eui or not tenant_id:
                 loguru.logger.warning(
@@ -94,42 +57,53 @@ async def process_messages(db):
                 await asyncio.sleep(1)
                 continue
 
-            redis_mod = importlib.import_module("app.redis.redis")
-            client = getattr(redis_mod, "redis_client", None)
             if dev_eui and tenant_id:
                 await save_mapping(dev_eui, tenant_id, client)
+
             loguru.logger.info(f"Processing message from Redis: {dev_eui}")
 
             message = MessageIn(
                 tenant_id=tenant_id,
                 device_id=dev_eui,
                 dev_addr=dev_addr,
+                device_name=device_name,
+                frequency=frequency,
+                f_cnt=f_cnt,
+                region=region,
                 payload=object_payload,
                 metadata=metadata,
             )
+
             loguru.logger.info(
                 f"Message created for device {message.device_id} in tenant {message.tenant_id}"
             )
+
             await save_message(db, message)
             loguru.logger.info(
                 f"Message saved to database for device {message.device_id} in tenant {message.tenant_id}"
             )
-            # try to notify websocket subscribers for this device on this instance
+
             try:
                 ws_mod = importlib.import_module("app.ws.manager")
                 ws_manager = getattr(ws_mod, "manager", None)
                 if ws_manager is not None and dev_eui:
-                    # prepare a small payload for websockets
                     ws_payload = {
                         "type": "uplink",
-                        "tenantId": tenant_id,
-                        "devEui": dev_eui,
-                        "devAddr": dev_addr,
-                        "object": object_payload,
+                        "tenant_id": tenant_id,
+                        "dev_eui": dev_eui,
+                        "dev_addr": dev_addr,
+                        "device_name": device_name,
+                        "frequency": frequency,
+                        "f_cnt": f_cnt,
+                        "region": region,
+                        "payload": object_payload,
                     }
                     await ws_manager.broadcast_to_device(ws_payload, dev_eui)
+                    loguru.logger.debug(f"Notified device subscribers for {dev_eui}")
             except Exception:
                 loguru.logger.exception("Failed to notify WS subscribers for device")
+
         except Exception as e:
             loguru.logger.error(f"Failed to process message: {e}")
+
         await asyncio.sleep(1)

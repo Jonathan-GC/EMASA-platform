@@ -11,21 +11,32 @@ import importlib
 def format_payload(payload: dict) -> dict | None:
     """Format the incoming payload to match the MessageIn model structure.
     Accept several incoming shapes and return None if the payload can't be normalized.
+
+    This is the SINGLE normalization point. The output is used for:
+    - Broadcasting to websockets (immediate)
+    - Pushing to Redis queue
+    - Persistence in MongoDB (via worker)
+
     Args:
         payload (dict): The incoming message payload.
     Returns:
         dict | None: Formatted payload dictionary or None on error.
     Example:
-        Output:
+        Output (snake_case for consistency):
         {
             "tenant_id": str,
             "dev_eui": str,
-            "dev_addr": str,
-            "payload": dict
+            "dev_addr": str | None,
+            "device_name": str | None,
+            "frequency": int | None,
+            "f_cnt": int | None,
+            "region": str | None,
+            "payload": dict,
+            "metadata": dict | None
         }
     """
     try:
-        # Already normalized
+        # Already normalized (trust it and return as-is)
         if (
             isinstance(payload, dict)
             and "tenant_id" in payload
@@ -33,31 +44,73 @@ def format_payload(payload: dict) -> dict | None:
         ):
             return payload
 
-        # Common incoming shape: nested deviceInfo
+        formatted_payload = {}
+
         device_info = payload.get("deviceInfo") or payload.get("device_info")
         if device_info and isinstance(device_info, dict):
-            return {
-                "tenant_id": device_info.get("tenantId")
-                or device_info.get("tenant_id"),
-                "dev_eui": device_info.get("devEui") or device_info.get("dev_eui"),
-                "dev_addr": payload.get("devAddr") or payload.get("dev_addr"),
-                "payload": payload.get("object") or payload.get("payload") or {},
-            }
+            formatted_payload["dev_eui"] = device_info.get("devEui") or device_info.get(
+                "dev_eui"
+            )
+            formatted_payload["tenant_id"] = device_info.get(
+                "tenantId"
+            ) or device_info.get("tenant_id")
+            formatted_payload["device_name"] = device_info.get(
+                "deviceName"
+            ) or device_info.get("device_name")
 
-        # Fallback: try top-level keys that may exist
-        if any(k in payload for k in ("devEui", "dev_eui", "devAddr", "dev_addr")):
-            return {
-                "tenant_id": payload.get("tenantId") or payload.get("tenant_id"),
-                "dev_eui": payload.get("devEui") or payload.get("dev_eui"),
-                "dev_addr": payload.get("devAddr") or payload.get("dev_addr"),
-                "payload": payload.get("object") or payload.get("payload") or {},
-            }
+            device_profile_id = device_info.get("deviceProfileId") or device_info.get(
+                "device_profile_id"
+            )
+            if device_profile_id:
+                formatted_payload["metadata"] = {"device_profile_id": device_profile_id}
+        else:
+            # Fallback: try top-level keys
+            formatted_payload["dev_eui"] = payload.get("devEui") or payload.get(
+                "dev_eui"
+            )
+            formatted_payload["tenant_id"] = payload.get("tenantId") or payload.get(
+                "tenant_id"
+            )
+            formatted_payload["device_name"] = payload.get("deviceName") or payload.get(
+                "device_name"
+            )
 
-        loguru.logger.error("Unexpected payload shape in format_payload: %s", payload)
+        tx_info = payload.get("txInfo")
+        formatted_payload["frequency"] = (
+            tx_info.get("frequency")
+            if isinstance(tx_info, dict) and "frequency" in tx_info
+            else None
+        )
+
+        formatted_payload["dev_addr"] = payload.get("devAddr") or payload.get(
+            "dev_addr"
+        )
+        formatted_payload["f_cnt"] = payload.get("fCnt") or payload.get("f_cnt")
+        formatted_payload["region"] = payload.get("regionConfigId") or payload.get(
+            "region_config_id"
+        )
+        formatted_payload["payload"] = (
+            payload.get("object") or payload.get("payload") or {}
+        )
+        if "metadata" not in formatted_payload:
+            formatted_payload["metadata"] = None
+
+        if not formatted_payload.get("tenant_id") or not formatted_payload.get(
+            "dev_eui"
+        ):
+            loguru.logger.error(
+                "Missing required fields (tenant_id or dev_eui) in payload"
+            )
+            return None
+
+        return formatted_payload
+
+    except (KeyError, TypeError, AttributeError) as e:
+        loguru.logger.exception(f"Error while formatting payload: {e}")
         return None
-    except Exception:
-        loguru.logger.exception("Error while formatting payload")
-        return None
+    except Exception as e:
+        loguru.logger.exception(f"Unexpected error while formatting payload: {e}")
+        raise
 
 
 def handle_message(payload: dict, db, loop):
@@ -74,7 +127,6 @@ def handle_message(payload: dict, db, loop):
             )
             return
 
-        # Dynamically get redis client to avoid None at import-time
         redis_mod = importlib.import_module("app.redis.redis")
         client = getattr(redis_mod, "redis_client", None)
         if client is None:
@@ -105,5 +157,4 @@ def handle_uplink(payload):
         try:
             redis_client.hset("device_tenant_mapping", dev_eui, tenant_id)
         except Exception:
-            # optional: log
-            pass
+            loguru.logger.exception("Failed to update device-tenant mapping in Redis")
