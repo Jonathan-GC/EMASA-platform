@@ -22,6 +22,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiExample
 
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -32,19 +34,80 @@ from .emails import (
 )
 from .jwt import generate_token, verify_token
 
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+
 # User ViewSet
 
 
 @extend_schema_view(
     list=extend_schema(description="User List"),
-    create=extend_schema(description="User Create"),
+    create=extend_schema(
+        description="User Create",
+        examples=[
+            OpenApiExample(
+                "User Create",
+                description="Create a new user",
+                value={
+                    "username": "johndoe",
+                    "email": "johndoe@example.com",
+                    "code": "string",
+                    "name": "John",
+                    "last_name": "Doe",
+                    "country": "USA",
+                    "phone_code": "+1",
+                    "phone": "1234567890",
+                    "address": {
+                        "street": "123 Main St",
+                        "city": "Anytown",
+                        "state": "CA",
+                        "zip_code": "12345",
+                    },
+                },
+                request_only=True,
+                response_only=False,
+            )
+        ],
+    ),
     retrieve=extend_schema(description="User Retrieve"),
     update=extend_schema(description="User Update"),
     partial_update=extend_schema(description="User Partial Update"),
     destroy=extend_schema(description="User Destroy"),
-    set_user_image=extend_schema(description="Set user image"),
-    disable_user=extend_schema(description="Disable a user"),
-    enable_user=extend_schema(description="Enable a user"),
+    set_user_image=extend_schema(
+        description="Set user image",
+        summary="Set or update the user's profile image",
+        examples=[
+            OpenApiExample(
+                "Set User Image Example",
+                description="Set or update the user's profile image",
+                value={"img": "https://example.com/path/to/image.jpg"},
+            ),
+        ],
+    ),
+    disable_user=extend_schema(
+        description="Disable a user",
+        request=OpenApiTypes.NONE,
+        examples=[
+            OpenApiExample(
+                "Disable User Example",
+                description="Disable a user account",
+                value={"detail": "User disabled successfully."},
+                response_only=True,
+            ),
+        ],
+    ),
+    enable_user=extend_schema(
+        description="Enable a user",
+        request=OpenApiTypes.NONE,
+        examples=[
+            OpenApiExample(
+                "Enable User Example",
+                description="Enable a user account",
+                value={"detail": "User enabled successfully."},
+                response_only=True,
+            ),
+        ],
+    ),
 )
 class UserViewSet(ModelViewSet, PermissionKeyMixin):
     queryset = User.objects.all()
@@ -55,6 +118,9 @@ class UserViewSet(ModelViewSet, PermissionKeyMixin):
     def perform_create(self, serializer):
         instance = serializer.save()
         self.create_permission_keys(instance, scope="user")
+
+        token = generate_token(instance.id, scope="verify_email", expires_minutes=60)
+        send_password_reset_email(instance, token)
 
     @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
     def set_user_image(self, request, pk=None):
@@ -173,6 +239,23 @@ class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
+    @extend_schema(
+        description="Google OAuth2 Login",
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {"id_token": {"type": "string"}},
+                "required": ["id_token"],
+            }
+        },
+        examples=[
+            OpenApiExample(
+                "Google OAuth2 Login Example",
+                value={"id_token": "string"},
+                request_only=True,
+            )
+        ],
+    )
     def post(self, request):
         token = request.data.get("id_token")
         if not token:
@@ -248,11 +331,40 @@ class RegisterView(APIView, PermissionKeyMixin):
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
+    @extend_schema(
+        description="User Registration",
+        request=UserSerializer,
+        examples=[
+            OpenApiExample(
+                "User Registration Example",
+                value={
+                    "username": "johndoe",
+                    "email": "johndoe@example.com",
+                    "password": "string",
+                    "confirm_password": "string",
+                    "name": "John",
+                    "last_name": "Doe",
+                    "country": "USA",
+                    "phone_code": "+1",
+                    "phone": "1234567890",
+                    "address": {
+                        "address": "Cll. 123 #45-67",
+                        "city": "Anytown",
+                        "state": "CA",
+                        "zip_code": "12345",
+                    },
+                },
+                request_only=True,
+            )
+        ],
+    )
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save(is_active=False)
+            if not request.data.get("password"):
+                return Response({"detail": "Password is required."}, status=400)
 
+            user = serializer.save(is_active=False)
             self.create_permission_keys(user, scope="user")
 
             token = generate_token(user.id, scope="verify_email", expires_minutes=60)
@@ -270,6 +382,23 @@ class PasswordResetView(APIView):
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
+    @extend_schema(
+        description="Password Reset Request",
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {"email": {"type": "string"}},
+                "required": ["email"],
+            }
+        },
+        examples=[
+            OpenApiExample(
+                "Password Reset Request",
+                value={"email": "johndoe@example.com"},
+                request_only=True,
+            )
+        ],
+    )
     def post(self, request):
         email = request.data.get("email")
         if not email:
@@ -297,6 +426,23 @@ class AccountVerificationView(APIView):
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
+    @extend_schema(
+        description="Account Verification",
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {"token": {"type": "string"}},
+                "required": ["token"],
+            }
+        },
+        examples=[
+            OpenApiExample(
+                "Account Verification",
+                value={"token": "string"},
+                request_only=True,
+            )
+        ],
+    )
     def post(self, request):
         token = request.data.get("token")
         if not token:
@@ -317,6 +463,26 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
+    @extend_schema(
+        description="Password Reset Confirmation",
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "token": {"type": "string"},
+                    "new_password": {"type": "string"},
+                },
+                "required": ["token", "new_password"],
+            }
+        },
+        examples=[
+            OpenApiExample(
+                "Password Reset Confirmation",
+                value={"token": "string", "new_password": "SecurePassword123!"},
+                request_only=True,
+            )
+        ],
+    )
     def post(self, request):
         token = request.data.get("token")
         new_password = request.data.get("new_password")
@@ -325,10 +491,16 @@ class PasswordResetConfirmView(APIView):
                 {"detail": "Token and new password are required."}, status=400
             )
         try:
-            payload = verify_token(token, scope="password_reset")
+            try:
+                validate_password(new_password)
+            except ValidationError as ve:
+                return Response({"detail": ve.messages}, status=400)
+
+            payload = verify_token(token, scope=["password_reset", "set_password"])
             user_id = payload.get("user_id")
             user = User.objects.get(id=user_id)
             user.set_password(new_password)
+            user.is_active = True
             user.save()
             return Response({"detail": "Password reset successfully."}, status=200)
         except (ValueError, User.DoesNotExist) as e:

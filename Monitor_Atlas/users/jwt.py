@@ -1,5 +1,5 @@
 import jwt
-import datetime
+from datetime import datetime, timedelta
 from django.conf import settings
 
 SECRET_KEY = settings.SECRET_KEY

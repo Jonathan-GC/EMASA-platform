@@ -4,7 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from roles.models import WorkspaceMembership
-from .models import User
+from .models import User, Address, MainAddress, BillingAddress
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -42,7 +42,38 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 
+class MainAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MainAddress
+        fields = [
+            "id",
+            "address",
+            "city",
+            "state",
+            "zip_code",
+        ]
+
+
+class BillingAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BillingAddress
+        fields = [
+            "id",
+            "address",
+            "city",
+            "state",
+            "zip_code",
+            "country",
+        ]
+
+
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    address = MainAddressSerializer(required=False, allow_null=True)
+    confirm_password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+
     class Meta:
         model = User
         fields = [
@@ -50,14 +81,35 @@ class UserSerializer(serializers.ModelSerializer):
             "code",
             "username",
             "email",
+            "password",
+            "confirm_password",
+            "img",
             "name",
             "last_name",
             "is_active",
-            "is_staff",
-            "is_superuser",
             "phone",
+            "phone_code",
             "address",
         ]
+
+    def validate_password(self, value):
+        """
+        Validates the password field to ensure that it meets the required
+        complexity and strength criteria. Raises a ValidationError if the
+        password does not comply with the defined password validators.
+
+        Default validation standards:
+        - Minimum length of 8 characters
+        - Cannot be entirely numeric
+        - Cannot be too common
+        - Cannot be too similar to the user's personal information
+        """
+        if value:
+            try:
+                validate_password(value)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError(e.messages)
+        return value
 
     def validate_username(self, value):
         """
@@ -98,3 +150,66 @@ class UserSerializer(serializers.ModelSerializer):
                 "Phone number must be at least 10 digits long and contain only numbers."
             )
         return value
+
+    def create(self, validated_data):
+        address_data = validated_data.pop("address", None)
+        password = validated_data.pop("password", None)
+        confirm_password = validated_data.pop("confirm_password", None)
+
+        if password and password != confirm_password:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+
+        user = User(**validated_data)
+
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+
+        user.save()
+
+        if address_data:
+            address = MainAddress.objects.create(user=user, **address_data)
+            user.address = address
+            user.save()
+
+        return user
+
+    def update(self, instance, validated_data):
+        address_data = validated_data.pop("address", None)
+        password = validated_data.pop("password", None)
+        confirm_password = validated_data.pop("confirm_password", None)
+
+        if password and password != confirm_password:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+
+        if address_data:
+            if instance.address:
+                for attr, value in address_data.items():
+                    setattr(instance.address, attr, value)
+                instance.address.save()
+            else:
+                address = MainAddress.objects.create(user=instance, **address_data)
+                instance.address = address
+                instance.save()
+
+        return instance
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        try:
+            representation["address"] = MainAddressSerializer(
+                instance.main_address
+            ).data
+        except MainAddress.DoesNotExist:
+            representation["address"] = None
+
+        return representation

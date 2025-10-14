@@ -9,15 +9,40 @@ from django.contrib.auth.models import (
 )
 
 
+class Address(models.Model):
+    address = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    zip_code = models.CharField(max_length=20)
+
+    class Meta:
+        abstract = True
+
+
+class MainAddress(Address):
+    pass
+
+
+class BillingAddress(Address):
+    user = models.OneToOneField(
+        "User", on_delete=models.CASCADE, related_name="billing_address"
+    )
+    country = models.CharField(max_length=100)
+
+
 class UserBase(models.Model):
-    code = models.CharField(max_length=80, unique=True)
-    sub = models.CharField(max_length=80, unique=True, null=True, blank=True)
+    code = models.CharField(max_length=80, null=True, blank=True)
+    sub = models.CharField(max_length=80, null=True, blank=True)
     img = models.CharField(max_length=255, blank=True, null=True)
     name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
     email = models.CharField(max_length=255)
+    country = models.CharField(max_length=100, default="Colombia")
+    phone_code = models.CharField(max_length=4, default="+57")
     phone = models.CharField(max_length=50)
-    address = models.CharField(max_length=255)
+    address = models.ForeignKey(
+        MainAddress, on_delete=models.CASCADE, null=True, blank=True
+    )
 
     class Meta:
         abstract = True

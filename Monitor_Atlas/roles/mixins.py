@@ -1,6 +1,7 @@
 from django.db import transaction
 from .models import PermissionKey
 
+
 class PermissionKeyMixin:
     default_actions = ["get", "get_by_id", "post", "put", "delete"]
 
@@ -52,12 +53,13 @@ class PermissionKeyMixin:
 
         # Duplicate filter
         existing_keys = set(
-            PermissionKey.objects.filter(**{field_name: instance})
-            .values_list("key_type", flat=True)
+            PermissionKey.objects.filter(**{field_name: instance}).values_list(
+                "key_type", flat=True
+            )
         )
 
         new_keys = []
-        
+
         for action in self.default_actions:
             if action not in existing_keys:
                 # Manually adding code
