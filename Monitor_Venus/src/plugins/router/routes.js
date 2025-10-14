@@ -1,5 +1,5 @@
 import { paths as P } from './paths'
-import { components as C } from './components'
+import { components as C, components } from './components'
 import { parameters as V } from './parameters';
 import { requireAuth, requireGuest, allowAll } from "@utils/auth/guards.js";
 
@@ -46,6 +46,12 @@ export const routes = [
                 name: 'device_details',
                 path: P.APPLICATIONS + V.APPLICATION_ID + P.DEVICES + V.DEVICE_ID,
                 component: C.DEVICE_MEASUREMENTS,
+                beforeEnter: requireAuth
+            },
+            {
+                name: 'machine_details',
+                path: P.MACHINES,
+                component: C.MACHINES,
                 beforeEnter: requireAuth
             },
             { path: P.TENANTS, component: C.TENANTS },

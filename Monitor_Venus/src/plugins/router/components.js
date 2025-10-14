@@ -16,5 +16,6 @@ export const components = {
     LOGIN: () => import('@views/auth/login/index.vue'),
     REGISTER: () => import('@views/auth/signup/index.vue'),
     DEVICES: () => import('@views/infrastructure/application/devices/index.vue'),
+    MACHINES: () => import('@views/infrastructure/machines/index.vue'),
     DEVICE_MEASUREMENTS: () => import('@views/infrastructure/application/devices/measurments/index.vue'),
 }

@@ -184,6 +184,7 @@ async function createItem() {
       'location': API.LOCATION,
       'device_profile': API.DEVICE_PROFILE,
       'device': API.DEVICE,
+      'machine': API.MACHINE,
       'application': API.APPLICATION,
       'workspace': API.WORKSPACE,
       'manager': API.API_USER,

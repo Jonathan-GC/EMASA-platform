@@ -115,6 +115,7 @@ import {
 
 // Custom SVG icon
 import plugOutline from '@assets/icons/plug.svg'
+import enginesOutline from '@assets/icons/engines.svg'
 
 export const icons = {
   // Action icons
@@ -181,6 +182,7 @@ export const icons = {
   'batteryFull': batteryFullOutline,
   'batteryHalf': batteryHalfOutline,
   'plug': plugOutline,
+  'engines': enginesOutline,
 
   // Location icons
   'location': locationOutline,

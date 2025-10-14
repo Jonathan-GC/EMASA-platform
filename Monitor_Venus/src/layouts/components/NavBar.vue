@@ -88,7 +88,10 @@
             :class="{ active: $route.path === paths.TENANT_LOCATIONS }"
             @click="closeNavbar"
         >
-          📍 Locations
+          <ion-icon
+              :icon="icons.location"
+          ></ion-icon>
+          Locations
         </router-link>
 
         <hr class="divider"/>
@@ -117,6 +120,18 @@
             @click="closeNavbar"
         >
           📦 Applications
+        </router-link>
+
+        <router-link
+            :to=paths.MACHINES
+            class="nav-link"
+            :class="{ active: $route.path === paths.MACHINES }"
+            @click="closeNavbar"
+        >
+          <ion-icon
+              :icon="icons.engines"
+          ></ion-icon>
+          Maquinas
         </router-link>
 
         <hr class="divider"/>
