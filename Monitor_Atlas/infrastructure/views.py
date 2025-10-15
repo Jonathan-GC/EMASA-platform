@@ -674,6 +674,14 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def devices(self, request, pk=None):
         application = self.get_object()
         devices = Device.objects.filter(application=application)
+
+        for device in devices:
+            logging.info(
+                f"Syncing device {device.name} in application {application.name}"
+            )
+            sync_device_get(device)
+            device.refresh_from_db()
+
         page = self.paginate_queryset(devices)
         if page is not None:
             serializer = DeviceSerializer(page, many=True)
