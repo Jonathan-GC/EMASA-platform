@@ -8,9 +8,9 @@
       "description": "Nodos de tipo voltaje",
       "device_type": 1,
       "workspace": 1,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00"
     }
   },
   {
@@ -22,9 +22,9 @@
       "description": "Nodos de tipo temperatura",
       "device_type": 2,
       "workspace": 1,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00"
     }
   },
   {
@@ -36,9 +36,9 @@
       "description": "Nodos de tipo voltaje",
       "device_type": 2,
       "workspace": 3,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00"
     }
   },
   {
@@ -50,9 +50,9 @@
       "description": "Nodos de tipo temperatura",
       "device_type": 2,
       "workspace": 3,
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2023-01-01T00:00:00+00:00"
     }
   }
 ]

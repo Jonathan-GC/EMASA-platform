@@ -273,6 +273,7 @@ class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             ),
         ],
     ),
+    activation_details=extend_schema(description="Get Device Activation Details"),
 )
 class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     queryset = Device.objects.all()
@@ -548,6 +549,22 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         )
 
         return Response({"ws_url": ws_url})
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermissionKey],
+        scope="device",
+    )
+    def activation_details(self, request, pk=None):
+        device = self.get_object()
+        if not device.activation:
+            return Response(
+                {"message": "Device has no activation data"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = ActivationSerializer(device.activation)
+        return Response(serializer.data)
 
 
 @extend_schema_view(

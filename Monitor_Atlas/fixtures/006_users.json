@@ -1,5 +1,15 @@
 [
-    {
+  {
+    "model": "users.mainaddress",
+    "pk": 2,
+    "fields": {
+      "address": "Cll. 12 #34-56",
+      "city": "Ibagué",
+      "state": "Tolima",
+      "postal_code": "70021"
+    }
+  },
+  {
     "model": "users.user",
     "pk": 2,
     "fields": {
@@ -10,8 +20,10 @@
       "name": "Alberto Colt",
       "last_name": "Rodriguez Smith",
       "email": "alberto.colt@gmail.com",
+      "country": "Colombia",
+      "phone_code": "+57",
       "phone": "3001234567",
-      "address": "AC Av 1 RS Cll 2 12-3",
+      "address": 2,
       "username": "emasa_admin",
       "is_active": true,
       "is_staff": false,
@@ -31,8 +43,10 @@
       "name": "Jhon Otoniel",
       "last_name": "Oppenheimer Gutierrez",
       "email": "jhon.otoniel@gmail.com",
+      "country": "Colombia",
+      "phone_code": "+57",
       "phone": "3008910111",
-      "address": "JO Av 1 OG Cll 2 12-3",
+      "address": 2,
       "username": "emasa_employee",
       "is_active": true,
       "is_staff": false,
@@ -52,8 +66,10 @@
       "name": "Eduardo Steven",
       "last_name": "White Perez",
       "email": "eduardo.steven@gmail.com",
+      "country": "Colombia",
+      "phone_code": "+57",
       "phone": "3001213141",
-      "address": "ES Av 1 WP Cll 2 12-3",
+      "address": 2,
       "username": "tec_admin",
       "is_active": true,
       "is_staff": false,
@@ -73,8 +89,10 @@
       "name": "Igor Guantanamero",
       "last_name": "Morgan Jimenez",
       "email": "igor.guantanamero@gmail.com",
+      "country": "Colombia",
+      "phone_code": "+57",
       "phone": "3001516171",
-      "address": "IG Av 1 MJ Cll 2 12-3",
+      "address": 2,
       "username": "tec_employee",
       "is_active": true,
       "is_staff": false,

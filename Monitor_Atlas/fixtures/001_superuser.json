@@ -1,17 +1,29 @@
 [
   {
+    "model": "users.mainaddress",
+    "pk": 1,
+    "fields": {
+      "address": "Cll. 35 #4B-52",
+      "city": "Ibagué",
+      "state": "Tolima",
+      "postal_code": "730006"
+    }
+  },
+  {
     "model": "users.user",
     "pk": 1,
     "fields": {
       "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
       "last_login": null,
-      "code": "",
+      "code": "7",
       "img": null,
       "name": "Luis",
       "last_name": "Varón",
       "email": "luis.varon.15.2000@gmail.com",
+      "country": "Colombia",
+      "phone_code": "+57",
       "phone": "3004981082",
-      "address": "Cll. 35 #4B-52",
+      "address": 1,
       "username": "weedo",
       "is_active": true,
       "is_staff": true,
