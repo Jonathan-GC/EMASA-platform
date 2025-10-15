@@ -362,12 +362,10 @@ def sync_gateway_status(gateway):
 def sync_gateway_get(gateway):
     response = create_gateway_in_chirpstack(gateway)
 
-    created = False
-    if response is not None and response.status_code == 200:
-        created = True
+    status_response = sync_gateway_status(gateway)
 
-    if created:
-        response = sync_gateway_status(gateway)
+    if status_response is not None:
+        response = status_response
 
     set_status(gateway, response)
     return response
