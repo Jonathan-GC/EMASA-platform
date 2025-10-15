@@ -231,6 +231,7 @@ APP_URL = env("APP_URL", default="http://localhost:5173")
 
 
 MTR_LOGO_URL = env("MTR_LOGO_URL", default="https://placehold.co/500x200")
-HERMES_URL = env("HERMES_URL", default="ws://localhost:5000")
+HERMES_WS_URL = env("HERMES_WS_URL", default="ws://localhost:5000")
+HERMES_API_URL = env("HERMES_API_URL", default="http://localhost:5000")
 
 WS_SECRET = env("WS_SECRET", default="dummy32characterslong!!")

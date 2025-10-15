@@ -14,6 +14,104 @@ from app.ws.filters import get_devEui_mapping
 router = APIRouter()
 
 
+@router.websocket("/ws/notifications")
+async def websocket_notifications(websocket: WebSocket):
+    """
+    WebSocket dedicado EXCLUSIVAMENTE para notificaciones de usuario.
+
+    El cliente se conecta a este endpoint para recibir notificaciones personales:
+    - Alertas del sistema
+    - Mensajes de la aplicación
+    - Notificaciones de eventos importantes
+
+    No recibe datos de devices ni de tenants, solo notificaciones enviadas
+    específicamente al user_id del usuario autenticado.
+
+    Uso desde el cliente:
+        ws://host/ws/notifications?token=JWT_TOKEN
+
+    Mensajes recibidos tienen el formato:
+        {
+            "channel": "notifications",
+            "title": "Título de la notificación",
+            "message": "Contenido del mensaje",
+            "type": "info|warning|error|success"
+        }
+    """
+    token = websocket.query_params.get("token")
+    if not token:
+        loguru.logger.warning("WebSocket notifications: No token provided")
+        await websocket.close(code=1008)
+        return
+
+    try:
+        info = verify_jwt(token)
+    except Exception as e:
+        loguru.logger.warning(f"WebSocket notifications: Invalid token - {e}")
+        await websocket.close(code=1008)
+        return
+
+    await websocket.accept()
+
+    # Crear info específico para conexión de notificaciones
+    info_for_notifications = {
+        "user_id": info.get("user_id"),
+        "username": info.get("username"),
+        "notification_only": True,  # Flag para identificar este tipo de conexión
+        "tenant_id": info.get("tenant_id"),  # Mantener para logging
+    }
+
+    try:
+        await manager.connect(websocket, info_for_notifications)
+        loguru.logger.info(
+            f"✉️  User {info.get('username')} (ID: {info.get('user_id')}) connected to notifications channel"
+        )
+    except Exception:
+        loguru.logger.exception("Error registering notifications connection")
+        await websocket.close(code=500)
+        return
+
+    try:
+        while True:
+            # Mantener conexión abierta y permitir mensajes del cliente
+            # (opcional: el cliente puede enviar heartbeat o ACKs)
+            data = await websocket.receive_text()
+            loguru.logger.debug(
+                f"Notification channel received from {info.get('username')}: {data}"
+            )
+
+            # Opcional: permitir al cliente enviar comandos
+            # Por ejemplo, marcar notificaciones como leídas, etc.
+            try:
+                import json
+
+                payload = json.loads(data)
+                action = payload.get("action")
+
+                if action == "ping":
+                    # Responder a heartbeat
+                    await websocket.send_json({"action": "pong"})
+                elif action == "ack":
+                    # Cliente confirmó recepción de notificación
+                    notification_id = payload.get("notification_id")
+                    loguru.logger.debug(
+                        f"User {info.get('username')} acknowledged notification {notification_id}"
+                    )
+                else:
+                    loguru.logger.debug(
+                        f"Unknown action in notifications channel: {action}"
+                    )
+            except Exception:
+                # Si no es JSON o falla el parsing, ignorar
+                pass
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, info_for_notifications)
+        loguru.logger.info(
+            f"✉️  User {info.get('username')} (ID: {info.get('user_id')}) disconnected from notifications channel"
+        )
+
+
 # currently unused, but could be useful later for tenant's dashboards
 @router.websocket("/ws/tenant/{enc_tenant_id}")
 async def websocket_tenant(websocket: WebSocket, enc_tenant_id: str):

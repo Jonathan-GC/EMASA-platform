@@ -3,7 +3,7 @@ from users.models import User
 import requests
 from django.conf import settings
 
-HERMES_URL = getattr(settings, "HERMES_WS_URL", "http://localhost:5000")
+HERMES_API_URL = getattr(settings, "HERMES_API_URL", "http://localhost:5000")
 
 PRIORITY_CHOICES = [
     ("Low", "Low"),
@@ -120,7 +120,7 @@ class Notification(models.Model):
                 "message": self.message,
                 "type": self.type,
             }
-            response = requests.post(f"{HERMES_URL}/notify", json=payload)
+            response = requests.post(f"{HERMES_API_URL}/notify", json=payload)
             response.raise_for_status()
         except requests.RequestException as e:
             print(f"Failed to send notification via WebSocket: {e}")

@@ -8,6 +8,7 @@ from .serializers import (
     NotificationSerializer,
 )
 
+from rest_framework.decorators import action
 import logging
 from drf_spectacular.utils import extend_schema_view, extend_schema
 
@@ -72,7 +73,55 @@ class CommentAttachmentViewSet(viewsets.ModelViewSet):
     update=extend_schema(description="Notification Update"),
     partial_update=extend_schema(description="Notification Partial Update"),
     destroy=extend_schema(description="Notification Destroy"),
+    notify_user=extend_schema(description="Notify user via WebSocket"),
+    my_notifications=extend_schema(description="Get user's notifications"),
 )
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
+
+    @action(
+        detail=True,
+        methods=["post"],
+        description="Notify user via WebSocket",
+    )
+    def notify_user(self, request, pk=None):
+        notification = self.get_object()
+        try:
+            notification.notify_ws()
+        except Exception as e:
+            logging.error(f"Failed to notify user: {e}")
+            return Response({"status": "failed", "error": str(e)}, status=500)
+
+        return Response({"status": "notified"})
+
+    @action(
+        detail=False,
+        methods=["get"],
+        description="Get user's notifications",
+    )
+    def my_notifications(self, request):
+        user = request.user
+        notifications = Notification.objects.filter(user=user).order_by("-created_at")
+        page = self.paginate_queryset(notifications)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(notifications, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        description="Mark notification as read",
+    )
+    def mark_as_read(self, request, pk=None):
+        notification = self.get_object()
+        try:
+            notification.mark_as_read()
+        except Exception as e:
+            logging.error(f"Failed to mark notification as read: {e}")
+            return Response({"status": "failed", "error": str(e)}, status=500)
+
+        return Response({"status": "marked_as_read"})

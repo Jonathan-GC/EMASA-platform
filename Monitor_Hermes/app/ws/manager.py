@@ -32,6 +32,11 @@ class ConnectionManager:
             loguru.logger.info(
                 f"Device-only connection established: \n User: {str(info.get('username'))} \n Tenant: {str(tenant_id)}"
             )
+        elif info.get("notification_only"):
+            # Conexión dedicada SOLO para notificaciones
+            loguru.logger.info(
+                f"Notification-only connection established: \n User: {str(info.get('username'))} (ID: {info.get('user_id')})"
+            )
         else:
             tenant_id = str(info.get("tenant_id"))
             loguru.logger.info(
@@ -40,14 +45,20 @@ class ConnectionManager:
             if tenant_id not in self.tenants:
                 self.tenants[tenant_id] = []
             self.tenants[tenant_id].append(websocket)
+
+        # Registrar para notificaciones (solo si no es device_only)
+        # Las conexiones notification_only, tenant, global y superuser pueden recibir notificaciones
         try:
-            user_id = info.get("user_id")
-            if user_id is not None:
-                key = str(user_id)
-                if key not in self.users:
-                    self.users[key] = []
-                self.users[key].append(websocket)
-                loguru.logger.debug(f"Registered websocket for user {key}")
+            if not info.get("device_only"):
+                user_id = info.get("user_id")
+                if user_id is not None:
+                    key = str(user_id)
+                    if key not in self.users:
+                        self.users[key] = []
+                    self.users[key].append(websocket)
+                    loguru.logger.debug(
+                        f"Registered websocket for user {key} notifications"
+                    )
         except Exception:
             loguru.logger.exception("Error registering websocket under user mapping")
 
@@ -61,6 +72,10 @@ class ConnectionManager:
         elif info.get("device_only"):
             tenant_id = str(info.get("tenant_id"))
             loguru.logger.info(f"Device-only connection closed for tenant {tenant_id}")
+        elif info.get("notification_only"):
+            loguru.logger.info(
+                f"Notification-only connection closed for user {info.get('username')} (ID: {info.get('user_id')})"
+            )
         else:
             tenant_id = str(info.get("tenant_id"))
             loguru.logger.info(f"Tenant {tenant_id} connection closed")
@@ -68,6 +83,8 @@ class ConnectionManager:
                 self.tenants[tenant_id].remove(websocket)
                 if not self.tenants[tenant_id]:
                     del self.tenants[tenant_id]
+
+        # Limpiar suscripciones a devices
         try:
             for dev, conns in list(self.device_subs.items()):
                 if websocket in conns:
@@ -76,15 +93,20 @@ class ConnectionManager:
                         del self.device_subs[dev]
         except Exception:
             loguru.logger.exception("Error cleaning device subscriptions on disconnect")
+
+        # Limpiar registro de notificaciones de usuario
         try:
-            user_id = info.get("user_id")
-            if user_id is not None:
-                key = str(user_id)
-                if key in self.users and websocket in self.users[key]:
-                    self.users[key].remove(websocket)
-                    if not self.users[key]:
-                        del self.users[key]
-                    loguru.logger.debug(f"Removed websocket from user {key} mapping")
+            if not info.get("device_only"):
+                user_id = info.get("user_id")
+                if user_id is not None:
+                    key = str(user_id)
+                    if key in self.users and websocket in self.users[key]:
+                        self.users[key].remove(websocket)
+                        if not self.users[key]:
+                            del self.users[key]
+                        loguru.logger.debug(
+                            f"Removed websocket from user {key} notifications"
+                        )
         except Exception:
             loguru.logger.exception("Error cleaning user mapping on disconnect")
 

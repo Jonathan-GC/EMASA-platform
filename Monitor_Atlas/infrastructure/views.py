@@ -544,9 +544,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 {"message": f"Error generating WebSocket link: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        ws_url = (
-            f"{settings.HERMES_URL}/ws/device/{encrypted_dev_eui}?token={access_token}"
-        )
+        ws_url = f"{settings.HERMES_WS_URL}/ws/device/{encrypted_dev_eui}?token={access_token}"
 
         return Response({"ws_url": ws_url})
 
