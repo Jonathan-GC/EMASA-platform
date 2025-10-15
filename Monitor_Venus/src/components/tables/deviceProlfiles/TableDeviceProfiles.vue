@@ -252,6 +252,10 @@ const GetDeviceProfiles = async () => {
   }
 }
 
+const handleItemRefresh = () => {
+  GetDeviceProfiles()
+}
+
 // Component-specific methods
 const selectGateway = (gateway) => {
   selectedGateway.value = gateway

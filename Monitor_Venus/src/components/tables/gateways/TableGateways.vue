@@ -252,6 +252,9 @@ const fetchGateways = async () => {
   }
 }
 
+const handleItemRefresh = () => {
+  fetchGateways()
+}
 // Component-specific methods
 const selectGateway = (gateway) => {
   selectedGateway.value = gateway

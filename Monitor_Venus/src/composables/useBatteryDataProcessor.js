@@ -98,9 +98,9 @@ export function useBatteryDataProcessor() {
             max_voltage: 0
         }
 
-        if (!data.object?.measurements?.battery) return stats
+        if (!data.payload?.measurements?.battery) return stats
 
-        const batteryData = data.object.measurements.battery
+        const batteryData = data.payload.measurements.battery
         let totalSamples = 0
         let sumVoltage = 0
         let maxVoltage = -Infinity
@@ -135,7 +135,7 @@ export function useBatteryDataProcessor() {
         // Determine if payload contains battery measurements
         const hasBattery = (
             Array.isArray(data.measurement_values) && data.measurement_values.some(s => s.sensor_type === 'battery')
-        ) || !!(data.measurements && data.measurements.battery) || !!(data.object && data.object.measurements && data.object.measurements.battery) || data.object?.type === 'battery'
+        ) || !!(data.measurements && data.measurements.battery) || !!(data.payload && data.payload.measurements && data.payload.measurements.battery) || data.payload?.type === 'battery'
 
         if (!hasBattery) {
             console.log('ℹ️ Datos ignorados - no contienen batería')
@@ -147,11 +147,11 @@ export function useBatteryDataProcessor() {
         // Create enhanced device object with available WebSocket data
         const enhancedDevice = {
             ...data,
-            device_name: data.devEui || `Device ${data.object?.id || 'Unknown'}`,
+            device_name: data.devEui || `Device ${data.payload?.id || 'Unknown'}`,
             dev_eui: data.devEui,
             tenant_name: data.tenantId,
             buffer_stats: calculateBufferStats(data),
-            reception_timestamp: data.object?.arrival_date || data.arrival_date || new Date().toISOString()
+            reception_timestamp: data.payload?.arrival_date || data.arrival_date || new Date().toISOString()
         }
         lastDevice.value = enhancedDevice
         // Add to recent messages with reception_timestamp and device_name
@@ -173,8 +173,8 @@ export function useBatteryDataProcessor() {
             batteryData = data.measurements.battery
         }
         // Format 2: object.measurements.battery
-        else if (data.object?.measurements?.battery) {
-            batteryData = data.object.measurements.battery
+        else if (data.payload?.measurements?.battery) {
+            batteryData = data.payload.measurements.battery
         }
         // Format 3: measurement_values with sensor_type === 'battery'
         else if (Array.isArray(data.measurement_values)) {

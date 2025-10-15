@@ -49,6 +49,17 @@ class API {
     APPLICATION = 'infrastructure/application/'
     LOCATION = 'infrastructure/location/'
     DEVICE_PROFILE_TEMPLATE = '/device-profile-template/'
+    DEVICE_SET_ACTIVATION_KEYS(deviceId) {
+        return `infrastructure/device/${deviceId}/set_activation/`
+    }
+
+    DEVICE_ACTIVATION(deviceId) {
+        return `infrastructure/device/${deviceId}/activate/`
+    }
+
+    DEVICE_DEACTIVATION(deviceId) {
+        return `infrastructure/device/${deviceId}/deactivate/`
+    }
 
 
     //----[WEBSOCKET]----

@@ -50,9 +50,9 @@ export function useVoltageDataProcessor() {
       max_voltage: 0
     }
 
-    if (!data.object?.measurements?.voltage) return stats
+    if (!data.payload?.measurements?.voltage) return stats
 
-    const voltageData = data.object.measurements.voltage
+    const voltageData = data.payload.measurements.voltage
     let totalSamples = 0
     let sumVoltage = 0
     let minVoltage = Infinity
@@ -101,16 +101,16 @@ export function useVoltageDataProcessor() {
       })
       if (Object.keys(channels).length > 0) return channels
     }
-    if (data.object && data.object.measurements && data.object.measurements[sensor]) {
-      const groups = data.object.measurements[sensor]
+    if (data.payload && data.payload.measurements && data.payload.measurements[sensor]) {
+      const groups = data.payload.measurements[sensor]
       Object.entries(groups).forEach(([ch, arr]) => {
         if (!Array.isArray(arr)) return
-        channels[ch] = arr.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.object.arrival_date || data.arrival_date, value: s.value }))
+        channels[ch] = arr.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.payload.arrival_date || data.arrival_date, value: s.value }))
       })
       if (Object.keys(channels).length > 0) return channels
     }
-    if (Array.isArray(data.object?.values)) {
-      channels['ch0'] = data.object.values.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.object.arrival_date || data.arrival_date, value: s.value }))
+    if (Array.isArray(data.payload?.values)) {
+      channels['ch0'] = data.payload.values.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.payload.arrival_date || data.arrival_date, value: s.value }))
       if (Object.keys(channels).length > 0) return channels
     }
     return null
@@ -125,11 +125,11 @@ export function useVoltageDataProcessor() {
     // Create enhanced device object with available WebSocket data
     const enhancedDevice = {
       ...data,
-      device_name: data.devEui || `Device ${data.object?.id || 'Unknown'}`,
+      device_name: data.devEui || `Device ${data.payload?.id || 'Unknown'}`,
       dev_eui: data.devEui,
       tenant_name: data.tenantId,
       buffer_stats: calculateBufferStats(data),
-      reception_timestamp: data.object?.arrival_date || data.arrival_date || new Date().toISOString()
+      reception_timestamp: data.payload?.arrival_date || data.arrival_date || new Date().toISOString()
     }
     lastDevice.value = enhancedDevice
 

@@ -31,7 +31,7 @@ export function useCurrentDataProcessor() {
         if (Array.isArray(data.measurement_values)) {
             return data.measurement_values
                 .filter(s => s.sensor_type === sensor && s.value !== undefined)
-                .map(s => ({ time: s.time || s.time_iso || s.arrival_date || data.object?.arrival_date, value: s.value }))
+                .map(s => ({ time: s.time || s.time_iso || s.arrival_date || data.payload?.arrival_date, value: s.value }))
         }
 
         if (data.measurements && data.measurements[sensor]) {
@@ -43,11 +43,11 @@ export function useCurrentDataProcessor() {
             return samples
         }
 
-        if (data.object && data.object.measurements && data.object.measurements[sensor]) {
-            const channels = data.object.measurements[sensor]
+        if (data.payload && data.payload.measurements && data.payload.measurements[sensor]) {
+            const channels = data.payload.measurements[sensor]
             const samples = []
             Object.values(channels).forEach(arr => {
-                if (Array.isArray(arr)) arr.forEach(s => samples.push({ time: s.time || s.time_iso || data.object.arrival_date || data.arrival_date, value: s.value }))
+                if (Array.isArray(arr)) arr.forEach(s => samples.push({ time: s.time || s.time_iso || data.payload.arrival_date || data.arrival_date, value: s.value }))
             })
             return samples
         }
@@ -64,9 +64,9 @@ export function useCurrentDataProcessor() {
             max_voltage: 0
         }
 
-        if (!data.object?.measurements?.current) return stats
+        if (!data.payload?.measurements?.current) return stats
 
-        const currentData = data.object.measurements.current
+        const currentData = data.payload.measurements.current
         let totalSamples = 0
         let sumCurrent = 0
         let minCurrent = Infinity
@@ -107,7 +107,7 @@ export function useCurrentDataProcessor() {
         // Determine if payload contains current measurements
         const hasCurrent = (
             Array.isArray(data.measurement_values) && data.measurement_values.some(s => s.sensor_type === 'current')
-        ) || !!(data.measurements && data.measurements.current) || !!(data.object && data.object.measurements && data.object.measurements.current) || data.object?.type === 'current'
+        ) || !!(data.measurements && data.measurements.current) || !!(data.payload && data.payload.measurements && data.payload.measurements.current) || data.payload?.type === 'current'
 
         if (!hasCurrent) {
             console.log('ℹ️ Datos ignorados - no contienen corriente')
@@ -120,11 +120,11 @@ export function useCurrentDataProcessor() {
         // Create enhanced device object with available WebSocket data
         const enhancedDevice = {
             ...data,
-            device_name: data.devEui || `Device ${data.object?.id || 'Unknown'}`,
+            device_name: data.devEui || `Device ${data.payload?.id || 'Unknown'}`,
             dev_eui: data.devEui,
             tenant_name: data.tenantId,
             buffer_stats: calculateBufferStats(data),
-            reception_timestamp: data.object?.arrival_date || data.arrival_date || new Date().toISOString()
+            reception_timestamp: data.payload?.arrival_date || data.arrival_date || new Date().toISOString()
         }
         lastDevice.value = enhancedDevice
 

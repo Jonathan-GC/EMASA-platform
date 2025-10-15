@@ -70,6 +70,17 @@
     { "key": "device_profile", "label": "Perfil del dispositivo", "type": "text" },
     { "key": "machine", "label": "Máquina", "type": "text" }
   ],
+
+  "device_activation": [
+    { "key": "dev_addr", "label": "Device Address", "type": "text", "required": true },
+    { "key": "app_s_key", "label": "Application Session Key", "type": "text", "required": true },
+    { "key": "f_nwk_s_int_key", "label": "Gateway Integrity Key", "type": "text", "required": true },
+    { "key": "s_nwk_s_int_key", "label": "Server Integrity Key", "type": "text", "required": true},
+    { "key": "nwk_s_enc_key", "label": "Network Session Key", "type": "text" },
+    { "key": "f_cnt_up", "label": "Uplink frame counter", "type": "text" },
+    { "key": "n_f_cnt_down", "label": "Network Downlink Counter", "type": "text" },
+    { "key": "afcntdown", "label": "Application Downlink Counter", "type": "text" }
+  ],
   "machine": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "descripción", "type": "textarea" },

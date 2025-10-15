@@ -16,6 +16,11 @@
           <ion-icon :icon="icons.batteryHalf"></ion-icon>
           <ion-label>Batería</ion-label>
         </ion-tab-button>
+
+        <ion-tab-button tab="activation">
+          <ion-icon :icon="icons.key"></ion-icon>
+          <ion-label>Activación</ion-label>
+        </ion-tab-button>
       </ion-tab-bar>
 
       <!-- Voltage Tab -->
@@ -138,6 +143,41 @@
           </div>
         </ion-content>
       </ion-tab>
+
+      <!-- Activation Tab -->
+      <ion-tab tab="activation">
+        <ion-content class="ion-padding">
+          <div class="tab-content">
+            <!-- Header -->
+            <div class="header">
+              <h1>🔑 Device Activation</h1>
+              <div class="header-subtitle">
+                Configure activation keys for your device
+              </div>
+            </div>
+
+            <!-- Device information section -->
+            <div v-if="device" class="device-info-section">
+              <h3>Device: {{ device.device_name || device.name || 'Unknown Device' }}</h3>
+              <p>EUI: {{ device.dev_eui || 'Not available' }}</p>
+            </div>
+
+            <!-- Activation form -->
+            <div class="form-container">
+              <FormActivationDevice
+                type="device_activation"
+                label="device activation"
+                :device="device"
+                @item-created="handleActivationCreated"
+                @field-changed="handleActivationFieldChanged"
+              />
+            </div>
+
+            <!-- Recent messages -->
+            <RecentMessages :messages="recentMessages" />
+          </div>
+        </ion-content>
+      </ion-tab>
     </ion-tabs>
   </div>
 </template>
@@ -191,6 +231,7 @@ import DeviceInfo from '@/components/cards/DeviceInfo.vue'
 import ChartsGrid from '@/components/charts/ChartsGrid.vue'
 import SingleCurrentChart from '@/components/charts/SingleCurrentChart.vue'
 import DualAxisBatteryChart from '@/components/charts/DualAxisBatteryChart.vue'
+import FormActivationDevice from '@/components/forms/create/device/formActivationDevice.vue'
 
 // Props
 const props = defineProps({
@@ -268,6 +309,18 @@ const isMounted = ref(false)
 onMounted(() => {
   isMounted.value = true
 })
+
+// Event handlers for activation form
+function handleActivationCreated(itemName) {
+  console.log('Device activation created:', itemName)
+  // You can emit an event to parent component or show a success message
+  // emit('activation-updated', itemName)
+}
+
+function handleActivationFieldChanged(fieldKey, value) {
+  console.log('Activation field changed:', fieldKey, value)
+  // Handle field changes if needed
+}
 </script>
 
 <style scoped>
@@ -353,6 +406,36 @@ ion-tab-button.tab-selected {
 }
 
 .chart-container {
+  margin: 20px 0;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Activation tab specific styles */
+.device-info-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.device-info-section h3 {
+  margin: 0 0 8px 0;
+  color: #374151;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.device-info-section p {
+  margin: 4px 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.form-container {
   margin: 20px 0;
   padding: 16px;
   background: white;
