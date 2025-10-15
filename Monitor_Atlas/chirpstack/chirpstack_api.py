@@ -27,7 +27,7 @@ from .helpers import (
     create_local_device,
 )
 
-import logging
+from loguru import logger
 
 CHIRPSTACK_BASE_URL = settings.CHIRPSTACK_BASE_URL
 CHIRPSTACK_JWT_TOKEN = settings.CHIRPSTACK_JWT_TOKEN
@@ -51,19 +51,19 @@ def error_syncing(instance, response):
     instance.sync_error = response.text
     instance.last_synced_at = dt.datetime.now()
     instance.save()
-    logging.error(f"Error syncing {instance}: {response.text}")
+    logger.error(f"Error syncing {instance}: {response.text}")
 
 
 def set_status(instance, response):
     if response is None:
-        logging.info(f"No changes made to {instance} in chirpstack")
+        logger.debug(f"No changes made to {instance} in chirpstack")
         return
     if response.status_code == 200:
         instance.sync_status = "SYNCED"
         instance.sync_error = ""
         instance.last_synced_at = dt.datetime.now()
         instance.save()
-        logging.info(f"{instance} synced successfully")
+        logger.debug(f"{instance} synced successfully")
     else:
         error_syncing(instance, response)
 
@@ -225,10 +225,10 @@ def sync_tenant_destroy(tenant):
         )
 
         if response.status_code == 200:
-            logging.info(f"Tenant deleted in Chirpstack")
+            logger.debug(f"Tenant deleted in Chirpstack")
             return response
 
-        logging.error(f"Error deleting tenant try to delete it manually.")
+        logger.error(f"Error deleting tenant try to delete it manually.")
 
     return response
 
@@ -255,7 +255,7 @@ def get_tenant_from_chirpstack():
             instance.sync_error = ""
             instance.last_synced_at = dt.datetime.now()
             instance.save()
-            logging.info(
+            logger.debug(
                 f"Tenant {instance.cs_tenant_id} - {instance.name} has been synced with Chirpstack"
             )
 
@@ -278,7 +278,7 @@ def get_tenant_from_chirpstack():
         )
         new_tenant.save()
         workspace = get_or_create_default_workspace(new_tenant)
-        logging.info(
+        logger.debug(
             f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} with its default workspace {workspace.id} has been created from Chirpstack"
         )
     return list_response
@@ -337,7 +337,7 @@ def sync_gateway_status(gateway):
             gateway.state = match.get("state", gateway.state)
             gateway.last_seen_at = match.get("lastSeenAt", gateway.last_seen_at)
         else:
-            logging.warning(f"Gateway {gateway.cs_gateway_id} not found in Chirpstack.")
+            logger.warning(f"Gateway {gateway.cs_gateway_id} not found in Chirpstack.")
         set_status(gateway, response)
     return response
 
@@ -403,10 +403,10 @@ def sync_gateway_destroy(gateway):
             headers=HEADERS,
         )
         if response.status_code == 200:
-            logging.info(f"Gateway deleted in Chirpstack")
+            logger.debug(f"Gateway deleted in Chirpstack")
             return response
 
-        logging.error(f"Error deleting gateway try to delete it manually.")
+        logger.error(f"Error deleting gateway try to delete it manually.")
         return response
     return None
 
@@ -434,7 +434,7 @@ def get_gateway_from_chirpstack():
                 match.sync_error = ""
                 match.last_synced_at = dt.datetime.now()
                 match.save()
-                logging.info(
+                logger.debug(
                     f"Gateway {match.cs_gateway_id} - {match.name} has been synced with Chirpstack"
                 )
         for match in to_remove:
@@ -471,17 +471,17 @@ def get_gateway_from_chirpstack():
                     last_synced_at=dt.datetime.now(),
                 )
                 new_gw.save()
-                logging.info(
+                logger.debug(
                     f"Gateway {new_gw.cs_gateway_id} - {new_gw.name} has been created from Chirpstack"
                 )
 
             else:
-                logging.warning(
+                logger.warning(
                     f"No tenant found with cs_tenant_id {new_instance.get('tenantId')}. Gateway {new_instance['gatewayId']} was not created."
                 )
 
     else:
-        logging.error(f"Error fetching gateways from Chirpstack.")
+        logger.error(f"Error fetching gateways from Chirpstack.")
 
     return list_response
 
@@ -657,10 +657,10 @@ def sync_api_user_destroy(api_user):
         )
 
         if response.status_code == 200:
-            logging.info(f"API User deleted in Chirpstack")
+            logger.debug(f"API User deleted in Chirpstack")
             return response
 
-        logging.error(f"Error deleting API User try to delete it manually.")
+        logger.error(f"Error deleting API User try to delete it manually.")
 
     return response
 
@@ -883,10 +883,10 @@ def sync_device_profile_destroy(device_profile):
         )
 
         if response.status_code == 200:
-            logging.info(f"DeviceProfile deleted in Chirpstack")
+            logger.debug(f"DeviceProfile deleted in Chirpstack")
             return response
 
-        logging.error(f"Error deleting DeviceProfile try to delete it manually.")
+        logger.error(f"Error deleting DeviceProfile try to delete it manually.")
 
     return response
 
@@ -899,7 +899,7 @@ def get_device_profiles_from_chirpstack():
     for tenant in local_tenants:
         workspace = get_or_create_default_workspace(tenant)
         if not workspace:
-            logging.warning(
+            logger.warning(
                 f"Tenant {tenant.name} does not have an associated workspace. Skipping..."
             )
             continue
@@ -1040,10 +1040,10 @@ def sync_application_destroy(application):
         )
 
         if response.status_code == 200:
-            logging.info(f"Application deleted in Chirpstack")
+            logger.debug(f"Application deleted in Chirpstack")
             return response
 
-        logging.error(f"Error deleting Application try to delete it manually.")
+        logger.error(f"Error deleting Application try to delete it manually.")
 
     return response
 
@@ -1157,10 +1157,10 @@ def sync_device_destroy(device):
         )
 
         if response.status_code == 200:
-            logging.info(f"Device deleted in Chirpstack")
+            logger.debug(f"Device deleted in Chirpstack")
             return response
 
-        logging.error(f"Error deleting Device try to delete it manually.")
+        logger.error(f"Error deleting Device try to delete it manually.")
 
     return response
 
@@ -1207,7 +1207,7 @@ def device_activation_status(device):
         return status
 
     else:
-        logging.error(
+        logger.error(
             f"Error fetching device activation status: Device does not exist in Chirpstack or try to check it manually. {response.text} {response.request.url}"
         )
 

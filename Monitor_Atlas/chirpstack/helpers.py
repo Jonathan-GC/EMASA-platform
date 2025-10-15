@@ -1,5 +1,5 @@
 import datetime as dt
-import logging
+from loguru import logger
 import requests
 from .models import ApiUser, DeviceProfile
 from organizations.helpers import get_or_create_default_workspace, get_emasa_tenant
@@ -111,9 +111,7 @@ def fetch_device_profiles(tenant, device_profile_url, headers):
         params={"limit": 100, "tenantId": tenant.cs_tenant_id},
     )
     if response.status_code != 200:
-        logging.error(
-            f"Error fetching device profiles for tenant {tenant.cs_tenant_id}"
-        )
+        logger.error(f"Error fetching device profiles for tenant {tenant.cs_tenant_id}")
         return [], response
     return response.json().get("result", []), response
 
@@ -146,7 +144,7 @@ def update_local_device_profile(local_dp, match, workspace):
     local_dp.sync_error = ""
     local_dp.last_synced_at = dt.datetime.now()
     local_dp.save()
-    logging.info(
+    logger.debug(
         f"DeviceProfile {local_dp.cs_device_profile_id} - {local_dp.name} updated"
     )
 
@@ -178,7 +176,7 @@ def create_local_device_profile(new_dp, workspace):
         last_synced_at=dt.datetime.now(),
     )
     dp.save()
-    logging.info(
+    logger.debug(
         f"DeviceProfile {dp.cs_device_profile_id} - {dp.name} created from Chirpstack"
     )
     return dp
@@ -192,7 +190,7 @@ def fetch_applications(tenant, application_url, headers):
         params={"limit": 100, "tenantId": tenant.cs_tenant_id},
     )
     if response.status_code != 200:
-        logging.error(f"Error fetching applications for tenant {tenant.cs_tenant_id}")
+        logger.error(f"Error fetching applications for tenant {tenant.cs_tenant_id}")
         return [], response
     return response.json().get("result", []), response
 
@@ -205,7 +203,7 @@ def update_local_application(local_app, match):
     local_app.sync_error = ""
     local_app.last_synced_at = dt.datetime.now()
     local_app.save()
-    logging.info(
+    logger.debug(
         f"Application {local_app.cs_application_id} - {local_app.name} updated"
     )
 
@@ -229,7 +227,7 @@ def create_local_application(new_app, workspace):
         last_synced_at=dt.datetime.now(),
     )
     app.save()
-    logging.info(
+    logger.debug(
         f"Application {app.cs_application_id} - {app.name} created from Chirpstack"
     )
     return app
@@ -243,7 +241,7 @@ def fetch_devices(app, device_url, headers):
         params={"limit": 100, "applicationId": app.cs_application_id},
     )
     if response.status_code != 200:
-        logging.error(f"Error fetching devices for application {app.cs_application_id}")
+        logger.error(f"Error fetching devices for application {app.cs_application_id}")
         return [], response
     return response.json().get("result", []), response
 
@@ -253,7 +251,7 @@ def get_device_profile(profile_id):
     try:
         return DeviceProfile.objects.get(cs_device_profile_id=profile_id)
     except DeviceProfile.DoesNotExist:
-        logging.warning(f"DeviceProfile {profile_id} not found")
+        logger.warning(f"DeviceProfile {profile_id} not found")
         return None
 
 
@@ -271,7 +269,7 @@ def update_local_device(local_dev, match):
     local_dev.sync_error = ""
     local_dev.last_synced_at = dt.datetime.now()
     local_dev.save()
-    logging.info(f"Device {local_dev.dev_eui} updated")
+    logger.debug(f"Device {local_dev.dev_eui} updated")
 
 
 def create_local_device(new_dev, app, workspace):
@@ -310,5 +308,5 @@ def create_local_device(new_dev, app, workspace):
         last_synced_at=dt.datetime.now(),
     )
     dev.save()
-    logging.info(f"Device {dev.dev_eui} - {dev.name} created from Chirpstack")
+    logger.debug(f"Device {dev.dev_eui} - {dev.name} created from Chirpstack")
     return dev

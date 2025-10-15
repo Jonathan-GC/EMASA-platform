@@ -104,7 +104,9 @@ class Device(models.Model):
         }
     """
 
-    dev_eui = models.CharField(max_length=16, help_text="Device EUI (Chirpstack)")  # cs
+    dev_eui = models.CharField(
+        max_length=16, help_text="Device EUI (Chirpstack)", unique=True
+    )  # cs
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)

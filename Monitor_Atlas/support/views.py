@@ -9,7 +9,7 @@ from .serializers import (
 )
 
 from rest_framework.decorators import action
-import logging
+from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
 
 
@@ -90,7 +90,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         try:
             notification.notify_ws()
         except Exception as e:
-            logging.error(f"Failed to notify user: {e}")
+            logger.error(f"Failed to notify user: {e}")
             return Response({"status": "failed", "error": str(e)}, status=500)
 
         return Response({"status": "notified"})
@@ -121,7 +121,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         try:
             notification.mark_as_read()
         except Exception as e:
-            logging.error(f"Failed to mark notification as read: {e}")
+            logger.error(f"Failed to mark notification as read: {e}")
             return Response({"status": "failed", "error": str(e)}, status=500)
 
         return Response({"status": "marked_as_read"})

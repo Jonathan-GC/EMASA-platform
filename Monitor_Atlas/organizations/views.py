@@ -15,7 +15,7 @@ from chirpstack.chirpstack_api import (
     sync_tenant_update,
 )
 
-import logging
+from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
 
 
@@ -60,22 +60,22 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         group, created = Group.objects.get_or_create(name=group_name)
 
         if created:
-            logging.info(f"Grupo {group_name} creado exitosamente")
+            logger.debug(f"Grupo {group_name} creado exitosamente")
 
         sync_response = sync_tenant_create(instance)
 
         if sync_response is None:
-            logging.error(
+            logger.error(
                 f"No se han realizado cambios en Chirpstack, verifique en los logs"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}"
             )
         else:
-            logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+            logger.debug(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
 
     def perform_update(self, serializer):
         instance = serializer.save()
@@ -83,17 +83,17 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         sync_response = sync_tenant_update(instance)
 
         if sync_response is None:
-            logging.error(
+            logger.error(
                 f"No se han realizado cambios en Chirpstack, verifique en los logs"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}"
             )
         else:
-            logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+            logger.debug(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -109,17 +109,17 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         for tenant in queryset:
             sync_response = sync_tenant_get(tenant)
             if sync_response is None:
-                logging.error(
+                logger.error(
                     f"No se han realizado cambios en Chirpstack, verifique en los logs"
                 )
                 return
 
             if sync_response.status_code != 200:
-                logging.error(
+                logger.error(
                     f"Error al sincronizar el tenant {tenant.name} con Chirpstack: {sync_response.status_code}"
                 )
             else:
-                logging.info(
+                logger.debug(
                     f"Se ha sincronizado el tenant {tenant.name} con Chirpstack"
                 )
             tenant.refresh_from_db()
@@ -136,17 +136,17 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         sync_response = sync_tenant_destroy(instance)
 
         if sync_response is None:
-            logging.error(
+            logger.error(
                 f"No se han realizado cambios en Chirpstack, verifique en los logs"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}"
             )
         else:
-            logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+            logger.debug(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
 
         instance.delete()
 

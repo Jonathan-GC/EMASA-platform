@@ -19,9 +19,7 @@ from organizations.models import Workspace, Tenant
 from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.db import transaction
-import logging
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class Command(BaseCommand):

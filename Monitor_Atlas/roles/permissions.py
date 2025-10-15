@@ -1,10 +1,8 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 from .models import PermissionKey
-import logging
+from loguru import logger
 
 TENANT_ADMIN_SCOPES = ["role", "workspace", "role_permission"]
-
-logger = logging.getLogger(__name__)
 
 
 def has_permission(user, scope, action, obj=None):

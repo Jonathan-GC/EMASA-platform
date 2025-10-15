@@ -35,7 +35,7 @@ from chirpstack.chirpstack_api import (
 )
 from rest_framework import status
 
-import logging
+from loguru import logger
 
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
 
@@ -63,17 +63,17 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_gateway_create(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al crear el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
             )
 
@@ -122,34 +122,34 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_gateway_update(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al actualizar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
             )
 
     def perform_destroy(self, instance):
         sync_response = sync_gateway_destroy(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
             )
             # proceed to delete locally
 
         elif sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al eliminar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
             )
 
@@ -286,18 +286,19 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         self.create_permission_keys(instance, scope="device")
 
         sync_response = sync_device_create(instance)
+
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al crear el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
@@ -306,34 +307,34 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_device_update(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
     def perform_destroy(self, instance):
         sync_response = sync_device_destroy(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
             )
             # proceed to delete locally
 
         elif sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al eliminar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
@@ -413,9 +414,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             serializer = self.get_serializer(device)
             return Response(serializer.data)
         except Exception as e:
-            logging.error(
-                f"Error setting activation for device {device.name}: {str(e)}"
-            )
+            logger.error(f"Error setting activation for device {device.name}: {str(e)}")
             return Response(
                 {"message": f"Error setting activation: {str(e)}"},
                 status=500,
@@ -449,7 +448,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 device.is_active = False
                 device.sync_error = "No response from Chirpstack (no-op)"
                 device.save(update_fields=["is_active", "sync_error"])
-                logging.info(
+                logger.debug(
                     f"No changes made in Chirpstack for activation of {device.name}, if this is not expected please check manually or try again"
                 )
                 return Response(
@@ -463,7 +462,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 device.is_active = False
                 device.sync_error = sync_response.text
                 device.save(update_fields=["is_active", "sync_error"])
-                logging.error(
+                logger.error(
                     f"Activation failed for {device.name}: {sync_response.status_code} {sync_response.text}"
                 )
                 return Response(
@@ -476,13 +475,13 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
             device.is_active = True
             device.save(update_fields=["is_active"])
-            logging.info(f"Device {device.dev_eui} - {device.name} activated")
+            logger.debug(f"Device {device.dev_eui} - {device.name} activated")
 
             serializer = self.get_serializer(device)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logging.exception(f"Unexpected error activating device {device.name}")
+            logger.exception(f"Unexpected error activating device {device.name}")
             return Response(
                 {"message": "Unexpected error activating device", "error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -498,13 +497,13 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = self.get_object()
         sync_response = deactivate_device(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for deactivation of {instance.name}, if this is not expected please check manually or try again"
             )
             return Response({"message": "Device deactivated (no-op in Chirpstack)"})
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al desactivar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
             return Response(
@@ -514,7 +513,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha desactivado el dispositivo {instance.dev_eui} - {instance.name}"
             )
 
@@ -539,7 +538,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         try:
             encrypted_dev_eui = encrypt_dev_eui(dev_eui)
         except ValueError as e:
-            logging.error(f"Error encrypting DevEUI for device {dev_eui}: {str(e)}")
+            logger.error(f"Error encrypting DevEUI for device {dev_eui}: {str(e)}")
             return Response(
                 {"message": f"Error generating WebSocket link: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -586,34 +585,34 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_application_create(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al crear la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
             )
 
     def perform_destroy(self, instance):
         sync_response = sync_application_destroy(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
             )
             # proceed to delete locally
 
         elif sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al eliminar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
             )
 
@@ -624,17 +623,17 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_application_update(instance)
         if sync_response is None:
-            logging.info(
+            logger.debug(
                 f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
             )
             return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
             )
 
@@ -642,7 +641,7 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         queryset = self.filter_queryset(self.get_queryset())
 
         for application in queryset:
-            logging.info(f"Syncing application {application.name}")
+            logger.debug(f"Syncing application {application.name}")
             sync_application_get(application)
 
             application.refresh_from_db()
@@ -674,7 +673,7 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         devices = Device.objects.filter(application=application)
 
         for device in devices:
-            logging.info(
+            logger.debug(
                 f"Syncing device {device.name} in application {application.name}"
             )
             sync_device_get(device)
