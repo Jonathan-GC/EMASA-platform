@@ -68,6 +68,23 @@ def set_status(instance, response):
         error_syncing(instance, response)
 
 
+# Helpers
+def test_connection():
+    try:
+        response = requests.get(CHIRPSTACK_API_URL, headers=HEADERS)
+        if response.status_code == 200:
+            logger.debug("Connection to ChirpStack successful.")
+            return True
+        else:
+            logger.error(
+                f"Failed to connect to ChirpStack. Status code: {response.status_code}, Response: {response.text}"
+            )
+            return False
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error connecting to ChirpStack: {e}")
+        return False
+
+
 # Tenants
 def has_tenant_id(tenant):
     return tenant.cs_tenant_id is not None and tenant.cs_tenant_id != ""

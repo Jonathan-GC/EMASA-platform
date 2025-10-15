@@ -1,4 +1,5 @@
 from chirpstack.chirpstack_api import (
+    test_connection,
     sync_device_get,
     sync_tenant_get,
     sync_gateway_get,
@@ -26,6 +27,16 @@ class Command(BaseCommand):
     help = "Sync ChirpStack entities with the database"
 
     def handle(self, *args, **options):
+        self.stdout.write(self.style.MIGRATE_LABEL("Testing ChirpStack connection..."))
+
+        if not test_connection():
+            self.stdout.write(
+                self.style.ERROR(
+                    "❌ Unable to connect to ChirpStack. Please check your settings."
+                )
+            )
+            return
+
         self.stdout.write(
             self.style.MIGRATE_HEADING("==> Synchronizing with ChirpStack...")
         )
