@@ -26,7 +26,7 @@ class ApiUser(models.Model):
     }
     """
 
-    cs_user_id = models.CharField(max_length=36, null=True, blank=True)
+    cs_user_id = models.CharField(max_length=36, unique=True, null=True, blank=True)
     email = models.EmailField()
     password = models.CharField(max_length=30, blank=True, null=True)
     is_admin = models.BooleanField(default=False)
@@ -79,7 +79,9 @@ class DeviceProfileTemplate(models.Model):
 
 
 class DeviceProfile(models.Model):
-    cs_device_profile_id = models.CharField(max_length=36, null=True, blank=True)
+    cs_device_profile_id = models.CharField(
+        max_length=36, unique=True, null=True, blank=True
+    )
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)

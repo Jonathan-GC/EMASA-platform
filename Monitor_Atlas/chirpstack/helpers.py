@@ -81,6 +81,13 @@ def create_new_user(new_instance, user_tenant_mapping):
         new_instance["id"], user_tenant_mapping
     )
 
+    exists = ApiUser.objects.filter(cs_user_id=new_instance["id"]).exists()
+    if exists:
+        logger.warning(
+            f"ApiUser {new_instance['id']} already exists, skipping creation"
+        )
+        return None
+
     api_user = ApiUser(
         email=new_instance["email"],
         cs_user_id=new_instance["id"],
@@ -151,6 +158,13 @@ def update_local_device_profile(local_dp, match, workspace):
 
 def create_local_device_profile(new_dp, workspace):
     """Create a new DeviceProfile in local DB from Chirpstack data."""
+    exists = DeviceProfile.objects.filter(cs_device_profile_id=new_dp["id"]).exists()
+    if exists:
+        logger.warning(
+            f"DeviceProfile {new_dp['id']} already exists, skipping creation"
+        )
+        return None
+
     dp = DeviceProfile(
         cs_device_profile_id=new_dp["id"],
         name=new_dp["name"],
@@ -210,6 +224,11 @@ def update_local_application(local_app, match):
 
 def create_local_application(new_app, workspace):
     """Create a new Application in the local DB from Chirpstack data."""
+    exists = Application.objects.filter(cs_application_id=new_app["id"]).exists()
+    if exists:
+        logger.warning(f"Application {new_app['id']} already exists, skipping creation")
+        return None
+
     default_type = Type.objects.filter(name="Generic").first()
     if not default_type:
         default_type = Type.objects.create(
@@ -274,6 +293,12 @@ def update_local_device(local_dev, match):
 
 def create_local_device(new_dev, app, workspace):
     """Create a new Device in the local DB from Chirpstack data."""
+    exists = Device.objects.filter(dev_eui=new_dev["devEui"]).exists()
+
+    if exists:
+        logger.warning(f"Device {new_dev['devEui']} already exists, skipping creation")
+        return None
+
     dp = DeviceProfile.objects.filter(
         cs_device_profile_id=new_dev["deviceProfileId"]
     ).first()
@@ -291,12 +316,6 @@ def create_local_device(new_dev, app, workspace):
             workspace=workspace,
             description="Default machine",
         )
-
-    exists = Device.objects.filter(dev_eui=new_dev["devEui"]).exists()
-
-    if exists:
-        logger.warning(f"Device {new_dev['devEui']} already exists, skipping creation")
-        return None
 
     dev = Device(
         dev_eui=new_dev["devEui"],

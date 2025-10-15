@@ -33,7 +33,11 @@ class Application(models.Model):
     """
 
     cs_application_id = models.CharField(
-        max_length=36, null=True, blank=True, help_text="Application ID (Chirpstack)"
+        max_length=36,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Application ID (Chirpstack)",
     )  # cs
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, default="")

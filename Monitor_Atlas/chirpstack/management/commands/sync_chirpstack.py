@@ -54,7 +54,7 @@ class Command(BaseCommand):
         )
 
     def sync_tenants(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing Tenants..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing Tenants..."))
         for tenant in Tenant.objects.all():
             try:
                 sync_tenant_get(tenant)
@@ -80,7 +80,7 @@ class Command(BaseCommand):
             )
 
     def sync_gateways(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing Gateways..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing Gateways..."))
         for gw in Gateway.objects.all():
             try:
                 sync_gateway_get(gw)
@@ -106,7 +106,7 @@ class Command(BaseCommand):
             )
 
     def sync_api_users(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing APIUsers..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing APIUsers..."))
         for u in ApiUser.objects.all():
             try:
                 sync_api_user_get(u)
@@ -132,7 +132,7 @@ class Command(BaseCommand):
             )
 
     def sync_applications(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing Applications..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing Applications..."))
         for app in Application.objects.all():
             try:
                 sync_application_get(app)
@@ -162,7 +162,7 @@ class Command(BaseCommand):
             )
 
     def sync_device_profiles(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing DeviceProfiles..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing DeviceProfiles..."))
         for dp in DeviceProfile.objects.all():
             try:
                 sync_device_profile_get(dp)
@@ -193,7 +193,7 @@ class Command(BaseCommand):
             )
 
     def sync_devices(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing Devices..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing Devices..."))
         for device in Device.objects.all():
             try:
                 sync_device_get(device)

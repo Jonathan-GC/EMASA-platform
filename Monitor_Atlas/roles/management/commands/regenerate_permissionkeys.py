@@ -49,7 +49,7 @@ class Command(BaseCommand):
     help = "Regenerates all PermissionKeys for all registered models."
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.WARNING("Deleting existent PermissionKeys..."))
+        self.stdout.write(self.style.WARNING("⛔ Deleting existent PermissionKeys..."))
         PermissionKey.objects.all().delete()
 
         total = 0
@@ -71,7 +71,7 @@ class Command(BaseCommand):
                 continue
 
             self.stdout.write(
-                self.style.WARNING(f"Processing {scope} ({model.__name__})...")
+                self.style.HTTP_INFO(f" ➕ Processing {scope} ({model.__name__})...")
             )
 
             for instance in model.objects.all():
