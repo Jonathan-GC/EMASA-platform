@@ -292,6 +292,12 @@ def create_local_device(new_dev, app, workspace):
             description="Default machine",
         )
 
+    exists = Device.objects.filter(dev_eui=new_dev["devEui"]).exists()
+
+    if exists:
+        logger.warning(f"Device {new_dev['devEui']} already exists, skipping creation")
+        return None
+
     dev = Device(
         dev_eui=new_dev["devEui"],
         name=new_dev.get("name", ""),
