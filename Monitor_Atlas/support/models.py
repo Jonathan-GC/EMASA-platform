@@ -2,6 +2,7 @@ from django.db import models
 from users.models import User
 import requests
 from django.conf import settings
+from loguru import logger
 
 HERMES_API_URL = getattr(settings, "HERMES_API_URL", "http://localhost:5000")
 
@@ -113,6 +114,7 @@ class Notification(models.Model):
         self.save()
 
     def notify_ws(self):
+        logger.debug("Sending WebSocket notification via Hermes")
         try:
             payload = {
                 "user_id": self.user.id,
@@ -121,9 +123,10 @@ class Notification(models.Model):
                 "type": self.type,
             }
             response = requests.post(f"{HERMES_API_URL}/notify", json=payload)
+            logger.debug(f"WebSocket notification sent: {response.status_code}")
             response.raise_for_status()
         except requests.RequestException as e:
-            print(f"Failed to send notification via WebSocket: {e}")
+            logger.error(f"Failed to send notification via WebSocket: {e}")
 
     def __str__(self):
         return f"Notification for {self.user.username} - {self.type}"
