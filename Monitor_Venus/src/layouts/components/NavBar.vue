@@ -44,6 +44,17 @@
         >
           ℹ️ Acerca de
         </router-link>
+        <router-link 
+          :to="paths.NOTIFICATIONS"
+          class="nav-link"
+          :class="{ active: $route.path === paths.NOTIFICATIONS }"
+          @click="closeNavbar"
+        >
+          <ion-icon
+              :icon="icons.notifications"
+          ></ion-icon>
+          Notifications
+        </router-link>
         
         <hr class="divider"/>
         <router-link

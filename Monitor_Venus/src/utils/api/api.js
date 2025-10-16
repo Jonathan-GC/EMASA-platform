@@ -53,6 +53,10 @@ class API {
         return `infrastructure/device/${deviceId}/set_activation/`
     }
 
+    DEVICE_ACTIVATION_DETAILS(deviceId) {
+        return `infrastructure/device/${deviceId}/activation_details/`
+    }
+
     DEVICE_ACTIVATION(deviceId) {
         return `infrastructure/device/${deviceId}/activate/`
     }

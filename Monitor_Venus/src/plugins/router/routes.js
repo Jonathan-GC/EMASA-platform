@@ -57,7 +57,8 @@ export const routes = [
             { path: P.TENANTS, component: C.TENANTS },
             { path: P.TENANT_MANAGERS, component: C.TENANT_MANAGERS, beforeEnter: requireAuth },
             { path: P.TENANT_LOCATIONS, component: C.TENANT_LOCATIONS, beforeEnter: requireAuth },
-            { path: P.TENANT_WORKSPACES, component: C.TENANT_WORKSPACES, beforeEnter: requireAuth }
+            { path: P.TENANT_WORKSPACES, component: C.TENANT_WORKSPACES, beforeEnter: requireAuth },
+            { path: P.NOTIFICATIONS, component: C.NOTIFICATIONS, beforeEnter: requireAuth }
 
         ]
     },

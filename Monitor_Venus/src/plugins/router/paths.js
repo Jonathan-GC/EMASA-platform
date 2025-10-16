@@ -19,4 +19,5 @@ export const paths = {
     // Relative paths
     DEVICES: '/devices',
     MACHINES: '/machines',
+    NOTIFICATIONS: '/notifications',
 }
