@@ -54,6 +54,9 @@ def format_payload(payload: dict) -> dict | None:
             formatted_payload["tenant_id"] = device_info.get(
                 "tenantId"
             ) or device_info.get("tenant_id")
+            formatted_payload["tenant_name"] = device_info.get(
+                "tenantName"
+            ) or device_info.get("tenant_name")
             formatted_payload["device_name"] = device_info.get(
                 "deviceName"
             ) or device_info.get("device_name")

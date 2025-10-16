@@ -5,6 +5,7 @@ from typing import Optional, Any, Dict
 
 class MessageIn(BaseModel):
     tenant_id: str
+    tenant_name: Optional[str] = None
     device_id: str
     dev_addr: Optional[str] = None
     device_name: Optional[str] = None
