@@ -7,7 +7,7 @@
     <ion-card-content>
 
       <!-- Section 1: Device Activation Control -->
-      <div v-if="props.device" class="activation-control-section">
+      <div v-if="activeDeviceId" class="activation-control-section">
         <h3>Device Activation Control</h3>
         <ion-item lines="none" class="status-item">
           <ion-label>
@@ -43,7 +43,7 @@
         ></ion-progress-bar>
       </div>
 
-      <hr class="section-divider" />
+      <hr v-if="activeDeviceId" class="section-divider" />
 
       <!-- Section 2: Activation Keys Configuration -->
       <div class="keys-configuration-section">
@@ -51,6 +51,12 @@
         <p class="section-description">
           Configure the LoRaWAN activation keys for this device. These keys are required before activating the device.
         </p>
+
+        <!-- Loading indicator for activation details -->
+        <div v-if="loadingActivationDetails" class="loading-container">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Loading activation details...</p>
+        </div>
 
         <form @submit.prevent="submitActivationKeys">
           <ion-list>
@@ -183,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps, defineEmits, watch, inject, onMounted } from 'vue'
+import { ref, computed, defineProps, defineEmits, watch, inject, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   IonCard,
@@ -232,6 +238,7 @@ const emit = defineEmits(['itemCreated', 'fieldChanged', 'activationChanged'])
 const keysLoading = ref(false)
 const activationLoading = ref(false)
 const isActivated = ref(false)
+const loadingActivationDetails = ref(false)
 
 const formData = ref({
   dev_addr: '',
@@ -258,7 +265,8 @@ const activationToggle = computed({
 })
 
 const deviceStatusMessage = computed(() => {
-  if (!props.device) return 'No device selected'
+  if (!activeDeviceId) return 'No device selected'
+  if (!props.device) return 'Device information loading...'
   if (isActivated.value) {
     return 'Device is activated and ready to communicate'
   }
@@ -273,16 +281,100 @@ const isKeysFormValid = computed(() => {
 })
 
 // Watch for device changes
-watch(() => props.device, (newDevice) => {
+watch(() => props.device, (newDevice, oldDevice) => {
+  console.log('👀 Device watcher triggered')
+  console.log('📦 New device:', newDevice)
+  console.log('📦 Old device:', oldDevice)
+  console.log('🆔 Device ID:', newDevice?.id)
+  
   if (newDevice) {
     // Update activation status from device data
     isActivated.value = newDevice.is_activated || false
-    // Pre-fill form if device has existing keys
-    initializeForm()
+    console.log('🔄 Activation status set to:', isActivated.value)
+  }
+  
+  // Always try to fetch activation details if we have a device ID
+  if (activeDeviceId.value) {
+    fetchActivationDetails()
   }
 }, { immediate: true })
 
-// Initialize form with device data
+// Fetch activation details from API
+async function fetchActivationDetails() {
+  if (!activeDeviceId.value) {
+    console.warn('⚠️ No device ID available for fetching activation details')
+    return
+  }
+
+  loadingActivationDetails.value = true
+  try {
+    console.log('📡 Fetching activation details for device:', activeDeviceId.value)
+    
+    const response = await API.get(API.DEVICE_ACTIVATION_DETAILS(activeDeviceId.value))
+    
+    // Check if response indicates no activation data
+    if (response.message === 'Device has no activation data') {
+      console.log('ℹ️ Device has no activation data - form will remain empty')
+      return
+    }
+    
+    // Handle error responses
+    if (response.error) {
+      console.warn('⚠️ Error fetching activation details:', response.error)
+      return
+    }
+    
+    // Populate form with activation data
+    if (response) {
+      console.log('✅ Activation details loaded:', response)
+      console.log('📋 Response type:', typeof response)
+      console.log('📋 Response keys:', Object.keys(response))
+      console.log('📋 Response dev_addr:', response.dev_addr)
+      console.log('📋 Response app_s_key:', response.app_s_key)
+      
+      // Handle different response formats
+      let activationData = response
+      
+      // Check if response is wrapped in an array (like other API responses)
+      if (Array.isArray(response) && response.length > 0) {
+        console.log('📦 Response is an array, using first element')
+        activationData = response[0]
+      }
+      
+      // Set form data field by field for better reactivity
+      formData.value.dev_addr = activationData.dev_addr || ''
+      formData.value.app_s_key = activationData.app_s_key || ''
+      formData.value.f_nwk_s_int_key = activationData.f_nwk_s_int_key || ''
+      formData.value.s_nwk_s_int_key = activationData.s_nwk_s_int_key || ''
+      formData.value.nwk_s_enc_key = activationData.nwk_s_enc_key || ''
+      formData.value.f_cnt_up = activationData.f_cnt_up?.toString() || ''
+      formData.value.n_f_cnt_down = activationData.n_f_cnt_down?.toString() || ''
+      formData.value.afcntdown = activationData.afcntdown?.toString() || ''
+      
+      console.log('📝 Form data populated:', formData.value)
+      console.log('📝 formData.dev_addr:', formData.value.dev_addr)
+      console.log('📝 formData.app_s_key:', formData.value.app_s_key)
+      
+      // Update activation status if available
+      if (activationData.is_activated !== undefined) {
+        isActivated.value = activationData.is_activated
+        console.log('🔄 Activation status updated:', isActivated.value)
+      }
+      
+      // Force reactive update
+      await nextTick()
+      console.log('🔄 Reactive update completed')
+    }
+    
+  } catch (error) {
+    console.error('❌ Error fetching activation details:', error)
+    // Don't show error to user - just log it and continue with empty form
+  } finally {
+    loadingActivationDetails.value = false
+  }
+}
+
+// Initialize form with device data (legacy function - kept for compatibility)
 function initializeForm() {
   if (props.device) {
     if (props.device.dev_addr) {
@@ -408,6 +500,14 @@ onMounted(() => {
   console.log('📍 Device ID from route:', deviceIdFromRoute.value)
   console.log('📦 Device from props:', props.device)
   console.log('✅ Active device ID:', activeDeviceId.value)
+  
+  // Fetch activation details if we have a device ID (from route or props)
+  if (activeDeviceId.value) {
+    console.log('📡 Fetching activation details on mount')
+    fetchActivationDetails()
+  } else {
+    console.log('⚠️ No device ID available on mount')
+  }
 })
 </script>
 
@@ -594,14 +694,26 @@ ion-button[type="submit"]:disabled {
   --color: #9ca3af;
 }
 
-/* Loading spinner and icons */
-ion-spinner {
-  width: 18px;
-  height: 18px;
+/* Loading container for activation details */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 20px;
 }
 
-ion-icon {
-  font-size: 1.2rem;
+.loading-container ion-spinner {
+  margin-bottom: 12px;
+}
+
+.loading-container p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
 }
 
 /* Divider */
