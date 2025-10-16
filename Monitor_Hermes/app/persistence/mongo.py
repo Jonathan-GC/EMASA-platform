@@ -14,14 +14,14 @@ async def get_db():
 async def connect_to_mongo():
     global client
     client = AsyncMongoClient(settings.MONGO_URI)
-    loguru.logger.info("Connected to MongoDB")
+    loguru.logger.debug("Connected to MongoDB")
 
 
 async def close_mongo_connection():
     global client
     if client:
         client.close()
-        loguru.logger.info("Closed MongoDB connection")
+        loguru.logger.debug("Closed MongoDB connection")
 
 
 async def save_message(db, message: MessageIn):

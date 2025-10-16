@@ -35,7 +35,7 @@ def send_notification(user_id: str, title: str, message: str, type: str = "info"
             "type": type,
         }
 
-        loguru.logger.info(f"📤 Enviando notificación a usuario {user_id}")
+        loguru.logger.debug(f"📤 Enviando notificación a usuario {user_id}")
         loguru.logger.debug(f"   Payload: {payload}")
 
         response = requests.post(f"{HERMES_API_URL}/notify", json=payload)
@@ -85,12 +85,12 @@ def test_notifications_sequence():
         },
     ]
 
-    loguru.logger.info(f"🚀 Enviando {len(notifications)} notificaciones de prueba")
-    loguru.logger.info(f"👤 Usuario destino: {TEST_USER_ID}")
-    loguru.logger.info("=" * 60)
+    loguru.logger.debug(f"🚀 Enviando {len(notifications)} notificaciones de prueba")
+    loguru.logger.debug(f"👤 Usuario destino: {TEST_USER_ID}")
+    loguru.logger.debug("=" * 60)
 
     for i, notif in enumerate(notifications, 1):
-        loguru.logger.info(f"\n📨 Notificación {i}/{len(notifications)}")
+        loguru.logger.debug(f"\n📨 Notificación {i}/{len(notifications)}")
         result = send_notification(
             user_id=TEST_USER_ID,
             title=notif["title"],
@@ -106,7 +106,7 @@ def test_notifications_sequence():
         # Esperar un poco entre notificaciones para que sea más claro en el cliente
         time.sleep(2)
 
-    loguru.logger.info("\n" + "=" * 60)
+    loguru.logger.debug("\n" + "=" * 60)
     loguru.logger.success("✅ Secuencia de prueba completada")
 
 
@@ -116,7 +116,7 @@ def test_notification_to_offline_user():
     # Usuario que probablemente no existe o no está conectado
     OFFLINE_USER_ID = "99999"
 
-    loguru.logger.info(
+    loguru.logger.debug(
         f"🧪 Probando notificación a usuario offline ({OFFLINE_USER_ID})"
     )
 
@@ -138,9 +138,9 @@ def test_notification_to_offline_user():
 
 
 if __name__ == "__main__":
-    loguru.logger.info("🔔 Test de envío de notificaciones")
-    loguru.logger.info(f"🌐 API URL: {HERMES_API_URL}")
-    loguru.logger.info("=" * 60)
+    loguru.logger.debug("🔔 Test de envío de notificaciones")
+    loguru.logger.debug(f"🌐 API URL: {HERMES_API_URL}")
+    loguru.logger.debug("=" * 60)
 
     # Primero asegúrate de tener un cliente WebSocket conectado
     # ejecutando: python tests/test_notifications_ws.py

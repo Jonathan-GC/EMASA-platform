@@ -18,28 +18,28 @@ class ConnectionManager:
 
     async def connect(self, websocket: WebSocket, info: dict):
         if info.get("is_global"):
-            loguru.logger.info(
+            loguru.logger.debug(
                 f"Global connection established as global: \n User: {str(info.get('username'))} \n Tenant: {str(info.get('tenant_id'))}"
             )
             self.global_connections.append(websocket)
         elif info.get("is_superuser"):
-            loguru.logger.info(
+            loguru.logger.debug(
                 f"Superuser connection established as superuser: \n User: {str(info.get('username'))} \n Superuser: {str(info.get('is_superuser'))}"
             )
             self.super_connections.append(websocket)
         elif info.get("device_only"):
             tenant_id = str(info.get("tenant_id"))
-            loguru.logger.info(
+            loguru.logger.debug(
                 f"Device-only connection established: \n User: {str(info.get('username'))} \n Tenant: {str(tenant_id)}"
             )
         elif info.get("notification_only"):
             # Conexión dedicada SOLO para notificaciones
-            loguru.logger.info(
+            loguru.logger.debug(
                 f"Notification-only connection established: \n User: {str(info.get('username'))} (ID: {info.get('user_id')})"
             )
         else:
             tenant_id = str(info.get("tenant_id"))
-            loguru.logger.info(
+            loguru.logger.debug(
                 f"User connection established as tenant: \n User: {str(info.get('username'))} \n Tenant: {str(tenant_id)}"
             )
             if tenant_id not in self.tenants:
@@ -64,21 +64,21 @@ class ConnectionManager:
 
     def disconnect(self, websocket: WebSocket, info: dict):
         if info.get("is_global"):
-            loguru.logger.info("Global connection closed")
+            loguru.logger.debug("Global connection closed")
             self.global_connections.remove(websocket)
         elif info.get("is_superuser"):
-            loguru.logger.info("Superuser connection closed")
+            loguru.logger.debug("Superuser connection closed")
             self.super_connections.remove(websocket)
         elif info.get("device_only"):
             tenant_id = str(info.get("tenant_id"))
-            loguru.logger.info(f"Device-only connection closed for tenant {tenant_id}")
+            loguru.logger.debug(f"Device-only connection closed for tenant {tenant_id}")
         elif info.get("notification_only"):
-            loguru.logger.info(
+            loguru.logger.debug(
                 f"Notification-only connection closed for user {info.get('username')} (ID: {info.get('user_id')})"
             )
         else:
             tenant_id = str(info.get("tenant_id"))
-            loguru.logger.info(f"Tenant {tenant_id} connection closed")
+            loguru.logger.debug(f"Tenant {tenant_id} connection closed")
             if tenant_id in self.tenants:
                 self.tenants[tenant_id].remove(websocket)
                 if not self.tenants[tenant_id]:
@@ -141,7 +141,7 @@ class ConnectionManager:
         if key not in self.device_subs:
             self.device_subs[key] = set()
         self.device_subs[key].add(websocket)
-        loguru.logger.info(f"WebSocket subscribed to device {key}")
+        loguru.logger.debug(f"WebSocket subscribed to device {key}")
 
     def unsubscribe_device(self, websocket: WebSocket, dev_eui: str):
         if not dev_eui:
@@ -151,7 +151,7 @@ class ConnectionManager:
             self.device_subs[key].discard(websocket)
             if not self.device_subs[key]:
                 del self.device_subs[key]
-            loguru.logger.info(f"WebSocket unsubscribed from device {key}")
+            loguru.logger.debug(f"WebSocket unsubscribed from device {key}")
 
     async def broadcast_to_device(self, message: dict, dev_eui: str):
         """Send message dict to all websockets subscribed to dev_eui.

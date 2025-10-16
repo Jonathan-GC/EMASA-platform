@@ -43,7 +43,7 @@ async def create_message(message: MessageIn, db=Depends(get_db)):
 
 @app.post("/notify")
 async def notify_user(user_id: str, title: str, message: str, type: str = "info"):
-    loguru.logger.info(f"Notificando al usuario {user_id}: {message}")
+    loguru.logger.debug(f"Notificando al usuario {user_id}: {message}")
     payload = {
         "channel": "notifications",
         "title": title,

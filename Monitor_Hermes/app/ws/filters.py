@@ -15,7 +15,7 @@ async def get_devEui_mapping(dev_eui: str) -> str:
 
     try:
         tenant_id = await client.hget("device_tenant_mapping", dev_eui)
-        logger.info(f"[get_devEui_mapping] tenant_id: {tenant_id}")
+        logger.debug(f"[get_devEui_mapping] tenant_id: {tenant_id}")
     except Exception as e:
         logger.exception("Redis hget failed for %s", dev_eui)
         return None

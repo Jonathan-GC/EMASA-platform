@@ -63,7 +63,7 @@ async def websocket_notifications(websocket: WebSocket):
 
     try:
         await manager.connect(websocket, info_for_notifications)
-        loguru.logger.info(
+        loguru.logger.debug(
             f"✉️  User {info.get('username')} (ID: {info.get('user_id')}) connected to notifications channel"
         )
     except Exception:
@@ -107,7 +107,7 @@ async def websocket_notifications(websocket: WebSocket):
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, info_for_notifications)
-        loguru.logger.info(
+        loguru.logger.debug(
             f"✉️  User {info.get('username')} (ID: {info.get('user_id')}) disconnected from notifications channel"
         )
 
@@ -152,7 +152,7 @@ async def websocket_tenant(websocket: WebSocket, enc_tenant_id: str):
         info_for_tenant["device_only"] = False
         info_for_tenant["tenant_id"] = tenant_id
         await manager.connect(websocket, info_for_tenant)
-        loguru.logger.info(
+        loguru.logger.debug(
             f"Connected to tenant channel {tenant_id} for user {info.get('username')}"
         )
     except Exception:
@@ -170,7 +170,7 @@ async def websocket_tenant(websocket: WebSocket, enc_tenant_id: str):
         manager.disconnect(
             websocket, info_for_tenant if "info_for_tenant" in locals() else info
         )
-        loguru.logger.info(f"Connection closed for tenant {tenant_id}")
+        loguru.logger.debug(f"Connection closed for tenant {tenant_id}")
 
 
 @router.websocket("/ws")
@@ -296,7 +296,7 @@ async def websocket_device(websocket: WebSocket, enc_dev_eui: str):
         info_for_device["device_only"] = True
         await manager.connect(websocket, info_for_device)
         await manager.subscribe_device(websocket, dev_eui)
-        loguru.logger.info(f"Connected to device {dev_eui} for tenant {tenant_id}")
+        loguru.logger.debug(f"Connected to device {dev_eui} for tenant {tenant_id}")
     except Exception:
         loguru.logger.exception("Error registering connection")
         await websocket.close(code=500)
@@ -311,4 +311,4 @@ async def websocket_device(websocket: WebSocket, enc_dev_eui: str):
             websocket, info_for_device if "info_for_device" in locals() else info
         )
         manager.unsubscribe_device(websocket, dev_eui)
-        loguru.logger.info(f"Connection closed for device {dev_eui}")
+        loguru.logger.debug(f"Connection closed for device {dev_eui}")

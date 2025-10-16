@@ -24,7 +24,7 @@ async def test_notifications():
 
             # Enviar un ping inicial
             await websocket.send(json.dumps({"action": "ping"}))
-            loguru.logger.info("📤 Ping enviado")
+            loguru.logger.debug("📤 Ping enviado")
 
             # Contador de mensajes recibidos
             message_count = 0
@@ -34,8 +34,8 @@ async def test_notifications():
                 data = json.loads(msg)
                 message_count += 1
 
-                loguru.logger.info(f"📬 Mensaje #{message_count} recibido:")
-                loguru.logger.info(f"   {json.dumps(data, indent=2)}")
+                loguru.logger.debug(f"📬 Mensaje #{message_count} recibido:")
+                loguru.logger.debug(f"   {json.dumps(data, indent=2)}")
 
                 # Si es una notificación, enviar ACK
                 if data.get("channel") == "notifications":
@@ -52,7 +52,7 @@ async def test_notifications():
                     }.get(notification_type, "📧")
 
                     loguru.logger.success(f"{emoji} NOTIFICACIÓN: {title}")
-                    loguru.logger.info(f"   📝 {message}")
+                    loguru.logger.debug(f"   📝 {message}")
 
                     # Enviar ACK
                     await websocket.send(
@@ -138,7 +138,7 @@ async def test_multiple_connections():
                     data = json.loads(msg)
 
                     if data.get("channel") == "notifications":
-                        loguru.logger.info(
+                        loguru.logger.debug(
                             f"📬 Cliente {client_id} recibió: {data.get('title')}"
                         )
         except Exception as e:
@@ -153,9 +153,9 @@ async def test_multiple_connections():
 
 
 if __name__ == "__main__":
-    loguru.logger.info("🚀 Iniciando test de WebSocket de notificaciones")
-    loguru.logger.info(f"📡 URL: {URL}")
-    loguru.logger.info("=" * 60)
+    loguru.logger.debug("🚀 Iniciando test de WebSocket de notificaciones")
+    loguru.logger.debug(f"📡 URL: {URL}")
+    loguru.logger.debug("=" * 60)
 
     # Descomentar el test que quieras ejecutar:
 

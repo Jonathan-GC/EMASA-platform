@@ -60,7 +60,7 @@ async def process_messages(db):
             if dev_eui and tenant_id:
                 await save_mapping(dev_eui, tenant_id, client)
 
-            loguru.logger.info(f"Processing message from Redis: {dev_eui}")
+            loguru.logger.debug(f"Processing message from Redis: {dev_eui}")
 
             message = MessageIn(
                 tenant_id=tenant_id,
@@ -74,12 +74,12 @@ async def process_messages(db):
                 metadata=metadata,
             )
 
-            loguru.logger.info(
+            loguru.logger.debug(
                 f"Message created for device {message.device_id} in tenant {message.tenant_id}"
             )
 
             await save_message(db, message)
-            loguru.logger.info(
+            loguru.logger.debug(
                 f"Message saved to database for device {message.device_id} in tenant {message.tenant_id}"
             )
 

@@ -144,7 +144,7 @@ def handle_message(payload: dict, db, loop):
             return
 
         asyncio.run_coroutine_threadsafe(manager.broadcast(formatted, tenant_id), loop)
-        loguru.logger.info(f"Message broadcasted to tenant {tenant_id}")
+        loguru.logger.debug(f"Message broadcasted to tenant {tenant_id}")
 
     except Exception:
         loguru.logger.exception("Failed to handle message")
