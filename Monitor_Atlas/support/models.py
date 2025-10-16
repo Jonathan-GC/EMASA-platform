@@ -122,7 +122,10 @@ class Notification(models.Model):
                 "message": self.message,
                 "type": self.type,
             }
-            response = requests.post(f"{HERMES_API_URL}/notify", json=payload)
+            logger.debug(
+                f"Notification payload: {payload} \n to {HERMES_API_URL}/notify"
+            )
+            response = requests.post(f"{HERMES_API_URL}/notify", params=payload)
             logger.debug(f"WebSocket notification sent: {response.status_code}")
             response.raise_for_status()
         except requests.RequestException as e:
