@@ -27,7 +27,7 @@ for fixture in "${FIXTURE_FILES[@]}"; do
     EMPTY=$((50 - FILLED))
     
     PROGRESS_BAR=$(printf "%${FILLED}s" | tr ' ' '#')
-    EMPTY_BAR=$(printf "%${EMPTY}s" | tr ' ' '~')
+    EMPTY_BAR=$(printf "%${EMPTY}s" | tr ' ' ' ')
     
     printf "\033[2K\r${GREEN}[%s%s]${NC} %3d%% (%d/%d) ${CYAN}%s${NC}" \
            "$PROGRESS_BAR" "$EMPTY_BAR" "$PERCENTAGE" "$CURRENT_FIXTURE" "$TOTAL_FIXTURES" "$(basename "$fixture")"

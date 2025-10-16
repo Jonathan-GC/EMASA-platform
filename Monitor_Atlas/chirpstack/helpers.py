@@ -4,6 +4,7 @@ import requests
 from .models import ApiUser, DeviceProfile
 from organizations.helpers import get_or_create_default_workspace, get_emasa_tenant
 from infrastructure.models import Application, Type, Machine, Device
+from django.conf import settings
 
 
 def fetch_chirpstack_users(api_url, headers):

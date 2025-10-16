@@ -729,6 +729,16 @@ def get_device_profile_by_id(device_profile):
 
 
 def create_device_profile_in_chirpstack(device_profile):
+    """
+    Creates a device profile in Chirpstack, ensuring no duplicates by name.
+    """
+    exists = check_existing_device_profile(device_profile)
+    if exists:
+        logger.info(
+            f"Device profile with name '{device_profile.name}' already exists in Chirpstack. Skipping creation."
+        )
+        return None
+
     payload = {
         "deviceProfile": {
             "name": device_profile.name,
@@ -754,32 +764,59 @@ def create_device_profile_in_chirpstack(device_profile):
         }
     }
 
-    found = get_device_profile_by_id(device_profile)
-    if not found:
-        search_instance = requests.get(
-            CHIRPSTACK_DEVICE_PROFILE_URL,
-            headers=HEADERS,
-            params={
-                "limit": 100,
-                "tenantId": device_profile.workspace.tenant.cs_tenant_id,
-            },
-        )
-        if search_instance.status_code == 200:
-            results = search_instance.json().get("result", [])
-            match = next(
-                (dp for dp in results if dp["name"] == device_profile.name), None
+    response = requests.post(
+        CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
+    )
+    set_status(device_profile, response)
+
+    if response.status_code == 200:
+        logger.info(f"Created new device profile: {device_profile.name}")
+
+    return response
+
+
+def check_existing_device_profile(new_dp):
+    """
+    Check if a device profile with the same name exists in Chirpstack and update new_dp.cs_device_profile_id in place.
+
+    This function mutates the new_dp object by setting its cs_device_profile_id if a match is found.
+    Returns True if an existing device profile is found, otherwise False.
+    """
+
+    # Reset cs_device_profile_id to avoid using a stale value from previous runs
+    new_dp.cs_device_profile_id = None
+
+    search_response = requests.get(
+        CHIRPSTACK_DEVICE_PROFILE_URL,
+        headers=HEADERS,
+        params={
+            "limit": 100,
+            "tenantId": new_dp.workspace.tenant.cs_tenant_id,
+        },
+    )
+    if search_response.status_code == 200:
+        results = search_response.json().get("result", [])
+        match = next((dp for dp in results if dp["name"] == new_dp.name), None)
+
+        if match:
+            new_dp.cs_device_profile_id = match["id"]
+            set_status(new_dp, search_response)
+            logger.info(
+                f"Using existing device profile: {match['name']} (ID: {match['id']})"
             )
-            if match:
-                device_profile.cs_device_profile_id = match["id"]
-                set_status(device_profile, search_instance)
-                return search_instance
-            else:
-                response = requests.post(
-                    CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
-                )
-        set_status(device_profile, response)
-        return response
-    return None
+            if new_dp.cs_device_profile_id:
+                found = get_device_profile_by_id(new_dp)
+                if not found:
+                    logger.warning(
+                        f"Device profile {new_dp.name} has ID {new_dp.cs_device_profile_id} "
+                        f"but doesn't exist in Chirpstack. Clearing ID."
+                    )
+                    new_dp.cs_device_profile_id = None
+                    return False
+            return True
+        else:
+            logger.info(f"No existing device profile found for: {new_dp.name}")
+    return False
 
 
 def sync_device_profile_get(device_profile):
