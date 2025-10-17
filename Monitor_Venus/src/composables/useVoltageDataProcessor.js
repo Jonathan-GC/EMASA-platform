@@ -125,9 +125,6 @@ export function useVoltageDataProcessor() {
     // Create enhanced device object with available WebSocket data
     const enhancedDevice = {
       ...data,
-      device_name: data.devEui || `Device ${data.payload?.id || 'Unknown'}`,
-      dev_eui: data.devEui,
-      tenant_name: data.tenantId,
       buffer_stats: calculateBufferStats(data),
       reception_timestamp: data.payload?.arrival_date || data.arrival_date || new Date().toISOString()
     }

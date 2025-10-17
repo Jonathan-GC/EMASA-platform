@@ -66,10 +66,10 @@
               <ion-input
                 fill="solid"
                 v-model="formData.dev_addr"
-                placeholder="Enter device address (8 hex)"
+                placeholder="Enter device address"
                 required
                 :counter="true"
-                maxlength="16"
+                maxlength="8"
               />
             </ion-item>
 
@@ -80,7 +80,7 @@
                 fill="solid"
                 class="custom"
                 v-model="formData.app_s_key"
-                placeholder="Enter application session key (16 hex)"
+                placeholder="Enter application session key"
                 required
                 :counter="true"
                 maxlength="32"
@@ -93,7 +93,7 @@
               <ion-input
                 fill="solid"
                 v-model="formData.f_nwk_s_int_key"
-                placeholder="Enter gateway integrity key ( 16 hex)"
+                placeholder="Enter network session Key"
                 required
                 :counter="true"
                 maxlength="32"
@@ -106,7 +106,7 @@
               <ion-input
                 fill="solid"
                 v-model="formData.s_nwk_s_int_key"
-                placeholder="Enter server integrity key (16 hex)"
+                placeholder="Enter network session Key"
                 required
                 :counter="true"
                 maxlength="32"
@@ -119,7 +119,7 @@
               <ion-input
                 fill="solid"
                 v-model="formData.nwk_s_enc_key"
-                placeholder="Enter network session key (16 hex)"
+                placeholder="Enter network session key"
                 :counter="true"
                 maxlength="32"
               />

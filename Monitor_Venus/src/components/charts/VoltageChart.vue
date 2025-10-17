@@ -56,7 +56,7 @@ const chartOptions = computed(() => ({
   plugins: {
     title: {
       display: true,
-      text: `Fragmento ${props.index + 1} - ${props.deviceName}`
+      text: `Sensor ${props.index + 1} - ${props.deviceName}`
     },
     legend: {
       display: true

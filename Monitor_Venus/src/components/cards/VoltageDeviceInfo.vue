@@ -44,7 +44,7 @@
         <ion-card-title>📡 Radio</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>RSSI:</strong> {{ device.radio_info?.rssi || 'N/A' }}dBm</p>
+        <p><strong>Region:</strong> {{ device.radio_info?.rssi || 'N/A' }}dBm</p>
         <p><strong>SNR:</strong> {{ device.radio_info?.snr || 'N/A' }}dB</p>
         <p><strong>Frame:</strong> #{{ device.frame_counter || 0 }}</p>
       </ion-card-content>

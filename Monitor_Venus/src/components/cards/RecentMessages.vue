@@ -12,10 +12,10 @@
         >
           <span class="timestamp">{{ formatTime(message.reception_timestamp) }}</span>
           <span class="device">{{ message.device_name }}</span>
-          <span class="samples">{{ getSampleCount(message) }} muestras</span>
-          <span class="fragment">
+          <span class="samples">{{ message.buffer_stats?.total_samples  }} muestras</span>
+          <!--<span class="fragment">
             Frag: {{ message.object?.fragment_number || 'N/A' }}/{{ message.object?.total_fragments || 'N/A' }}
-          </span>
+          </span>-->
         </div>
       </div>
     </ion-card-content>
