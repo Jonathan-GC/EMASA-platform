@@ -64,7 +64,7 @@ async def process_messages(db):
 
             message = MessageIn(
                 tenant_id=tenant_id,
-                device_id=dev_eui,
+                dev_eui=dev_eui,
                 dev_addr=dev_addr,
                 device_name=device_name,
                 frequency=frequency,
@@ -75,12 +75,12 @@ async def process_messages(db):
             )
 
             loguru.logger.debug(
-                f"Message created for device {message.device_id} in tenant {message.tenant_id}"
+                f"Message created for device {message.dev_eui} in tenant {message.tenant_id}"
             )
 
             await save_message(db, message)
             loguru.logger.debug(
-                f"Message saved to database for device {message.device_id} in tenant {message.tenant_id}"
+                f"Message saved to database for device {message.dev_eui} in tenant {message.tenant_id}"
             )
 
             try:
