@@ -1,0 +1,24 @@
+[
+  {
+    "model": "organizations.subscription",
+    "pk": 1,
+    "fields": {
+      "name": "Pro",
+      "description": "Suscripción Pro",
+      "can_have_gateways": true,
+      "max_device_count": 999,
+      "max_gateway_count": 50
+    }
+  },
+  {
+    "model": "organizations.subscription",
+    "pk": 2,
+    "fields": {
+      "name": "Free",
+      "description": "Suscripción Free",
+      "can_have_gateways": true,
+      "max_device_count": 5,
+      "max_gateway_count": 1
+    }
+  }
+]

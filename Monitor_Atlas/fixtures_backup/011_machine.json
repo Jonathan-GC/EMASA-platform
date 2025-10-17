@@ -1,0 +1,20 @@
+[
+	{"model": "infrastructure.Machine",
+    "pk": 1,
+    "fields": { 
+        	"name": "Generador principal",
+            "img": "img_url_placeholder",
+            "description": "Generador principal de la planta norte Tecnobot",
+            "workspace": 3
+    }
+},
+{"model": "infrastructure.Machine",
+    "pk": 2,
+    "fields": { 
+        	"name": "Bomba estanque 1",
+            "img": "img_url_placeholder",
+            "description": "Bomba del estanque 1 de la planta norte Tecnobot",
+            "workspace": 3
+    }
+}
+]
