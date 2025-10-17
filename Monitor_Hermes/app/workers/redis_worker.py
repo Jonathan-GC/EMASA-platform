@@ -30,6 +30,7 @@ async def process_messages(db):
             # Expected structure (snake_case):
             # {
             #   "tenant_id": str,
+            #   "tenant_name": str | None,
             #   "dev_eui": str,
             #   "dev_addr": str | None,
             #   "device_name": str | None,
@@ -42,6 +43,7 @@ async def process_messages(db):
 
             dev_eui = payload.get("dev_eui")
             tenant_id = payload.get("tenant_id")
+            tenant_name = payload.get("tenant_name")
             dev_addr = payload.get("dev_addr")
             device_name = payload.get("device_name")
             frequency = payload.get("frequency")
@@ -64,6 +66,7 @@ async def process_messages(db):
 
             message = MessageIn(
                 tenant_id=tenant_id,
+                tenant_name=tenant_name,
                 dev_eui=dev_eui,
                 dev_addr=dev_addr,
                 device_name=device_name,
@@ -90,6 +93,7 @@ async def process_messages(db):
                     ws_payload = {
                         "type": "uplink",
                         "tenant_id": tenant_id,
+                        "tenant_name": tenant_name,
                         "dev_eui": dev_eui,
                         "dev_addr": dev_addr,
                         "device_name": device_name,
