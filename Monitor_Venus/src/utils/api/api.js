@@ -112,6 +112,10 @@ class API {
     //----[SPECIAL]----
     GEN_OBJECT_PERMISSION_KEY = 'regenerate_permission_keys/'
 
+    //----[NOTIFICATION]----
+    MY_NOTIFICATIONS = 'support/notification/my_notifications/'
+
+
 
     static instance;
 
