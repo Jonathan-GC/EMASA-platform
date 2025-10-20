@@ -42,7 +42,10 @@
           :class="{ active: $route.path === '/about' }"
           @click="closeNavbar"
         >
-          ℹ️ Acerca de
+          <ion-icon
+              :icon="icons.info"
+          ></ion-icon>
+           Acerca de
         </router-link>
         <router-link 
           :to="paths.NOTIFICATIONS"
@@ -121,7 +124,10 @@
             :class="{ active: $route.path === paths.DEVICE_PROFILES }"
             @click="closeNavbar"
         >
-          📜 Device Profiles
+          <ion-icon
+              :icon="icons.options"
+          ></ion-icon>
+          Device Profiles
         </router-link>
 
         <router-link
@@ -130,7 +136,10 @@
             :class="{ active: $route.path === paths.APPLICATIONS }"
             @click="closeNavbar"
         >
-          📦 Applications
+          <ion-icon
+              :icon="icons.package"
+          ></ion-icon>
+          Applications
         </router-link>
 
         <router-link

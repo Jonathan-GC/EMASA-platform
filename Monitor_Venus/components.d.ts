@@ -13,6 +13,7 @@ declare module 'vue' {
     Blank: typeof import('./src/layouts/blank.vue')['default']
     BtnLogout: typeof import('./src/layouts/components/BtnLogout.vue')['default']
     ChartsGrid: typeof import('./src/components/charts/ChartsGrid.vue')['default']
+    ComplexSignUp: typeof import('./src/components/forms/auth/ComplexSignUp.vue')['default']
     ConnectionStatus: typeof import('./src/components/ConnectionStatus.vue')['default']
     CurrentDeviceInfo: typeof import('./src/components/cards/CurrentDeviceInfo.vue')['default']
     Default: typeof import('./src/layouts/default.vue')['default']

@@ -116,6 +116,7 @@ import {
 // Custom SVG icon
 import plugOutline from '@assets/icons/plug.svg'
 import enginesOutline from '@assets/icons/engines.svg'
+import packageOutline from '@assets/icons/package.svg'
 
 export const icons = {
   // Action icons
@@ -165,6 +166,7 @@ export const icons = {
   'library': libraryOutline,
   'bookmark': bookmarkOutline,
   'analytics': analyticsOutline,
+  'package': packageOutline,
 
   // Hardware icons
   'hardwareChip': hardwareChipOutline,

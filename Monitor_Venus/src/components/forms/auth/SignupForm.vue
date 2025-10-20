@@ -1,9 +1,33 @@
 <template>
-  <div class="login-container">
-    <ion-card class="form-card">
+  <div class="signup-container">
+    <ion-card class="form-container bg-amber-700/0 ">
       <ion-card-header class="text-center">
-        <ion-card-title>¡Bienvenido a bordo!</ion-card-title>
-        <ion-card-subtitle>completa el formulario para registrarte en monitor</ion-card-subtitle>
+        <ion-card-title style="--color:white">¡Bienvenido a bordo!</ion-card-title>
+        <ion-card-subtitle style="--color:var(--color-zinc-300)">completa el formulario para registrarte en monitor</ion-card-subtitle>
+        
+        <!-- Progress Indicator -->
+        <div class="progress-container">
+          <div class="progress-steps">
+            <div 
+              v-for="(step, index) in steps" 
+              :key="index"
+              class="step-indicator"
+              :class="{ 
+                active: currentStep === index + 1,
+                completed: currentStep > index + 1 
+              }"
+            >
+              <div class="step-number">{{ index + 1 }}</div>
+              <div class="step-label">{{ step.label }}</div>
+            </div>
+          </div>
+          <div class="progress-bar">
+            <div 
+              class="progress-fill" 
+              :style="{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }"
+            ></div>
+          </div>
+        </div>
       </ion-card-header>
 
       <ion-card-content>
@@ -13,51 +37,54 @@
           <p>Cargando...</p>
         </div>
 
-        <!-- Login form -->
-        <div v-else>
+        <!-- Step 1: Personal Data -->
+        <div v-else-if="currentStep === 1" class="step-content">
+          <ion-card class="form-card">
+            <h1 class="step-title">Datos Personales</h1>
+            <hr class="divider"/>
+          
+          <!-- Name and Last Name -->
           <ion-item class="custom">
             <div class="flex">
               <div class="flex-2 mr-2 !pl-0 !pr-0">
                 <ion-label position="stacked" class="!mb-2">Nombre</ion-label>
-              <ion-input
-                v-model="credentials.name"
-                type="text"
-                placeholder="Fulano"
-                :disabled="loading"
-                class="custom"
-                fill="solid"
-
-              ></ion-input>
+                <ion-input
+                  v-model="credentials.name"
+                  type="text"
+                  placeholder="Fulano"
+                  :disabled="loading"
+                  class="custom"
+                  fill="solid"
+                ></ion-input>
               </div>
               <div class="flex-2 ml-2">
-            <ion-label position="stacked" class="!mb-2">Apellido</ion-label>
-            <ion-input
-                v-model="credentials.last_name"
-                type="text"
-                placeholder="Detal"
-                :disabled="loading"
-                class="bg-zinc-300 rounded-md custom"
-                fill="solid"
-            ></ion-input>
+                <ion-label position="stacked" class="!mb-2">Apellido</ion-label>
+                <ion-input
+                  v-model="credentials.last_name"
+                  type="text"
+                  placeholder="Detal"
+                  :disabled="loading"
+                  class="custom"
+                  fill="solid"
+                ></ion-input>
               </div>
             </div>
           </ion-item>
 
+          <!-- Email -->
           <ion-item class="custom">
-            <div>
-                <ion-label position="stacked" class="!mb-2">Correo</ion-label>
-                <ion-input
-                    v-model="credentials.email"
-                    type="text"
-                    placeholder="ejemplo@mail.com"
-                    :disabled="loading"
-                    class="bg-zinc-300 rounded-md custom"
-                    fill="solid"
-                ></ion-input>
-              </div>
+            <ion-label position="stacked" class="!mb-2">Correo</ion-label>
+            <ion-input
+              v-model="credentials.email"
+              type="email"
+              placeholder="ejemplo@mail.com"
+              :disabled="loading"
+              class="custom"
+              fill="solid"
+            ></ion-input>
           </ion-item>
           
-          
+          <!-- Phone -->
           <ion-item class="custom">
             <div class="flex">
               <div class="flex-0 mr-2">
@@ -87,72 +114,71 @@
               <div class="flex-2 ml-2">
                 <ion-label position="stacked" class="!mb-2">Teléfono</ion-label>
                 <ion-input
-                    v-model="credentials.phone.number"
-                    type="tel"
-                    placeholder="000000000"
-                    :disabled="loading"
-                    class="bg-zinc-300 rounded-md custom"
-                    fill="solid"
+                  v-model="credentials.phone"
+                  type="tel"
+                  placeholder="000000000"
+                  :disabled="loading"
+                  class="custom"
+                  fill="solid"
                 ></ion-input>
               </div>
             </div>
           </ion-item>
 
-           <div class="flex">
-          <!-- Country Selection -->
-          <ion-item class="custom flex-2 mr-2 !pl-0 !pr-0">
-            <ion-label position="stacked" class="!mb-2">País</ion-label>
-            <ModalSelector
-              v-model="address.country"
-              :options="countries"
-              :value-field="'name'"
-              :display-field="'name'"
-              :search-fields="['name']"
-              title="Selecciona tu país"
-              placeholder=" -"
-              search-placeholder="Buscar país..."
-              :disabled="loading"
-            >
-              <template #option="{ option }">
-                <span :class="`fi fi-${option.code.toLowerCase()}`" class="flag-icon" slot="start"></span>
-                <ion-label>{{ option.name }}</ion-label>
-              </template>
-            </ModalSelector>
-          </ion-item>
+          <!-- Address -->
+          <div class="flex">
+            <ion-item class="custom flex-2 mr-2 !pl-0 !pr-0">
+              <ion-label position="stacked" class="!mb-2">País</ion-label>
+              <ModalSelector
+                v-model="address.country"
+                :options="countries"
+                :value-field="'name'"
+                :display-field="'name'"
+                :search-fields="['name']"
+                title="Selecciona tu país"
+                placeholder=" -"
+                search-placeholder="Buscar país..."
+                :disabled="loading"
+              >
+                <template #option="{ option }">
+                  <span :class="`fi fi-${option.code.toLowerCase()}`" class="flag-icon" slot="start"></span>
+                  <ion-label>{{ option.name }}</ion-label>
+                </template>
+              </ModalSelector>
+            </ion-item>
 
-          <!-- State Selection -->
-          <ion-item class="custom flex-2 mr-2 !pl-0 !pr-0">
-            <ion-label position="stacked" class="!mb-2">Provincia</ion-label>
-            <ModalSelector
-              v-model="address.state"
-              :options="availableStates"
-              :display-field="state => state"
-              title="Selecciona tu provincia"
-              placeholder=" -"
-              search-placeholder="Buscar provincia..."
-              :disabled="loading || !address.country"
-            />
-          </ion-item>
+            <ion-item class="custom flex-2 mr-2 !pl-0 !pr-0">
+              <ion-label position="stacked" class="!mb-2">Provincia</ion-label>
+              <ModalSelector
+                v-model="address.state"
+                :options="availableStates"
+                :display-field="state => state"
+                title="Selecciona tu provincia"
+                placeholder=" -"
+                search-placeholder="Buscar provincia..."
+                :disabled="loading || !address.country"
+              />
+            </ion-item>
 
-          <!-- City Selection -->
-          <ion-item class="custom flex-2 !pl-0 !pr-0">
-            <ion-label position="stacked" class="!mb-2">Ciudad</ion-label>
-            <ModalSelector
-              v-model="address.city"
-              :options="availableCities"
-              :display-field="city => city"
-              title="Selecciona tu ciudad"
-              placeholder=" -"
-              search-placeholder="Buscar ciudad..."
-              :disabled="loading || !address.country || !address.state"
-            />
-          </ion-item>
+            <ion-item class="custom flex-2 !pl-0 !pr-0">
+              <ion-label position="stacked" class="!mb-2">Ciudad</ion-label>
+              <ModalSelector
+                v-model="address.city"
+                :options="availableCities"
+                :display-field="city => city"
+                title="Selecciona tu ciudad"
+                placeholder=" -"
+                search-placeholder="Buscar ciudad..."
+                :disabled="loading || !address.country || !address.state"
+              />
+            </ion-item>
           </div>
 
-          <ion-item class="custom">
+          <div class="flex">
+          <ion-item class="custom flex-3 mr-2">
             <ion-label position="stacked" class="!mb-2">Dirección</ion-label>
             <ion-input
-                v-model="credentials.address.street"
+                v-model="credentials.address.address"
                 type="text"
                 placeholder="Calle Falsa #12-3"
                 :disabled="loading"
@@ -160,30 +186,49 @@
                 fill="solid"
             ></ion-input>
           </ion-item>
+            
+          <ion-item class="custom flex-2">
+            <ion-label position="stacked" class="!mb-2">Código Postal</ion-label>
+            <ion-input
+                v-model="credentials.address.zip_code"
+                type="text"
+                placeholder="000000"
+                :disabled="loading"
+                class="bg-zinc-300 rounded-md custom"
+                fill="solid"
+            ></ion-input>
+          </ion-item>
+          </div>
+          </ion-card>
+        </div>
 
+        <!-- Step 2: Account Details -->
+        <div v-else-if="currentStep === 2" class="step-content">
+            <ion-card class="form-card">
+          <h1 class="step-title">Detalles de Cuenta</h1>
+          <hr class="divider"/>
+          
           <ion-item class="custom">
             <ion-label position="stacked" class="!mb-2">Usuario</ion-label>
             <ion-input
-                v-model="credentials.username"
-                type="text"
-                placeholder="nombre.usuario"
-                :disabled="loading"
-                class="bg-zinc-300 rounded-md custom"
-                fill="solid"
-            >
-              
-            </ion-input>
+              v-model="credentials.username"
+              type="text"
+              placeholder="nombre.usuario"
+              :disabled="loading"
+              class="custom"
+              fill="solid"
+            ></ion-input>
           </ion-item>
 
           <ion-item class="custom">
-            <ion-label position="stacked" class="!mb-2">Constraseña</ion-label>
+            <ion-label position="stacked" class="!mb-2">Contraseña</ion-label>
             <ion-input
-                v-model="credentials.password"
-                :type="passwordInputType"
-                placeholder="*****"
-                :disabled="loading"
-                class="bg-zinc-300 rounded-md custom"
-                fill="solid"
+              v-model="credentials.password"
+              :type="passwordInputType"
+              placeholder="*****"
+              :disabled="loading"
+              class="custom"
+              fill="solid"
             >
               <ion-button
                 fill="clear"
@@ -199,52 +244,124 @@
               </ion-button>
             </ion-input>
           </ion-item>
+          <ion-item class="custom">
+            <ion-label position="stacked" class="!mb-2">Confirma tu contraseña</ion-label>
+            <ion-input
+              v-model="credentials.confirm_password"
+              :type="passwordInputType"
+              placeholder="*****"
+              :disabled="loading"
+              class="custom"
+              fill="solid"
+            >
+              <ion-button
+                fill="clear"
+                slot="end"
+                @click="togglePasswordVisibility"
+                class="password-toggle-btn rounded-full"
+              >
+                <ion-icon
+                  :icon="showPassword ? icons.eyeOff : icons.eye"
+                  color="medium"
+                  slot="icon-only"
+                ></ion-icon>
+              </ion-button>
+            </ion-input>
+          </ion-item>
+          </ion-card>
+        </div>
 
-
+        <!-- Step 3: Profile Picture -->
+        <div v-else-if="currentStep === 3" class="step-content">
+         <ion-card class="form-card">
+         <h1 class="step-title">Foto de Perfil</h1>
+         <hr class="divider"/>
           
-         
-
-          <!-- Info note -->
-
-          <!-- CSRF Status -->
-
-          <!-- Access Token Status -->
-
-          <!-- Buttons -->
-          <div class="button-container">
-
-
-            <ion-button
-                expand="block"
-                color="dark"
-                @click="handleLogin"
-                :disabled="loading || !credentials.username || !credentials.password"
-            >
-              <ion-icon :icon="icons.key" slot="start"></ion-icon>
-              Registrar
-            </ion-button>
-
-            <ion-button
-                expand="block"
-                fill="clear"
-                color="medium"
-                @click="checkCookies"
-            >
-              <ion-icon :icon="icons.eye" slot="start"></ion-icon>
-              Ver Cookies
-            </ion-button>
-
-            <ion-button
-                expand="block"
-                fill="clear"
-                color="danger"
-                @click="logout"
-            >
-              <ion-icon :icon="icons.logOut" slot="start"></ion-icon>
-              Cerrar Sesión
-            </ion-button>
-            <p class="text-center">¿Ya tienes una cuenta? <router-link :to="paths.LOGIN">Ingresa aquí</router-link></p>
+          <div class="profile-picture-section">
+            <div class="image-upload-container">
+              <div class="image-preview" @click="triggerFileInput">
+                <img 
+                  v-if="profileImage" 
+                  :src="profileImage" 
+                  alt="Profile preview" 
+                  class="profile-image"
+                />
+                <div v-else class="image-placeholder">
+                  <ion-icon :icon="icons.camera" size="large"></ion-icon>
+                  <p>Haz clic para seleccionar una imagen</p>
+                </div>
+              </div>
+              <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                @change="handleImageUpload"
+                style="display: none"
+              />
+            </div>
+            
+            <div class="image-actions">
+              <ion-button 
+                v-if="profileImage" 
+                fill="outline" 
+                color="danger" 
+                @click="removeImage"
+              >
+                <ion-icon :icon="icons.delete" slot="start"></ion-icon>
+                Remover
+              </ion-button>
+            </div>
           </div>
+          </ion-card>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="navigation-buttons">
+          <ion-button
+            v-if="currentStep > 1"
+            fill="outline"
+            color="danger"
+            @click="previousStep"
+            :disabled="loading"
+          >
+            <ion-icon :icon="icons.arrowBack" slot="start"></ion-icon>
+            Anterior
+          </ion-button>
+          
+          <ion-button
+            v-if="currentStep < steps.length"
+            @click="nextStep"
+            :disabled="!canProceedToNextStep"
+            :loading="loading"
+            class="custom next-button"
+          >
+            Siguiente
+            <ion-icon :icon="icons.arrowForward" slot="end"></ion-icon>
+          </ion-button>
+          
+          <ion-button
+            v-else
+            expand="block"
+            color="amber-600"
+            class="bg-amber-600"
+            @click="handleRegistration"
+            :disabled="!canSubmit"
+            :loading="loading"
+          >
+            <ion-icon :icon="icons.key" slot="start"></ion-icon>
+            Registrar
+          </ion-button>
+        </div>
+
+        <!-- Error/Success Messages -->
+        <div v-if="error" class="error-message bg-zinc-100">
+          <ion-icon :icon="icons.alertCircle" color="danger"></ion-icon>
+          {{ error }}
+        </div>
+        
+        <div v-if="success" class="success-message">
+          <ion-icon :icon="icons.checkmarkCircle" color="success"></ion-icon>
+          {{ success }}
         </div>
       </ion-card-content>
     </ion-card>
@@ -254,12 +371,11 @@
 <script setup>
 import { ref, inject, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import API from '@utils/api/index.js'
-import {paths}  from '@/plugins/router/paths.js'
+import API from '@/utils/api/api.js'
+import { paths } from '@/plugins/router/paths.js'
 import { countries } from '@/data/countries.js'
 import { cities } from '@/data/cities.js'
 import ModalSelector from '@/components/ui/ModalSelector.vue'
-
 
 // Router instance
 const router = useRouter()
@@ -267,13 +383,22 @@ const router = useRouter()
 // Iconos desde el plugin
 const icons = inject('icons', {})
 
+// Multi-step state
+const currentStep = ref(1)
+const steps = [
+  { label: 'Personal', required: ['name', 'last_name', 'email', 'phone', 'address.country', 'address.city', 'address.address'] },
+  { label: 'Cuenta', required: ['username', 'password'] },
+  { label: 'Foto', required: [] } // Profile picture is optional
+]
+
 // Estado reactivo
 const loading = ref(false)
 const error = ref(null)
 const success = ref(null)
-const cookieInfo = ref(null)
 const showPassword = ref(false)
-const selectedCountryCode = ref('+57') // Default to Colombia
+const selectedCountryCode = ref('+57')
+const profileImage = ref(null)
+const fileInput = ref(null)
 
 // Credenciales del usuario
 const credentials = ref({
@@ -282,21 +407,15 @@ const credentials = ref({
   name: '',
   last_name: '',
   email: '',
-  phone: {
-    countryCode: selectedCountryCode.value,
-    number: ''
-  },
+  phone_code: selectedCountryCode.value,
+  phone: '',
   address: {
     country: '',
     state: '',
     city: '',
-    street: ''
+    address: '',
+    zip_code: ''
   }
-})
-
-// Watcher para mantener sincronizado el countryCode
-watch(selectedCountryCode, (newCode) => {
-  credentials.value.phone.countryCode = newCode
 })
 
 // Dirección reactiva para CountryRegionSelect
@@ -306,135 +425,108 @@ const address = ref({
   city: ''
 })
 
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
+
+// Watcher para mantener sincronizado el countryCode
+watch(selectedCountryCode, (newCode) => {
+  credentials.value.phone_code = newCode
+})
+
 // Watchers para sincronizar address con credentials.address
 watch(() => address.value.country, (newVal) => {
   credentials.value.address.country = newVal
-  // Reset dependent fields when country changes
   address.value.state = ''
   address.value.city = ''
 })
 watch(() => address.value.state, (newVal) => {
   credentials.value.address.state = newVal
-  // Reset city when state changes
   address.value.city = ''
 })
 watch(() => address.value.city, (newVal) => {
   credentials.value.address.city = newVal
 })
 
-// Estado del CSRF token (reactivo)
-const csrfStatus = computed(() => {
-  const token = getCookieValue('csrftoken');
-  if (token) {
-    return {
-      message: '✅ Token CSRF disponible',
-      class: 'csrf-available',
-      token: token
-    };
-  } else {
-    return {
-      message: '❌ Token CSRF no encontrado',
-      class: 'csrf-missing',
-      token: null
-    };
-  }
-})
-
-// Estado del Access Token (reactivo)
-const tokenStatus = computed(() => {
-  const token = sessionStorage.getItem('access_token');
-  const expiry = sessionStorage.getItem('access_token_expiry');
-
-  if (token && expiry) {
-    const now = Date.now();
-    const expiryTime = parseInt(expiry);
-    const timeLeft = expiryTime - now;
-
-    if (timeLeft > 0) {
-      const minutesLeft = Math.floor(timeLeft / (1000 * 60));
-      return {
-        message: `✅ Access token válido (${minutesLeft} min restantes)`,
-        class: 'token-valid',
-        token: token.substring(0, 20) + '...',
-        minutesLeft
-      };
-
-    } else {
-      return {
-        message: '⚠️ Access token expirado',
-        class: 'token-expired',
-        token: null,
-        minutesLeft: 0
-      };
-    }
-  } else {
-    return {
-      message: '❌ No hay access token',
-      class: 'token-missing',
-      token: null,
-      minutesLeft: 0
-    };
-  }
-})
-
-// Computed property for password input type
+// Computed properties
 const passwordInputType = computed(() => showPassword.value ? 'text' : 'password')
 
-// Computed property for available states based on selected country
 const availableStates = computed(() => {
   const countryName = address.value.country
-
   if (!countryName) return []
-
-  // Find the country code from the country name
   const country = countries.find(c => c.name === countryName)
   if (!country) return []
-
   const countryCode = country.code
-
-  // Get states for the country
   const countryCities = cities[countryCode]
   if (!countryCities) return []
-
   return Object.keys(countryCities)
 })
 
-// Computed property for available cities based on selected country and state
 const availableCities = computed(() => {
   const countryName = address.value.country
   const stateName = address.value.state
-
   if (!countryName || !stateName) return []
-
-  // Find the country code from the country name
   const country = countries.find(c => c.name === countryName)
-
   if (!country) return []
-
   const countryCode = country.code
-
-  // Get cities for the country and state
   const countryCities = cities[countryCode]
-
   if (!countryCities) return []
-
   const stateCities = countryCities[stateName] || []
-
   return stateCities
 })
 
-// Función para limpiar mensajes
-const clearMessages = () => {
-  error.value = null
-  success.value = null
+const canProceedToNextStep = computed(() => {
+  const currentStepData = steps[currentStep.value - 1]
+  return currentStepData.required.every(field => {
+    const keys = field.split('.')
+    let value = credentials.value
+    for (const key of keys) {
+      value = value[key]
+    }
+    return value && value.toString().trim() !== ''
+  })
+})
+
+const canSubmit = computed(() => {
+  return canProceedToNextStep.value
+})
+
+// Step navigation functions
+const nextStep = () => {
+  if (canProceedToNextStep.value && currentStep.value < steps.length) {
+    currentStep.value++
+  }
 }
 
-// Función para alternar visibilidad de contraseña
-const togglePasswordVisibility = () => {
-  showPassword.value = !showPassword.value
+const previousStep = () => {
+  if (currentStep.value > 1) {
+    currentStep.value--
+  }
 }
 
-// Función helper para obtener el valor de una cookie
+// Profile image functions
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+const handleImageUpload = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      profileImage.value = e.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const removeImage = () => {
+  profileImage.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
 const getCookieValue = (name) => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -442,114 +534,18 @@ const getCookieValue = (name) => {
   return null;
 }
 
-// Función helper para obtener headers con CSRF token
-const getHeadersWithCSRF = (additionalHeaders = {}) => {
-  const csrfToken = getCookieValue('csrftoken');
-  const headers = { ...additionalHeaders };
-
-  if (csrfToken) {
-    headers['X-CSRFToken'] = csrfToken;
-    console.log('🛡️ CSRF Token agregado al header:', csrfToken);
-  } else {
-    console.warn('⚠️ No se encontró CSRF token en las cookies');
-  }
-
-  return headers;
-}
-
-// Función principal de registro
-const handleLogin = async () => {
-  if (!credentials.value.username || !credentials.value.password || !credentials.value.name || !credentials.value.email || !credentials.value.phone.number || !credentials.value.address.country || !credentials.value.address.city) {
-    error.value = 'Por favor completa todos los campos requeridos'
-    return
-  }
-
-  loading.value = true
-  clearMessages()
-
-  try {
-    console.log('🔑 Intentando registro con:', {
-      username: credentials.value.username,
-      email: credentials.value.email,
-      name: credentials.value.name,
-      address: credentials.value.address,
-      password: '***'
-    })
-
-    // Verificar si existe CSRF token, si no, obtenerlo primero
-    let csrfToken = getCookieValue('csrftoken');
-    if (!csrfToken) {
-      console.log('🛡️ No hay CSRF token, obteniendo uno...');
-      await getCsrfToken();
-      // Pequeña pausa para que se establezca la cookie
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-
-    // Obtener headers con CSRF token
-    const headers = getHeadersWithCSRF();
-
-    // Realizar registro con CSRF token
-    const response = await API.post(API.REGISTER, credentials.value, headers)
-
-    console.log('✅ Registro exitoso:', response)
-
-    success.value = '¡Registro exitoso! Revisa tu email para confirmar.'
-
-    // Redirigir a /tenants después de un segundo
-    setTimeout(() => {
-      router.push('/tenants');
-    }, 500);
-
-    // Verificar cookies después del auth
-    setTimeout(checkCookies, 1000)
-
-  } catch (err) {
-    console.error('❌ Error en auth:', err)
-    error.value = `Error: ${err.message}`
-  } finally {
-    loading.value = false
-  }
-}
-
-// Función para refresh token
-const refreshToken = async () => {
-  loading.value = true
-  clearMessages()
-
-  try {
-    console.log('🔄 Intentando refresh token...')
-
-    // Obtener headers con CSRF token
-    const headers = getHeadersWithCSRF();
-
-    const response = await API.post(API.REFRESH_TOKEN, {}, headers)
-
-    console.log('✅ Token refreshed:', response)
-    success.value = 'Token refreshed exitosamente!'
-
-    setTimeout(checkCookies, 1000)
-
-  } catch (err) {
-    console.error('❌ Error en refresh:', err)
-    error.value = `Error: ${err.message}`
-  } finally {
-    loading.value = false
-  }
-}
-
-// Función para obtener CSRF token
 const getCsrfToken = async () => {
   loading.value = true
   clearMessages()
 
   try {
     console.log('🛡️ Obteniendo CSRF token...')
-
+    
     const response = await API.get(API.CSRF_TOKEN)
-
+    
     console.log('✅ CSRF token obtenido:', response)
     success.value = 'CSRF token obtenido exitosamente!'
-
+    
     setTimeout(checkCookies, 1000)
 
   } catch (err) {
@@ -560,226 +556,257 @@ const getCsrfToken = async () => {
   }
 }
 
-// Función para verificar cookies
-const checkCookies = () => {
-  console.log('🍪 Verificando cookies...')
-
-  const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-    const [name, value] = cookie.trim().split('=')
-    acc[name] = value
-    return acc
-  }, {})
-
-  console.log('🍪 Cookies encontradas:', cookies)
-
-  const relevantCookies = {
-    csrftoken: cookies.csrftoken || 'No encontrada',
-    refresh_token: cookies.refresh_token || 'No encontrada',
-    sessionid: cookies.sessionid || 'No encontrada',
-    access_token: cookies.access_token || 'No encontrada'
-  }
-
-  cookieInfo.value = JSON.stringify(relevantCookies, null, 2)
+// Add this function before handleRegistration
+const clearMessages = () => {
+  error.value = null
+  success.value = null
 }
 
-// Función para logout
-const logout = async () => {
+const getHeadersWithCSRF = () => {
+  const csrfToken = getCookieValue('csrftoken')
+  return {
+    'X-CSRFToken': csrfToken,
+    'Content-Type': 'application/json'
+  }
+}
+// Other functions (togglePasswordVisibility, getCookieValue, etc.) remain the same...
+
+// Updated registration function
+const handleRegistration = async () => {
+  if (!canSubmit.value) {
+    error.value = 'Por favor completa todos los campos requeridos'
+    return
+  }
+
   loading.value = true
-  clearMessages()
 
   try {
-    console.log('🚪 Cerrando sesión...')
+    console.log('🔑 Intentando registro con:', {
+      ...credentials.value,
+      profileImage: profileImage.value ? 'Present' : 'Not present'
+    })
 
-    // Limpiar tokens de sessionStorage
-    sessionStorage.removeItem('access_token');
-    sessionStorage.removeItem('access_token_expiry');
-    console.log('🗑️ Tokens eliminados de sessionStorage');
+    // Get CSRF token if needed
+    let csrfToken = getCookieValue('csrftoken')
+    if (!csrfToken) {
+      console.log('🛡️ No hay CSRF token, obteniendo uno...')
+      await getCsrfToken()
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
 
-    // Limpiar cookies manualmente
-    document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
-    document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
-    document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    const headers = getHeadersWithCSRF()
 
-    // Limpiar credenciales
-    credentials.value = { username: '', password: '' }
-    cookieInfo.value = null
+    // Prepare form data with image if present
+    const formData = { ...credentials.value }
+    if (profileImage.value) {
+      formData.profile_image = profileImage.value
+    }
 
-    success.value = 'Sesión cerrada exitosamente!'
+    const response = await API.post(API.REGISTER, formData, headers)
 
-    console.log('✅ Logout exitoso')
+    console.log('✅ Registro exitoso:', response)
+    success.value = '¡Registro exitoso! Revisa tu email para confirmar.'
+
+    setTimeout(() => {
+      router.push('/tenants')
+    }, 500)
 
   } catch (err) {
-    console.error('❌ Error en logout:', err)
+    console.error('❌ Error en registro:', err)
     error.value = `Error: ${err.message}`
   } finally {
     loading.value = false
   }
 }
 
-// Verificar cookies al montar el componente
-checkCookies()
+// Other functions remain the same...
 </script>
 
 <style scoped>
+/* Progress indicator styles */
 
-
-
+.next-button {
+  margin-left: auto;
+}
 .form-card{
-  padding: 20px;
+  padding: 40px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-.login-container {
-  max-width: 700px;
+
+.form-container{
+  padding: 0 40px;
+  border-radius: 12px;
+}
+
+.signup-container {
+  max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+}
+.progress-container {
+  margin: 20px 0;
 }
 
-.loading-container {
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;;
+}
+
+.step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;;
+}
+
+.step-number {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--ion-color-light);
+  color: var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 5px;
+  transition: all 0.3s ease;
+}
+
+.step-indicator.active .step-number {
+  background-color: var(--color-amber-600);
+  color: white;
+}
+
+.step-indicator.completed .step-number {
+  background-color: var(--ion-color-success);
+  color: white;
+}
+
+.step-label {
+  font-size: 12px;
+  color: var(--ion-color-light);
   text-align: center;
-  padding: 20px;
 }
 
-.loading-container ion-spinner {
-  margin-bottom: 16px;
+.step-indicator.active .step-label {
+  color: var(--color-amber-600);
+  font-weight: 500;
 }
 
-.error-item {
-  margin: 10px 0;
+.progress-bar {
+  height: 4px;
+  background-color: var(--ion-color-light);
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-.success-item {
-  margin: 10px 0;
+.progress-fill {
+  height: 100%;
+  background-color: var(--color-amber-600);
+  transition: width 0.3s ease;
 }
 
-.button-container {
-  margin-top: 20px;
+/* Step content styles */
+.step-content {
+  padding: 20px 0;
+}
+
+.step-title {
+
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Profile picture styles */
+.profile-picture-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  padding: 20px 0;
 }
 
+.image-upload-container {
+  margin-bottom: 20px;
+}
 
-
-.button-container {
-  margin-top: 20px;
+.image-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px dashed var(--color-zinc-300);
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
-.info-card {
-  margin: 15px 0;
-  background-color: var(--ion-color-light);
+.image-preview:hover {
+  border-color: var(--color-amber-600);
 }
 
-.info-card ion-card-content {
-  padding: 12px;
+.profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.info-card p {
-  margin: 5px 0;
-  font-size: 14px;
-  line-height: 1.4;
+.image-placeholder {
+  text-align: center;
+  color: var(--ion-color-medium);
 }
 
-.info-card code {
-  background-color: var(--ion-color-medium);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
+.image-placeholder ion-icon {
+  margin-bottom: 8px;
+}
+
+.image-placeholder p {
   font-size: 12px;
-}
-
-.csrf-status, .token-status {
-  margin: 10px 0;
-  background-color: var(--ion-color-light-tint);
-  border-radius: 8px;
-}
-
-.csrf-available, .token-valid {
-  color: var(--ion-color-success);
-  font-weight: 500;
-}
-
-.csrf-missing, .token-missing {
-  color: var(--ion-color-danger);
-  font-weight: 500;
-}
-
-.token-expired {
-  color: var(--ion-color-warning);
-  font-weight: 500;
-}
-
-.csrf-token, .access-token {
-  margin-top: 5px;
-  word-break: break-all;
-}
-
-.csrf-token code, .access-token code {
-  background-color: var(--ion-color-dark);
-  color: var(--ion-color-light);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-}
-
-.cookie-info {
-  margin-top: 20px;
-  padding: 16px;
-  background-color: var(--ion-color-light);
-  border-radius: 8px;
-  border: 1px solid var(--ion-color-medium);
-}
-
-.cookie-info h4 {
-  margin: 0 0 10px 0;
-  color: var(--ion-color-primary);
-}
-
-.cookie-info pre {
-  background-color: var(--ion-color-dark);
-  color: var(--ion-color-light);
-  padding: 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  overflow-x: auto;
   margin: 0;
 }
 
-/* Country flag fallback for Windows */
-.country-flag {
-  font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Apple Color Emoji', sans-serif;
-  font-size: 1.2em;
-  margin-right: 4px;
+.image-actions {
+  margin-top: 10px;
 }
 
-/* Flag icon styling */
-.flag-icon {
-  width: 20px;
-  height: 15px;
-  display: inline-block;
-  margin-right: 8px;
-  vertical-align: middle;
-  border-radius: 2px;
+/* Navigation buttons */
+.navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  gap: 10px;
 }
 
-/* Country select label styling */
-.country-select [slot="label"] {
+/* Error/Success messages */
+.error-message, .success-message {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
-/* Mobile responsive */
-@media (max-width: 768px) {
-  .login-container {
-    padding: 10px;
-  }
-
-  .cookie-info pre {
-    font-size: 10px;
-  }
+.error-message ion-icon, .success-message ion-icon {
+  --color:white;
 }
+.error-message {
+  background-color: var(--ion-color-danger-tint);
+  color: var(--color-zinc-100);
+}
+
+.success-message {
+  background-color: var(--ion-color-success-tint);
+  color: var(--ion-color-success);
+}
+
+ion-button.custom {
+  --background: var(--color-amber-600);
+  --color: white;
+}
+
+/* Existing styles remain... */
 </style>

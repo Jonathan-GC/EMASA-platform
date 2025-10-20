@@ -2,7 +2,7 @@
 @import "tailwindcss/theme";
 
 body a {
-    color: var(--color-amber-700);
+    color: var(--color-amber-600);
 }
 
 ion-item.custom ion-input.custom {
@@ -53,4 +53,9 @@ ion-item.custom .country-selector-button {
 
 ion-modal{
     --border-radius: 12px;
+}
+
+.divider{
+  margin: 1rem 0;
+  border-top: 1px solid var(--color-zinc-200);
 }

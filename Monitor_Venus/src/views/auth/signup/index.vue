@@ -23,8 +23,8 @@
         <div class="content-center min-h-full">
           <img :src="MonitorLogo" alt="Monitor Logo" class="logo">
           <SignupForm />
-          <div class="text-center">
-            <p><span class="text-amber-50">Al usar nuestros servicios, aceptas nuestros</span></p>
+          <div class="text-center mb-5">
+            <span class="text-amber-50">Al usar nuestros servicios, aceptas nuestros</span><br/>
             <a>Terminos de Servicios y Política de privacidad</a>
           </div>
         </div>
@@ -36,6 +36,8 @@
 <script setup>
 import MonitorLogo from '@assets/monitor_logo_dark.svg'
 import {splineCurveMonotone} from "chart.js/helpers";
+import SignupForm from '../../../components/forms/auth/SignupForm.vue';
+//import ComplexSignUp from '../../../components/forms/auth/ComplexSignUp.vue';
 // El componente LoginForm se auto-importa gracias a unplugin-vue-components
 </script>
 
