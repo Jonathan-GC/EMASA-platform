@@ -13,6 +13,12 @@ from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
 from rest_framework.response import Response
 
+from roles.permissions import HasPermission
+
+from django_tenants.utils import get_tenant
+from guardian.shortcuts import get_objects_for_user
+from roles.helpers import assign_object_permissions
+
 
 # Create your views here.
 @extend_schema_view(
@@ -23,9 +29,38 @@ from rest_framework.response import Response
     partial_update=extend_schema(description="Ticket Partial Update"),
     destroy=extend_schema(description="Ticket Destroy"),
 )
-class TickeViewSet(viewsets.ModelViewSet):
+class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
+    permission_classes = [HasPermission]
+    scope = "ticket"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Ticket.objects.all()
+
+        queryset = get_objects_for_user(
+            user, "view_ticket_details", klass=Ticket, accept_global_perms=False
+        )
+
+        try:
+            current_tenant = get_tenant()
+            queryset = queryset.filter(workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting current tenant: {e}")
+
+        return queryset
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
 
 @extend_schema_view(
@@ -39,6 +74,35 @@ class TickeViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+    permission_classes = [HasPermission]
+    scope = "comment"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Comment.objects.all()
+
+        queryset = get_objects_for_user(
+            user, "view_comment_details", klass=Comment, accept_global_perms=False
+        )
+
+        try:
+            current_tenant = get_tenant()
+            queryset = queryset.filter(ticket__workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting current tenant: {e}")
+
+        return queryset
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
 
 @extend_schema_view(
@@ -52,6 +116,37 @@ class CommentViewSet(viewsets.ModelViewSet):
 class AttachmentViewSet(viewsets.ModelViewSet):
     queryset = Attachment.objects.all()
     serializer_class = AttachmentSerializer
+    permission_classes = [HasPermission]
+    scope = "attachment"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Attachment.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            "view_attachment_details",
+            klass=Attachment,
+            accept_global_perms=False,
+        )
+        try:
+            current_tenant = get_tenant()
+            queryset = queryset.filter(ticket__workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting current tenant: {e}")
+
+        return queryset
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
 
 @extend_schema_view(
@@ -65,6 +160,39 @@ class AttachmentViewSet(viewsets.ModelViewSet):
 class CommentAttachmentViewSet(viewsets.ModelViewSet):
     queryset = CommentAttachment.objects.all()
     serializer_class = CommentAttachmentSerializer
+    permission_classes = [HasPermission]
+    scope = "comment_attachment"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return CommentAttachment.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            "view_comment_attachment_details",
+            klass=CommentAttachment,
+            accept_global_perms=False,
+        )
+        try:
+            current_tenant = get_tenant()
+            queryset = queryset.filter(
+                comment__ticket__workspace__tenant=current_tenant
+            )
+        except Exception as e:
+            logger.error(f"Error getting current tenant: {e}")
+
+        return queryset
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
 
 @extend_schema_view(
@@ -80,6 +208,32 @@ class CommentAttachmentViewSet(viewsets.ModelViewSet):
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
+    permission_classes = [HasPermission]
+    scope = "notification"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Notification.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            "view_notification_details",
+            klass=Notification,
+            accept_global_perms=False,
+        )
+
+        return queryset
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
     @action(
         detail=True,

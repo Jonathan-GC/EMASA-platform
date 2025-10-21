@@ -51,6 +51,12 @@ class Ticket(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        permissions = (
+            ("manage_tickets", "Can manage support tickets"),
+            ("view_ticket_details", "Can view support ticket details"),
+        )
+
     def clean(self):
         from django.core.exceptions import ValidationError
 
@@ -70,6 +76,12 @@ class Comment(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        permissions = (
+            ("manage_comments", "Can manage ticket comments"),
+            ("view_comment_details", "Can view ticket comment details"),
+        )
+
     def __str__(self):
         return f"Comment by {self.user.username} on {self.ticket.title}"
 
@@ -82,6 +94,12 @@ class Attachment(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        permissions = (
+            ("manage_attachments", "Can manage ticket attachments"),
+            ("view_attachment_details", "Can view ticket attachment details"),
+        )
+
     def __str__(self):
         return f"Attachment for {self.ticket.title}"
 
@@ -93,6 +111,12 @@ class CommentAttachment(models.Model):
     file = models.FileField(upload_to="support/attachments/comment/%Y/%m/%d/")
     uploaded_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        permissions = (
+            ("manage_comment_attachments", "Can manage comment attachments"),
+            ("view_comment_attachment_details", "Can view comment attachment details"),
+        )
 
     def __str__(self):
         return f"Attachment for comment {self.comment.id} on ticket {self.comment.ticket.title}"
@@ -108,6 +132,12 @@ class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        permissions = (
+            ("manage_notifications", "Can manage notifications"),
+            ("view_notification_details", "Can view notification details"),
+        )
 
     def mark_as_read(self):
         self.is_read = True

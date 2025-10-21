@@ -42,6 +42,7 @@ CHIRPSTACK_JWT_TOKEN = env("CHIRPSTACK_JWT_TOKEN", default=None)
 # Application definition
 
 INSTALLED_APPS = [
+    "django_tenants",
     "django_db_prefix",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "guardian",
     "users",
     "roles",
     "organizations",
@@ -63,6 +65,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django_tenants.middleware.TenantMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -72,6 +75,45 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+TENANT_MODEL = "organizations.Tenant"  # app.Model
+TENANT_DOMAIN_MODEL = "organizations.Domain"  # app.Model
+
+SHARED_APPS = [
+    "django_tenants",
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "django.contrib.sessions",
+    "django.contrib.admin",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "guardian",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
+    "corsheaders",
+    "organizations",
+    "users",
+]
+
+TENANT_APPS = [
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "roles",
+    "infrastructure",
+    "chirpstack",
+    "support",
+]
+
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",  # default
+    "guardian.backends.ObjectPermissionBackend",
+)
+
+ANONYMOUS_USER_NAME = None
+GUARDIAN_RENDER_403 = True
+GUARDIAN_RAISE_403 = True
 
 ROOT_URLCONF = "platform_backend.urls"
 
@@ -98,7 +140,7 @@ WSGI_APPLICATION = "platform_backend.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django_tenants.postgresql_backend",
         "NAME": env("POSTGRES_DB"),
         "USER": env("POSTGRES_USER"),
         "PASSWORD": env("POSTGRES_PASSWORD"),

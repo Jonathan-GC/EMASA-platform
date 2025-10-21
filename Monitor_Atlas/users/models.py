@@ -1,7 +1,4 @@
 from django.db import models
-
-# Create your models here.
-from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -73,10 +70,18 @@ class User(UserBase, AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
+    is_emasa_user = models.BooleanField(default=False)
+
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    class Meta:
+        permissions = (
+            ("manage_users", "Can manage users"),
+            ("view_all_users", "Can view all users"),
+        )
 
     def has_module_perms(self, app_label):
         return self.is_superuser

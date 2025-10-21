@@ -1,6 +1,8 @@
 from django.db import models
 from organizations.models import Workspace
 
+from django.contrib.auth.hashers import make_password
+
 # Create your models here.
 
 
@@ -28,7 +30,7 @@ class ApiUser(models.Model):
 
     cs_user_id = models.CharField(max_length=36, unique=True, null=True, blank=True)
     email = models.EmailField()
-    password = models.CharField(max_length=30, blank=True, null=True)
+    password = models.CharField(max_length=128)
     is_admin = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     note = models.CharField(max_length=255, blank=True, null=True)
@@ -38,6 +40,8 @@ class ApiUser(models.Model):
     is_tenant_admin = models.BooleanField(default=False)
     is_tenant_device_admin = models.BooleanField(default=False)
     is_tenant_gateway_admin = models.BooleanField(default=False)
+
+    # Sync status
     sync_status = models.CharField(
         default="PENDING",
         choices=[("PENDING", "Pending"), ("SYNCED", "Synced"), ("ERROR", "Error")],
@@ -45,6 +49,12 @@ class ApiUser(models.Model):
     )
     sync_error = models.CharField(max_length=255, blank=True, null=True, default="")
     last_synced_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        permissions = (
+            ("manage_api_users", "Can manage chirpstack api users"),
+            ("view_api_user_details", "Can view chirpstack api user details"),
+        )
 
     def __str__(self):
         return f"{self.cs_user_id} - {self.email}"
@@ -58,21 +68,34 @@ class DeviceProfileTemplate(models.Model):
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)
-    vendor = models.CharField(max_length=30, default="EMASA")
     workspace = models.ForeignKey(
         Workspace, on_delete=models.CASCADE, null=True, blank=True
     )
     mac_version = models.CharField(max_length=30, default="LORAWAN_1_0_3")
+    adr_algorithm_id = models.CharField(max_length=30, default="default")
     reg_param_revision = models.CharField(max_length=30, default="A")
     abp_rx1_delay = models.IntegerField()
     abp_rx1_dr_offset = models.IntegerField()
     abp_rx2_dr = models.IntegerField()
     abp_rx2_freq = models.IntegerField()
+    supports_otaa = models.BooleanField(default=False)
     supports_class_b = models.BooleanField(default=False)
     supports_class_c = models.BooleanField(default=False)
     payload_codec_runtime = models.CharField(max_length=30, default="JS")
+    payload_codec_script = models.TextField(blank=True, null=True)
     is_rlay = models.BooleanField(default=False)
     is_rlay_ed = models.BooleanField(default=False)
+    flush_queue_on_activate = models.BooleanField(default=True)
+    uplink_interval = models.IntegerField(default=3000)
+
+    class Meta:
+        permissions = (
+            ("manage_device_profile_templates", "Can manage device profile templates"),
+            (
+                "view_device_profile_template_details",
+                "Can view device profile template details",
+            ),
+        )
 
     def __str__(self):
         return f"{self.name} - {self.region}"
@@ -104,6 +127,8 @@ class DeviceProfile(models.Model):
     is_rlay_ed = models.BooleanField(default=False)
     flush_queue_on_activate = models.BooleanField(default=True)
     uplink_interval = models.IntegerField(default=3000)  # in seconds
+
+    # Sync status
     sync_status = models.CharField(
         default="PENDING",
         choices=[("PENDING", "Pending"), ("SYNCED", "Synced"), ("ERROR", "Error")],
@@ -111,6 +136,12 @@ class DeviceProfile(models.Model):
     )
     sync_error = models.CharField(max_length=255, blank=True, null=True, default="")
     last_synced_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        permissions = (
+            ("manage_device_profiles", "Can manage device profiles"),
+            ("view_device_profile_details", "Can view device profile details"),
+        )
 
     def __str__(self):
         return f"{self.cs_device_profile_id} - {self.name}"

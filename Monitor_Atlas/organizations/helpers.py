@@ -1,5 +1,5 @@
 from .models import Workspace, Subscription, Tenant
-from roles.models import Role, WorkspaceMembership, RolePermission, PermissionKey
+from roles.models import Role, WorkspaceMembership
 
 
 def get_or_create_default_workspace(tenant):
@@ -84,14 +84,3 @@ def add_user_to_workspace(user, workspace):
         membership.save()
 
     return membership
-
-
-def add_permission_to_role(role, permission_key):
-    """
-    Adds a permission key to a role if it doesn't already exist.
-    """
-
-    role_permission, created = RolePermission.objects.get_or_create(
-        role=role, permission_key=permission_key
-    )
-    return role_permission

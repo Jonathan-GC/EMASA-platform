@@ -1223,7 +1223,7 @@ def activate_device(device):
 
     payload = {
         "deviceActivation": {
-            "aFCntDown": device.activation.afcntdown,
+            "aFCntDown": device.activation.a_f_cnt_down,
             "appSKey": device.activation.app_s_key,
             "devAddr": device.activation.dev_addr,
             "fCntUp": device.activation.f_cnt_up,

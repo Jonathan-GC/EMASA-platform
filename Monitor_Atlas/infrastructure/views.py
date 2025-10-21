@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import status
 
 from .serializers import (
     GatewaySerializer,
@@ -13,8 +14,8 @@ from .serializers import (
 )
 from .models import Gateway, Machine, Type, Device, Application, Location, Activation
 
-from roles.permissions import HasPermissionKey
-from roles.mixins import PermissionKeyMixin
+from roles.permissions import HasPermission
+from roles.helpers import assign_object_permissions
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -33,11 +34,13 @@ from chirpstack.chirpstack_api import (
     deactivate_device,
     device_activation_status,
 )
-from rest_framework import status
 
 from loguru import logger
 
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
+
+from django_tenants.utils import get_tenant
+from guardian.shortcuts import get_objects_for_user, assign_perm
 
 from .helpers import encrypt_dev_eui
 from django.conf import settings
@@ -51,15 +54,41 @@ from django.conf import settings
     partial_update=extend_schema(description="Gateway Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Gateway Destroy (ChirpStack)"),
 )
-class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class GatewayViewSet(viewsets.ModelViewSet):
     queryset = Gateway.objects.all()
     serializer_class = GatewaySerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "gateway"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Gateway.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            f"infrastructure.view_{self.scope}",
+            klass=Gateway,
+            accept_global_perms=False,
+        )
+
+        try:
+            current_tenant = get_tenant(self.request)
+            queryset = queryset.filter(workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting tenant for user {user}: {str(e)}")
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="gateway")
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
         sync_response = sync_gateway_create(instance)
         if sync_response is None:
@@ -175,17 +204,45 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         ],
     ),
 )
-class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class MachineViewSet(viewsets.ModelViewSet):
     queryset = Machine.objects.all()
     serializer_class = MachineSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "machine"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Machine.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            f"infrastructure.view_{self.scope}",
+            klass=Machine,
+            accept_global_perms=False,
+        )
+
+        try:
+            current_tenant = get_tenant(self.request)
+            queryset = queryset.filter(workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting tenant for user {user}: {str(e)}")
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="machine")
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
+
+        logger.debug(f"Created Machine and assigned permissions: {instance}")
+
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def set_machine_image(self, request, pk=None):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -213,17 +270,40 @@ class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         ],
     ),
 )
-class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class TypeViewSet(viewsets.ModelViewSet):
     queryset = Type.objects.all()
     serializer_class = TypeSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "type"
 
-    def perform_create(self, serializer):
-        instance = serializer.save()
-        self.create_permission_keys(instance, scope="type")
+    def get_queryset(self):
+        """Type es global, no está atado a workspace, así que todos los autenticados lo ven"""
+        user = self.request.user
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+        if not user.is_authenticated:
+            return Type.objects.none()
+
+        # Todos los usuarios autenticados pueden ver tipos
+        return Type.objects.all()
+
+    def perform_create(self, serializer):
+        if not (self.request.user.is_superuser or self.request.user.is_emasa_user):
+            raise PermissionError("Only superusers or EMASA users can create Types")
+
+        instance = serializer.save()
+
+        # Type es un modelo compartido, asignar permisos de creador
+        assign_perm("infrastructure.view_type", self.request.user, instance)
+        assign_perm("infrastructure.change_type", self.request.user, instance)
+        assign_perm("infrastructure.delete_type", self.request.user, instance)
+
+        # Si es superuser o EMASA user, dar manage
+        if self.request.user.is_superuser or self.request.user.is_emasa_user:
+            assign_perm("infrastructure.manage_type", self.request.user, instance)
+
+        logger.debug(f"Created Type and assigned permissions: {instance}")
+
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def set_type_image(self, request, pk=None):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -248,7 +328,7 @@ class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 summary="Example Request",
                 description="Example request body to set device activation data",
                 value={
-                    "afcntdown": 0,
+                    "a_f_cnt_down": 0,
                     "app_s_key": "E81B6C49A0F57D92C3FE21B4D6A98F3C",
                     "dev_addr": "260CA2F1",
                     "f_cnt_up": 0,
@@ -275,15 +355,41 @@ class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     ),
     activation_details=extend_schema(description="Get Device Activation Details"),
 )
-class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "device"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Device.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            f"infrastructure.view_{self.scope}",
+            klass=Device,
+            accept_global_perms=False,
+        )
+
+        try:
+            current_tenant = get_tenant(self.request)
+            queryset = queryset.filter(workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting tenant for user {user}: {str(e)}")
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="device")
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
         sync_response = sync_device_create(instance)
 
@@ -365,12 +471,12 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def set_activation(self, request, pk=None):
         """
-        "aFCntDown": 0,
+        "a_f_cnt_down": 0,
         "appSKey": "53C020841486263981FA77355D278762",
         "devAddr": "260CB229",
         "fCntUp": 0,
@@ -383,7 +489,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         data = request.data
         required_fields = [
-            "afcntdown",
+            "a_f_cnt_down",
             "app_s_key",
             "dev_addr",
             "f_cnt_up",
@@ -400,7 +506,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
         try:
             activation = Activation.objects.create(
-                afcntdown=data["afcntdown"],
+                a_f_cnt_down=data["a_f_cnt_down"],
                 app_s_key=data["app_s_key"],
                 dev_addr=data["dev_addr"],
                 f_cnt_up=data["f_cnt_up"],
@@ -423,7 +529,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def activate(self, request, pk=None):
@@ -490,7 +596,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def deactivate(self, request, pk=None):
@@ -522,7 +628,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def get_ws_link(self, request, pk=None):
@@ -550,7 +656,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["get"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def activation_details(self, request, pk=None):
@@ -573,15 +679,37 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     destroy=extend_schema(description="Application Destroy (ChirpStack)"),
     devices=extend_schema(description="List Devices in Application (ChirpStack)"),
 )
-class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class ApplicationViewSet(viewsets.ModelViewSet):
     queryset = Application.objects.all()
     serializer_class = ApplicationSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "application"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Application.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            f"infrastructure.view_{self.scope}",
+            klass=Application,
+        )
+
+        if not queryset:
+            return Application.objects.none()
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="application")
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
         sync_response = sync_application_create(instance)
         if sync_response is None:
@@ -665,7 +793,7 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["get"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="application",
     )
     def devices(self, request, pk=None):
@@ -696,12 +824,25 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Location Partial Update"),
     destroy=extend_schema(description="Location Destroy"),
 )
-class LocationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "location"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if not user.is_authenticated:
+            return Location.objects.none()
+
+        return Location.objects.all()
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="location")
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )

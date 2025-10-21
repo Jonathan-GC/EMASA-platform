@@ -5,8 +5,7 @@ from django.contrib.auth.models import Group
 from .models import Workspace, Tenant, Subscription
 from .serializers import WorkspaceSerializer, TenantSerializer, SubscriptionSerializer
 
-from roles.permissions import HasPermissionKey
-from roles.mixins import PermissionKeyMixin
+from roles.permissions import HasPermission
 
 from chirpstack.chirpstack_api import (
     sync_tenant_get,
@@ -18,6 +17,10 @@ from chirpstack.chirpstack_api import (
 from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
 
+from guardian.shortcuts import get_objects_for_user
+from django_tenants.utils import get_tenant
+from roles.helpers import assign_object_permissions
+
 
 @extend_schema_view(
     list=extend_schema(description="Workspace List"),
@@ -27,15 +30,42 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
     partial_update=extend_schema(description="Workspace Partial Update"),
     destroy=extend_schema(description="Workspace Destroy"),
 )
-class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class WorkspaceViewSet(viewsets.ModelViewSet):
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "workspace"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser or user.is_emasa_user:
+            return Workspace.objects.all()
+
+        queryset = get_objects_for_user(
+            user, "view_workspace_details", klass=Workspace, accept_global_perms=False
+        )
+
+        try:
+            current_tenant = get_tenant(self.request)
+            queryset = queryset.filter(tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting current tenant: {e}")
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="workspace")
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
+
+        logger.debug(
+            f"Assigned object permissions for user {self.request.user} on workspace {instance}"
+        )
 
 
 @extend_schema_view(
@@ -46,21 +76,33 @@ class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Tenant Partial Update"),
     destroy=extend_schema(description="Tenant Destroy"),
 )
-class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class TenantViewSet(viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "tenant"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Tenant.objects.all()
+
+        try:
+            current_tenant = get_tenant(self.request)
+            return Tenant.objects.filter(id=current_tenant.id)
+        except Exception as e:
+            logger.error(f"Error getting current tenant: {e}")
+            return Tenant.objects.none()
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="tenant")
 
-        group_name = instance.group
-        group, created = Group.objects.get_or_create(name=group_name)
-
-        if created:
-            logger.debug(f"Grupo {group_name} creado exitosamente")
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
         sync_response = sync_tenant_create(instance)
 
@@ -159,12 +201,28 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Subscription Partial Update"),
     destroy=extend_schema(description="Subscription Destroy"),
 )
-class SubscriptionViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class SubscriptionViewSet(viewsets.ModelViewSet):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "subscription"
+
+    def get_queryset(self):
+
+        user = self.request.user
+        if user.is_superuser or user.is_emasa_user:
+            return Subscription.objects.all()
+
+        try:
+            current_tenant = get_tenant(self.request)
+            return Subscription.objects.filter(id=current_tenant.subscription_id)
+        except:
+            return Subscription.objects.none()
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="subscription")
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )

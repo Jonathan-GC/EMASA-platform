@@ -9,10 +9,8 @@ from .serializers import (
     ApiUserSerializer,
 )
 
-from roles.permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
-from roles.mixins import PermissionKeyMixin
-from roles.models import PermissionKey
-from roles.serializers import PermissionKeySerializer
+from roles.permissions import HasPermission
+from roles.helpers import assign_object_permissions
 
 from chirpstack.chirpstack_api import (
     sync_api_user_create,
@@ -25,8 +23,13 @@ from chirpstack.chirpstack_api import (
     sync_device_profile_update,
 )
 
+from django_tenants.utils import get_tenant
+from guardian.shortcuts import get_objects_for_user
+
 from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
+
+from django.contrib.auth.hashers import make_password
 
 
 # Create your views here.
@@ -42,15 +45,41 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
     ),
     destroy=extend_schema(description="Device Profile Destroy (ChirpStack)"),
 )
-class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class DeviceProfileViewSet(viewsets.ModelViewSet):
     queryset = DeviceProfile.objects.all()
     serializer_class = DeviceProfileSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "device_profile"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return DeviceProfile.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            "view_device_profile_details",
+            klass=DeviceProfile,
+            accept_global_perms=False,
+        )
+
+        try:
+            current_tenant = get_tenant(self.request)
+            queryset = queryset.filter(workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting tenant for user {user}: {str(e)}")
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="device_profile")
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
         sync_response = sync_device_profile_create(instance)
 
@@ -143,15 +172,41 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     ),
     destroy=extend_schema(description="(Unused) Device Profile Template Destroy"),
 )
-class DeviceProfileTemplateViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class DeviceProfileTemplateViewSet(viewsets.ModelViewSet):
     queryset = DeviceProfileTemplate.objects.all()
     serializer_class = DeviceProfileTemplateSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "device_profile_template"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return DeviceProfileTemplate.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            "view_device_profile_template_details",
+            klass=DeviceProfileTemplate,
+            accept_global_perms=False,
+        )
+
+        try:
+            current_tenant = get_tenant(self.request)
+            queryset = queryset.filter(workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting tenant for user {user}: {str(e)}")
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="device_profile_template")
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
 
 @extend_schema_view(
@@ -162,15 +217,41 @@ class DeviceProfileTemplateViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Api User Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Api User Destroy (ChirpStack)"),
 )
-class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class ApiUserViewSet(viewsets.ModelViewSet):
     queryset = ApiUser.objects.all()
     serializer_class = ApiUserSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "api_user"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return ApiUser.objects.all()
+
+        queryset = get_objects_for_user(
+            user,
+            "view_api_user_details",
+            klass=ApiUser,
+            accept_global_perms=False,
+        )
+
+        try:
+            current_tenant = get_tenant(self.request)
+            queryset = queryset.filter(workspace__tenant=current_tenant)
+        except Exception as e:
+            logger.error(f"Error getting tenant for user {user}: {str(e)}")
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="api_user")
+
+        assign_object_permissions(
+            self.request.user,
+            instance,
+            permissions=["view", "change", "delete", "manage"],
+        )
 
         sync_response = sync_api_user_create(instance)
 
@@ -184,6 +265,9 @@ class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             logger.error(
                 f"Error syncing api_user {instance.email} with Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
+            if instance.password != "" and instance.password is not None:
+                instance.password = make_password(instance.password)
+                instance.save()
         else:
             logger.debug(
                 f"Synchronized api_user {instance.cs_user_id} - {instance.email} with Chirpstack"
