@@ -1,6 +1,11 @@
 <template>
   <div class="connection-status" :class="{ connected: isConnected }">
-    {{ isConnected ? '🟢 Conectado' : '🔴 Desconectado' }}
+  <ion-icon :icon="isConnected ? icons.checkmarkCircle : icons.alertCircle" />
+  {{ isConnected ? 'Conectado' : 'Desconectado' }}
+    <!--<ion-icon :icon="info" v-if="isConnected" />
+    <ion-icon :icon="warning" v-else />
+
+    {{ isConnected ? 'Conectado' : ' Desconectado' }}-->
     <span v-if="!isConnected && reconnectAttempts > 0" class="reconnect-info">
       (Intento {{ reconnectAttempts }}/10)
     </span>
@@ -12,6 +17,9 @@
  * ConnectionStatus Component - Shows WebSocket connection status
  * Responsibility: Display connection state and reconnection attempts
  */
+import {inject} from "vue";
+import { IonIcon } from "@ionic/vue";
+const icons = inject('icons', {})
 defineProps({
   isConnected: {
     type: Boolean,

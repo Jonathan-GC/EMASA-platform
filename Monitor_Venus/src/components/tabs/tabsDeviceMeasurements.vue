@@ -407,10 +407,9 @@ ion-tab-button.tab-selected {
 
 .chart-container {
   margin: 20px 0;
-  padding: 16px;
-  background: white;
+  padding:0px 10px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
 }
 
 /* Activation tab specific styles */

@@ -34,7 +34,10 @@
           :class="{ active: $route.path === '/home' }"
           @click="closeNavbar"
         >
-          🏠 Inicio
+          <ion-icon
+              :icon="icons.home"
+          ></ion-icon>
+          Inicio
         </router-link>
         <router-link 
           to="/about" 
@@ -116,7 +119,10 @@
           :class="{ active: $route.path === paths.GATEWAYS }"
           @click="closeNavbar"
         >
-          🛜 Gateways
+        <ion-icon
+              :icon="icons.wifi"
+          ></ion-icon>  
+          Gateways
         </router-link>
         <router-link
             :to=paths.DEVICE_PROFILES

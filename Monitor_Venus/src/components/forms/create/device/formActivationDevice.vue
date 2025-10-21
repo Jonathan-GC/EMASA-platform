@@ -1,13 +1,23 @@
 <template>
-  <ion-card>
     <ion-card-header>
-      <ion-card-title>Device Activation Management</ion-card-title>
-      <ion-card-subtitle>Configure LoRaWAN activation parameters and control device state</ion-card-subtitle>
+      <div class="flex">
+      <h3 class="flex-1">Device Activation Management</h3>
+      <ion-item lines="none" class="toggle-item flex-1">
+          <ion-toggle
+            v-model="activationToggle"
+            :disabled="activationLoading"
+            @ion-change="handleActivationToggle"
+            slot="end"
+            :color="isActivated ? 'success' : 'medium'"
+          />
+        </ion-item>
+        </div>
+      <ion-card-subtitle class="section-description !mb-1">Set up LoRaWAN communications. Enter the activation keys in order to activate this device on the network.</ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
 
       <!-- Section 1: Device Activation Control -->
-      <div v-if="activeDeviceId" class="activation-control-section">
+      <!--<div v-if="activeDeviceId" class="activation-control-section">
         <h3>Device Activation Control</h3>
         <ion-item lines="none" class="status-item">
           <ion-label>
@@ -22,37 +32,19 @@
           </ion-badge>
         </ion-item>
 
-        <ion-item lines="none" class="toggle-item">
-          <ion-label>
-            <h4>Device Power</h4>
-            <p>{{ isActivated ? 'Device is online and communicating' : 'Device is offline' }}</p>
-          </ion-label>
-          <ion-toggle
-            v-model="activationToggle"
-            :disabled="activationLoading"
-            @ion-change="handleActivationToggle"
-            slot="end"
-            :color="isActivated ? 'success' : 'medium'"
-          />
-        </ion-item>
         
         <ion-progress-bar
           v-if="activationLoading"
           type="indeterminate"
           color="primary"
         ></ion-progress-bar>
-      </div>
+      </div>-->
 
       <hr v-if="activeDeviceId" class="section-divider" />
 
       <!-- Section 2: Activation Keys Configuration -->
       <div class="keys-configuration-section">
-        <h3>Activation Keys Configuration</h3>
-        <p class="section-description">
-          Configure the LoRaWAN activation keys for this device. These keys are required before activating the device.
-        </p>
-
-        <!-- Loading indicator for activation details -->
+                <!-- Loading indicator for activation details -->
         <div v-if="loadingActivationDetails" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
           <p>Loading activation details...</p>
@@ -61,7 +53,7 @@
         <form @submit.prevent="submitActivationKeys">
           <ion-list>
             <!-- Device Address -->
-            <ion-item>
+            <ion-item class="custom">
               <ion-label position="stacked" class="!mb-2">Device Address</ion-label>
               <ion-input
                 fill="solid"
@@ -70,51 +62,26 @@
                 required
                 :counter="true"
                 maxlength="8"
+                class="custom"
               />
             </ion-item>
 
             <!-- Application Session Key -->
-            <ion-item>
+            <ion-item class="custom">
               <ion-label position="stacked" class="!mb-2">Application Session Key</ion-label>
               <ion-input
                 fill="solid"
-                class="custom"
                 v-model="formData.app_s_key"
                 placeholder="Enter application session key"
                 required
                 :counter="true"
                 maxlength="32"
-              />
-            </ion-item>
-
-            <!-- Gateway Integrity Key -->
-            <ion-item>
-              <ion-label position="stacked" class="!mb-2">Gateway Integrity Key (FNwkSIntKey)</ion-label>
-              <ion-input
-                fill="solid"
-                v-model="formData.f_nwk_s_int_key"
-                placeholder="Enter network session Key"
-                required
-                :counter="true"
-                maxlength="32"
-              />
-            </ion-item>
-
-            <!-- Server Integrity Key -->
-            <ion-item>
-              <ion-label position="stacked" class="!mb-2">Server Integrity Key (SNwkSIntKey)</ion-label>
-              <ion-input
-                fill="solid"
-                v-model="formData.s_nwk_s_int_key"
-                placeholder="Enter network session Key"
-                required
-                :counter="true"
-                maxlength="32"
+                class="custom"
               />
             </ion-item>
 
             <!-- Network Session Key -->
-            <ion-item>
+            <ion-item class="custom">
               <ion-label position="stacked" class="!mb-2">Network Session Key (NwkSEncKey)</ion-label>
               <ion-input
                 fill="solid"
@@ -122,6 +89,7 @@
                 placeholder="Enter network session key"
                 :counter="true"
                 maxlength="32"
+                class="custom"
               />
             </ion-item>
 
@@ -130,20 +98,21 @@
               <h4>Frame Counters (Optional)</h4>
               
               <!-- Uplink Frame Counter -->
-              <ion-item>
+              <div class="flex">
+              <ion-item class="custom flex-1 !mr-2">
                 <ion-label position="stacked" class="!mb-2">Uplink Frame Counter</ion-label>
                 <ion-input
                   fill="solid"
                   v-model="formData.f_cnt_up"
                   placeholder="0"
                   type="number"
-                  min="0"
-                  helper-text="Counter for uplink messages"
+                  min="0" 
+                  class="custom"
                 />
               </ion-item>
 
               <!-- Network Downlink Counter -->
-              <ion-item>
+              <ion-item class="custom flex-1 !mr-2">
                 <ion-label position="stacked" class="!mb-2">Network Downlink Counter</ion-label>
                 <ion-input
                   fill="solid"
@@ -151,12 +120,12 @@
                   placeholder="0"
                   type="number"
                   min="0"
-                  helper-text="Counter for network downlink messages"
+                  class="custom"
                 />
               </ion-item>
 
               <!-- Application Downlink Counter -->
-              <ion-item>
+              <ion-item class="custom flex-1">
                 <ion-label position="stacked" class="!mb-2">Application Downlink Counter</ion-label>
                 <ion-input
                   fill="solid"
@@ -164,9 +133,10 @@
                   placeholder="0"
                   type="number"
                   min="0"
-                  helper-text="Counter for application downlink messages"
+                  class="custom"
                 />
               </ion-item>
+              </div>
             </div>
           </ion-list>
 
@@ -174,7 +144,7 @@
             <ion-button
               type="submit"
               :disabled="keysLoading || !isKeysFormValid"
-              expand="block"
+              class="set-keys-button"
             >
               <ion-spinner v-if="keysLoading" slot="start"></ion-spinner>
               <ion-icon v-else :icon="icons.key" slot="start"></ion-icon>
@@ -185,7 +155,7 @@
       </div>
 
     </ion-card-content>
-  </ion-card>
+  
 </template>
 
 <script setup>
@@ -400,8 +370,8 @@ async function submitActivationKeys() {
     const keysPayload = {
       dev_addr: formData.value.dev_addr,
       app_s_key: formData.value.app_s_key,
-      f_nwk_s_int_key: formData.value.f_nwk_s_int_key,
-      s_nwk_s_int_key: formData.value.s_nwk_s_int_key,
+      f_nwk_s_int_key: formData.value.nwk_s_enc_key || '',
+      s_nwk_s_int_key: formData.value.nwk_s_enc_key || '',
       nwk_s_enc_key: formData.value.nwk_s_enc_key || '',
       f_cnt_up: parseInt(formData.value.f_cnt_up) || 0,
       n_f_cnt_down: parseInt(formData.value.n_f_cnt_down) || 0,
@@ -560,7 +530,7 @@ ion-card-subtitle {
   --background: #ffffff;
   --border-radius: 8px;
   margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 .status-item h4,
@@ -586,14 +556,7 @@ ion-badge {
   letter-spacing: 0.5px;
 }
 
-ion-toggle {
-  --background: #cbd5e1;
-  --background-checked: #10b981;
-  --handle-background: #ffffff;
-  --handle-background-checked: #ffffff;
-  --handle-width: 26px;
-  --handle-height: 26px;
-}
+
 
 ion-progress-bar {
   margin-top: 8px;
@@ -642,7 +605,6 @@ ion-item {
   --inner-padding-end: 0;
   --border-color: #e5e7eb;
   --background: #ffffff;
-  margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -671,25 +633,27 @@ ion-input::part(helper-text) {
 /* Button Group */
 .button-group {
   margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-ion-button[type="submit"] {
+.set-keys-button {
   --background: #3b82f6;
   --background-hover: #2563eb;
   --background-activated: #1d4ed8;
   --color: #ffffff;
-  --border-radius: 8px;
-  --padding-start: 24px;
-  --padding-end: 24px;
-  --padding-top: 14px;
-  --padding-bottom: 14px;
-  font-weight: 600;
-  font-size: 1rem;
-  min-height: 48px;
+  --border-radius: 6px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  min-height: 40px;
   text-transform: none;
 }
 
-ion-button[type="submit"]:disabled {
+.set-keys-button:disabled {
   --background: #d1d5db;
   --color: #9ca3af;
 }
@@ -739,10 +703,10 @@ ion-button[type="submit"]:disabled {
     margin-bottom: 12px;
   }
 
-  ion-button[type="submit"] {
-    width: 100%;
-    --padding-start: 16px;
-    --padding-end: 16px;
+  .set-keys-button {
+    width: auto;
+    --padding-start: 12px;
+    --padding-end: 12px;
   }
 
   .status-item h4,
