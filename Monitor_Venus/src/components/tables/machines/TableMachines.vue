@@ -33,6 +33,7 @@
               placeholder="Buscar máquina..."
               @ionInput="handleSearch"
               show-clear-button="focus"
+              class="custom"
             ></ion-searchbar>
             
             <ion-button @click="fetchmáquinas" fill="clear">

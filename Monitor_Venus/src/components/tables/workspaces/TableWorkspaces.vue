@@ -33,6 +33,7 @@
                 placeholder="Buscar device profile..."
                 @ionInput="handleSearch"
                 show-clear-button="focus"
+                class="custom"
             ></ion-searchbar>
 
             <ion-button @click="fetchWorkspaces" fill="clear">
@@ -101,7 +102,7 @@
                 <ion-chip class="p-2.5 rounded-full">
                   {{ deviceProfile.tenant }}
                 </ion-chip>
-              </ion-col>s
+              </ion-col>
 
               <ion-col size="1">
                 <ion-button
@@ -299,11 +300,7 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.table-header {
-  background-color: var(--ion-color-light);
-  border-bottom: 2px solid var(--ion-color-medium);
-  font-weight: 600;
-}
+
 
 .table-header ion-col {
   padding: 16px 12px;

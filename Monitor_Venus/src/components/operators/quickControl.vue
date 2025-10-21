@@ -3,9 +3,10 @@
     Create button (toCreate):
     Opens a modal containing the appropriate create form component.
   -->
-  <ion-button v-if="toCreate" fill="outline" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
-    <ion-icon :icon="addOutline" slot="start"></ion-icon>
-    Agregar
+  
+  <ion-button v-if="toCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
+    <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
+    
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
@@ -32,10 +33,11 @@
       </ion-content>
     </ion-modal>
   </ion-button>
+
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, inject } from 'vue';
 import { IonButton, IonIcon, IonModal, IonContent, IonSpinner } from '@ionic/vue';
 import { addOutline, pencilOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';

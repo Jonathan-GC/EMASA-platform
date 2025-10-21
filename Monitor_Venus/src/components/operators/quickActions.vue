@@ -3,15 +3,16 @@
     View button (toView):
     Displays an icon that redirects to the 'toView' route when clicked.
   -->
-  <ion-button v-if="toView" fill="clear" size="small" class="action view" :router-link="toView">
+ <ion-buttons>
+   <ion-button v-if="toView" fill="clear" size="small" :router-link="toView">
     <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
-    <ion-tooltip>
+    <!--<ion-tooltip>
       Ingresar
-    </ion-tooltip>
+    </ion-tooltip>-->
   </ion-button>
 
-  <ion-button v-if="toCreate" fill="outline" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
-    <ion-icon :icon="addOutline" slot="start"></ion-icon>
+  <ion-button v-if="toCreate" fill="clear" class="mx-2 rounded-full" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
+    <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
     Agregar
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false">
       <ion-content>
@@ -37,9 +38,9 @@
         </div>
       </ion-content>
     </ion-modal>
-    <ion-tooltip>
+    <!--<ion-tooltip>
       Editar
-    </ion-tooltip>
+    </ion-tooltip>-->
   </ion-button>
 
   <!--
@@ -56,15 +57,16 @@
         </div>
       </ion-content>
     </ion-modal>
-    <ion-tooltip>
+    <!--<ion-tooltip>
       Eliminar
-    </ion-tooltip>
+    </ion-tooltip>-->
   </ion-button>
+  </ion-buttons>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { IonButton, IonIcon, IonModal, IonContent, IonSpinner, IonTooltip } from '@ionic/vue';
+import { IonButton, IonIcon, IonModal, IonContent, IonSpinner, IonButtons } from '@ionic/vue';
 import { eyeOutline, addOutline, createOutline, trashOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from '@utils/forms/form-types/formsTypes';
@@ -79,7 +81,8 @@ export default defineComponent({
     IonModal,
     IonContent,
     IonSpinner,
-    IonTooltip
+    //IonTooltip,
+    IonButtons
   },
   emits: ['itemCreated', 'itemDeleted', 'itemEdited'],
   props: {

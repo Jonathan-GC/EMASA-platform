@@ -1,6 +1,7 @@
 // Consolidated icon system - All icons in one file
 import {
   // Action icons
+  cube,
   eyeOutline,
   eyeOffOutline,
   refreshOutline,
@@ -102,10 +103,12 @@ import {
   filterOutline,
   menuOutline,
   settingsOutline,
+  settings,
   optionsOutline,
   listOutline,
   gridOutline,
   appsOutline,
+  apps,
   layersOutline,
   swapHorizontalOutline,
   swapVerticalOutline,
@@ -138,6 +141,7 @@ export const icons = {
   'key': keyOutline,
   'logOut': logOutOutline,
   'shield': shieldOutline,
+  'cube': cube,
 
   // Communication icons
   'mail': mailOutline,

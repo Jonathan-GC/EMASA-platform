@@ -33,10 +33,11 @@
               placeholder="Buscar gateway..."
               @ionInput="handleSearch"
               show-clear-button="focus"
+              class="custom"
             ></ion-searchbar>
             
-            <ion-button @click="fetchGateways" fill="clear">
-              <ion-icon :icon="icons.refresh"></ion-icon>
+            <ion-button @click="fetchGateways" fill="clear" shape="round">
+              <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
             </ion-button>
 
             <QuickControl

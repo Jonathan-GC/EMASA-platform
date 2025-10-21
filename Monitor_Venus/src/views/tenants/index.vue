@@ -7,25 +7,19 @@ const icons = inject('icons', {})
 
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/home"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Monitor Clients</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
     <ion-content :fullscreen="true">
       <div class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>
-            <ion-icon
-              :icon="icons.building"
-          ></ion-icon>
-            Clientes
-          </h1>
+          <div class="header-title">
+            <ion-back-button default-href="/home"></ion-back-button>
+            <h1>
+              <ion-icon
+                :icon="icons.building"
+            ></ion-icon>
+              Clientes
+            </h1>
+          </div>
         </div>
         <!-- Tenants information section -->
         <TableTenants />
@@ -43,15 +37,39 @@ const icons = inject('icons', {})
 }
 
 .header {
-  text-align: center;
   margin-bottom: 30px;
 }
 
-.header h1 {
-  margin: 0 0 15px 0;
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: fit-content;
+}
+
+.header-title ion-back-button {
+  display: flex;
+  align-items: center;
+  margin: 0 !important;
+  padding: 0 !important;
+  --padding-start: 0;
+  --padding-end: 0;
+  --margin-start: 0;
+  --margin-end: 0;
+  --min-width: auto;
+  height: auto;
+}
+
+.header-title h1 {
+  margin: 0;
+  padding: 0;
   color: #374151;
   font-size: 2rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
 }
 
 .header-subtitle {

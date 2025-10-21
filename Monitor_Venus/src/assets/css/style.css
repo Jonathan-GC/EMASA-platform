@@ -26,6 +26,11 @@ ion-input-password-toggle.custom ion-button {
     
 }
 
+.table-header {
+  background-color: var(--ion-color-light);
+  font-weight: 600;
+}
+
 .connection-status {
   display: flex;
   align-items: flex-start;
@@ -59,7 +64,7 @@ ion-modal{
     --border-radius: 12px;
 }
 
-ion-searchbar{
+ion-searchbar.custom{
     --border-radius: 50rem;
     --box-shadow: inset 0 1px 5px 0px rgba(0, 0, 0, 0.14);
 }

@@ -71,6 +71,7 @@ declare module 'vue' {
     IonTitle: typeof import('@ionic/vue')['IonTitle']
     IonToggle: typeof import('@ionic/vue')['IonToggle']
     IonToolbar: typeof import('@ionic/vue')['IonToolbar']
+    IonTooltip: typeof import('@ionic/vue')['IonTooltip']
     LoginForm: typeof import('./src/components/forms/auth/LoginForm.vue')['default']
     ModalSelector: typeof import('./src/components/ui/ModalSelector.vue')['default']
     NavBar: typeof import('./src/layouts/components/NavBar.vue')['default']

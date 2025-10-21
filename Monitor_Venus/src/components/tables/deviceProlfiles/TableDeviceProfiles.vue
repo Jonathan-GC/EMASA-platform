@@ -33,6 +33,7 @@
                 placeholder="Buscar gateway..."
                 @ionInput="handleSearch"
                 show-clear-button="focus"
+                class="custom"
             ></ion-searchbar>
 
             <ion-button @click="GetDeviceProfiles" fill="clear">

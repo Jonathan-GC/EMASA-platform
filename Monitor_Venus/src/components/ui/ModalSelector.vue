@@ -32,7 +32,7 @@
         <!-- Search Bar -->
         <ion-toolbar v-if="searchable">
           <ion-searchbar
-            class="rounded-xl"
+            class="rounded-xl custom"
             v-model="searchQuery"
             :placeholder="searchPlaceholder || 'Buscar...'"
             @ionInput="onSearch"

@@ -33,6 +33,7 @@
                 placeholder="Buscar device profile..."
                 @ionInput="handleSearch"
                 show-clear-button="focus"
+                class="custom"
             ></ion-searchbar>
 
             <ion-button @click="fetchApplications" fill="clear">

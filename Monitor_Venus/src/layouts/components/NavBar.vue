@@ -155,7 +155,7 @@
             @click="closeNavbar"
         >
           <ion-icon
-              :icon="icons.engines"
+              :icon="icons.settings"
           ></ion-icon>
           Maquinas
         </router-link>

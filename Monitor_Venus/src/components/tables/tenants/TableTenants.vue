@@ -33,11 +33,15 @@
               placeholder="Buscar gateway..."
               @ionInput="handleSearch"
               show-clear-button="focus"
+              class="custom"
             ></ion-searchbar>
-            
-            <ion-button @click="fetchGateways" fill="clear">
-              <ion-icon :icon="icons.refresh"></ion-icon>
+          
+            <ion-buttons slot="end">
+            <ion-button @click="fetchGateways" color="primary">
+              <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
             </ion-button>
+          </ion-buttons>
+
             <QuickControl
               :toCreate="true"
               type="tenant"
@@ -140,13 +144,18 @@
               </ion-col>
               
               <ion-col size="1">
-                <ion-button 
+                <!--<ion-button 
                   fill="clear" 
                   size="small"
                   @click.stop="viewGateway(gateway)"
                 >
                   <ion-icon :icon="icons.eye"></ion-icon>
-                </ion-button>
+                </ion-button>-->
+                <QuickActions
+                  :to-view="`/tenants/${gateway.id}`"
+                  type="tenant"
+
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -197,6 +206,7 @@ import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 import OrganizationSVG from '@assets/svg/Organization.svg'
+import QuickActions from '../../operators/quickActions.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
