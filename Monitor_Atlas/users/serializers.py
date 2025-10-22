@@ -4,7 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from roles.models import WorkspaceMembership
-from .models import User, Address, MainAddress, BillingAddress
+from .models import User, MainAddress, BillingAddress
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -169,7 +169,8 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
 
         if address_data:
-            address = MainAddress.objects.create(user=user, **address_data)
+            # MainAddress has no 'user' field — create address and assign to user.address
+            address = MainAddress.objects.create(**address_data)
             user.address = address
             user.save()
 
@@ -197,7 +198,8 @@ class UserSerializer(serializers.ModelSerializer):
                     setattr(instance.address, attr, value)
                 instance.address.save()
             else:
-                address = MainAddress.objects.create(user=instance, **address_data)
+                # Create a MainAddress (no 'user' FK) and assign it to the user
+                address = MainAddress.objects.create(**address_data)
                 instance.address = address
                 instance.save()
 
@@ -205,11 +207,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        try:
-            representation["address"] = MainAddressSerializer(
-                instance.main_address
-            ).data
-        except MainAddress.DoesNotExist:
+        # Use the User.address FK (not .main_address)
+        if instance.address:
+            representation["address"] = MainAddressSerializer(instance.address).data
+        else:
             representation["address"] = None
 
         return representation

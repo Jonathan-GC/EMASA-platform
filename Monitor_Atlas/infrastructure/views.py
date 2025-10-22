@@ -436,9 +436,12 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
 
         if device_activation_status(device):
+            logger.debug(f"Device {device.dev_eui} - {device.name} is already active")
+            device.is_active = True
+            device.save(update_fields=["is_active"])
             return Response(
                 {"message": "Device is already active"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_304_NOT_MODIFIED,
             )
 
         try:
@@ -500,7 +503,10 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             logger.debug(
                 f"No changes made in Chirpstack for deactivation of {instance.name}, if this is not expected please check manually or try again"
             )
-            return Response({"message": "Device deactivated (no-op in Chirpstack)"})
+            return Response(
+                {"message": "Device deactivated (no-op in Chirpstack)"},
+                status=status.HTTP_304_NOT_MODIFIED,
+            )
 
         if sync_response.status_code != 200:
             logger.error(
@@ -516,6 +522,8 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             logger.debug(
                 f"Se ha desactivado el dispositivo {instance.dev_eui} - {instance.name}"
             )
+            instance.is_active = False
+            instance.save(update_fields=["is_active"])
 
         return Response({"message": "Device deactivated"})
 

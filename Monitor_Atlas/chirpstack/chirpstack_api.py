@@ -1142,7 +1142,10 @@ def get_device_by_id(device):
             headers=HEADERS,
         )
         if response.status_code == 200:
+            set_status(device, response)
             found = True
+        else:
+            set_status(device, response)
     return found
 
 
@@ -1248,7 +1251,6 @@ def device_activation_status(device):
     status = False
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
     response = requests.get(url, headers=HEADERS)
-    print(response.status_code, response.text)
     if response.status_code == 200:
         activation = response.json().get("device", {}).get("isDisabled", True)
 
@@ -1256,6 +1258,7 @@ def device_activation_status(device):
             last_seen = response.json().get("device", {}).get("lastSeenAt", None)
             if last_seen or last_seen != None:
                 status = True
+
         return status
 
     else:
