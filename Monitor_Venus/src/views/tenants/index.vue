@@ -40,38 +40,6 @@ const icons = inject('icons', {})
   margin-bottom: 30px;
 }
 
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  width: fit-content;
-}
-
-.header-title ion-back-button {
-  display: flex;
-  align-items: center;
-  margin: 0 !important;
-  padding: 0 !important;
-  --padding-start: 0;
-  --padding-end: 0;
-  --margin-start: 0;
-  --margin-end: 0;
-  --min-width: auto;
-  height: auto;
-}
-
-.header-title h1 {
-  margin: 0;
-  padding: 0;
-  color: #374151;
-  font-size: 2rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  line-height: 1;
-}
-
 .header-subtitle {
   display: flex;
   justify-content: center;

@@ -1,22 +1,17 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/home"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Monitor Application Devices</ion-title>
-      </ion-toolbar>
-    </ion-header>
 
     <ion-content :fullscreen="true">
       <div v-if="pageReady" class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>📟 Devices </h1>
+          <div class="header-title">
+            <ion-back-button default-href="/home"></ion-back-button>
+            <h1>📟 Devices </h1>
+          </div>
         </div>
         <!-- Main applications table with fetch data -->
-        <TableDevices/>
+        <TableDevices />
       </div>
 
       <!-- Loading state while page is preparing -->

@@ -1,5 +1,5 @@
 <script setup>
-import {inject} from "vue";
+import { inject } from "vue";
 import TableWorkspaces from "../../components/tables/workspaces/TableWorkspaces.vue";
 
 const icons = inject('icons', {})
@@ -8,28 +8,21 @@ const icons = inject('icons', {})
 
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/home"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Monitor CLient Workspaces</ion-title>
-      </ion-toolbar>
-    </ion-header>
 
     <ion-content :fullscreen="true">
       <div class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>
-            <ion-icon
-                :icon="icons.building"
-            ></ion-icon>
-            Workspaces de Clientes
-          </h1>
+          <div class="header-title">
+            <ion-back-button default-href="/home"></ion-back-button>
+            <h1>
+              <ion-icon :icon="icons.layers"></ion-icon>
+              Workspaces de Clientes
+            </h1>
+          </div>
         </div>
         <!-- Tenants information section -->
-        <TableWorkspaces   />
+        <TableWorkspaces />
       </div>
     </ion-content>
   </ion-page>
@@ -41,18 +34,6 @@ const icons = inject('icons', {})
 
 .current-dashboard {
   padding: 20px;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.header h1 {
-  margin: 0 0 15px 0;
-  color: #374151;
-  font-size: 2rem;
-  font-weight: 600;
 }
 
 .header-subtitle {

@@ -29,13 +29,14 @@
           <div class="tab-content">
             <!-- Header with connection status -->
             <div class="header flex">
-              <h1>📟 Device Measurements - Voltage</h1>
-              <div class="header-subtitle connection-status">
-                <ConnectionStatus
-                  :is-connected="isConnected"
-                  :reconnect-attempts="reconnectAttempts"
-                />
+              <div class="header-title">
+                <ion-back-button default-href="/home"></ion-back-button>
+                <h1>📟 Device Measurements - Voltage</h1>
               </div>
+              <div class="header-subtitle connection-status">
+                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
+              </div>
+
             </div>
 
             <!-- Device information section -->
@@ -49,11 +50,8 @@
             </div>
 
             <!-- Charts grid -->
-            <ChartsGrid
-              :chart-fragments="chartDataFragments"
-              :chart-key="chartKey"
-              :device-name="device?.device_name || deviceName"
-            />
+            <ChartsGrid :chart-fragments="chartDataFragments" :chart-key="chartKey"
+              :device-name="device?.device_name || deviceName" />
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
@@ -67,12 +65,12 @@
           <div class="tab-content">
             <!-- Header with connection status -->
             <div class="header">
-              <h1>📟 Device Measurements - Current</h1>
+              <div class="header-title">
+                <ion-back-button default-href="/home"></ion-back-button>
+                <h1>📟 Device Measurements - Current</h1>
+              </div>
               <div class="header-subtitle">
-                <ConnectionStatus
-                  :is-connected="isConnected"
-                  :reconnect-attempts="reconnectAttempts"
-                />
+                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
               </div>
             </div>
 
@@ -88,11 +86,8 @@
 
             <!-- Current chart -->
             <div v-if="currentDevice" class="chart-container">
-              <SingleCurrentChart
-                :chart-data="currentChartData"
-                :chart-key="currentChartKey"
-                :device-name="currentDevice?.device_name || 'Dispositivo IoT'"
-              />
+              <SingleCurrentChart :chart-data="currentChartData" :chart-key="currentChartKey"
+                :device-name="currentDevice?.device_name || 'Dispositivo IoT'" />
             </div>
 
             <!-- Recent messages -->
@@ -107,20 +102,17 @@
           <div class="tab-content">
             <!-- Header with connection status -->
             <div class="header">
-              <h1>📟 Device Measurements - Battery</h1>
+              <div class="header-title">
+                <ion-back-button default-href="/home"></ion-back-button>
+                <h1>📟 Device Measurements - Battery</h1>
+              </div>
               <div class="header-subtitle">
-                <ConnectionStatus
-                  :is-connected="isConnected"
-                  :reconnect-attempts="reconnectAttempts"
-                />
+                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
               </div>
             </div>
 
             <!-- Device information section -->
-            <BatteryDeviceInfo
-              :device="batteryDevice"
-              :battery-percentage="batteryPercentage"
-            />
+            <BatteryDeviceInfo :device="batteryDevice" :battery-percentage="batteryPercentage" />
 
             <!-- No data placeholder -->
             <div v-if="!batteryDevice" class="no-data">
@@ -131,11 +123,8 @@
 
             <!-- Battery chart -->
             <div class="chart-container">
-              <DualAxisBatteryChart
-                :chart-data="batteryChartData"
-                :chart-key="batteryChartKey"
-                :device-name="batteryDevice?.device_name || 'Dispositivo IoT'"
-              />
+              <DualAxisBatteryChart :chart-data="batteryChartData" :chart-key="batteryChartKey"
+                :device-name="batteryDevice?.device_name || 'Dispositivo IoT'" />
             </div>
 
             <!-- Recent messages -->
@@ -150,7 +139,10 @@
           <div class="tab-content">
             <!-- Header -->
             <div class="header">
-              <h1>🔑 Device Activation</h1>
+              <div class="header-title">
+                <ion-back-button default-href="/home"></ion-back-button>
+                <h1>🔑 Device Activation</h1>
+              </div>
               <div class="header-subtitle">
                 Configure activation keys for your device
               </div>
@@ -164,13 +156,8 @@
 
             <!-- Activation form -->
             <div class="form-container">
-              <FormActivationDevice
-                type="device_activation"
-                label="device activation"
-                :device="device"
-                @item-created="handleActivationCreated"
-                @field-changed="handleActivationFieldChanged"
-              />
+              <FormActivationDevice type="device_activation" label="device activation" :device="device"
+                @item-created="handleActivationCreated" @field-changed="handleActivationFieldChanged" />
             </div>
 
             <!-- Recent messages -->
@@ -194,7 +181,7 @@ import {
 } from '@ionic/vue'
 
 // Chart.js imports and registration
-import { 
+import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -367,17 +354,9 @@ ion-tab-button.tab-selected {
 }
 
 /* Voltage tab specific styles */
-.header {
-  text-align: center;
-  margin-bottom: 30px;
-}
 
-.header h1 {
-  margin: 0 0 15px 0;
-  color: #374151;
-  font-size: 2rem;
-  font-weight: 600;
-}
+
+
 
 .header-subtitle {
   display: flex;
@@ -407,7 +386,7 @@ ion-tab-button.tab-selected {
 
 .chart-container {
   margin: 20px 0;
-  padding:0px 10px;
+  padding: 0px 10px;
   border-radius: 8px;
 
 }
