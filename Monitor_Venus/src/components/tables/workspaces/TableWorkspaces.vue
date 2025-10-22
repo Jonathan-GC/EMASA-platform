@@ -36,8 +36,8 @@
                 class="custom"
             ></ion-searchbar>
 
-            <ion-button @click="fetchWorkspaces" fill="clear">
-              <ion-icon :icon="icons.refresh"></ion-icon>
+            <ion-button @click="fetchGateways" fill="clear" shape="round">
+              <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
             </ion-button>
 
             <QuickControl
@@ -107,7 +107,7 @@
               <ion-col size="1">
                 <ion-button
                     fill="clear"
-                    size="small"
+                    shape="round"
                     @click.stop="viewGateway(deviceProfile)"
                 >
                   <ion-icon :icon="icons.eye"></ion-icon>

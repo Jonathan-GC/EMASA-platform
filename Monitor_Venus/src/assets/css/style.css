@@ -1,6 +1,9 @@
 @import "tailwindcss/utilities";
 @import "tailwindcss/theme";
 
+/* Import Ionic custom colors */
+@import "../../plugins/ionic/styles/colors.css";
+
 body a {
     color: var(--color-amber-600);
 }
@@ -27,7 +30,7 @@ ion-input-password-toggle.custom ion-button {
 }
 
 .table-header {
-  background-color: var(--ion-color-light);
+  background-color: var(--color-zinc-100);
   font-weight: 600;
 }
 

@@ -307,7 +307,7 @@ const closeNavbar = () => {
 }
 
 .nav-link.active {
-  background: #495057;
+  background: var(--ion-color-secondary);
   color: white;
   border-color: #495057;
 }

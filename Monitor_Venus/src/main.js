@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
-import { IonicVue } from '@ionic/vue'
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import { registerPlugins } from './plugins/plugins'
+import { createIonic } from '@/plugins/ionic'
 import App from './App.vue'
 
 // Import Ionic CSS
@@ -24,23 +24,16 @@ import '@ionic/vue/css/display.css'
 // Components are now auto-imported by unplugin-vue-components
 // Routes are handled by the router plugin
 
-// Define routes
-/*
-const routes = [
-  { path: '/', redirect: '/home' },
-  { path: '/home', component: Home },
-  { path: '/about', component: About },
-  { path: '/iot-monitor', component: MultiVoltageChart }
-]
-
-// Create router
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})*/
-
 const app = createApp(App)
+
+// Use Ionic plugin with centralized configuration
+app.use(createIonic({
+  config: {
+    mode: 'md',           // Material Design mode
+    rippleEffect: true,   // Enable ripple effect
+    animated: true,       // Enable animations
+  }
+}))
+
 registerPlugins(app)
-app.use(IonicVue)
-//app.use(router)
 app.mount('#app')

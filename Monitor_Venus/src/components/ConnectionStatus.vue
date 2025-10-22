@@ -10,6 +10,7 @@
       (Intento {{ reconnectAttempts }}/10)
     </span>
   </div>
+  
 </template>
 
 <script setup>

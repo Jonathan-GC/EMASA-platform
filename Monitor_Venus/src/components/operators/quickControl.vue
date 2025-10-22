@@ -4,7 +4,7 @@
     Opens a modal containing the appropriate create form component.
   -->
   
-  <ion-button v-if="toCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
+  <ion-button color="secondary" v-if="toCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
     <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
     
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false">

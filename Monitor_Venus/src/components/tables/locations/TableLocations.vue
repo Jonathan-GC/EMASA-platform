@@ -320,12 +320,6 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.table-header {
-  background-color: var(--ion-color-light);
-  border-bottom: 2px solid var(--ion-color-medium);
-  font-weight: 600;
-}
-
 .table-header ion-col {
   padding: 16px 12px;
 }

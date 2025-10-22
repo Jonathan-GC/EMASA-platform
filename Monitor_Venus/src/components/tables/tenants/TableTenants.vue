@@ -7,7 +7,7 @@
           {{ loading ? 'Cargando...' : `${tenants.length} tenants encontrados` }}
         </ion-card-subtitle>
       </ion-card-header>
-      
+
       <ion-card-content>
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
@@ -28,25 +28,14 @@
         <div v-else-if="tenants.length > 0">
           <!-- Controls -->
           <div class="table-controls">
-            <ion-searchbar 
-              v-model="searchText"
-              placeholder="Buscar gateway..."
-              @ionInput="handleSearch"
-              show-clear-button="focus"
-              class="custom"
-            ></ion-searchbar>
-          
-            <ion-buttons slot="end">
-            <ion-button @click="fetchGateways" color="primary">
+            <ion-searchbar v-model="searchText" placeholder="Buscar gateway..." @ionInput="handleSearch"
+              show-clear-button="focus" class="custom"></ion-searchbar>
+
+            <ion-button @click="fetchGateways" fill="clear" shape="round">
               <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
             </ion-button>
-          </ion-buttons>
 
-            <QuickControl
-              :toCreate="true"
-              type="tenant"
-              @itemCreated="handleItemRefresh"
-            />
+            <QuickControl :toCreate="true" type="tenant" @itemCreated="handleItemRefresh" />
           </div>
 
           <!-- Table using ion-grid -->
@@ -57,34 +46,26 @@
 
               <ion-col size="2" @click="sortBy('name')" class="sortable">
                 <strong>Nombre</strong>
-                <ion-icon 
-                  :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
-                  v-if="sortField === 'name'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'name'"></ion-icon>
               </ion-col>
               <ion-col size="2" @click="sortBy('cs_tenant_id')" class="sortable">
                 <strong>ID</strong>
-                <ion-icon 
-                  :icon="sortOrder.cs_tenant_id === 'asc' ? icons.chevronUp : icons.chevronDown"
-                  v-if="sortField === 'cs_tenant_id'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.cs_tenant_id === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'cs_tenant_id'"></ion-icon>
               </ion-col>
               <ion-col size="2" @click="sortBy('status')" class="sortable">
                 <strong>Grupo</strong>
-                <ion-icon 
-                  :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
-                  v-if="sortField === 'status'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'status'"></ion-icon>
               </ion-col>
               <ion-col size="2">
                 <strong>subscription</strong>
               </ion-col>
               <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
                 <strong>Última conexión</strong>
-                <ion-icon 
-                  :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
-                  v-if="sortField === 'lastSeen'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'lastSeen'"></ion-icon>
               </ion-col>
               <ion-col size="1">
                 <strong>Dispositivos</strong>
@@ -95,13 +76,8 @@
             </ion-row>
 
             <!-- Data rows -->
-            <ion-row 
-              v-for="gateway in paginatedItems" 
-              :key="gateway.id"
-              class="table-row-stylized"
-             
-              :class="{ 'row-selected': selectedGateway?.id === gateway.id }"
-            >
+            <ion-row v-for="gateway in paginatedItems" :key="gateway.id" class="table-row-stylized"
+              :class="{ 'row-selected': selectedGateway?.id === gateway.id }">
               <ion-col size="2">
                 <div class="gateway-info">
                   <ion-avatar aria-hidden="true" slot="start" class="table-avatar">
@@ -117,32 +93,30 @@
               </ion-col>
 
               <ion-col size="2">
-                <ion-chip
-                  :color="getStatusColor(gateway.state)"
-                >
+                <ion-chip :color="getStatusColor(gateway.state)">
                   {{ gateway.group }}
                 </ion-chip>
               </ion-col>
-              
+
               <ion-col size="2">
                 <div class="location-info">
                   {{ gateway.subscription.name || 'N/A' }}
                 </div>
               </ion-col>
-              
+
               <ion-col size="2">
                 <div class="time-info">
                   {{ formatTime(gateway.last_seen_at) }}
                 </div>
               </ion-col>
-              
+
               <ion-col size="1">
                 <div class="devices-info">
                   <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
                   {{ gateway.connectedDevices || 0 }}
                 </div>
               </ion-col>
-              
+
               <ion-col size="1">
                 <!--<ion-button 
                   fill="clear" 
@@ -151,34 +125,22 @@
                 >
                   <ion-icon :icon="icons.eye"></ion-icon>
                 </ion-button>-->
-                <QuickActions
-                  :to-view="`/tenants/${gateway.id}`"
-                  type="tenant"
-
-                />
+                <QuickActions :to-view="`/tenants/${gateway.id}`" type="tenant" />
               </ion-col>
             </ion-row>
           </ion-grid>
 
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
-            <ion-button 
-              fill="clear" 
-              :disabled="currentPage === 1"
-              @click="changePage(currentPage - 1)"
-            >
+            <ion-button fill="clear" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
               <ion-icon :icon="icons.chevronBack"></ion-icon>
             </ion-button>
-            
+
             <span class="page-info">
               Página {{ currentPage }} de {{ totalPages }}
             </span>
-            
-            <ion-button 
-              fill="clear" 
-              :disabled="currentPage === totalPages"
-              @click="changePage(currentPage + 1)"
-            >
+
+            <ion-button fill="clear" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
               <ion-icon :icon="icons.chevronForward"></ion-icon>
             </ion-button>
           </div>
@@ -235,24 +197,24 @@ const fetchGateways = async () => {
     console.log('⏳ Component not ready, waiting...')
     return
   }
-  
+
   loading.value = true
   error.value = null
-  const headers={
+  const headers = {
     //Authorization: `Bearer ${localStorage.getItem('token')}`
   }
-  
+
   try {
     console.log('🔄 Fetching tenants data...')
-    
+
     // Real API call using await
     const response = await API.get(API.TENANT, headers);
     // Ensure response is an array, if not, wrap it or use a default
     const mockData = Array.isArray(response) ? response : (response?.data || []);
-    
+
     tenants.value = mockData
     console.log('✅ Gateways cargados:', mockData.length)
-    
+
   } catch (err) {
     error.value = `❌Error al cargar gateways: ${err.message}`
     console.error('❌ Error fetching tenants:', err)
@@ -280,13 +242,13 @@ const handleItemRefresh = () => {
 // Lifecycle
 onMounted(async () => {
   console.log('🔧 GatewaysTable component mounted')
-  
+
   // Wait for next tick to ensure DOM is ready
   await nextTick()
-  
+
   // Mark component as mounted
   isMounted.value = true
-  
+
   // Small delay to ensure Ionic page transition is complete
   setTimeout(() => {
     fetchGateways()
@@ -311,7 +273,6 @@ onMounted(async () => {
 
 
 <style scoped>
-
 .table-avatar {
   width: 32px;
   height: 32px;
@@ -319,7 +280,9 @@ onMounted(async () => {
   object-fit: cover;
 }
 
-.loading-container, .error-container, .empty-state {
+.loading-container,
+.error-container,
+.empty-state {
   text-align: center;
   padding: 40px 20px;
 }
@@ -347,11 +310,6 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.table-header {
-  background-color: var(--ion-color-light);
-  border-bottom: 2px solid var(--ion-color-medium);
-  font-weight: 600;
-}
 
 .table-header ion-col {
   padding: 16px 12px;
@@ -405,7 +363,9 @@ onMounted(async () => {
   color: var(--ion-color-medium);
 }
 
-.location-info, .time-info, .devices-info {
+.location-info,
+.time-info,
+.devices-info {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -432,16 +392,16 @@ onMounted(async () => {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .data-table {
     font-size: 0.8rem;
   }
-  
+
   .table-header ion-col,
   .table-row-stylized ion-col {
     padding: 8px 6px;
   }
-  
+
   .gateway-info {
     flex-direction: column;
     align-items: flex-start;
