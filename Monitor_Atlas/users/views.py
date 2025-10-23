@@ -449,7 +449,7 @@ class AccountVerificationView(APIView):
             return Response({"detail": "Token is required."}, status=400)
 
         try:
-            payload = verify_token(token, scope="verify_email")
+            payload = verify_token(token, expected_scope="verify_email")
             user_id = payload.get("user_id")
             user = User.objects.get(id=user_id)
             user.is_active = True
