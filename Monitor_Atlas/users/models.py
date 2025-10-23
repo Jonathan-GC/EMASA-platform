@@ -36,7 +36,7 @@ class UserBase(models.Model):
     img = models.CharField(max_length=255, blank=True, null=True)
     name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
-    email = models.CharField(max_length=255)
+    email = models.CharField(max_length=255, unique=True)
     country = models.CharField(max_length=100, default="Colombia")
     phone_code = models.CharField(max_length=4, default="+57")
     phone = models.CharField(max_length=50)
