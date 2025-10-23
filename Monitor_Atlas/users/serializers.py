@@ -39,6 +39,21 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
+        user = self.user
+
+        # Check if the user account is active
+        if not user.is_active:
+            from rest_framework import exceptions
+
+            # Include the email in the error so frontend can use it for resend
+            raise exceptions.AuthenticationFailed(
+                {
+                    "detail": "Account is not active. Please verify your email.",
+                    "code": "account_not_active",
+                    "email": user.email,  # Frontend needs this for resend
+                }
+            )
+
         return data
 
 

@@ -6,7 +6,7 @@ from roles.mixins import PermissionKeyMixin
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
+from rest_framework.throttling import AnonRateThrottle
 
 from django.conf import settings
 from django.utils.decorators import method_decorator
@@ -505,6 +505,86 @@ class PasswordResetConfirmView(APIView):
             return Response({"detail": "Password reset successfully."}, status=200)
         except (ValueError, User.DoesNotExist) as e:
             return Response({"detail": str(e)}, status=400)
+
+
+class ResendVerificationThrottle(AnonRateThrottle):
+    """
+    Throttle for resend verification email endpoint.
+    Limits to 3 requests per hour to prevent abuse.
+    """
+
+    rate = "3/hour"
+
+
+class ReSendVerificationEmailView(APIView):
+    """
+    Re-send verification email endpoint.
+
+    This endpoint allows users to request a new verification email if:
+    - Their account exists but is not active
+    - The previous verification token expired
+
+    It accepts an email address and sends a new verification token.
+    No authentication required to avoid chicken-egg problem.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ResendVerificationThrottle]
+
+    @method_decorator(csrf_protect)
+    @extend_schema(
+        description="Re-send account verification email",
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {"email": {"type": "string"}},
+                "required": ["email"],
+            }
+        },
+        examples=[
+            OpenApiExample(
+                "Resend Verification Email",
+                value={"email": "johndoe@example.com"},
+                request_only=True,
+            )
+        ],
+    )
+    def post(self, request):
+        email = request.data.get("email")
+
+        if not email:
+            return Response(
+                {"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(email__iexact=email)
+
+            # If user is already active, don't send email but respond generically
+            if user.is_active:
+                # Don't leak information that account exists and is active
+                return Response(
+                    {
+                        "detail": "If the account exists and is not verified, a verification email has been sent."
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            # User exists and is not active - send verification email
+            token = generate_token(user.id, scope="verify_email", expires_minutes=60)
+            send_verification_email(user, token)
+
+        except User.DoesNotExist:
+            # Don't leak information about whether the email exists
+            pass
+
+        # Always return the same response to avoid email enumeration
+        return Response(
+            {
+                "detail": "If the account exists and is not verified, a verification email has been sent."
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 @ensure_csrf_cookie
