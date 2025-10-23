@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ion-card>
+    <ion-card class="table-card">
       <ion-card-header>
         <ion-card-title>🌐 Clientes - Datos desde API</ion-card-title>
         <ion-card-subtitle>
@@ -255,22 +255,6 @@ onMounted(async () => {
   }, 100)
 })
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 <style scoped>
 .table-avatar {

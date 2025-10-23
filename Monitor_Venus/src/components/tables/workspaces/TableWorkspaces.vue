@@ -1,4 +1,4 @@
-<template>  
+<template>
   <div>
     <ion-card class="table-card">
       <ion-card-header>
@@ -28,23 +28,14 @@
         <div v-else-if="application.length > 0">
           <!-- Controls -->
           <div class="table-controls">
-            <ion-searchbar
-                v-model="searchText"
-                placeholder="Buscar device profile..."
-                @ionInput="handleSearch"
-                show-clear-button="focus"
-                class="custom"
-            ></ion-searchbar>
+            <ion-searchbar v-model="searchText" placeholder="Buscar device profile..." @ionInput="handleSearch"
+              show-clear-button="focus" class="custom"></ion-searchbar>
 
             <ion-button @click="fetchGateways" fill="clear" shape="round">
               <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
             </ion-button>
 
-            <QuickControl
-                :toCreate="true"
-                type="workspace"
-                @itemCreated="handleItemRefresh"
-            />
+            <QuickControl :toCreate="true" type="workspace" @itemCreated="handleItemRefresh" />
           </div>
 
           <!-- Table using ion-grid -->
@@ -53,24 +44,18 @@
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
                 <strong>Nombre</strong>
-                <ion-icon
-                    :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'name'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'name'"></ion-icon>
               </ion-col>
               <ion-col size="2" @click="sortBy('description')" class="sortable">
                 <strong>description</strong>
-                <ion-icon
-                    :icon="sortOrder.description === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'cs_gateway_id'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.description === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'cs_gateway_id'"></ion-icon>
               </ion-col>
               <ion-col size="2" @click="sortBy('tenant')" class="sortable">
                 <strong>Cliente</strong>
-                <ion-icon
-                    :icon="sortOrder.tenant === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'lastSeen'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.tenant === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'lastSeen'"></ion-icon>
               </ion-col>
               <ion-col size="1">
                 <strong>Acciones</strong>
@@ -79,13 +64,8 @@
 
 
             <!-- Data rows -->
-            <ion-row
-                v-for="deviceProfile in paginatedItems"
-                :key="deviceProfile.id"
-                class="table-row-stylized"
-
-                :class="{ 'row-selected': selectedApplication?.id === deviceProfile.id }"
-            >
+            <ion-row v-for="deviceProfile in paginatedItems" :key="deviceProfile.id" class="table-row-stylized"
+              :class="{ 'row-selected': selectedApplication?.id === deviceProfile.id }">
               <ion-col size="2">
                 <div class="gateway-info">
                   <div>
@@ -105,24 +85,14 @@
               </ion-col>
 
               <ion-col size="1">
-                <ion-button
-                    fill="clear"
-                    shape="round"
-                    @click.stop="viewGateway(deviceProfile)"
-                >
-                  <ion-icon :icon="icons.eye"></ion-icon>
-                </ion-button>
+                <QuickActions :toView="true" />
               </ion-col>
             </ion-row>
           </ion-grid>
 
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
-            <ion-button
-                fill="clear"
-                :disabled="currentPage === 1"
-                @click="changePage(currentPage - 1)"
-            >
+            <ion-button fill="clear" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
               <ion-icon :icon="icons.chevronBack"></ion-icon>
             </ion-button>
 
@@ -130,11 +100,7 @@
               Página {{ currentPage }} de {{ totalPages }}
             </span>
 
-            <ion-button
-                fill="clear"
-                :disabled="currentPage === totalPages"
-                @click="changePage(currentPage + 1)"
-            >
+            <ion-button fill="clear" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
               <ion-icon :icon="icons.chevronForward"></ion-icon>
             </ion-button>
           </div>
@@ -193,7 +159,7 @@ const fetchWorkspaces = async () => {
 
   loading.value = true
   error.value = null
-  const headers={
+  const headers = {
     //Authorization: `Bearer ${localStorage.getItem('token')}`
   }
 
@@ -267,12 +233,10 @@ onMounted(async () => {
 
 <style scoped>
 
-.table-card{
-  width: 100%;
-  margin: 0 auto;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-.loading-container, .error-container, .empty-state {
+
+.loading-container,
+.error-container,
+.empty-state {
   text-align: center;
   padding: 40px 20px;
 }
@@ -354,7 +318,9 @@ onMounted(async () => {
   color: var(--ion-color-medium);
 }
 
-.location-info, .time-info, .devices-info {
+.location-info,
+.time-info,
+.devices-info {
   display: flex;
   align-items: center;
   gap: 6px;

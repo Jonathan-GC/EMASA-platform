@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ion-card>
+    <ion-card  class="table-card">
       <ion-card-header>
         <ion-card-title>🌐 Usuarios del Tenant - Datos desde API</ion-card-title>
         <ion-card-subtitle>
@@ -139,13 +139,9 @@
               </ion-col>
 
               <ion-col size="1">
-                <ion-button
-                    fill="clear"
-                    size="small"
-                    @click.stop="viewUser(user)"
-                >
-                  <ion-icon :icon="icons.eye"></ion-icon>
-                </ion-button>
+                <QuickActions
+                :toView="true"
+                />
               </ion-col>
             </ion-row>
           </ion-grid>

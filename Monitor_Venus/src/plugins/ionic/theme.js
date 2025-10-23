@@ -30,11 +30,21 @@ export const theme = {
     900: '#18181b',
   },
   
-  // Success
+  // Success (Lime)
   success: {
-    DEFAULT: '#10b981',
-    light: '#34d399',
-    dark: '#059669',
+    50: '#f7fee7',
+    100: '#ecfccb',
+    200: '#d9f99d',
+    300: '#bef264',
+    400: '#a3e635',
+    500: '#84cc16',
+    600: '#65a30d',
+    700: '#4d7c0f',
+    800: '#3f6212',
+    900: '#365314',
+    DEFAULT: '#84cc16',
+    light: '#a3e635',
+    dark: '#65a30d',
   },
   
   // Warning
@@ -124,7 +134,16 @@ export const generateCSSVariables = () => {
     variables[`--color-zinc-${key}`] = value
   })
   
-  // Status colors
+  // Success colors (lime)
+  Object.entries(theme.success).forEach(([key, value]) => {
+    if (key === 'DEFAULT' || key === 'light' || key === 'dark') {
+      variables[`--color-success-${key}`] = value
+    } else {
+      variables[`--color-lime-${key}`] = value
+    }
+  })
+  
+  // Status colors (keeping legacy variables)
   variables['--color-success'] = theme.success.DEFAULT
   variables['--color-success-light'] = theme.success.light
   variables['--color-success-dark'] = theme.success.dark
@@ -198,11 +217,11 @@ export const applyIonicColors = (root = document.documentElement) => {
   root.style.setProperty('--ion-color-secondary-shade', theme.secondary[600])
   root.style.setProperty('--ion-color-secondary-tint', theme.secondary[400])
   
-  // Success
+  // Success = Lime 500
   root.style.setProperty('--ion-color-success', theme.success.DEFAULT)
-  root.style.setProperty('--ion-color-success-rgb', '16, 185, 129')
-  root.style.setProperty('--ion-color-success-contrast', '#ffffff')
-  root.style.setProperty('--ion-color-success-contrast-rgb', '255, 255, 255')
+  root.style.setProperty('--ion-color-success-rgb', '132, 204, 22')
+  root.style.setProperty('--ion-color-success-contrast', '#000000')
+  root.style.setProperty('--ion-color-success-contrast-rgb', '0, 0, 0')
   root.style.setProperty('--ion-color-success-shade', theme.success.dark)
   root.style.setProperty('--ion-color-success-tint', theme.success.light)
   
@@ -251,6 +270,18 @@ export const applyIonicColors = (root = document.documentElement) => {
   createIonicColor(root, 'amber-700', theme.primary[700])
   createIonicColor(root, 'amber-800', theme.primary[800])
   createIonicColor(root, 'amber-900', theme.primary[900])
+  
+  // Lime shades (Success)
+  createIonicColor(root, 'lime-50', theme.success[50])
+  createIonicColor(root, 'lime-100', theme.success[100])
+  createIonicColor(root, 'lime-200', theme.success[200])
+  createIonicColor(root, 'lime-300', theme.success[300])
+  createIonicColor(root, 'lime-400', theme.success[400])
+  createIonicColor(root, 'lime-500', theme.success[500])
+  createIonicColor(root, 'lime-600', theme.success[600])
+  createIonicColor(root, 'lime-700', theme.success[700])
+  createIonicColor(root, 'lime-800', theme.success[800])
+  createIonicColor(root, 'lime-900', theme.success[900])
   
   // Zinc shades
   createIonicColor(root, 'zinc-50', theme.secondary[50])

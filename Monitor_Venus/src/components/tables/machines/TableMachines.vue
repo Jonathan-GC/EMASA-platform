@@ -119,13 +119,9 @@
               
               
               <ion-col size="1">
-                <ion-button 
-                  fill="clear" 
-                  size="small"
-                  @click.stop="viewmachine(machine)"
-                >
-                  <ion-icon :icon="icons.eye"></ion-icon>
-                </ion-button>
+                <quick-actions
+                :toView="`machines/${machine.id}`"
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -281,11 +277,6 @@ onMounted(async () => {
 
 <style scoped>
 
-.table-card{
-  width: 100%;
-  margin: 0 auto;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
 .loading-container, .error-container, .empty-state {
   text-align: center;
   padding: 40px 20px;

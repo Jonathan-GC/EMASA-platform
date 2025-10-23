@@ -244,10 +244,12 @@ const deviceStatusMessage = computed(() => {
 })
 
 const isKeysFormValid = computed(() => {
+  // Only require the fields that are actually in the form
   return formData.value.dev_addr.trim() &&
          formData.value.app_s_key.trim() &&
-         formData.value.f_nwk_s_int_key.trim() &&
-         formData.value.s_nwk_s_int_key.trim()
+         formData.value.nwk_s_enc_key.trim()
+  // nwk_s_enc_key is optional
+  // Counters are optional
 })
 
 // Watch for device changes
