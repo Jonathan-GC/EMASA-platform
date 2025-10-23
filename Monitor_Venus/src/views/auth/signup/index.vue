@@ -23,10 +23,7 @@
         <div class="content-center min-h-full">
           <img :src="MonitorLogo" alt="Monitor Logo" class="logo">
           <SignupForm />
-          <div class="text-center mb-5">
-            <span class="text-amber-50">Al usar nuestros servicios, aceptas nuestros</span><br/>
-            <a>Terminos de Servicios y Política de privacidad</a>
-          </div>
+          <AuthFooter />
         </div>
       </div>
     </ion-content>

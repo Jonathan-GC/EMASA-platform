@@ -1,5 +1,14 @@
 <template>
   <ion-page>
+    <ion-header class="ion-no-border transparent-header">
+      <ion-toolbar class="transparent-toolbar">
+        <ion-buttons slot="start">
+          <ion-back-button default-href="/home" class="text-neutral-50"></ion-back-button>
+        </ion-buttons>
+        <ion-title class="text-neutral-50 back-button-text">Regresar</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
     <ion-content class="verification-page">
       <!-- Header with Monitor Logo -->
       <div class="header-container">
@@ -60,6 +69,9 @@
           </ion-card-content>
         </ion-card>
       </div>
+
+      <!-- Footer -->
+      <AuthFooter />
     </ion-content>
   </ion-page>
 </template>
@@ -69,6 +81,11 @@ import { inject, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   IonPage,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonBackButton,
+  IonTitle,
   IonContent,
   IonCard,
   IonCardContent,
@@ -77,6 +94,7 @@ import {
   IonSpinner
 } from '@ionic/vue'
 import API from '@utils/api/api'
+import AuthFooter from '@/components/layout/AuthFooter.vue'
 
 // Inject icons
 const icons = inject('icons', {})
@@ -142,6 +160,19 @@ onMounted(async () => {
   background: url('/verify.jpg') no-repeat center center / cover;
 }
 
+/* Transparent Header */
+.transparent-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.transparent-toolbar {
+  --background: rgba(180, 83, 9, 0.1); /* amber-700 with 10% opacity */
+  --color: white;
+}
 
 .header-container {
   display: flex;
@@ -152,6 +183,7 @@ onMounted(async () => {
   z-index: 2;
 }
 
+
 .logo {
   height: 60px;
   width: auto;
@@ -161,8 +193,7 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 2rem 1rem;
-  min-height: calc(100vh - 200px);
+  min-height: calc(100vh - 220px);
   z-index: 999999!important;
 }
 
@@ -324,6 +355,9 @@ onMounted(async () => {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .back-button-text {
+    display: none;
+  }
   .logo {
     height: 48px;
   }

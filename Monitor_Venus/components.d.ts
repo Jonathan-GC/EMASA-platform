@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AddressSelector: typeof import('./src/components/forms/auth/AddressSelector.vue')['default']
+    AuthFooter: typeof import('./src/components/layout/AuthFooter.vue')['default']
     BatteryDeviceInfo: typeof import('./src/components/cards/BatteryDeviceInfo.vue')['default']
     Blank: typeof import('./src/layouts/blank.vue')['default']
     BtnLogout: typeof import('./src/layouts/components/BtnLogout.vue')['default']

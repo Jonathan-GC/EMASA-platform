@@ -1,0 +1,95 @@
+<template>
+  <div class="footer-container">
+    <div class="footer-content">
+      <p class="footer-copyright">
+        © {{ currentYear }} Monitor Platform. All rights reserved.
+      </p>
+      <div class="footer-links">
+        <a href="/privacy" class="footer-link">Privacy Policy</a>
+        <span class="footer-separator">•</span>
+        <a href="/terms" class="footer-link">Terms of Service</a>
+        <span class="footer-separator">•</span>
+        <a href="/support" class="footer-link">Support</a>
+      </div>
+      <p class="footer-version">
+        Version 1.0.0
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const currentYear = computed(() => new Date().getFullYear())
+</script>
+
+<style scoped>
+.footer-container {
+  position: relative;
+  z-index: 1;
+  padding: 1rem 0;
+}
+
+.footer-content {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.footer-copyright {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-link:hover {
+  color: var(--ion-color-primary);
+  text-decoration: underline;
+}
+
+.footer-separator {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+}
+
+.footer-version {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  font-style: italic;
+  position: absolute;
+  right: 10px;
+  bottom: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .footer-links {
+    gap: 0.5rem;
+  }
+  
+  .footer-version {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    margin-top: 0.5rem;
+  }
+}
+</style>
