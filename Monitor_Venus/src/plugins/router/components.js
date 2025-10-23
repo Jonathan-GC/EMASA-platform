@@ -19,4 +19,5 @@ export const components = {
     MACHINES: () => import('@views/infrastructure/machines/index.vue'),
     DEVICE_MEASUREMENTS: () => import('@views/infrastructure/application/devices/measurments/index.vue'),
     NOTIFICATIONS: () => import('@views/notifications/index.vue'),
+    EMAIL_VERIFICATION: () => import('@views/auth/verification/index.vue'),
 }

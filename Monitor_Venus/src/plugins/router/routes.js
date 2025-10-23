@@ -68,6 +68,7 @@ export const routes = [
         children: [
             { path: P.LOGIN, component: C.LOGIN, beforeEnter: allowAll },
             { path: P.SIGNUP, component: C.REGISTER },
+            { path: P.EMAIL_VERIFICATION, component: C.EMAIL_VERIFICATION, beforeEnter: allowAll }
         ]
     }
 

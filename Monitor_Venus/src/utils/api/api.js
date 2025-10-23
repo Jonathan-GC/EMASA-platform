@@ -23,12 +23,13 @@ class API {
     //----[USERS]----
     USER = 'users/user/'
 
-    //----[SESSION]----
+    //----[AUTH]----
     TOKEN = 'token/'
     REFRESH_TOKEN = 'token/refresh'
     CSRF_TOKEN = 'csrf/'
     LOGOUT = 'logout/';
     REGISTER = 'users/auth/register/';
+    VERIFY_ACCOUNT = 'users/auth/verify-account/'
 
     //----[ORGANIZATIONS]----
     TENANT = 'organizations/tenant/'
