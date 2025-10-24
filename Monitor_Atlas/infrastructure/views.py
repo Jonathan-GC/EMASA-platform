@@ -833,10 +833,8 @@ class LocationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if not user.is_authenticated:
-            return Location.objects.none()
-
-        return Location.objects.all()
+        if user.is_superuser:
+            return Location.objects.all()
 
     def perform_create(self, serializer):
         instance = serializer.save()

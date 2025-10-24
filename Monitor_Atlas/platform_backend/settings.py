@@ -113,7 +113,6 @@ AUTHENTICATION_BACKENDS = (
 
 ANONYMOUS_USER_NAME = None
 GUARDIAN_RENDER_403 = True
-GUARDIAN_RAISE_403 = True
 
 ROOT_URLCONF = "platform_backend.urls"
 
@@ -148,6 +147,8 @@ DATABASES = {
         "PORT": env("POSTGRES_PORT"),
     }
 }
+
+DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter",)
 
 AUTH_USER_MODEL = "users.User"
 
@@ -186,6 +187,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+
+# Media files (Uploaded files)
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = "/media/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

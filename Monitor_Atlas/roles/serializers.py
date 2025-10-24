@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Role, WorkspaceMembership, PermissionKey, RolePermission
+from .models import Role, WorkspaceMembership
 from organizations.models import Workspace
 from users.models import User
 
