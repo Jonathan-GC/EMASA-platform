@@ -55,34 +55,4 @@ const formatCurrent = (value) => {
 }
 </script>
 
-<style scoped>
-.device-info {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.info-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.info-card ion-card-content p {
-  margin: 8px 0;
-  font-size: 0.9rem;
-}
-
-.info-card ion-card-content p strong {
-  color: #374151;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .device-info {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-}
-</style>
+<!-- Styles moved to @/assets/css/card-styles.css -->

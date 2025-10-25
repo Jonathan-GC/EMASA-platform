@@ -107,23 +107,4 @@ const chartOptions = computed(() => ({
 }))
 </script>
 
-<style scoped>
-.chart-fragment {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.chart-container {
-  height: 300px;
-  position: relative;
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .chart-container {
-    height: 250px;
-  }
-}
-</style>
+<!-- Styles moved to @/assets/css/chart-styles.css -->

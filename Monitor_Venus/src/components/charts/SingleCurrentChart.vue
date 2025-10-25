@@ -106,23 +106,4 @@ const chartOptions = computed(() => ({
 }))
 </script>
 
-<style scoped>
-.chart-container {
-  margin-top: 30px;
-  background: white;
-  border-radius: 8px;
-  
-}
-
-.chart-wrapper {
-  height: 400px;
-  position: relative;
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .chart-wrapper {
-    height: 300px;
-  }
-}
-</style>
+<!-- Styles moved to @/assets/css/chart-styles.css -->
