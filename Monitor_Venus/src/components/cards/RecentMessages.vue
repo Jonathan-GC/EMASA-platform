@@ -14,7 +14,7 @@
           <span class="device">{{ message.device_name }}</span>
           <span class="samples">{{ message.buffer_stats?.total_samples  }} muestras</span>
           <!--<span class="fragment">
-            Frag: {{ message.object?.fragment_number || 'N/A' }}/{{ message.object?.total_fragments || 'N/A' }}
+            Frag: {{ message.object?.fragment_number || 'N.A' }}/{{ message.object?.total_fragments || 'N.A' }}
           </span>-->
         </div>
       </div>
@@ -49,7 +49,7 @@ const formatTime = (timestamp) => {
       hour12: false 
     })
   } catch {
-    return 'N/A'
+    return 'N.A'
   }
 }
 

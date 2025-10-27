@@ -77,7 +77,7 @@
                 <strong>Tipo</strong>
               </ion-col>
               <ion-col size="1">
-                <strong>Dispositivos</strong>
+                <strong>Máquina</strong>
               </ion-col>
               <ion-col size="2" @click="sortBy('status')" class="sortable">
                 <strong>Estado de sincronización</strong>
@@ -120,15 +120,13 @@
 
               <ion-col size="2">
                 <div class="location-info">
-                  <ion-icon :icon="icons.globe" size="small"></ion-icon>
                   {{ deviceProfile.device_type }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
                 <div class="devices-info">
-                  <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
-                  {{ deviceProfile.connectedDevices || 0 }}
+                  {{ deviceProfile.machine || 0 }}
                 </div>
               </ion-col>
               <ion-col size="2">

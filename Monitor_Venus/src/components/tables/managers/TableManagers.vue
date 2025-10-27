@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ion-card  class="table-card">
+    <ion-card class="table-card">
       <ion-card-header>
         <ion-card-title>🌐 Usuarios del Tenant - Datos desde API</ion-card-title>
         <ion-card-subtitle>
@@ -28,23 +28,14 @@
         <div v-else-if="users.length > 0">
           <!-- Controls -->
           <div class="table-controls">
-            <ion-searchbar
-                v-model="searchText"
-                placeholder="Buscar gateway..."
-                @ionInput="handleSearch"
-                show-clear-button="focus"
-                class="custom"
-            ></ion-searchbar>
+            <ion-searchbar v-model="searchText" placeholder="Buscar gateway..." @ionInput="handleSearch"
+              show-clear-button="focus" class="custom"></ion-searchbar>
 
             <ion-button @click="fetchUsers" fill="clear">
               <ion-icon :icon="icons.refresh"></ion-icon>
             </ion-button>
 
-            <QuickControl
-                :toCreate="true"
-                type="manager"
-                @itemCreated="handleItemRefresh"
-            />
+            <QuickControl :toCreate="true" type="manager" @itemCreated="handleItemRefresh" />
           </div>
 
           <!-- Table using ion-grid -->
@@ -55,37 +46,26 @@
 
               <ion-col size="2" @click="sortBy('name')" class="sortable">
                 <strong>Correo</strong>
-                <ion-icon
-                    :icon="sortOrder.email === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'name'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.email === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'name'"></ion-icon>
               </ion-col>
               <ion-col size="2" @click="sortBy('cs_tenant_id')" class="sortable">
                 <strong>ID</strong>
-                <ion-icon
-                    :icon="sortOrder.cs_user_id === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'cs_user_id'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.cs_user_id === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'cs_user_id'"></ion-icon>
               </ion-col>
               <ion-col size="2" @click="sortBy('status')" class="sortable">
                 <strong>Cliente</strong>
-                <ion-icon
-                    :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'status'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'status'"></ion-icon>
               </ion-col>
               <ion-col size="2">
                 <strong>Estado</strong>
               </ion-col>
-              <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
-                <strong>Última conexión</strong>
-                <ion-icon
-                    :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'lastSeen'"
-                ></ion-icon>
-              </ion-col>
-              <ion-col size="1">
-                <strong>Dispositivos</strong>
+              <ion-col size="2" @click="sortBy('note')" class="sortable">
+                <strong>Nota</strong>
+                <ion-icon :icon="sortOrder.note === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'note'"></ion-icon>
               </ion-col>
               <ion-col size="1">
                 <strong>Acciones</strong>
@@ -93,13 +73,8 @@
             </ion-row>
 
             <!-- Data rows -->
-            <ion-row
-                v-for="user in paginatedItems"
-                :key="user.id"
-                class="table-row-stylized"
-
-                :class="{ 'row-selected': selectedUser?.id === user.id }"
-            >
+            <ion-row v-for="user in paginatedItems" :key="user.id" class="table-row-stylized"
+              :class="{ 'row-selected': selectedUser?.id === user.id }">
               <ion-col size="2">
                 <div class="gateway-info">
                   <div>
@@ -112,47 +87,34 @@
               </ion-col>
 
               <ion-col size="2">
-                <ion-chip
-                    :color="getStatusColor(user.state)"
-                >
-                  {{ user.tenant }}
+                <ion-chip>
+                  {{ user.workspace.tenant || 'N.A' }}
                 </ion-chip>
               </ion-col>
 
               <ion-col size="2">
                 <div class="location-info">
-                  {{ user.is_active || 'N/A' }}
+                  <ion-chip :color="getStatusColor(formatActiveStatus(user.is_active))">
+                    {{ formatActiveStatus(user.is_active) || 'N.A' }}
+                  </ion-chip>
                 </div>
               </ion-col>
 
               <ion-col size="2">
                 <div class="time-info">
-                  {{ formatTime(user.last_seen_at) }}
+                  {{ user.note || 'Ninguna' }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
-                <div class="devices-info">
-                  <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
-                  {{ user.connectedDevices || 0 }}
-                </div>
-              </ion-col>
-
-              <ion-col size="1">
-                <QuickActions
-                :toView="true"
-                />
+                <QuickActions :toView="true" />
               </ion-col>
             </ion-row>
           </ion-grid>
 
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
-            <ion-button
-                fill="clear"
-                :disabled="currentPage === 1"
-                @click="changePage(currentPage - 1)"
-            >
+            <ion-button fill="clear" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
               <ion-icon :icon="icons.chevronBack"></ion-icon>
             </ion-button>
 
@@ -160,11 +122,7 @@
               Página {{ currentPage }} de {{ totalPages }}
             </span>
 
-            <ion-button
-                fill="clear"
-                :disabled="currentPage === totalPages"
-                @click="changePage(currentPage + 1)"
-            >
+            <ion-button fill="clear" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
               <ion-icon :icon="icons.chevronForward"></ion-icon>
             </ion-button>
           </div>
@@ -190,7 +148,7 @@ import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
-import { formatTime, getStatusColor } from '@utils/formatters/formatters'
+import { formatTime, getStatusColor, formatActiveStatus } from '@utils/formatters/formatters'
 import AvatarSVG from '@assets/svg/Avatar.svg'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
@@ -224,7 +182,7 @@ const fetchUsers = async () => {
 
   loading.value = true
   error.value = null
-  const headers={
+  const headers = {
     //Authorization: `Bearer ${localStorage.getItem('token')}`
   }
 
@@ -297,7 +255,6 @@ onMounted(async () => {
 
 
 <style scoped>
-
 .table-avatar {
   width: 32px;
   height: 32px;
@@ -305,7 +262,9 @@ onMounted(async () => {
   object-fit: cover;
 }
 
-.loading-container, .error-container, .empty-state {
+.loading-container,
+.error-container,
+.empty-state {
   text-align: center;
   padding: 40px 20px;
 }
@@ -386,7 +345,9 @@ onMounted(async () => {
   color: var(--ion-color-medium);
 }
 
-.location-info, .time-info, .devices-info {
+.location-info,
+.time-info,
+.devices-info {
   display: flex;
   align-items: center;
   gap: 6px;

@@ -30,7 +30,7 @@
           <div class="table-controls">
             <ion-searchbar
                 v-model="searchText"
-                placeholder="Buscar device profile..."
+                placeholder="Buscar aplicación..."
                 @ionInput="handleSearch"
                 show-clear-button="focus"
                 class="custom"
@@ -58,11 +58,11 @@
                     v-if="sortField === 'name'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('cs_gateway_id')" class="sortable">
+              <ion-col size="2" @click="sortBy('cs_application_id')" class="sortable">
                 <strong>ID</strong>
                 <ion-icon
-                    :icon="sortOrder.cs_gateway_id === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'cs_gateway_id'"
+                    :icon="sortOrder.cs_application_id === 'asc' ? icons.chevronUp : icons.chevronDown"
+                    v-if="sortField === 'cs_application_id'"
                 ></ion-icon>
               </ion-col>
               <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
@@ -93,54 +93,53 @@
 
             <!-- Data rows -->
             <ion-row
-                v-for="deviceProfile in paginatedItems"
-                :key="deviceProfile.id"
+                v-for=" application in paginatedItems"
+                :key=" application.id"
                 class="table-row-stylized"
 
-                :class="{ 'row-selected': selectedApplication?.id === deviceProfile.id }"
+                :class="{ 'row-selected': selectedApplication?.id ===  application.id }"
             >
               <ion-col size="2">
                 <div class="gateway-info">
                   <div>
-                    <div class="gateway-name">{{ deviceProfile.name }}</div>
+                    <div class="gateway-name">{{  application.name }}</div>
                   </div>
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.cs_application_id }}</div>
+                <div class="gateway-id">{{  application.cs_application_id }}</div>
               </ion-col>
 
 
               <ion-col size="2">
                 <ion-chip class="p-2.5 rounded-full">
-                  {{ deviceProfile.workspace.tenant }}
+                  {{  application.workspace.tenant }}
                 </ion-chip>
               </ion-col>
 
               <ion-col size="2">
                 <div class="location-info">
-                  <ion-icon :icon="icons.globe" size="small"></ion-icon>
-                  {{ deviceProfile.device_type }}
+                  {{  application.device_type }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
                 <div class="devices-info">
-                  <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
-                  {{ deviceProfile.connectedDevices || 0 }}
+                  <ion-icon :icon="icons.deviceCard" size="small"></ion-icon>
+                  {{  application.connectedDevices || 0 }}
                 </div>
               </ion-col>
               <ion-col size="2">
                 <ion-chip
-                    :color="getStatusColor(deviceProfile.sync_status)"
+                    :color="getStatusColor( application.sync_status)"
                 >
-                  {{ deviceProfile.sync_status }}
+                  {{  application.sync_status }}
                 </ion-chip>
               </ion-col>
 
               <ion-col size="1">
   
-                <QuickActions :toView="`/infrastructure/applications/${deviceProfile.id}/devices`" />
+                <QuickActions :toView="`/infrastructure/applications/${ application.id}/devices`" />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -172,10 +171,10 @@
         <!-- Empty state -->
         <div v-else class="empty-state">
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
-          <h3>No hay gateways</h3>
-          <p>No se encontraron gateways en el sistema</p>
+          <h3>No hay aplicaciones</h3>
+          <p>No se encontraron aplicaciones en el sistema</p>
           <ion-button @click="fetchApplications" fill="outline">
-            Buscar gateways
+            Buscar aplicaciones
           </ion-button>
         </div>
       </ion-card-content>
@@ -204,7 +203,7 @@ const selectedApplication = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'cs_ application_id', 'location'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -240,7 +239,7 @@ const fetchApplications = async () => {
     console.log('✅ Gateways cargados:', mockData.length)
 
   } catch (err) {
-    error.value = `❌Error al cargar gateways: ${err.message}`
+    error.value = `❌Error al cargar  applications: ${err.message}`
     console.error('❌ Error fetching Application:', err)
   } finally {
     loading.value = false
@@ -248,15 +247,15 @@ const fetchApplications = async () => {
 }
 
 // Component-specific methods
-const selectGateway = (gateway) => {
-  selectedApplication.value = gateway
-  console.log('Gateway seleccionado:', gateway)
+const selectApplication = (application) => {
+  selectedApplication.value = application
+  console.log('Application seleccionado:', application)
 }
 
-const viewGateway = (gateway) => {
-  console.log('Ver detalles del gateway:', gateway)
+const viewApplication = (application) => {
+  console.log('Ver detalles del application:', application)
   // Aquí podrías navegar a una página de detalles
-  // router.push(`/Application/${gateway.id}`)
+  // router.push(`/Application/${application.id}`)
 }
 
 const handleItemRefresh = () => {
@@ -264,7 +263,7 @@ const handleItemRefresh = () => {
 };
 // Lifecycle
 onMounted(async () => {
-  console.log('🔧 TableGateways component mounted')
+  console.log('🔧 TableApplications component mounted')
 
   // Wait for next tick to ensure DOM is ready
   await nextTick()

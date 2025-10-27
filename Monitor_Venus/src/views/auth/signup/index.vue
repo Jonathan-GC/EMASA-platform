@@ -1,7 +1,7 @@
 <template>
   <ion-page>
 
-    <ion-content :fullscreen="true" class="h-full">
+    <ion-content :fullscreen="true" class="h-full" :scroll-y="true">
 
       <ion-header collapse="condense">
         <ion-toolbar>
@@ -10,13 +10,13 @@
       </ion-header>
 
 
-      <div class="login-background min-h-screen">
+      <div class="login-background ">
         <ion-header class="ion-no-border">
           <ion-toolbar color="amber-700/10">
             <ion-buttons slot="start">
               <ion-back-button default-href="/home" class="text-neutral-50"></ion-back-button>
             </ion-buttons>
-            <ion-title class="text-neutral-50 back-button-text">Regresar</ion-title>
+            <ion-title class="text-neutral-50">Regresar</ion-title>
           </ion-toolbar>
         </ion-header>
 

@@ -28,7 +28,7 @@
         <div v-else-if="application.length > 0">
           <!-- Controls -->
           <div class="table-controls">
-            <ion-searchbar v-model="searchText" placeholder="Buscar device profile..." @ionInput="handleSearch"
+            <ion-searchbar v-model="searchText" placeholder="Buscar Workspace..." @ionInput="handleSearch"
               show-clear-button="focus" class="custom"></ion-searchbar>
 
             <ion-button @click="fetchGateways" fill="clear" shape="round">
@@ -42,17 +42,17 @@
           <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
-              <ion-col size="2" @click="sortBy('name')" class="sortable">
+              <ion-col size="3" @click="sortBy('name')" class="sortable">
                 <strong>Nombre</strong>
                 <ion-icon :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'name'"></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('description')" class="sortable">
+              <ion-col size="3" @click="sortBy('description')" class="sortable">
                 <strong>description</strong>
                 <ion-icon :icon="sortOrder.description === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'cs_gateway_id'"></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('tenant')" class="sortable">
+              <ion-col size="3" @click="sortBy('tenant')" class="sortable">
                 <strong>Cliente</strong>
                 <ion-icon :icon="sortOrder.tenant === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'lastSeen'"></ion-icon>
@@ -64,23 +64,23 @@
 
 
             <!-- Data rows -->
-            <ion-row v-for="deviceProfile in paginatedItems" :key="deviceProfile.id" class="table-row-stylized"
-              :class="{ 'row-selected': selectedApplication?.id === deviceProfile.id }">
-              <ion-col size="2">
+            <ion-row v-for="workspace in paginatedItems" :key="workspace.id" class="table-row-stylized"
+              :class="{ 'row-selected': selectedApplication?.id === workspace.id }">
+              <ion-col size="3">
                 <div class="gateway-info">
                   <div>
-                    <div class="gateway-name">{{ deviceProfile.name }}</div>
+                    <div class="gateway-name">{{ workspace.name }}</div>
                   </div>
                 </div>
               </ion-col>
-              <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.description }}</div>
+              <ion-col size="3">
+                <div class="gateway-id">{{ workspace.description }}</div>
               </ion-col>
 
 
-              <ion-col size="2">
+              <ion-col size="3">
                 <ion-chip class="p-2.5 rounded-full">
-                  {{ deviceProfile.tenant }}
+                  {{ workspace.tenant }}
                 </ion-chip>
               </ion-col>
 

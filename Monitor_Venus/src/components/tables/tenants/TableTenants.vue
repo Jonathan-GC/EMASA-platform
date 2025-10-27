@@ -100,7 +100,7 @@
 
               <ion-col size="2">
                 <div class="location-info">
-                  {{ gateway.subscription.name || 'N/A' }}
+                  {{ gateway.subscription.name || 'N.A' }}
                 </div>
               </ion-col>
 

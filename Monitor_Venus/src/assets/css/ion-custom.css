@@ -47,3 +47,7 @@ ion-header.custom{
 ion-card{
   box-shadow:  0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+ion-chip ion-icon{
+    margin-inline: 0px;
+}

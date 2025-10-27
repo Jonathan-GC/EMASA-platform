@@ -5,9 +5,9 @@
         <ion-card-title>📟 Dispositivo</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Nombre:</strong> {{ device.device_name || 'N/A' }}</p>
-        <p><strong>DevEUI:</strong> {{ device.dev_eui || 'N/A' }}</p>
-        <p><strong>Tenant:</strong> {{ device.tenant_id || 'N/A' }}</p>
+        <p><strong>Nombre:</strong> {{ device.device_name || 'N.A' }}</p>
+        <p><strong>DevEUI:</strong> {{ device.dev_eui || 'N.A' }}</p>
+        <p><strong>Tenant:</strong> {{ device.tenant_id || 'N.A' }}</p>
       </ion-card-content>
     </ion-card>
     
@@ -50,8 +50,8 @@
         <ion-card-title>📡 Radio</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Region:</strong> {{ device.region || 'N/A' }}dBm</p>
-        <p><strong>SNR:</strong> {{ device.radio_info?.snr || 'N/A' }}dB</p>
+        <p><strong>Region:</strong> {{ device.region || 'N.A' }}dBm</p>
+        <p><strong>SNR:</strong> {{ device.radio_info?.snr || 'N.A' }}dB</p>
         <p><strong>Frame:</strong> #{{ device.frame_counter || 0 }}</p>
       </ion-card-content>
     </ion-card>
