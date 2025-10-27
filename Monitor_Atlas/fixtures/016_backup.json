@@ -154,7 +154,7 @@
     "model": "infrastructure.device",
     "pk": 8,
     "fields": {
-      "dev_eui": "70B3D57ED006E15B",
+      "dev_eui": "70b3d57ed006e15b",
       "name": "Morbius",
       "description": "Sistema de esclavos y maestro, prueba 24.10.2025 01 16:15",
       "machine": 3,
