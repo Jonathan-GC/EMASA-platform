@@ -141,6 +141,11 @@ class Device(models.Model):
         Activation, on_delete=models.CASCADE, null=True, blank=True
     )
 
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.dev_eui = self.dev_eui.lower()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.dev_eui} - {self.name}"
 

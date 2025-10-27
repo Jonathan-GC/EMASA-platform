@@ -294,7 +294,7 @@ def update_local_device(local_dev, match):
 
 def create_local_device(new_dev, app, workspace):
     """Create a new Device in the local DB from Chirpstack data."""
-    exists = Device.objects.filter(dev_eui=new_dev["devEui"]).exists()
+    exists = Device.objects.filter(dev_eui=new_dev["devEui"].lower()).exists()
 
     if exists:
         logger.warning(f"Device {new_dev['devEui']} already exists, skipping creation")
