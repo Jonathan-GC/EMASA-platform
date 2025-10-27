@@ -1029,6 +1029,9 @@ def create_application_in_chirpstack(application):
                 set_status(application, search_instance)
                 return search_instance
             else:
+                logger.debug(
+                    f"Application not found. Creating application {application.name} in Chirpstack."
+                )
                 response = requests.post(
                     CHIRPSTACK_APPLICATION_URL, json=payload, headers=HEADERS
                 )
@@ -1054,6 +1057,11 @@ def sync_application_get(application):
             f"{CHIRPSTACK_APPLICATION_URL}/{cs_application_id}",
             headers=HEADERS,
         )
+        if response.status_code != 200:
+            logger.debug(
+                f"Application ID {cs_application_id} not found in Chirpstack. Attempting to create. Response: {response.text}"
+            )
+            response = create_application_in_chirpstack(application)
     else:
         response = create_application_in_chirpstack(application)
 
@@ -1145,7 +1153,7 @@ def get_device_by_id(device):
             set_status(device, response)
             found = True
         else:
-            set_status(device, response)
+            logger.debug(f"Device {device.dev_eui} not found in Chirpstack.")
     return found
 
 
@@ -1163,8 +1171,18 @@ def create_device_in_chirpstack(device):
 
     found = get_device_by_id(device)
     if not found:
+        logger.debug(
+            f"Device not found. Creating device {device.dev_eui} in Chirpstack."
+        )
         response = requests.post(CHIRPSTACK_DEVICE_URL, json=payload, headers=HEADERS)
-        set_status(device, response)
+        if response.status_code == 200:
+            logger.debug(f"Device {device.dev_eui} created in Chirpstack.")
+            set_status(device, response)
+        else:
+            logger.error(
+                f"Error creating device {device.dev_eui} in Chirpstack: {response.text}"
+            )
+            set_status(device, response)
         return response
     return None
 
@@ -1196,7 +1214,8 @@ def sync_device_update(device):
 
     response = create_device_in_chirpstack(device)
 
-    if response.status_code == 200:
+    if response.status_code == 200 or response is None:
+        logger.debug(f"Updating device {device.dev_eui} in Chirpstack.")
         response = requests.put(url, json=payload, headers=HEADERS)
 
     set_status(device, response)
