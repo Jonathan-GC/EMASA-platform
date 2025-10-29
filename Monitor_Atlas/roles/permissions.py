@@ -148,6 +148,20 @@ class HasPermissionKey(BasePermission):
         action_value = getattr(view, "action", None)
         print(f"Action value: {action_value}")
 
+        # Si action es None, usar el método HTTP como respaldo
+        if action_value is None:
+            method_map = {
+                "GET": "list",
+                "POST": "create",
+                "PUT": "update",
+                "PATCH": "partial_update",
+                "DELETE": "destroy",
+            }
+            action_value = method_map.get(request.method, None)
+            logger.warning(
+                f"Action was None, using method-based action: {action_value}"
+            )
+
         action = PermissionKey.from_view_action(action_value)
         if not action:
             logger.warning(f"Invalid action: {action_value}")
