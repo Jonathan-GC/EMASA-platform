@@ -41,29 +41,6 @@ CHIRPSTACK_JWT_TOKEN = env("CHIRPSTACK_JWT_TOKEN", default=None)
 
 # Application definition
 
-INSTALLED_APPS = [
-    "django_tenants",
-    "django_db_prefix",
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "guardian",
-    "users",
-    "roles",
-    "organizations",
-    "infrastructure",
-    "chirpstack",
-    "support",
-    "rest_framework",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
-    "drf_spectacular",
-    "corsheaders",
-]
-
 MIDDLEWARE = [
     "django_tenants.middleware.TenantMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -78,6 +55,7 @@ MIDDLEWARE = [
 
 TENANT_MODEL = "organizations.Tenant"  # app.Model
 TENANT_DOMAIN_MODEL = "organizations.Domain"  # app.Model
+SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
 
 SHARED_APPS = [
     "django_tenants",
@@ -105,6 +83,8 @@ TENANT_APPS = [
     "chirpstack",
     "support",
 ]
+
+INSTALLED_APPS = SHARED_APPS + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",  # default
