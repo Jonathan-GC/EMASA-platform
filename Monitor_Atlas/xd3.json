@@ -1,0 +1,12 @@
+[
+  {
+    "model": "organizations.domain",
+    "pk": 1,
+    "fields": { "domain": "1", "tenant": 5, "is_primary": true }
+  },
+  {
+    "model": "organizations.domain",
+    "pk": 2,
+    "fields": { "domain": "monitor", "tenant": 6, "is_primary": true }
+  }
+]

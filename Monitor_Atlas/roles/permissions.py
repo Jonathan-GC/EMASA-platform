@@ -167,4 +167,4 @@ class IsAdminOrIsAuthenticatedReadOnly(BasePermission):
             return True
 
         # Read-only for normal users
-        return request.method in ("GET", "HEAD", "OPTIONS")
+        return request.method in SAFE_METHODS
