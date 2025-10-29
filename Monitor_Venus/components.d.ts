@@ -35,6 +35,8 @@ declare module 'vue' {
     FormCreateManagers: typeof import('./src/components/forms/create/managers/formCreateManagers.vue')['default']
     FormCreateTenants: typeof import('./src/components/forms/create/tenants/formCreateTenants.vue')['default']
     FormCreateWorkspaces: typeof import('./src/components/forms/create/workspaces/formCreateWorkspaces.vue')['default']
+    FormUpdate: typeof import('./src/components/forms/update/formUpdate.vue')['default']
+    FormUpdateTenants: typeof import('./src/components/forms/update/tenants/formUpdateTenants.vue')['default']
     GatewaysTable: typeof import('./src/components/tables/GatewaysTable.vue')['default']
     IonAvatar: typeof import('@ionic/vue')['IonAvatar']
     IonBackButton: typeof import('@ionic/vue')['IonBackButton']

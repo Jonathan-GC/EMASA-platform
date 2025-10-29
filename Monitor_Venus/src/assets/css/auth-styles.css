@@ -48,29 +48,6 @@
   gap: 10px;
 }
 
-/* Info card helper styles used across auth forms */
-.info-card {
-  margin: 15px 0;
-  background-color: var(--ion-color-light);
-}
-
-.info-card ion-card-content {
-  padding: 12px;
-}
-
-.info-card p {
-  margin: 5px 0;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.info-card code {
-  background-color: var(--ion-color-medium);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-}
 
 .csrf-status, .token-status {
   margin: 10px 0;

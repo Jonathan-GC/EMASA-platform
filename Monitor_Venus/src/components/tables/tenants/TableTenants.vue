@@ -54,7 +54,7 @@
                 <ion-icon :icon="sortOrder.cs_tenant_id === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'cs_tenant_id'"></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('status')" class="sortable">
+              <ion-col size="1" @click="sortBy('status')" class="sortable">
                 <strong>Grupo</strong>
                 <ion-icon :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'status'"></ion-icon>
@@ -70,7 +70,7 @@
               <ion-col size="1">
                 <strong>Dispositivos</strong>
               </ion-col>
-              <ion-col size="1">
+              <ion-col size="2">
                 <strong>Acciones</strong>
               </ion-col>
             </ion-row>
@@ -92,7 +92,7 @@
                 <div class="gateway-id">{{ gateway.cs_tenant_id }}</div>
               </ion-col>
 
-              <ion-col size="2">
+              <ion-col size="1">
                 <ion-chip :color="getStatusColor(gateway.state)">
                   {{ gateway.group }}
                 </ion-chip>
@@ -117,15 +117,18 @@
                 </div>
               </ion-col>
 
-              <ion-col size="1">
-                <!--<ion-button 
-                  fill="clear" 
-                  size="small"
-                  @click.stop="viewGateway(gateway)"
-                >
-                  <ion-icon :icon="icons.eye"></ion-icon>
-                </ion-button>-->
-                <QuickActions :to-view="`/tenants/${gateway.id}`" type="tenant" />
+              <ion-col size="2">
+
+                <QuickActions 
+                  type="tenant"
+                  :index="gateway.id" 
+                  :to-view="`/tenants/${gateway.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(gateway)"
+                  @item-edited="handleItemRefresh"
+
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -220,6 +223,16 @@ const fetchGateways = async () => {
     console.error('❌ Error fetching tenants:', err)
   } finally {
     loading.value = false
+  }
+}
+
+const setInitialData = (gateway) => {
+  return {
+    name: gateway.name,
+    cs_tenant_id: gateway.cs_tenant_id,
+    group: gateway.group,
+    description: gateway.description,
+    subscription_id: gateway.subscription.id,
   }
 }
 
