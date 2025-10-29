@@ -22,4 +22,9 @@ export const components = {
     EMAIL_VERIFICATION: () => import('@views/auth/verification/index.vue'),
     UNAUTHORIZED: () => import('@views/UnauthorizedView.vue'),
     TENANT_SETUP: () => import('@views/auth/tenant-setup/index.vue'),
+
+    
+    // rute support
+    SUPPORT: () => import('@views/support/index.vue'),
+
 }

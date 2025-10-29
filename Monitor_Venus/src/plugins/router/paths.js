@@ -24,4 +24,7 @@ export const paths = {
     MACHINES: '/machines',
     NOTIFICATIONS: '/notifications',
     EMAIL_VERIFICATION: '/verify-email',
+
+    // Suport path
+    SUPPORT: '/support',
 }

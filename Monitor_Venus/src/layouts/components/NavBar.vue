@@ -173,6 +173,20 @@
           </router-link>
         </template>
 
+        // Support navbar 
+
+        <router-link
+          :to="paths.SUPPORT"
+          class="nav-link"
+          :class="{ active: $route.path.startsWith(paths.SUPPORT) }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.helpBuoy"></ion-icon>
+          Support
+        </router-link>
+
+
+
         <hr class="divider"/>
 
         <!-- Enlaces de autenticación -->
