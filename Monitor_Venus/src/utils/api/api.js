@@ -115,6 +115,11 @@ class API {
 
     //----[NOTIFICATION]----
     MY_NOTIFICATIONS = 'support/notification/my_notifications/'
+    
+
+    //----[SUPPORT]----
+    SUPPORT_TICKET = 'support/ticket/'
+    ATTACMEENT_CREATE = 'support/attachment/'
 
 
 
@@ -459,9 +464,18 @@ class API {
                 headers
             };
 
-            // Agregar body si es POST/PUT/PATCH
+            // Add body if applicable POST/PUT/PATCH
             if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
-                requestConfig.body = JSON.stringify(data);
+                // If it's FormData, we shouldn't use JSON.stringify or force Content-Type.
+                // Let the browser set 'multipart/form-data' as the boundary.
+                if (typeof FormData !== 'undefined' && data instanceof FormData) {
+                    if (requestConfig.headers && requestConfig.headers['Content-Type']) {
+                        delete requestConfig.headers['Content-Type']
+                    }
+                    requestConfig.body = data
+                } else {
+                    requestConfig.body = JSON.stringify(data);
+                }
             }
 
             // Agregar timeout si está especificado
