@@ -18,7 +18,7 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true"/>
+          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
         </div>
       </ion-content>
     </ion-modal>
@@ -34,7 +34,7 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true"/>
+          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true" @closed="overlayEdit = false"/>
         </div>
       </ion-content>
     </ion-modal>
@@ -49,11 +49,11 @@
   -->
   <ion-button v-if="toDelete" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'delete'">
     <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
-    <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false">
+    <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" >
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemDeleted="handleItemDeleted" @loaded="componentLoaded = true"/>
+          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemDeleted="handleItemDeleted" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
         </div>
       </ion-content>
     </ion-modal>

@@ -202,7 +202,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['itemCreated', 'fieldChanged', 'activationChanged'])
+const emit = defineEmits(['itemCreated', 'fieldChanged', 'activationChanged', 'closed'])
 
 // State management
 const keysLoading = ref(false)
@@ -464,6 +464,10 @@ async function handleActivationToggle(event) {
 // Field change handler (for compatibility)
 function handleFieldChanged(fieldKey, value) {
   emit('fieldChanged', fieldKey, value)
+}
+
+const closeModal = () => {
+  emit('closed')
 }
 
 // Debug logging on mount

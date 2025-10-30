@@ -9,6 +9,7 @@
           :additionalData="additionalData"
           :initialData="initialData"
           @itemEdited="handleitemEdited"
+          @closed="emit('closed')"
       />
     </ion-content>
   </ion-page>

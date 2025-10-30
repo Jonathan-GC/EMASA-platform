@@ -86,7 +86,7 @@ const props = defineProps({
 
 console.log("index:", props.index);
 
-const emit = defineEmits(['itemDeleted', 'loaded']);
+const emit = defineEmits(['itemDeleted', 'loaded', 'closed']);
 
 const { fields, additionalData } = toRefs(props);
 
@@ -94,6 +94,7 @@ const loading = ref(false);
 const formValues = ref({ ...fields.value, ...additionalData.value, ...props.initialData });
 const componentKey = ref(0);
 const inputValue = ref('');  // New ref for input binding
+const isOpen = ref(false)
 
 const icons = inject('icons', {})
 // Watch for changes in props.fields to update formValues
@@ -117,6 +118,10 @@ function clearField(fieldKey) {
 const expectedValue = computed(() => {
   return props.alt_name ? `eliminar ${props.alt_name}` : `eliminar ${props.name}`;
 });
+
+const closeModal = () => {
+  emit('closed');
+}
 
 async function deleteItem() {  // Renamed function
   loading.value = true;

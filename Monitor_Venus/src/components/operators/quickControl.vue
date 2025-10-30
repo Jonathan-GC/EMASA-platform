@@ -11,7 +11,7 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true"/>
+          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
         </div>
       </ion-content>
     </ion-modal>
