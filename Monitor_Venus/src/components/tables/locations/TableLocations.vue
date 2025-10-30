@@ -125,8 +125,16 @@
               </ion-col>
 
               <ion-col size="2">
-                <quick-actions
-                :toView="true"
+                <QuickActions 
+                  type="location"
+                  :index="location.id" 
+                  :name="location.name"
+                  :to-view="`/tenants/${location.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(location)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
                 />
               </ion-col>
             </ion-row>
@@ -197,6 +205,16 @@ const { currentPage, totalPages, changePage, paginatedItems } = useTablePaginati
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ejemplo.com'
 
+const setInitialData = (location) => {
+  return {
+    name: location.name,
+    accuracy: location.accuracy,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    altitude: location.altitude,
+    source: location.source,
+  }
+}
 
 
 // Fetch data from API

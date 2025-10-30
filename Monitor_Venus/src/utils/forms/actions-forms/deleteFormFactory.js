@@ -25,7 +25,25 @@ export class DeleteFormFactory extends AbstractFormFactory {
           label: "workspace",
           index: extraProps?.index,
         }
-      }
+      },
+      location: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "location",
+          index: extraProps?.index,
+        }
+      },
+      gateway: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "gateway",
+          index: extraProps?.index,
+        }
+      },
     };
 
     if (!(type in componentMap) || !EntityTypes.includes(type)) {

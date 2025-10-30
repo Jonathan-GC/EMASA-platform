@@ -95,7 +95,6 @@
                   :initial-data="setInitialData(workspace)"
                   @item-edited="handleItemRefresh"
                   @item-deleted="handleItemRefresh"
-
                 />
               </ion-col>
             </ion-row>
@@ -163,7 +162,6 @@ const setInitialData = (workspace) => {
     name: workspace.name,
     description: workspace.description,
     tenant: workspace.tenant,
-
   }
 }
 

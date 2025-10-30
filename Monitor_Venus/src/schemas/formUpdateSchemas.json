@@ -11,6 +11,21 @@
     { "key": "description", "label":  "descripción", "type": "textarea" },
     { "key": "tenant", "label": "Tenant id", "type": "text" }
   ],
+  "location": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "accuracy", "label":  "Presición", "type": "text" },
+    { "key": "latitude", "label":"Latitud", "type": "text" },
+    { "key": "longitude", "label": "Longitud", "type": "text" },
+    { "key": "altitude", "label": "Altitud", "type": "text" },
+    { "key": "source", "label": "Fuente", "type": "text" }
+  ],
+  "gateway": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "cs_gateway_id", "label":"EUID", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "text" },
+    { "key": "location_id", "label": "Nombre de locacion", "type": "text" }
+  ],
     "period":[
         { "key": "name", "label": "Nombre", "type": "text" },
         { "key": "start_date", "label": "Fecha de inicio", "type": "date" },

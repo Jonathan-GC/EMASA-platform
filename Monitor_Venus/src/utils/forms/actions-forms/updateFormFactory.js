@@ -13,6 +13,7 @@ const UpdateSeedbedProfile = defineAsyncComponent(() => import("@/components/for
 */
 const UpdateTenants = defineAsyncComponent(() => import("@components/forms/update/tenants/formUpdateTenants.vue"));
 const UpdateWorkspaces = defineAsyncComponent(() => import("@components/forms/update/workspaces/formUpdateWorkspaces.vue"));
+const UpdateLocations = defineAsyncComponent(() => import("@components/forms/update/locations/formUpdateLocations.vue"));
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
     const componentMap = {
@@ -35,7 +36,27 @@ export class UpdateFormFactory extends AbstractFormFactory {
           fields: schema.workspace,
           initialData: extraProps?.initialData || {},
         }
-      }
+      },
+      location: {
+        component: UpdateLocations,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'location',
+          fields: schema.location,
+          initialData: extraProps?.initialData || {},
+        }
+      },
+      gateway: {
+        component: UpdateLocations,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'gateway',
+          fields: schema.gateway,
+          initialData: extraProps?.initialData || {},
+        }
+      },
     }
     if (!(type in componentMap) || !EntityTypes.includes(type)) {
       console.log(`Componente no encontrado para el tipo: ${type}`);

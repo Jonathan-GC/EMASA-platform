@@ -133,8 +133,16 @@
               
               
               <ion-col size="1">
-                <quick-actions
-                :toView="true"
+                <QuickActions 
+                  type="gateway"
+                  :index="gateway.id" 
+                  :name="gateway.name"
+                  :to-view="`/tenants/${gateway.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(gateway)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
                 />
               </ion-col>
             </ion-row>
@@ -237,6 +245,16 @@ const fetchGateways = async () => {
     console.error('❌ Error fetching gateways:', err)
   } finally {
     loading.value = false
+  }
+}
+
+const setInitialData = (gateway) => {
+  return {
+    name: gateway.name,
+    description: gateway.description,
+    cs_gateway_id: gateway.cs_gateway_id,
+    location_id: gateway.location.id,
+    workspace_id: gateway.workspace.id,
   }
 }
 
