@@ -105,7 +105,17 @@
               </ion-col>
 
               <ion-col size="1">
-                <quick-actions :toView="true" />
+                <quick-actions 
+                  type="device_profile"
+                  :index="deviceProfile.id" 
+                  :name="deviceProfile.name"
+                  :to-view="`/tenants/${deviceProfile.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(deviceProfile)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -199,6 +209,19 @@ const GetDeviceProfiles = async () => {
     console.error('❌ Error fetching deviceProfile:', err)
   } finally {
     loading.value = false
+  }
+}
+
+const setInitialData = (workspace) => {
+  return {
+    name: workspace.name,
+    description: workspace.description,
+    region: workspace.region,
+    workspace_id: workspace.workspace?.id,
+    abp_rx1_delay: workspace.abp_rx1_delay,
+    abp_rx1_dr_offset: workspace.abp_rx1_dr_offset,
+    abp_rx2_freq: workspace.abp_rx2_freq,
+    abp_rx2_dr: workspace.abp_rx2_dr,
   }
 }
 

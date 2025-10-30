@@ -37,6 +37,8 @@ declare module 'vue' {
     FormCreateWorkspaces: typeof import('./src/components/forms/create/workspaces/formCreateWorkspaces.vue')['default']
     FormDelete: typeof import('./src/components/forms/delete/formDelete.vue')['default']
     FormUpdate: typeof import('./src/components/forms/update/formUpdate.vue')['default']
+    FormUpdateDeviceProfiles: typeof import('./src/components/forms/update/device_profiles/formUpdateDeviceProfiles.vue')['default']
+    FormUpdateGateways: typeof import('./src/components/forms/update/gateways/formUpdateGateways.vue')['default']
     FormUpdateLocations: typeof import('./src/components/forms/update/locations/formUpdateLocations.vue')['default']
     FormUpdateManagers: typeof import('./src/components/forms/update/locations/formUpdateManagers.vue')['default']
     FormUpdateTenants: typeof import('./src/components/forms/update/tenants/formUpdateTenants.vue')['default']

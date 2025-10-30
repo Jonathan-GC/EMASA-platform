@@ -44,6 +44,15 @@ export class DeleteFormFactory extends AbstractFormFactory {
           index: extraProps?.index,
         }
       },
+      device_profile: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "device profile",
+          index: extraProps?.index,
+        }
+      },
     };
 
     if (!(type in componentMap) || !EntityTypes.includes(type)) {

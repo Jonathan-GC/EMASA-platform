@@ -14,6 +14,7 @@ const UpdateSeedbedProfile = defineAsyncComponent(() => import("@/components/for
 const UpdateTenants = defineAsyncComponent(() => import("@components/forms/update/tenants/formUpdateTenants.vue"));
 const UpdateWorkspaces = defineAsyncComponent(() => import("@components/forms/update/workspaces/formUpdateWorkspaces.vue"));
 const UpdateLocations = defineAsyncComponent(() => import("@components/forms/update/locations/formUpdateLocations.vue"));
+const UpdateGateways = defineAsyncComponent(() => import("@components/forms/update/gateways/formUpdateGateways.vue"));
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
     const componentMap = {
@@ -48,12 +49,22 @@ export class UpdateFormFactory extends AbstractFormFactory {
         }
       },
       gateway: {
-        component: UpdateLocations,
+        component: UpdateGateways,
         props: {
           type: type,
           index: extraProps?.index,
           label: 'gateway',
           fields: schema.gateway,
+          initialData: extraProps?.initialData || {},
+        }
+      },
+      device_profile: {
+        component: UpdateGateways,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'device_profile',
+          fields: schema.device_profile,
           initialData: extraProps?.initialData || {},
         }
       },

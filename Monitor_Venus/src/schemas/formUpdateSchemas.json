@@ -26,6 +26,17 @@
     { "key": "workspace_id", "label": "Workspace", "type": "text" },
     { "key": "location_id", "label": "Nombre de locacion", "type": "text" }
   ],
+  "device_profile": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "region", "label": "Región", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "text" },
+    { "key": "abp_rx1_delay", "label": "Abp rx1 delay", "type": "text" },
+    { "key": "abp_rx1_dr_offset", "label": "Abp rx1 dr offset", "type": "text" },
+    { "key": "abp_rx2_freq", "label": "Abp rx2 frequency", "type": "text" },
+    { "key": "abp_rx2_dr", "label": "Abp rx2 dr", "type": "text" },
+    { "key": "payload_codec_script", "label": "Payload codec script", "type": "textarea" }
+  ],
     "period":[
         { "key": "name", "label": "Nombre", "type": "text" },
         { "key": "start_date", "label": "Fecha de inicio", "type": "date" },
