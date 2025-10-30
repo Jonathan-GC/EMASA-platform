@@ -202,7 +202,7 @@ export const applyIonicColors = (root = document.documentElement) => {
   // Override default Ionic colors
   
   // Primary = Amber 700
-  root.style.setProperty('--ion-color-primary', theme.primary[700])
+  root.style.setProperty('--ion-color-primary', theme.primary[600])
   root.style.setProperty('--ion-color-primary-rgb', '180, 83, 9')
   root.style.setProperty('--ion-color-primary-contrast', '#ffffff')
   root.style.setProperty('--ion-color-primary-contrast-rgb', '255, 255, 255')

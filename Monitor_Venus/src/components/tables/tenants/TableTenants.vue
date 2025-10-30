@@ -122,11 +122,13 @@
                 <QuickActions 
                   type="tenant"
                   :index="gateway.id" 
+                  :name="gateway.name"
                   :to-view="`/tenants/${gateway.id}`"
                   to-edit
                   to-delete
                   :initial-data="setInitialData(gateway)"
                   @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
 
                 />
               </ion-col>
