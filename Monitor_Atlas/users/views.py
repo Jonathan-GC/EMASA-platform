@@ -1,7 +1,6 @@
 from .serializers import UserSerializer, CustomTokenObtainPairSerializer
 from .models import User
-from roles.permissions import HasPermissionKey
-from roles.mixins import PermissionKeyMixin
+from roles.permissions import HasPermission
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
@@ -109,20 +108,19 @@ from django.contrib.auth.password_validation import validate_password
         ],
     ),
 )
-class UserViewSet(ModelViewSet, PermissionKeyMixin):
+class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "user"
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="user")
 
         token = generate_token(instance.id, scope="verify_email", expires_minutes=60)
         send_password_reset_email(instance, token)
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def set_user_image(self, request, pk=None):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -130,7 +128,7 @@ class UserViewSet(ModelViewSet, PermissionKeyMixin):
         serializer.save()
         return Response(serializer.data)
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def disable_user(self, request, pk=None):
         instance = self.get_object()
         instance.is_active = False
@@ -138,7 +136,7 @@ class UserViewSet(ModelViewSet, PermissionKeyMixin):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def enable_user(self, request, pk=None):
         instance = self.get_object()
         instance.is_active = True
@@ -327,7 +325,7 @@ class GoogleLoginView(APIView):
         return response
 
 
-class RegisterView(APIView, PermissionKeyMixin):
+class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
@@ -365,7 +363,6 @@ class RegisterView(APIView, PermissionKeyMixin):
                 return Response({"detail": "Password is required."}, status=400)
 
             user = serializer.save(is_active=False)
-            self.create_permission_keys(user, scope="user")
 
             token = generate_token(user.id, scope="verify_email", expires_minutes=60)
 

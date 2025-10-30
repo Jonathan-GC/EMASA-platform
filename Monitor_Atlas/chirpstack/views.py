@@ -9,10 +9,7 @@ from .serializers import (
     ApiUserSerializer,
 )
 
-from roles.permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
-from roles.mixins import PermissionKeyMixin
-from roles.models import PermissionKey
-from roles.serializers import PermissionKeySerializer
+from roles.permissions import HasPermission
 
 from chirpstack.chirpstack_api import (
     sync_api_user_create,
@@ -42,16 +39,14 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
     ),
     destroy=extend_schema(description="Device Profile Destroy (ChirpStack)"),
 )
-class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class DeviceProfileViewSet(viewsets.ModelViewSet):
     queryset = DeviceProfile.objects.all()
     serializer_class = DeviceProfileSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "device_profile"
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="device_profile")
-
         sync_response = sync_device_profile_create(instance)
 
         if sync_response is None:
@@ -143,15 +138,14 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     ),
     destroy=extend_schema(description="(Unused) Device Profile Template Destroy"),
 )
-class DeviceProfileTemplateViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class DeviceProfileTemplateViewSet(viewsets.ModelViewSet):
     queryset = DeviceProfileTemplate.objects.all()
     serializer_class = DeviceProfileTemplateSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "device_profile_template"
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="device_profile_template")
 
 
 @extend_schema_view(
@@ -162,15 +156,14 @@ class DeviceProfileTemplateViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Api User Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Api User Destroy (ChirpStack)"),
 )
-class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class ApiUserViewSet(viewsets.ModelViewSet):
     queryset = ApiUser.objects.all()
     serializer_class = ApiUserSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "api_user"
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="api_user")
 
         sync_response = sync_api_user_create(instance)
 
