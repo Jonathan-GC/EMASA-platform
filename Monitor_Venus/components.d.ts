@@ -86,6 +86,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SignupForm: typeof import('./src/components/forms/auth/SignupForm.vue')['default']
     SingleCurrentChart: typeof import('./src/components/charts/SingleCurrentChart.vue')['default']
+    SupportForm: typeof import('./src/components/forms/support/SupportForm.vue')['default']
     TableApplications: typeof import('./src/components/tables/applications/TableApplications.vue')['default']
     TableDeviceProfiles: typeof import('./src/components/tables/deviceProlfiles/TableDeviceProfiles.vue')['default']
     TableDevices: typeof import('./src/components/tables/devices/TableDevices.vue')['default']
