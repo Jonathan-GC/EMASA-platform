@@ -12,16 +12,27 @@ const UpdateGroupProfile = defineAsyncComponent(() => import("@/components/forms
 const UpdateSeedbedProfile = defineAsyncComponent(() => import("@/components/forms/update/seedbeds/formUpdateSeedbedProfile.vue"));
 */
 const UpdateTenants = defineAsyncComponent(() => import("@components/forms/update/tenants/formUpdateTenants.vue"));
+const UpdateWorkspaces = defineAsyncComponent(() => import("@components/forms/update/workspaces/formUpdateWorkspaces.vue"));
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
     const componentMap = {
       tenant: {
-        component: defineAsyncComponent(() => import("@components/forms/update/tenants/formUpdateTenants.vue")),
+        component: UpdateTenants,
         props: {
           type: type,
           index: extraProps?.index,
           label: 'tenant',
           fields: schema.tenant,
+          initialData: extraProps?.initialData || {},
+        }
+      },
+      workspace: {
+        component: UpdateWorkspaces,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'workspace',
+          fields: schema.workspace,
           initialData: extraProps?.initialData || {},
         }
       }

@@ -85,7 +85,18 @@
               </ion-col>
 
               <ion-col size="1">
-                <QuickActions :toView="true" />
+                <QuickActions 
+                  type="workspace"
+                  :index="workspace.id" 
+                  :name="workspace.name"
+                  :to-view="`/tenants/${workspace.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(workspace)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
+
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -147,7 +158,14 @@ const { currentPage, totalPages, changePage, paginatedItems } = useTablePaginati
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ejemplo.com'
 
+const setInitialData = (workspace) => {
+  return {
+    name: workspace.name,
+    description: workspace.description,
+    tenant: workspace.tenant,
 
+  }
+}
 
 // Fetch data from API
 const fetchWorkspaces = async () => {

@@ -16,6 +16,15 @@ export class DeleteFormFactory extends AbstractFormFactory {
           label: "tenant",
           index: extraProps?.index,
         }
+      },
+      workspace: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "workspace",
+          index: extraProps?.index,
+        }
       }
     };
 

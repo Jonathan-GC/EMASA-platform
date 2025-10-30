@@ -7,6 +7,12 @@
     { "key": "subscription_id", "label": "Subscripción", "type": "text" }
   ],
 
+  "workspace": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "tenant", "label": "Tenant id", "type": "text" }
+  ],
+
   "gateway": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "descripción", "type": "textarea" },
@@ -43,11 +49,7 @@
     { "key": "device_type", "label": "Tipo de dispositivo", "type": "text" }
   ],
 
-  "workspace": [
-    { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "tenant", "label": "Tenant id", "type": "text" }
-  ],
+  
 
   "manager": [
     { "key": "workspace_id", "label": "Id del workspace", "type": "text" },

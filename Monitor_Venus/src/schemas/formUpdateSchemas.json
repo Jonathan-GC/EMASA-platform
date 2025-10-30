@@ -6,6 +6,11 @@
     { "key": "description", "label":  "descripción", "type": "textarea" },
     { "key": "subscription_id", "label": "Subscripción", "type": "text" }
   ],
+  "workspace": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "tenant", "label": "Tenant id", "type": "text" }
+  ],
     "period":[
         { "key": "name", "label": "Nombre", "type": "text" },
         { "key": "start_date", "label": "Fecha de inicio", "type": "date" },
