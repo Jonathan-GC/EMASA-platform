@@ -160,7 +160,7 @@
           Maquinas
         </router-link>
 
-        // Support navbar 
+        <!-- Support navbar !-->
 
         <router-link
           :to="paths.SUPPORT"
