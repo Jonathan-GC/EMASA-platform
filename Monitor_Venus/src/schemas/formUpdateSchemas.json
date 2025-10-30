@@ -37,6 +37,13 @@
     { "key": "abp_rx2_dr", "label": "Abp rx2 dr", "type": "text" },
     { "key": "payload_codec_script", "label": "Payload codec script", "type": "textarea" }
   ],
+  "application": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "text" },
+    { "key": "workspace_id", "label":  "Id de Workspace", "type": "text" },
+    { "key": "device_type", "label": "Tipo de dispositivo", "type": "text" }
+  ],
+  
     "period":[
         { "key": "name", "label": "Nombre", "type": "text" },
         { "key": "start_date", "label": "Fecha de inicio", "type": "date" },

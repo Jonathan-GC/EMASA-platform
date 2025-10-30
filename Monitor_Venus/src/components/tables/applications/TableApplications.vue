@@ -72,7 +72,7 @@
                     v-if="sortField === 'lastSeen'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2">
+              <ion-col size="1">
                 <strong>Tipo</strong>
               </ion-col>
               <ion-col size="1">
@@ -85,7 +85,7 @@
                     v-if="sortField === 'status'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="1">
+              <ion-col size="2">
                 <strong>Acciones</strong>
               </ion-col>
             </ion-row>
@@ -117,7 +117,7 @@
                 </ion-chip>
               </ion-col>
 
-              <ion-col size="2">
+              <ion-col size="1">
                 <div class="location-info">
                   {{  application.device_type }}
                 </div>
@@ -137,9 +137,20 @@
                 </ion-chip>
               </ion-col>
 
-              <ion-col size="1">
+              <ion-col size="2">
   
-                <QuickActions :toView="`/infrastructure/applications/${ application.id}/devices`" />
+
+                <QuickActions 
+                  type="application"
+                  :index="application.id" 
+                  :name="application.name"
+                  :toView="`/infrastructure/applications/${ application.id}/devices`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(application)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -211,7 +222,14 @@ const { currentPage, totalPages, changePage, paginatedItems } = useTablePaginati
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ejemplo.com'
 
-
+const setInitialData = (workspace) => {
+  return {
+    name: workspace.name,
+    description: workspace.description,
+    workspace_id: workspace.workspace?.id,
+    device_type: workspace.device_type,
+  }
+}
 
 // Fetch data from API
 const fetchApplications = async () => {
