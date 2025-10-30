@@ -173,7 +173,7 @@
           </router-link>
         </template>
 
-        // Support navbar 
+        <!-- Support navbar !-->
 
         <router-link
           :to="paths.SUPPORT"
