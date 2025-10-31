@@ -28,56 +28,56 @@ NOTIFICATION_TYPE_CHOICES = [
 ]
 
 CATEGORY_CHOICES = [
-    ("General", "General"),
-    ("Account", "Account"),
-    ("Technical", "Technical"),
-    ("Infrastructure", "Infrastructure"),
-    ("Billing", "Billing"),
-    ("Feedback", "Feedback"),
-    ("Other", "Other"),
+    ("general", "General"),
+    ("account", "Account"),
+    ("technical", "Technical"),
+    ("infrastructure", "Infrastructure"),
+    ("billing", "Billing"),
+    ("feedback", "Feedback"),
+    ("other", "Other"),
 ]
 
 INFRASTRUCTURE_CATEGORY_CHOICES = [
-    ("Devices", "Devices"),
-    ("Gateways", "Gateways"),
-    ("Machines", "Machines"),
-    ("Applications", "Applications"),
-    ("Measurements", "Measurements"),
-    ("Other", "Other"),
+    ("devices", "Devices"),
+    ("gateways", "Gateways"),
+    ("machines", "Machines"),
+    ("applications", "Applications"),
+    ("measurements", "Measurements"),
+    ("other", "Other"),
 ]
 
 MACHINE_TYPE_CHOICES = [
-    ("Electric", "Motor Eléctrico"),
-    ("Mechanical", "Motor Mecánico"),
+    ("electric", "Motor Eléctrico"),
+    ("mechanical", "Motor Mecánico"),
 ]
 
 ELECTRIC_MACHINE_CHOICES = [
-    ("Motor", "Motor"),
-    ("Motobomba", "Motobomba"),
-    ("Motoreductor", "Motoreductor"),
-    ("Ventilador", "Ventilador"),
-    ("Compresor", "Compresor"),
-    ("Vibrador", "Vibrador"),
-    ("Muela", "Muela"),
-    ("Torre Grua", "Torre Grúa"),
+    ("motor", "Motor"),
+    ("motobomba", "Motobomba"),
+    ("motoreductor", "Motoreductor"),
+    ("ventilador", "Ventilador"),
+    ("compresor", "Compresor"),
+    ("vibrador", "Vibrador"),
+    ("muela", "Muela"),
+    ("torre_grua", "Torre Grúa"),
 ]
 
 MECHANICAL_MACHINE_CHOICES = [
-    ("Motor Diesel", "Motor Diésel"),
-    ("Motor Gasolina", "Motor Gasolina"),
-    ("Motobomba", "Motobomba"),
-    ("Mixer", "Mixer"),
-    ("Barco", "Barco"),
-    ("Mula", "Mula"),
-    ("Damper", "Dámper"),
-    ("Planta Electrica", "Planta Eléctrica"),
-    ("Compresor", "Compresor"),
-    ("Vibrador", "Vibrador"),
-    ("Compactador", "Compactador"),
-    ("Retroexcavadora", "Retroexcavadora"),
-    ("Niveladora", "Niveladora"),
-    ("Combinada", "Combinada"),
-    ("Tractor", "Tractor"),
+    ("motor_diesel", "Motor Diésel"),
+    ("motor_gasolina", "Motor Gasolina"),
+    ("motobomba", "Motobomba"),
+    ("mixer", "Mixer"),
+    ("barco", "Barco"),
+    ("mula", "Mula"),
+    ("damper", "Dámper"),
+    ("planta_electrica", "Planta Eléctrica"),
+    ("compresor", "Compresor"),
+    ("vibrador", "Vibrador"),
+    ("compactador", "Compactador"),
+    ("retroexcavadora", "Retroexcavadora"),
+    ("niveladora", "Niveladora"),
+    ("combinada", "Combinada"),
+    ("tractor", "Tractor"),
 ]
 
 

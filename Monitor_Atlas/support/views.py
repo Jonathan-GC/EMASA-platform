@@ -13,6 +13,14 @@ from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
 from rest_framework.response import Response
 
+from .models import (
+    CATEGORY_CHOICES,
+    MACHINE_TYPE_CHOICES,
+    ELECTRIC_MACHINE_CHOICES,
+    MECHANICAL_MACHINE_CHOICES,
+    INFRASTRUCTURE_CATEGORY_CHOICES,
+)
+
 
 # Create your views here.
 @extend_schema_view(
@@ -22,10 +30,23 @@ from rest_framework.response import Response
     update=extend_schema(description="Ticket Update"),
     partial_update=extend_schema(description="Ticket Partial Update"),
     destroy=extend_schema(description="Ticket Destroy"),
+    get_all_types=extend_schema(description="Get all classification types"),
 )
-class TickeViewSet(viewsets.ModelViewSet):
+class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
+
+    @action(detail=False, methods=["get"], description="Get all classification types")
+    def get_all_types(self, request):
+        return Response(
+            {
+                "categories": dict(CATEGORY_CHOICES),
+                "infrastructure_categories": dict(INFRASTRUCTURE_CATEGORY_CHOICES),
+                "machine_types": dict(MACHINE_TYPE_CHOICES),
+                "electric_machine_subtypes": dict(ELECTRIC_MACHINE_CHOICES),
+                "mechanical_machine_subtypes": dict(MECHANICAL_MACHINE_CHOICES),
+            }
+        )
 
 
 @extend_schema_view(

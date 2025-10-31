@@ -39,11 +39,6 @@ echo ""
 echo -e "${GREEN}✅ All fixtures loaded successfully.${NC}"
 
 echo ""
-echo -e "${CYAN}🔑 ---- Loading initial model keys ---- 🔑${NC}"
-python manage.py regenerate_permissionkeys
-echo -e "${GREEN}✨ Initial model keys loaded successfully.${NC}"
-
-echo ""
 echo -e "${CYAN}🔄 ---- Synchronizing data with ChirpStack ---- 🔄${NC}"
 python manage.py sync_chirpstack
 echo -e "${GREEN}✨ ChirpStack synchronization completed.${NC}"
