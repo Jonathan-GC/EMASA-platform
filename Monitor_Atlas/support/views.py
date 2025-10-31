@@ -97,6 +97,7 @@ class CommentAttachmentViewSet(viewsets.ModelViewSet):
     destroy=extend_schema(description="Notification Destroy"),
     notify_user=extend_schema(description="Notify user via WebSocket"),
     my_notifications=extend_schema(description="Get user's notifications"),
+    mark_as_read=extend_schema(description="Mark notification as read"),
 )
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()

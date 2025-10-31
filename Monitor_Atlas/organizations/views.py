@@ -53,12 +53,6 @@ class TenantViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         instance = serializer.save()
 
-        group_name = instance.group
-        group, created = Group.objects.get_or_create(name=group_name)
-
-        if created:
-            logger.debug(f"Grupo {group_name} creado exitosamente")
-
         sync_response = sync_tenant_create(instance)
 
         if sync_response is None:
