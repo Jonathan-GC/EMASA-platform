@@ -27,15 +27,94 @@ NOTIFICATION_TYPE_CHOICES = [
     ("success", "Success"),
 ]
 
+CATEGORY_CHOICES = [
+    ("General", "General"),
+    ("Account", "Account"),
+    ("Technical", "Technical"),
+    ("Infrastructure", "Infrastructure"),
+    ("Billing", "Billing"),
+    ("Feedback", "Feedback"),
+    ("Other", "Other"),
+]
+
+INFRASTRUCTURE_CATEGORY_CHOICES = [
+    ("Devices", "Devices"),
+    ("Gateways", "Gateways"),
+    ("Machines", "Machines"),
+    ("Applications", "Applications"),
+    ("Measurements", "Measurements"),
+    ("Other", "Other"),
+]
+
+MACHINE_TYPE_CHOICES = [
+    ("Electric", "Motor Eléctrico"),
+    ("Mechanical", "Motor Mecánico"),
+]
+
+ELECTRIC_MACHINE_CHOICES = [
+    ("Motor", "Motor"),
+    ("Motobomba", "Motobomba"),
+    ("Motoreductor", "Motoreductor"),
+    ("Ventilador", "Ventilador"),
+    ("Compresor", "Compresor"),
+    ("Vibrador", "Vibrador"),
+    ("Muela", "Muela"),
+    ("Torre Grua", "Torre Grúa"),
+]
+
+MECHANICAL_MACHINE_CHOICES = [
+    ("Motor Diesel", "Motor Diésel"),
+    ("Motor Gasolina", "Motor Gasolina"),
+    ("Motobomba", "Motobomba"),
+    ("Mixer", "Mixer"),
+    ("Barco", "Barco"),
+    ("Mula", "Mula"),
+    ("Damper", "Dámper"),
+    ("Planta Electrica", "Planta Eléctrica"),
+    ("Compresor", "Compresor"),
+    ("Vibrador", "Vibrador"),
+    ("Compactador", "Compactador"),
+    ("Retroexcavadora", "Retroexcavadora"),
+    ("Niveladora", "Niveladora"),
+    ("Combinada", "Combinada"),
+    ("Tractor", "Tractor"),
+]
+
 
 # Create your models here.
 class Ticket(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
+
+    # Classification fields
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Open")
     priority = models.CharField(
         max_length=20, choices=PRIORITY_CHOICES, default="Medium"
     )
+    category = models.CharField(
+        max_length=50, choices=CATEGORY_CHOICES, default="General"
+    )
+    infrastructure_category = models.CharField(
+        max_length=50,
+        choices=INFRASTRUCTURE_CATEGORY_CHOICES,
+        default="Other",
+    )
+    machine_type = models.CharField(
+        max_length=20, choices=MACHINE_TYPE_CHOICES, null=True, blank=True
+    )
+    electric_machine_subtype = models.CharField(
+        max_length=50,
+        choices=ELECTRIC_MACHINE_CHOICES,
+        null=True,
+        blank=True,
+    )
+    mechanical_machine_subtype = models.CharField(
+        max_length=50,
+        choices=MECHANICAL_MACHINE_CHOICES,
+        null=True,
+        blank=True,
+    )
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
 
     guest_name = models.CharField(max_length=100, null=True, blank=True)
