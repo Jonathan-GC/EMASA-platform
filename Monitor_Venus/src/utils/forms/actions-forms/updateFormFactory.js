@@ -87,6 +87,16 @@ export class UpdateFormFactory extends AbstractFormFactory {
           fields: schema.device,
           initialData: extraProps?.initialData || {},
         }
+      },
+      machine: {
+        component: UpdateGateways,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'machine',
+          fields: schema.machine,
+          initialData: extraProps?.initialData || {},
+        }
       }
     }
     if (!(type in componentMap) || !EntityTypes.includes(type)) {
