@@ -143,7 +143,7 @@ def revoke_permissions_on_delete(sender, instance, **kwargs):
     """
     # Solo aplicar a modelos que tengan permisos de objeto
     if hasattr(instance, '_meta'):
-        # Obtener todos los grupos con permisos sobre este objeto
+        # Obtener todos los grupos con permisos sobre e4ste objeto
         from django.contrib.auth.models import Group
         for group in Group.objects.all():
             remove_obj_perms_for_group(group, instance)

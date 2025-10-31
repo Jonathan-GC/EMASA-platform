@@ -6,24 +6,24 @@ from organizations.models import Workspace
 
 class ApiUser(models.Model):
     """
-        Chirpstack API User payload:
-        {
-            "password": "123",
-            "tenants": [
-                    {
-                            "isAdmin": true,
-                            "isDeviceAdmin": true,
-                            "isGatewayAdmin": true,
-                            "tenantId": "b5adddf6-8ad0-46ca-923c-9a8b13b14304"
-                    }
-            ],
-            "user": {
+    Chirpstack API User payload:
+    {
+        "password": "123",
+        "tenants": [
+                {
+                    "isAdmin": true,
+                    "isDeviceAdmin": true,
+                    "isGatewayAdmin": true,
+                    "tenantId": "b5adddf6-8ad0-46ca-923c-9a8b13b14304"
+                }
+        ],
+        "user": {
                     "email": "user2@tenant.com",
                     "isActive": true,
                     "isAdmin": false,
                     "note": "this a user of the chiprstack default tenant"
-            }
-    }
+                }
+        }
     """
 
     cs_user_id = models.CharField(max_length=36, unique=True, null=True, blank=True)
