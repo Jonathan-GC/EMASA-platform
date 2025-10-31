@@ -4,7 +4,7 @@
       <ion-card-header>
         <ion-card-title>📟 Devices - Datos desde API</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${application.length} applications encontrados` }}
+          {{ loading ? 'Cargando...' : `${device.length} applications encontrados` }}
         </ion-card-subtitle>
       </ion-card-header>
 
@@ -25,7 +25,7 @@
         </div>
 
         <!-- Data table -->
-        <div v-else-if="application.length > 0">
+        <div v-else-if="device.length > 0">
           <!-- Controls -->
           <div class="table-controls">
             <ion-searchbar
@@ -73,7 +73,7 @@
                     v-if="sortField === 'lastSeen'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2">
+              <ion-col size="1">
                 <strong>Tipo</strong>
               </ion-col>
               <ion-col size="1">
@@ -86,7 +86,7 @@
                     v-if="sortField === 'status'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="1">
+              <ion-col size="2">
                 <strong>Acciones</strong>
               </ion-col>
             </ion-row>
@@ -94,52 +94,60 @@
 
             <!-- Data rows -->
             <ion-row
-                v-for="deviceProfile in paginatedItems"
-                :key="deviceProfile.id"
+                v-for="device in paginatedItems"
+                :key="device.id"
                 class="table-row-stylized"
 
-                :class="{ 'row-selected': selectedApplication?.id === deviceProfile.id }"
+                :class="{ 'row-selected': selectedApplication?.id === device.id }"
             >
               <ion-col size="2">
                 <div class="gateway-info">
                   <div>
-                    <div class="gateway-name">{{ deviceProfile.name }}</div>
+                    <div class="gateway-name">{{ device.name }}</div>
                   </div>
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.dev_eui }}</div>
+                <div class="gateway-id">{{ device.dev_eui }}</div>
               </ion-col>
 
 
               <ion-col size="2">
                 <ion-chip class="p-2.5 rounded-full">
-                  {{ deviceProfile.workspace.tenant }}
+                  {{ device.workspace.tenant }}
                 </ion-chip>
               </ion-col>
 
-              <ion-col size="2">
+              <ion-col size="1">
                 <div class="location-info">
-                  {{ deviceProfile.device_type }}
+                  {{ device.device_type }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
                 <div class="devices-info">
-                  {{ deviceProfile.machine || 0 }}
+                  {{ device.machine || 0 }}
                 </div>
               </ion-col>
               <ion-col size="2">
                 <ion-chip
-                    :color="getStatusColor(deviceProfile.sync_status)"
+                    :color="getStatusColor(device.sync_status)"
                 >
-                  {{ deviceProfile.sync_status }}
+                  {{ device.sync_status }}
                 </ion-chip>
               </ion-col>
 
-              <ion-col size="1">
-                <quick-actions
-                :toView="`devices/${deviceProfile.id}`"
+              <ion-col size="2">
+                <QuickActions 
+                  type="device"
+                  :index="device.id" 
+                  :name="device.name"
+                  :toView="`/infrastructure/applications/${ device.id}/devices`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(device)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
                 />
               </ion-col>
             </ion-row>
@@ -169,6 +177,8 @@
           </div>
         </div>
 
+        
+
         <!-- Empty state -->
         <div v-else class="empty-state">
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
@@ -178,10 +188,11 @@
             Buscar gateways
           </ion-button>
           <QuickControl
-                :toCreate="true"
-                type="device"
-                @itemCreated="handleItemRefresh"
-            />
+            :toCreate="true"
+            type="device"
+            @itemCreated="handleItemRefresh"
+          />
+            
         </div>
       </ion-card-content>
     </ion-card>
@@ -204,14 +215,14 @@ const router = useRouter()
 const route = useRoute()
 
 // Component-specific state
-const application = ref([])
+const device = ref([])
 const loading = ref(false)
 const error = ref(null)
 const selectedApplication = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(device, ['name', 'cs_gateway_id', 'location'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -243,7 +254,7 @@ const fetchApplications = async () => {
     // Ensure response is an array, if not, wrap it or use a default
     const mockData = Array.isArray(response) ? response : (response?.data || []);
 
-    application.value = mockData
+    device.value = mockData
     console.log('✅ Gateways cargados:', mockData.length)
 
   } catch (err) {
@@ -253,6 +264,19 @@ const fetchApplications = async () => {
     loading.value = false
   }
 }
+
+const setInitialData = (workspace) => {
+  return {
+    dev_eui: workspace.dev_eui,
+    name: workspace.name,
+    description: workspace.description,
+    workspace_id: workspace?.id,
+    application: workspace.application,
+    device_type: workspace.device_type,
+    device_profile: workspace.device_profile,
+    machine: workspace.machine,
+  }
+}  
 
 // Component-specific methods
 const selectGateway = (gateway) => {

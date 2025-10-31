@@ -78,6 +78,16 @@ export class UpdateFormFactory extends AbstractFormFactory {
           initialData: extraProps?.initialData || {},
         }
       },
+      device: {
+        component: UpdateGateways,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'device',
+          fields: schema.device,
+          initialData: extraProps?.initialData || {},
+        }
+      }
     }
     if (!(type in componentMap) || !EntityTypes.includes(type)) {
       console.log(`Componente no encontrado para el tipo: ${type}`);
