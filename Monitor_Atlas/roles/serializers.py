@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Role, WorkspaceMembership, PermissionKey, RolePermission
+from .models import Role, WorkspaceMembership
 from organizations.models import Workspace
 from users.models import User
 
@@ -118,44 +118,3 @@ class WorkspaceMembershipSerializer(serializers.ModelSerializer):
                 "color": role.color,
             }
         return None
-
-
-class PermissionKeySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PermissionKey
-        fields = "__all__"
-
-    def validate(self, attrs):
-        """
-        Validates that the required field for the given scope is present in the attributes.
-        Raises a ValidationError if the required field for the specified scope is missing.
-        """
-        scope = attrs.get("scope")
-        required_fields = {
-            "device": "device_id",
-            "machine": "machine_id",
-            "application": "application_id",
-            "user": "user_id",
-            "role": "role_id",
-            "workspace": "workspace_id",
-            "tenant": "tenant_id",
-            "location": "location_id",
-            "gateway": "gateway_id",
-            "device_profile": "device_profile_id",
-            "device_profile_template": "device_profile_template_id",
-            "api_user": "api_user_id",
-            "type": "type_id",
-            "subscription": "subscription_id",
-        }
-        required_field = required_fields.get(scope)
-        if required_field and not attrs.get(required_field):
-            raise serializers.ValidationError(
-                f"{required_field.capitalize()} is required for {scope} scope"
-            )
-        return attrs
-
-
-class RolePermissionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RolePermission
-        fields = "__all__"

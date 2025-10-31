@@ -16,12 +16,13 @@
     - [Refresh tokens](#refresh-tokens)
     - [Token usage](#token-usage)
   - [Custom Permission classes](#custom-permission-classes)
-    - [HasPermissionKey](#haspermissionkey)
-    - [IsAdminOrIsAuthenticatedReadOnly](#isadminorisauthenticatedreadonly)
+    - [HasPermissionKey (DEPRECATED See: guardian\_migration.md)](#haspermissionkey-deprecated-see-guardian_migrationmd)
+    - [IsAdminOrIsAuthenticatedReadOnly (NO CHANGES AFTER MIGRATIONS TO GUARDIAN)](#isadminorisauthenticatedreadonly-no-changes-after-migrations-to-guardian)
   - [Seed data](#seed-data)
   - [Special Methods](#special-methods)
     - [Automatic Key creation method](#automatic-key-creation-method)
     - [Automatic group creation method](#automatic-group-creation-method)
+- [: : : TO BE CONTINUED : : :](#---to-be-continued---)
 
 
 ## Deployment config
@@ -111,7 +112,7 @@ In any request you want to make (eg. `infrastructure_api_v1_node_list`) go to Au
 
 ## <a name="perms">Custom Permission classes</a>
 
-### HasPermissionKey
+### HasPermissionKey (DEPRECATED See: guardian_migration.md)
 
 This permission class is located in `roles.permissions` if you acces it from any other app, if you are trying to import this class in roles app, you can just use `.permissions`.
 
@@ -132,7 +133,7 @@ class GatewayViewSet(viewsets.ModelViewSet):
 ```
 NOTE: you have to verify the context of the viewset. (e.g. You don't need a key for `PermissionKey`, in that case you use `IsAdminUser` and `IsAuthenticated`.)
 
-### IsAdminOrIsAuthenticatedReadOnly
+### IsAdminOrIsAuthenticatedReadOnly (NO CHANGES AFTER MIGRATIONS TO GUARDIAN)
 
 Returns True if the user has permission to access the view based on the request method and the user's authentication status. The permission rules are as follows:
 
@@ -171,4 +172,4 @@ NOTE: This method doesn't need an endpoint.
 
 For usable purposes, it's not needed to manually create a group through django's shell or django admin, when you create a Tenant, the `group` attribute will correspond to the name of the group automatically created, so, make sure to get this right.
 
-...
+# : : : TO BE CONTINUED : : :

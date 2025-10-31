@@ -5,8 +5,7 @@ from django.contrib.auth.models import Group
 from .models import Workspace, Tenant, Subscription
 from .serializers import WorkspaceSerializer, TenantSerializer, SubscriptionSerializer
 
-from roles.permissions import HasPermissionKey
-from roles.mixins import PermissionKeyMixin
+from roles.permissions import HasPermission
 
 from chirpstack.chirpstack_api import (
     sync_tenant_get,
@@ -27,15 +26,14 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
     partial_update=extend_schema(description="Workspace Partial Update"),
     destroy=extend_schema(description="Workspace Destroy"),
 )
-class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class WorkspaceViewSet(viewsets.ModelViewSet):
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "workspace"
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="workspace")
 
 
 @extend_schema_view(
@@ -46,15 +44,14 @@ class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Tenant Partial Update"),
     destroy=extend_schema(description="Tenant Destroy"),
 )
-class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class TenantViewSet(viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "tenant"
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="tenant")
 
         group_name = instance.group
         group, created = Group.objects.get_or_create(name=group_name)
@@ -159,12 +156,11 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Subscription Partial Update"),
     destroy=extend_schema(description="Subscription Destroy"),
 )
-class SubscriptionViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class SubscriptionViewSet(viewsets.ModelViewSet):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "subscription"
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="subscription")
