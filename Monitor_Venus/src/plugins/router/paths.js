@@ -1,6 +1,8 @@
 export const paths = {
     // Absolute paths
+    
     ROOT: '/',
+    ADMIN: '/admin',
     HOME: '/home',
     ABOUT: '/about',
     VOLTAGE: '/voltage',
@@ -15,6 +17,7 @@ export const paths = {
     TENANT_WORKSPACES: '/workspaces',
     LOGIN: '/login',
     SIGNUP: '/signup',
+    TENANT_SETUP: '/tenant-setup',
 
     // Relative paths
     DEVICES: '/devices',

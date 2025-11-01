@@ -95,6 +95,7 @@ import {
 } from '@ionic/vue'
 import API from '@utils/api/api'
 import AuthFooter from '@/components/layout/AuthFooter.vue'
+import { paths } from '@/plugins/router/paths'
 
 // Inject icons
 const icons = inject('icons', {})
@@ -138,7 +139,7 @@ const verifyAccount = async () => {
 
 // Navigate to login
 const goToLogin = () => {
-  router.push('/auth/login')
+  router.push(paths.login)
 }
 
 // Get token from URL and verify on mount

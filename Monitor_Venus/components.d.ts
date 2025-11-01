@@ -102,6 +102,7 @@ declare module 'vue' {
     TableTenants: typeof import('./src/components/tables/tenants/TableTenants.vue')['default']
     TableWorkspaces: typeof import('./src/components/tables/workspaces/TableWorkspaces.vue')['default']
     TabsDeviceMeasurements: typeof import('./src/components/tabs/tabsDeviceMeasurements.vue')['default']
+    TenantWarning: typeof import('./src/components/common/TenantWarning.vue')['default']
     VoltageChart: typeof import('./src/components/charts/VoltageChart.vue')['default']
     VoltageDeviceInfo: typeof import('./src/components/cards/VoltageDeviceInfo.vue')['default']
   }

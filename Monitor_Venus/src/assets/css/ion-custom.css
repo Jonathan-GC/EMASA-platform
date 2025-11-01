@@ -3,7 +3,11 @@ ion-item.custom ion-input.custom {
     --border-color: #cccccc;
     --highlight-color-focused: #000000;
 }
-
+ion-item.custom ion-textarea.custom {
+    --placeholder-color: #858585;
+    --border-color: #cccccc;
+    --highlight-color-focused: #000000;
+}
 ion-item.custom{
     --padding-start: 0px;
     --font-size: 14px;
