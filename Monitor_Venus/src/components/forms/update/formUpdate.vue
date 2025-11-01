@@ -17,8 +17,9 @@
         <form @submit.prevent="createItem">
           <ion-list>
             <div v-for="(field, index) in fields" :key="index">
-              <ion-item v-if="field.type === 'text'">
-                <ion-input v-model="formValues[field.key]" :label="field.label" label-placement="floating" />
+              <ion-item v-if="field.type === 'text'" class="custom">
+                <ion-label class="!mb-2" position="stacked">{{ field.label }}</ion-label>
+                <ion-input v-model="formValues[field.key]" :label="field.label" class="custom" fill="solid" />
               </ion-item>
 
               <ion-item v-else-if="field.type === 'date'">
@@ -56,9 +57,10 @@
                 </ion-select>
               </ion-item>
 
-              <ion-item v-else-if="field.type === 'textarea'">
-                <ion-textarea v-model="formValues[field.key]" :label="field.label" label-placement="floating"
-                  rows="5" />
+              <ion-item v-else-if="field.type === 'textarea'" class="custom">
+                <ion-label position="stacked" class="!mb-2">Description</ion-label>
+                <ion-textarea v-model="formValues[field.key]" class="custom" fill="solid" rows="5"
+                  ></ion-textarea>
               </ion-item>
 
               <ion-item v-else-if="field.type === 'checkbox'">
