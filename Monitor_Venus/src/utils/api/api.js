@@ -120,7 +120,7 @@ class API {
     //----[SUPPORT]----
     SUPPORT_TICKET = 'support/ticket/'
     ATTACMEENT_CREATE = 'support/attachment/'
-
+    GET_TYPES = 'support/ticket/get_all_types/'
 
 
     static instance;
