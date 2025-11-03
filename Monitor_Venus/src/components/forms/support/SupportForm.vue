@@ -17,6 +17,34 @@
           <form @submit.prevent="handleSubmit" novalidate>
             <ion-list>
 
+                            <!-- Title -->
+              <ion-item class="custom" lines="none">
+                <ion-icon :icon="documentTextOutline" slot="start" class="item-icon" />
+                <ion-input
+                  class="custom"
+                  fill="solid"
+                  v-model="form.title"
+                  label="Issue *"
+                  label-placement="floating"
+                  :maxlength="TITLE_MAX"
+                  type="text"
+                  inputmode="text"
+                  :aria-invalid="!!errors.title"
+                  aria-describedby="title-error"
+                  @ion-blur="onBlur('title')"
+                  placeholder="Short summary of the issue"
+                />
+              </ion-item>
+
+              <div class="field-error">
+                <ion-note v-if="errors.title && (touched.title || submitAttempted)" id="title-error" color="danger">
+                  {{ errors.title }}
+                </ion-note>
+              </div>
+
+                            <div v-if="!isLoggedIn" class="divider large-divider"></div>
+
+
               <!-- Guest-only fields (moved up) -->
               <template v-if="!isLoggedIn">
                 <ion-item class="custom" lines="none">
@@ -67,29 +95,142 @@
 
               <div class="divider large-divider"></div>
 
-              <!-- Title -->
-              <ion-item class="custom" lines="none">
-                <ion-icon :icon="documentTextOutline" slot="start" class="item-icon" />
-                <ion-input
-                  class="custom"
-                  fill="solid"
-                  v-model="form.title"
-                  label="Title *"
-                  label-placement="floating"
-                  :maxlength="TITLE_MAX"
-                  type="text"
-                  inputmode="text"
-                  :aria-invalid="!!errors.title"
-                  aria-describedby="title-error"
-                  @ion-blur="onBlur('title')"
-                  placeholder="Short summary of the issue"
-                />
-              </ion-item>
-              <div class="field-error">
-                <ion-note v-if="errors.title && (touched.title || submitAttempted)" id="title-error" color="danger">
-                  {{ errors.title }}
-                </ion-note>
-              </div>
+                <div class="field-error">
+                </div>
+
+                <!-- Ticket types: chained selectors -->
+                <ion-list>
+                  <ion-item class="custom">
+                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
+                    <ion-label position="stacked" class="selector-label !mb-2">Category</ion-label>
+                    <ModalSelector
+                      class="custom"
+                      v-model="ticketSelection.category"
+                      :options="categoryOptions"
+                      :value-field="'code'"
+                      :display-field="'name'"
+                      :search-fields="['name']"
+                      title="Select category"
+                      placeholder=" -"
+                      search-placeholder="Search category..."
+                      :disabled="loadingTypes"
+                    >
+                      <template #option="{ option }">
+                        <ion-label>{{ option.name }}</ion-label>
+                      </template>
+                    </ModalSelector>
+                  </ion-item>
+                  <div class="field-error">
+                    <ion-note v-if="errors.category && (touched.category || submitAttempted)" id="category-error" color="danger">
+                      {{ errors.category }}
+                    </ion-note>
+                  </div>
+
+                  <ion-item v-if="ticketSelection.category === 'infrastructure'" class="custom">
+                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
+                    <ion-label position="stacked" class="selector-label !mb-2">Infrastructure</ion-label>
+                    <ModalSelector
+                      class="custom"
+                      v-model="ticketSelection.infrastructure"
+                      :options="infraOptions"
+                      :value-field="'code'"
+                      :display-field="'name'"
+                      :search-fields="['name']"
+                      title="Select infrastructure"
+                      placeholder=" -"
+                      search-placeholder="Search infrastructure..."
+                      :disabled="loadingTypes"
+                    >
+                      <template #option="{ option }">
+                        <ion-label>{{ option.name }}</ion-label>
+                      </template>
+                    </ModalSelector>
+                  </ion-item>
+                  <div class="field-error">
+                    <ion-note v-if="errors.infrastructure_category && (touched.infrastructure_category || submitAttempted)" id="infrastructure_category-error" color="danger">
+                      {{ errors.infrastructure_category }}
+                    </ion-note>
+                  </div>
+
+                  <ion-item v-if="ticketSelection.infrastructure === 'machines'" class="custom">
+                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
+                    <ion-label position="stacked" class="selector-label !mb-2">Machine type</ion-label>
+                    <ModalSelector
+                      class="custom"
+                      v-model="ticketSelection.machine_type"
+                      :options="machineTypeOptions"
+                      :value-field="'code'"
+                      :display-field="'name'"
+                      :search-fields="['name']"
+                      title="Select machine type"
+                      placeholder=" -"
+                      search-placeholder="Search machine type..."
+                      :disabled="loadingTypes"
+                    >
+                      <template #option="{ option }">
+                        <ion-label>{{ option.name }}</ion-label>
+                      </template>
+                    </ModalSelector>
+                  </ion-item>
+                  <div class="field-error">
+                    <ion-note v-if="errors.machine_type && (touched.machine_type || submitAttempted)" id="machine_type-error" color="danger">
+                      {{ errors.machine_type }}
+                    </ion-note>
+                  </div>
+
+                  <ion-item v-if="ticketSelection.machine_type === 'electric'" class="custom">
+                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
+                    <ion-label position="stacked" class="selector-label !mb-2">Electric machine subtype</ion-label>
+                    <ModalSelector
+                      class="custom"
+                      v-model="ticketSelection.electric_subtype"
+                      :options="electricSubtypeOptions"
+                      :value-field="'code'"
+                      :display-field="'name'"
+                      :search-fields="['name']"
+                      title="Select electric subtype"
+                      placeholder=" -"
+                      search-placeholder="Search subtype..."
+                      :disabled="loadingTypes"
+                    >
+                      <template #option="{ option }">
+                        <ion-label>{{ option.name }}</ion-label>
+                      </template>
+                    </ModalSelector>
+                  </ion-item>
+                  <div class="field-error">
+                    <ion-note v-if="errors.electric_machine_subtype && (touched.electric_machine_subtype || submitAttempted)" id="electric_machine_subtype-error" color="danger">
+                      {{ errors.electric_machine_subtype }}
+                    </ion-note>
+                  </div>
+
+                  <ion-item v-if="ticketSelection.machine_type === 'mechanical'" class="custom">
+                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
+                    <ion-label position="stacked" class="selector-label !mb-2">Mechanical machine subtype</ion-label>
+                    <ModalSelector
+                      class="custom"
+                      v-model="ticketSelection.mechanical_subtype"
+                      :options="mechanicalSubtypeOptions"
+                      :value-field="'code'"
+                      :display-field="'name'"
+                      :search-fields="['name']"
+                      title="Select mechanical subtype"
+                      placeholder=" -"
+                      search-placeholder="Search subtype..."
+                      :disabled="loadingTypes"
+                    >
+                      <template #option="{ option }">
+                        <ion-label>{{ option.name }}</ion-label>
+                      </template>
+                    </ModalSelector>
+                  </ion-item>
+                  <div class="field-error">
+                    <ion-note v-if="errors.mechanical_machine_subtype && (touched.mechanical_machine_subtype || submitAttempted)" id="mechanical_machine_subtype-error" color="danger">
+                      {{ errors.mechanical_machine_subtype }}
+                    </ion-note>
+                  </div>
+                </ion-list>
+
 
               <!-- Description -->
               <ion-item class="custom" lines="none">
@@ -208,13 +349,21 @@
 // - Step 2: POST ATTACMEENT_CREATE (FormData) with { file, ticket }.
 // - Extracts ticketId even if the response is an array.
 // ---------------------------------------------------------------------------
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import {
   IonPage, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardContent,
   IonList, IonItem, IonInput, IonTextarea, IonNote, IonButton, IonSpinner, IonToast, IonLoading, IonIcon,
 } from '@ionic/vue'
-import { personOutline, personCircleOutline, mailOutline, attachOutline, documentAttachOutline, createOutline, documentTextOutline } from 'ionicons/icons'
+import { personOutline, personCircleOutline, mailOutline, attachOutline, documentAttachOutline, createOutline, documentTextOutline, listOutline } from 'ionicons/icons'
 import API from '@/utils/api/api'
+import ModalSelector from '@/components/ui/ModalSelector.vue'
+
+// Summary of recent changes made to this file:
+// - Fetch ticket type lists from API (GET_TYPES) and store in `typesData`.
+// - Add chained selectors (ModalSelector) for category -> infrastructure -> machine type -> subtype.
+// - Map API objects to option arrays and reset dependent selections when parent changes.
+// - Include the selected type fields in the ticket POST payload and reset them on form reset.
+// - Apply `class="custom"` to selectors so they match other input styles.
 
 // ------------------ Model & Constraints ------------------
 type SupportTicketPayload = {
@@ -223,6 +372,11 @@ type SupportTicketPayload = {
   guest_name?: string
   guest_email?: string
   user?: string | number
+  category?: string | null
+  infrastructure_category?: string | null
+  machine_type?: string | null
+  electric_machine_subtype?: string | null
+  mechanical_machine_subtype?: string | null
 }
 
 const TITLE_MAX = 100
@@ -318,11 +472,20 @@ const isUploading = ref(false)
 const isBusy = computed(() => isSubmitting.value || isUploading.value)
 
 const errors = reactive<Record<keyof Required<SupportTicketPayload>, string | null>>({
-  title: null, description: null, guest_name: null, guest_email: null, user: null,
+  title: null,
+  description: null,
+  guest_name: null,
+  guest_email: null,
+  user: null,
+  category: null,
+  infrastructure_category: null,
+  machine_type: null,
+  electric_machine_subtype: null,
+  mechanical_machine_subtype: null,
 })
 
 // touched map and submitAttempted flag: only show errors after blur or submit
-const touched = reactive<Record<string, boolean>>({ title: false, description: false, guest_name: false, guest_email: false, user: false })
+const touched = reactive<Record<string, boolean>>({ title: false, description: false, guest_name: false, guest_email: false, user: false, category: false, infrastructure_category: false, machine_type: false, electric_machine_subtype: false, mechanical_machine_subtype: false })
 const submitAttempted = ref(false)
 
 function onBlur(field: keyof SupportTicketPayload) {
@@ -331,22 +494,50 @@ function onBlur(field: keyof SupportTicketPayload) {
 }
 
 function validateField(field: keyof SupportTicketPayload) {
-  const val = (form[field] ?? '').toString().trim()
-  switch (field) {
-    case 'title':
-      errors.title = val.length < 3 ? 'Title must be at least 3 characters.' : null
-      break
-    case 'description':
-      errors.description = val.length < 10 ? 'Description must be at least 10 characters.' : null
-      break
-    case 'guest_name':
-      errors.guest_name = !isLoggedIn.value && val.length < 2 ? 'Guest name must be at least 2 characters.' : null
-      break
-    case 'guest_email': {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      errors.guest_email = !isLoggedIn.value && !emailRegex.test(val) ? 'Please enter a valid email address.' : null
-      break
+  // handle form fields
+  if (field === 'title' || field === 'description' || field === 'guest_name' || field === 'guest_email') {
+    const val = (form[field] ?? '').toString().trim()
+    switch (field) {
+      case 'title':
+        errors.title = val.length < 3 ? 'Issue must be at least 3 characters.' : null
+        break
+      case 'description':
+        errors.description = val.length < 10 ? 'Description must be at least 10 characters.' : null
+        break
+      case 'guest_name':
+        errors.guest_name = !isLoggedIn.value && val.length < 2 ? 'Guest name must be at least 2 characters.' : null
+        break
+      case 'guest_email': {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        errors.guest_email = !isLoggedIn.value && !emailRegex.test(val) ? 'Please enter a valid email address.' : null
+        break
+      }
     }
+    return
+  }
+
+  // handle selection fields (ticketSelection)
+  if (field === 'category') {
+    errors.category = !ticketSelection.category ? 'Please select a category.' : null
+    return
+  }
+  if (field === 'infrastructure_category') {
+    // required only when category === 'infrastructure'
+    errors.infrastructure_category = ticketSelection.category === 'infrastructure' && !ticketSelection.infrastructure ? 'Please select an infrastructure.' : null
+    return
+  }
+  if (field === 'machine_type') {
+    // required only when infrastructure === 'machines'
+    errors.machine_type = ticketSelection.infrastructure === 'machines' && !ticketSelection.machine_type ? 'Please select a machine type.' : null
+    return
+  }
+  if (field === 'electric_machine_subtype') {
+    errors.electric_machine_subtype = ticketSelection.machine_type === 'electric' && !ticketSelection.electric_subtype ? 'Please select an electric subtype.' : null
+    return
+  }
+  if (field === 'mechanical_machine_subtype') {
+    errors.mechanical_machine_subtype = ticketSelection.machine_type === 'mechanical' && !ticketSelection.mechanical_subtype ? 'Please select a mechanical subtype.' : null
+    return
   }
 }
 function validateAll(): boolean {
@@ -357,9 +548,12 @@ function validateAll(): boolean {
     errors.guest_name = null
     errors.guest_email = null
   }
+  // validate selection fields
+  ;(['category','infrastructure_category','machine_type','electric_machine_subtype','mechanical_machine_subtype'] as (keyof SupportTicketPayload)[]).forEach(validateField)
   const baseOk = !!form.title?.trim() && !!form.description?.trim() && !errors.title && !errors.description
   const guestOk = isLoggedIn.value ? true : !!form.guest_name?.trim() && !!form.guest_email?.trim() && !errors.guest_name && !errors.guest_email
-  return baseOk && guestOk
+  const selectionOk = !errors.category && !errors.infrastructure_category && !errors.machine_type && !errors.electric_machine_subtype && !errors.mechanical_machine_subtype
+  return baseOk && guestOk && selectionOk
 }
 const isValid = computed(() => validateAll())
 
@@ -467,11 +661,15 @@ async function uploadAttachment(ticketId: string | number, file: File) {
 }
 
 function resetForm() {
+  // Prevent watchers from treating our programmatic clear as user interaction
+  isResetting.value = true
   // Clear values
   form.title = ''
   form.description = ''
   form.guest_name = ''
   form.guest_email = ''
+  // Clear ticket selections
+  try { ticketSelection.category = null; ticketSelection.infrastructure = null; ticketSelection.machine_type = null; ticketSelection.electric_subtype = null; ticketSelection.mechanical_subtype = null } catch(_) {}
 
   // Clear file and file errors
   removeFile()
@@ -488,6 +686,8 @@ function resetForm() {
   try {
     for (const k of Object.keys(errors)) { ;(errors as any)[k] = null }
   } catch (_) { /* ignore */ }
+  // allow watchers to operate normally again
+  isResetting.value = false
 }
 
 // ------------------ Submit flow ------------------
@@ -504,11 +704,21 @@ async function handleSubmit() {
   try {
     isSubmitting.value = true
 
-    // Build ticket payload
-    const payload: SupportTicketPayload = {
+    // Build ticket payload — only include optional fields when they have values.
+    // Some backends error when receiving explicit `null` for fields they don't expect,
+    // so omit undefined/null fields entirely.
+    const payload: Record<string, any> = {
       title: form.title.trim(),
       description: form.description.trim(),
     }
+
+    // selections: only add if present
+    if (ticketSelection.category) payload.category = ticketSelection.category
+    if (ticketSelection.infrastructure) payload.infrastructure_category = ticketSelection.infrastructure
+    if (ticketSelection.machine_type) payload.machine_type = ticketSelection.machine_type
+    if (ticketSelection.electric_subtype) payload.electric_machine_subtype = ticketSelection.electric_subtype
+    if (ticketSelection.mechanical_subtype) payload.mechanical_machine_subtype = ticketSelection.mechanical_subtype
+
     if (isLoggedIn.value && sessionUserId.value != null) {
       payload.user = sessionUserId.value // IMPORTANT: backend expects "user"
     } else if (!isLoggedIn.value) {
@@ -563,6 +773,83 @@ async function handleSubmit() {
     isSubmitting.value = false
   }
 }
+
+// --- Get for spport types ---
+
+
+onMounted(async () => {
+  try {
+    const types = await API.get(API.GET_TYPES)
+    // store response in a constant usable by the template
+    typesData.value = Array.isArray(types) ? types[0] : types || {}
+    console.log('GET_TYPES response:', typesData.value)
+  } catch (err) {
+    console.error('GET_TYPES error:', err)
+  }
+})
+
+// --- Types / selections for chained selectors ---
+const typesData = ref({})
+const loadingTypes = ref(false)
+
+const ticketSelection = reactive({
+  category: null,
+  infrastructure: null,
+  machine_type: null,
+  electric_subtype: null,
+  mechanical_subtype: null,
+})
+
+// used to prevent watchers from marking fields as "touched" during programmatic resets
+const isResetting = ref(false)
+
+const categoryOptions = computed(() => {
+  const cats = typesData.value?.categories || {}
+  return Object.entries(cats).map(([code, name]) => ({ code, name }))
+})
+const infraOptions = computed(() => {
+  const cats = typesData.value?.infrastructure_categories || {}
+  return Object.entries(cats).map(([code, name]) => ({ code, name }))
+})
+const machineTypeOptions = computed(() => {
+  const types = typesData.value?.machine_types || {}
+  return Object.entries(types).map(([code, name]) => ({ code, name }))
+})
+const electricSubtypeOptions = computed(() => {
+  const subs = typesData.value?.electric_machine_subtypes || {}
+  return Object.entries(subs).map(([code, name]) => ({ code, name }))
+})
+const mechanicalSubtypeOptions = computed(() => {
+  const subs = typesData.value?.mechanical_machine_subtypes || {}
+  return Object.entries(subs).map(([code, name]) => ({ code, name }))
+})
+
+// Reset dependent selections when parent changes
+watch(() => ticketSelection.category, (v) => {
+  if (v !== 'infrastructure') {
+    ticketSelection.infrastructure = null
+    ticketSelection.machine_type = null
+    ticketSelection.electric_subtype = null
+    ticketSelection.mechanical_subtype = null
+  }
+  // mark touched for validation UI unless we're resetting programmatically
+  if (!isResetting.value) touched.category = true
+})
+watch(() => ticketSelection.infrastructure, (v) => {
+  if (v !== 'machines') {
+    ticketSelection.machine_type = null
+    ticketSelection.electric_subtype = null
+    ticketSelection.mechanical_subtype = null
+  }
+  if (!isResetting.value) touched.infrastructure_category = true
+})
+watch(() => ticketSelection.machine_type, (v) => {
+  if (v !== 'electric') ticketSelection.electric_subtype = null
+  if (v !== 'mechanical') ticketSelection.mechanical_subtype = null
+  if (!isResetting.value) touched.machine_type = true
+})
+watch(() => ticketSelection.electric_subtype, (v) => { if (!isResetting.value) touched.electric_machine_subtype = true })
+watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value) touched.mechanical_machine_subtype = true })
 </script>
 
 <style scoped>
@@ -600,6 +887,13 @@ async function handleSubmit() {
 .item-icon {
   font-size: 20px;
   color: var(--ion-color-warning, #ff8c00); /* make icons orange for guest/title/description/file */
+}
+
+/* Selector labels (stacked) should match other input label sizing */
+.selector-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
 }
 
 /* File preview chip */
