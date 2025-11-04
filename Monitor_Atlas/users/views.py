@@ -35,6 +35,12 @@ from .jwt import generate_token, verify_token
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
+from loguru import logger
+
+from roles.helpers import (
+    assign_new_user_base_permissions,
+    assign_created_instance_permissions,
+)
 
 # User ViewSet
 
@@ -115,12 +121,28 @@ class UserViewSet(ModelViewSet):
     scope = "user"
 
     def perform_create(self, serializer):
+        user = self.request.user
+        if not user.is_superuser:
+            tenant = user.tenant
+            instance.tenant = tenant
+            assign_new_user_base_permissions(instance)
+        else:
+            instance.tenant = None
+            logger.debug("Please, manually add the tenant for this user")
+
         instance = serializer.save()
 
+        assign_created_instance_permissions(instance, user)
+
         token = generate_token(instance.id, scope="verify_email", expires_minutes=60)
+
         send_password_reset_email(instance, token)
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
+        logger.debug(f"Sent password reset email to new user {instance.username}")
+
+    @action(
+        detail=True, methods=["patch"], permission_classes=[HasPermission], scope="user"
+    )
     def set_user_image(self, request, pk=None):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -128,7 +150,9 @@ class UserViewSet(ModelViewSet):
         serializer.save()
         return Response(serializer.data)
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
+    @action(
+        detail=True, methods=["patch"], permission_classes=[HasPermission], scope="user"
+    )
     def disable_user(self, request, pk=None):
         instance = self.get_object()
         instance.is_active = False
@@ -136,7 +160,9 @@ class UserViewSet(ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
+    @action(
+        detail=True, methods=["patch"], permission_classes=[HasPermission], scope="user"
+    )
     def enable_user(self, request, pk=None):
         instance = self.get_object()
         instance.is_active = True
@@ -303,6 +329,9 @@ class GoogleLoginView(APIView):
             },
         )
 
+        if created:
+            assign_new_user_base_permissions(user)
+
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
 
@@ -451,6 +480,9 @@ class AccountVerificationView(APIView):
             user = User.objects.get(id=user_id)
             user.is_active = True
             user.save()
+
+            assign_new_user_base_permissions(user)
+
             return Response({"detail": "Account verified successfully."}, status=200)
         except (ValueError, User.DoesNotExist) as e:
             return Response({"detail": str(e)}, status=400)

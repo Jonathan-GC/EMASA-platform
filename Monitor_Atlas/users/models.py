@@ -7,6 +7,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from organizations.models import Tenant
 
 
 class Address(models.Model):
@@ -43,6 +44,8 @@ class UserBase(models.Model):
     address = models.ForeignKey(
         MainAddress, on_delete=models.CASCADE, null=True, blank=True
     )
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT, null=True, blank=True)
 
     class Meta:
         abstract = True
