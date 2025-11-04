@@ -26,8 +26,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             else:
                 is_global = False
         else:
-            is_global = False
-            cs_tenant_id = None
+            if user.tenant:
+                tenant = user.tenant
+                cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+                if tenant.name == "EMASA":
+                    is_global = True
+                else:
+                    is_global = False
+            else:
+                is_global = False
+                cs_tenant_id = None
 
         token["user_id"] = user.id
         token["username"] = user.username
