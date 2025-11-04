@@ -39,9 +39,10 @@
                 </ion-radio-group>
               </ion-item>
 
-              <ion-item v-else-if="field.type === 'select'">
-                <ion-select :key="`${field.key}-${componentKey}`" v-model="formValues[field.key]" :label="field.label"
-                  label-placement="floating" :disabled="field.disabled" :required="field.required"
+              <ion-item v-else-if="field.type === 'select'" class="custom" :button="falxse">
+                <ion-label position="stacked" class="!mb-2">{{ field.label }}</ion-label>
+                <ion-select :key="`${field.key}-${componentKey}`" v-model="formValues[field.key]"
+                  :disabled="field.disabled" :required="field.required" fill="solid"
                   @ion-change="handleFieldChange(field.key, $event.detail.value)">
                   <ion-select-option v-for="option in field.options" :key="option.value" :value="option.value">
                     {{ option.label }}

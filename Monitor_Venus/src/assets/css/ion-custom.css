@@ -17,6 +17,11 @@ ion-item.custom{
     --border--style: 0px;
     box-shadow: none!important;
     --border-radius: 0px!important;
+    --background-hover: transparent;
+    --background-focused: transparent;
+    --background-activated: transparent;
+    --ripple-color: transparent;
+    cursor: default;
 }
 ion-input-password-toggle.custom ion-button {
     --color: #000000;

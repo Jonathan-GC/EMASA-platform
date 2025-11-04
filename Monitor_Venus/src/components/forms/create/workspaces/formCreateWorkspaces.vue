@@ -53,13 +53,12 @@ const handleItemCreated = () => {
 };
 
 // Method to fetch user types from the API
-const fetchTypes = async () => {
+const fetchTenants = async () => {
   try {
-    const headers = { 'API-VERSION': '1' };
-    const integraTypes = await API.get(API.INTEGRA_USER_TYPES, headers);
-    const typesField = formFields.value.find(f => f.key === 'type');
-    if (typesField) {
-      typesField.options = integraTypes.map((intType: string) => ({
+    const tenants = await API.get(API.TENANT);
+    const tenantField = formFields.value.find(f => f.key === 'type');
+    if (tenantField) {
+      tenantField.options = tenants.map((intType: string) => ({
         label: intType,
         value: intType.toUpperCase(),
       }));
@@ -100,6 +99,7 @@ onMounted(async () => {
   //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
+  await fetchTenants();
   loaded.value = true;
   emit('loaded');
 });

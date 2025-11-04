@@ -10,7 +10,7 @@
   "workspace": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "tenant", "label": "Tenant id", "type": "text" }
+    { "key": "tenant", "label": "Tenant id", "type": "select", "options": [] }
   ],
 
   "gateway": [
