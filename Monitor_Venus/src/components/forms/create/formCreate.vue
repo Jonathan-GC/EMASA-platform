@@ -39,15 +39,25 @@
                 </ion-radio-group>
               </ion-item>
 
-              <ion-item v-else-if="field.type === 'select'" class="custom" :button="falxse">
+              <ion-item v-else-if="field.type === 'select'" class="custom">
                 <ion-label position="stacked" class="!mb-2">{{ field.label }}</ion-label>
-                <ion-select :key="`${field.key}-${componentKey}`" v-model="formValues[field.key]"
-                  :disabled="field.disabled" :required="field.required" fill="solid"
-                  @ion-change="handleFieldChange(field.key, $event.detail.value)">
-                  <ion-select-option v-for="option in field.options" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </ion-select-option>
-                </ion-select>
+                <ModalSelector
+                  v-model="formValues[field.key]"
+                  :options="field.options || []"
+                  :title="field.label || 'Seleccionar'"
+                  :placeholder="field.placeholder || 'Seleccionar...'"
+                  :disabled="field.disabled || false"
+                  :searchable="field.searchable !== false"
+                  display-field="label"
+                  value-field="value"
+                  @update:modelValue="handleFieldChange(field.key, $event)"
+                >
+                <template #display="{ selected }">
+                    <span v-if="selected">{{ selected.label }}</span>
+                    <span v-else class="text-gray-500">{{ field.placeholder || 'Seleccionar...' }}</span>
+                  </template>
+                  
+                </ModalSelector>
               </ion-item>
 
               <ion-item v-else-if="field.type === 'multiple-select'">
@@ -60,7 +70,7 @@
               </ion-item>
 
               <ion-item v-else-if="field.type === 'textarea'" class="custom">
-                <ion-label position="stacked" class="!mb-2">Description</ion-label>
+                <ion-label position="stacked" class="!mb-2">{{field.label}}</ion-label>
                 <ion-textarea v-model="formValues[field.key]" class="custom" fill="solid" rows="5"
                   ></ion-textarea>
               </ion-item>
@@ -110,6 +120,7 @@ import {
   IonButton,
   IonSpinner,
 } from '@ionic/vue';
+import ModalSelector from '@/components/ui/ModalSelector.vue';
 import API from "@utils/api/api";
 
 const props = defineProps({
@@ -202,3 +213,36 @@ async function createItem() {
   }
 }
 </script>
+
+<style scoped>
+/* Wrapper para el campo de selección */
+.select-field-wrapper {
+  margin-bottom: 1rem;
+  padding: 0 16px;
+}
+
+.select-field-wrapper ion-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 14px;
+  color: var(--ion-color-step-600);
+}
+
+/* Asegurar que el ModalSelector tenga el mismo estilo que otros inputs */
+.select-field-wrapper :deep(.modal-selector-button) {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-field-wrapper :deep(.modal-selector-button:hover:not(.disabled)) {
+  background-color: var(--ion-color-light-shade);
+}
+
+.select-field-wrapper :deep(.modal-selector-button.disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

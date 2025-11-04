@@ -35,7 +35,7 @@
               <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
             </ion-button>
 
-            <QuickControl :toCreate="true" type="workspace" @itemCreated="handleItemRefresh" />
+            <QuickControl :toCreate="true" type="workspace" @itemCreated="handleItemRefresh" text="hola" />
           </div>
 
           <!-- Table using ion-grid -->
@@ -119,11 +119,9 @@
         <!-- Empty state -->
         <div v-else class="empty-state">
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
-          <h3>No hay gateways</h3>
-          <p>No se encontraron gateways en el sistema</p>
-          <ion-button @click="fetchWorkspaces" fill="outline">
-            Buscar gateways
-          </ion-button>
+          <h3>No hay workspaces</h3>
+          <p>No se encontraron workspaces en el sistema</p>
+          <quick-control to-initial type="workspace" @item-created="handleItemRefresh" text="Agregar Workspace" />
         </div>
       </ion-card-content>
     </ion-card>

@@ -32,7 +32,7 @@
 
   "device_profile": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "region", "label": "Región", "type": "text" },
     { "key": "workspace_id", "label": "Workspace", "type": "text" },
     { "key": "abp_rx1_delay", "label": "Abp rx1 delay", "type": "text" },

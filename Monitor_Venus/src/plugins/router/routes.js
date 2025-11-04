@@ -72,7 +72,6 @@ export const routes = [
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['superuser', 'admin'],
                     label: 'Workspaces'
                 }
             },

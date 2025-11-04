@@ -3,7 +3,7 @@
     <ion-content class="ion-padding">
       <FormCreate
           :type="type"
-          :fields="fields"
+          :fields="formFields"
           :label="label"
           :additionalData="additionalData"
           @itemCreated="handleItemCreated"
@@ -56,11 +56,11 @@ const handleItemCreated = () => {
 const fetchTenants = async () => {
   try {
     const tenants = await API.get(API.TENANT);
-    const tenantField = formFields.value.find(f => f.key === 'type');
+    const tenantField = formFields.value.find(f => f.key === 'tenant');
     if (tenantField) {
       tenantField.options = tenants.map((intType: string) => ({
-        label: intType,
-        value: intType.toUpperCase(),
+        label: intType.name,
+        value: intType.id,
       }));
     }
   } catch (error) {
