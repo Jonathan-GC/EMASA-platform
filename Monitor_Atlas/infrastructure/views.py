@@ -42,6 +42,8 @@ from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExam
 from .helpers import encrypt_dev_eui
 from django.conf import settings
 
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
+
 
 @extend_schema_view(
     list=extend_schema(description="Gateway List (ChirpStack)"),
@@ -238,6 +240,16 @@ class TypeViewSet(viewsets.ModelViewSet):
     serializer_class = TypeSerializer
     permission_classes = [HasPermission]
     scope = "type"
+
+    def get_queryset(self):
+        # Todos ven todos los tipos
+        return Type.objects.all()
+
+    def get_permissions(self):
+        # Solo superuser o staff de EMASA puede gestionar tipos
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -748,6 +760,19 @@ class LocationViewSet(viewsets.ModelViewSet):
     serializer_class = LocationSerializer
     permission_classes = [HasPermission]
     scope = "location"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Location.objects.all()
+
+        accessible_gateways = get_objects_for_user(
+            user,
+            "infrastructure.view_gateway",
+            klass=Gateway,
+            accept_global_perms=False,
+        )
+        return Location.objects.filter(gateway__in=accessible_gateways)
 
     def perform_create(self, serializer):
         instance = serializer.save()

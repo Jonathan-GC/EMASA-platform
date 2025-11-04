@@ -24,6 +24,7 @@ from roles.helpers import (
 )
 
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 
 @extend_schema_view(
@@ -83,6 +84,25 @@ class TenantViewSet(viewsets.ModelViewSet):
     serializer_class = TenantSerializer
     permission_classes = [HasPermission]
     scope = "tenant"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Tenant.objects.all()
+
+        if user.is_staff:
+            return get_objects_for_user(
+                user,
+                "organizations.view_tenant",
+                klass=Tenant,
+                accept_global_perms=False,
+            )
+
+        if user.tenant:
+            return Tenant.objects.filter(id=user.tenant.id)
+
+        return Tenant.objects.none()
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -213,6 +233,14 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     serializer_class = SubscriptionSerializer
     permission_classes = [HasPermission]
     scope = "subscription"
+
+    def get_queryset(self):
+        return Subscription.objects.all()
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         instance = serializer.save()
