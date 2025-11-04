@@ -22,6 +22,8 @@ from roles.helpers import (
     assign_new_workspace_base_permissions,
 )
 
+from rest_framework.decorators import action
+
 
 @extend_schema_view(
     list=extend_schema(description="Workspace List"),
@@ -62,6 +64,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     update=extend_schema(description="Tenant Update"),
     partial_update=extend_schema(description="Tenant Partial Update"),
     destroy=extend_schema(description="Tenant Destroy"),
+    get_tenant_by_cs_id=extend_schema(description="Get Tenant by CS ID"),
 )
 class TenantViewSet(viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
@@ -165,6 +168,24 @@ class TenantViewSet(viewsets.ModelViewSet):
             logger.debug(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
 
         instance.delete()
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="(?P<cs_tenant_id>[^/.]+)",
+        permission_classes=[HasPermission],
+        scope="tenant",
+    )
+    def get_tenant_by_cs_id(self, request, cs_tenant_id=None):
+        """
+        Custom action to get tenant details by CS tenant ID.
+        """
+        try:
+            tenant = Tenant.objects.filter(cs_tenant_id=cs_tenant_id).first()
+            serializer = self.get_serializer(tenant)
+            return Response(serializer.data)
+        except Tenant.DoesNotExist:
+            return Response({"detail": "Tenant not found."}, status=404)
 
 
 @extend_schema_view(

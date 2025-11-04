@@ -89,6 +89,10 @@ class HasPermission(BasePermission):
         if not perm_name:
             logger.warning(f"No permission mapping found for action: {action}")
             return False
+
+        if action == "get" and view.action == "list":
+            return True
+
         full_perm = f"{view.__class__.__module__.split('.')[0]}.{perm_name}"
         return user.has_perm(full_perm)
 

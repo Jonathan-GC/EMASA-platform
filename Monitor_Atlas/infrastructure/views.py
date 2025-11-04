@@ -14,6 +14,7 @@ from .serializers import (
 from .models import Gateway, Machine, Type, Device, Application, Location, Activation
 
 from roles.permissions import HasPermission
+from guardian.shortcuts import get_objects_for_user
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -178,6 +179,17 @@ class MachineViewSet(viewsets.ModelViewSet):
     serializer_class = MachineSerializer
     permission_classes = [HasPermission]
     scope = "machine"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Machine.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_machine",
+            klass=Machine,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()
