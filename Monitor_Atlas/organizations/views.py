@@ -17,6 +17,11 @@ from chirpstack.chirpstack_api import (
 from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
 
+from roles.helpers import (
+    assign_new_tenant_base_permissions,
+    assign_new_workspace_base_permissions,
+)
+
 
 @extend_schema_view(
     list=extend_schema(description="Workspace List"),
@@ -34,6 +39,20 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        user = self.request.user
+        user_tenant = user.tenant
+        workspace_tenant = instance.tenant
+        if user_tenant != workspace_tenant:
+            logger.warning(
+                f"User tenant {user_tenant} does not match workspace tenant {workspace_tenant}"
+            )
+            raise PermissionError(
+                "User does not have permission to create workspace for this tenant"
+            )
+        assign_new_workspace_base_permissions(instance, user)
+        logger.debug(
+            f"Assigned base workspace permissions to user {user.username} for workspace {instance.name}"
+        )
 
 
 @extend_schema_view(
@@ -52,6 +71,9 @@ class TenantViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        user = self.request.user
+
+        assign_new_tenant_base_permissions(instance, user)
 
         sync_response = sync_tenant_create(instance)
 

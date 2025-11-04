@@ -9,6 +9,9 @@ from .serializers import (
 from .models import Role, WorkspaceMembership
 
 from drf_spectacular.utils import extend_schema_view, extend_schema
+from .helpers import assign_new_role_base_permissions
+
+from loguru import logger
 
 
 @extend_schema_view(
@@ -31,6 +34,17 @@ class RoleViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        user = self.request.user
+        user_tenant = user.tenant
+        role_tenant = instance.workspace.tenant
+        if user_tenant != role_tenant:
+            raise PermissionError(
+                "User does not have permission to create role for this tenant"
+            )
+        assign_new_role_base_permissions(instance, user)
+        logger.debug(
+            f"Assigned base role permissions to user {user.username} for role {instance.name}"
+        )
 
 
 @extend_schema_view(
