@@ -3,6 +3,7 @@ from .models import User
 from roles.permissions import HasPermission
 
 from rest_framework.viewsets import ModelViewSet
+from guardian.shortcuts import get_objects_for_user
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
@@ -119,6 +120,17 @@ class UserViewSet(ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [HasPermission]
     scope = "user"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return User.objects.all()
+        return get_objects_for_user(
+            user,
+            "users.view_user",
+            klass=User,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         user = self.request.user

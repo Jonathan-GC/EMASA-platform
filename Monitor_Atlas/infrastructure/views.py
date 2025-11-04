@@ -57,6 +57,17 @@ class GatewayViewSet(viewsets.ModelViewSet):
     permission_classes = [HasPermission]
     scope = "gateway"
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Gateway.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_gateway",
+            klass=Gateway,
+            accept_global_perms=False,
+        )
+
     def perform_create(self, serializer):
         instance = serializer.save()
 
@@ -288,6 +299,17 @@ class DeviceViewSet(viewsets.ModelViewSet):
     serializer_class = DeviceSerializer
     permission_classes = [HasPermission]
     scope = "device"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Device.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_device",
+            klass=Device,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -593,6 +615,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
     permission_classes = [HasPermission]
     scope = "application"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Application.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_application",
+            klass=Application,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()

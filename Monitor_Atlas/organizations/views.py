@@ -6,6 +6,7 @@ from .models import Workspace, Tenant, Subscription
 from .serializers import WorkspaceSerializer, TenantSerializer, SubscriptionSerializer
 
 from roles.permissions import HasPermission
+from guardian.shortcuts import get_objects_for_user
 
 from chirpstack.chirpstack_api import (
     sync_tenant_get,
@@ -39,12 +40,23 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     permission_classes = [HasPermission]
     scope = "workspace"
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Workspace.objects.all()
+        return get_objects_for_user(
+            user,
+            "organizations.view_workspace",
+            klass=Workspace,
+            accept_global_perms=False,
+        )
+
     def perform_create(self, serializer):
         instance = serializer.save()
         user = self.request.user
         user_tenant = user.tenant
         workspace_tenant = instance.tenant
-        if user_tenant != workspace_tenant:
+        if user_tenant != workspace_tenant and not user.is_superuser:
             logger.warning(
                 f"User tenant {user_tenant} does not match workspace tenant {workspace_tenant}"
             )
