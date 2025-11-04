@@ -73,6 +73,9 @@ class TenantViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         user = self.request.user
 
+        user.tenant = instance
+        user.save()
+
         assign_new_tenant_base_permissions(instance, user)
 
         sync_response = sync_tenant_create(instance)
