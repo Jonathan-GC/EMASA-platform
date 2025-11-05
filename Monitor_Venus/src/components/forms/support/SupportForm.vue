@@ -233,6 +233,28 @@
 
 
               <!-- Description -->
+              <!-- Organization (optional) -->
+              <ion-item class="custom" lines="none">
+                <ion-icon :icon="documentTextOutline" slot="start" class="item-icon" />
+                <ion-input
+                  class="custom"
+                  fill="solid"
+                  v-model="form.organization"
+                  label="Organization"
+                  label-placement="floating"
+                  type="text"
+                  inputmode="text"
+                  :aria-invalid="!!errors.organization"
+                  aria-describedby="organization-error"
+                  @ion-blur="onBlur('organization')"
+                  placeholder="Organization (optional)"
+                />
+              </ion-item>
+              <div class="field-error">
+                <ion-note v-if="errors.organization && (touched.organization || submitAttempted)" id="organization-error" color="danger">
+                  {{ errors.organization }}
+                </ion-note>
+              </div>
               <ion-item class="custom" lines="none">
                 <ion-icon :icon="createOutline" slot="start" class="item-icon" />
                 <ion-textarea
@@ -369,6 +391,7 @@ import ModalSelector from '@/components/ui/ModalSelector.vue'
 type SupportTicketPayload = {
   title: string
   description: string
+  organization?: string | null
   guest_name?: string
   guest_email?: string
   user?: string | number
@@ -385,6 +408,7 @@ const DESC_MAX = 1000
 const form = reactive<SupportTicketPayload>({
   title: '',
   description: '',
+  organization: '',
   guest_name: '',
   guest_email: '',
 })
@@ -474,6 +498,7 @@ const isBusy = computed(() => isSubmitting.value || isUploading.value)
 const errors = reactive<Record<keyof Required<SupportTicketPayload>, string | null>>({
   title: null,
   description: null,
+  organization: null,
   guest_name: null,
   guest_email: null,
   user: null,
@@ -485,7 +510,7 @@ const errors = reactive<Record<keyof Required<SupportTicketPayload>, string | nu
 })
 
 // touched map and submitAttempted flag: only show errors after blur or submit
-const touched = reactive<Record<string, boolean>>({ title: false, description: false, guest_name: false, guest_email: false, user: false, category: false, infrastructure_category: false, machine_type: false, electric_machine_subtype: false, mechanical_machine_subtype: false })
+const touched = reactive<Record<string, boolean>>({ title: false, description: false, organization: false, guest_name: false, guest_email: false, user: false, category: false, infrastructure_category: false, machine_type: false, electric_machine_subtype: false, mechanical_machine_subtype: false })
 const submitAttempted = ref(false)
 
 function onBlur(field: keyof SupportTicketPayload) {
@@ -516,6 +541,13 @@ function validateField(field: keyof SupportTicketPayload) {
     return
   }
 
+  // organization: optional text, enforce maximum length only
+  if (field === 'organization') {
+    const val = (form.organization ?? '').toString().trim()
+    errors.organization = val && val.length > 100 ? 'Organization must be 100 characters or less.' : null
+    return
+  }
+
   // handle selection fields (ticketSelection)
   if (field === 'category') {
     errors.category = !ticketSelection.category ? 'Please select a category.' : null
@@ -542,6 +574,7 @@ function validateField(field: keyof SupportTicketPayload) {
 }
 function validateAll(): boolean {
   ;(['title', 'description'] as (keyof SupportTicketPayload)[]).forEach(validateField)
+  ;(['organization'] as (keyof SupportTicketPayload)[]).forEach(validateField)
   if (!isLoggedIn.value) {
     ;(['guest_name', 'guest_email'] as (keyof SupportTicketPayload)[]).forEach(validateField)
   } else {
@@ -666,6 +699,7 @@ function resetForm() {
   // Clear values
   form.title = ''
   form.description = ''
+  form.organization = ''
   form.guest_name = ''
   form.guest_email = ''
   // Clear ticket selections
@@ -712,6 +746,8 @@ async function handleSubmit() {
       description: form.description.trim(),
     }
 
+    // optional organization
+    if (form.organization && String(form.organization).trim()) payload.organization = String(form.organization).trim()
     // selections: only add if present
     if (ticketSelection.category) payload.category = ticketSelection.category
     if (ticketSelection.infrastructure) payload.infrastructure_category = ticketSelection.infrastructure
