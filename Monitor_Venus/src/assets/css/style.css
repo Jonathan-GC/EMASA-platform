@@ -9,7 +9,7 @@
 @import "./auth-styles.css";
 @import "./common.css";
 @import "./footer.css";
-@import "./tabs.css";
+/*@import "./tabs.css";*/
 
 body a {
     color: var(--color-amber-600);
