@@ -141,3 +141,6 @@ class IsAdminOrIsAuthenticatedReadOnly(BasePermission):
             return True
 
         return request.method in SAFE_METHODS
+
+
+# Support permissions can be added here in the future

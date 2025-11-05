@@ -14,6 +14,7 @@ from .serializers import (
     CommentAttachmentSerializer,
     NotificationSerializer,
     SupportMembershipSerializer,
+    TicketConversationSerializer,
 )
 
 from rest_framework.decorators import action
@@ -22,6 +23,8 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
 from rest_framework.response import Response
 
 from .models import (
+    PRIORITY_CHOICES,
+    STATUS_CHOICES,
     CATEGORY_CHOICES,
     MACHINE_TYPE_CHOICES,
     ELECTRIC_MACHINE_CHOICES,
@@ -48,12 +51,24 @@ class TicketViewSet(viewsets.ModelViewSet):
         support_member = SupportMembership.objects.filter(
             role="support_manager"
         ).first()
+        if not support_member:
+            logger.error(
+                "No support member with role 'support_manager' found. If in development, please run initial setup."
+            )
+            raise Exception(
+                "Support manager not found. If in development, please run initial setup."
+            )
         user = support_member.user
         ticket = serializer.save()
+        if ticket.organization:
+            ticket_body = f"{ticket.organization} submitted a Ticket."
+        else:
+            ticket_body = f"Ticket {ticket_number} has been submitted."
+
         ticket_number = f"TICKET-{ticket.id}"
         notification = Notification.objects.create(
             title="New Ticket Submitted",
-            message=f"Ticket {ticket_number} has been created.",
+            message=ticket_body,
             type="warning",
             user=user,
         )
@@ -61,10 +76,56 @@ class TicketViewSet(viewsets.ModelViewSet):
         notification.notify_ws()
         return ticket
 
+    @action(detail=True, methods=["get"], description="Get ticket conversation")
+    def conversation(self, request, pk=None):
+        """
+        Returns the complete conversation for a ticket including:
+        - Ticket details
+        - All ticket attachments
+        - All comments (ordered chronologically) with their attachments
+        - The 'response' flag in each comment indicates if it's from the technician (True) or user (False)
+        """
+        ticket = self.get_object()
+
+        # Prefetch related data to optimize queries
+        ticket = Ticket.objects.prefetch_related(
+            "attachments", "comments__attachments", "comments__user"
+        ).get(pk=ticket.pk)
+
+        serializer = TicketConversationSerializer(ticket)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], description="Delegate the ticket")
+    def delegate(self, request, pk=None):
+        ticket = self.get_object()
+        assigned_to_id = request.data.get("assigned_to_id")
+        if not assigned_to_id:
+            return Response({"error": "assigned_to_id is required."}, status=400)
+
+        try:
+            assigned_user = User.objects.get(id=assigned_to_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=404)
+
+    @action(detail=False, methods=["get"], description="Get support members")
+    def get_support_members(self, request):
+        support_members = SupportMembership.objects.select_related("user").all()
+        data = [
+            {
+                "id": member.user.id,
+                "full_name": member.user.get_full_name() or member.user.username,
+                "role": member.role,
+            }
+            for member in support_members
+        ]
+        return Response(data)
+
     @action(detail=False, methods=["get"], description="Get all classification types")
     def get_all_types(self, request):
         return Response(
             {
+                "priority_levels": dict(PRIORITY_CHOICES),
+                "status_types": dict(STATUS_CHOICES),
                 "categories": dict(CATEGORY_CHOICES),
                 "infrastructure_categories": dict(INFRASTRUCTURE_CATEGORY_CHOICES),
                 "machine_types": dict(MACHINE_TYPE_CHOICES),

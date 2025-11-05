@@ -49,12 +49,6 @@ class TicketSerializer(serializers.ModelSerializer):
         return data
 
 
-class CommentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Comment
-        fields = "__all__"
-
-
 class AttachmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attachment
@@ -65,6 +59,58 @@ class CommentAttachmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentAttachment
         fields = "__all__"
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    attachments = CommentAttachmentSerializer(many=True, read_only=True)
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = "__all__"
+
+    def get_user_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+
+class TicketConversationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the complete ticket conversation including:
+    - Ticket details
+    - Ticket attachments
+    - All comments with their attachments (ordered chronologically)
+    """
+
+    attachments = AttachmentSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    user_name = serializers.SerializerMethodField()
+    assigned_to_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Ticket
+        fields = "__all__"
+
+    def get_user_name(self, obj):
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.username
+        elif obj.guest_name:
+            return obj.guest_name
+        return "Unknown"
+
+    def get_assigned_to_name(self, obj):
+        if obj.assigned_to:
+            return obj.assigned_to.get_full_name() or obj.assigned_to.username
+        return None
+
+    def to_representation(self, instance):
+        """
+        Override to ensure comments are ordered chronologically
+        """
+        representation = super().to_representation(instance)
+        # Comments are already ordered in the view, but we ensure it here too
+        comments = instance.comments.all().order_by("created_at")
+        representation["comments"] = CommentSerializer(comments, many=True).data
+        return representation
 
 
 class NotificationSerializer(serializers.ModelSerializer):

@@ -137,6 +137,7 @@ class Ticket(models.Model):
 
     guest_name = models.CharField(max_length=100, null=True, blank=True)
     guest_email = models.EmailField(null=True, blank=True)
+    organization = models.CharField(max_length=200, null=True, blank=True)
 
     assigned_to = models.ForeignKey(
         User,
@@ -163,6 +164,7 @@ class Comment(models.Model):
     ticket = models.ForeignKey(
         Ticket, related_name="comments", on_delete=models.CASCADE
     )
+    response = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
