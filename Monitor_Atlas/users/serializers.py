@@ -19,8 +19,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             .first()
         )
         is_superuser = user.is_superuser
+        is_tenant_admin = False
 
         if membership and membership.workspace and membership.workspace.tenant:
+            if membership.role and membership.role.is_admin:
+                is_tenant_admin = True
             tenant = membership.workspace.tenant
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
             if tenant.name == "EMASA":
@@ -59,6 +62,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["cs_tenant_id"] = cs_tenant_id
         token["is_superuser"] = is_superuser
         token["is_support"] = is_support
+        token["is_tenant_admin"] = is_tenant_admin
 
         return token
 
