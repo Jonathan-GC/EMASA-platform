@@ -1,11 +1,19 @@
 from rest_framework import viewsets
-from .models import Ticket, Comment, Attachment, CommentAttachment, Notification
+from .models import (
+    Ticket,
+    Comment,
+    Attachment,
+    CommentAttachment,
+    Notification,
+    SupportMembership,
+)
 from .serializers import (
     TicketSerializer,
     CommentSerializer,
     AttachmentSerializer,
     CommentAttachmentSerializer,
     NotificationSerializer,
+    SupportMembershipSerializer,
 )
 
 from rest_framework.decorators import action
@@ -35,6 +43,23 @@ from .models import (
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
+
+    def perform_create(self, serializer):
+        support_member = SupportMembership.objects.filter(
+            role="support_manager"
+        ).first()
+        user = support_member.user
+        ticket = serializer.save()
+        ticket_number = f"TICKET-{ticket.id}"
+        notification = Notification.objects.create(
+            title="New Ticket Submitted",
+            message=f"Ticket {ticket_number} has been created.",
+            type="warning",
+            user=user,
+        )
+        notification.save()
+        notification.notify_ws()
+        return ticket
 
     @action(detail=False, methods=["get"], description="Get all classification types")
     def get_all_types(self, request):

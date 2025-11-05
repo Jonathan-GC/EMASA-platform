@@ -1,4 +1,11 @@
-from .models import Ticket, Comment, Attachment, CommentAttachment, Notification
+from .models import (
+    Ticket,
+    Comment,
+    Attachment,
+    CommentAttachment,
+    Notification,
+    SupportMembership,
+)
 from rest_framework import serializers
 
 
@@ -63,4 +70,10 @@ class CommentAttachmentSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
+        fields = "__all__"
+
+
+class SupportMembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SupportMembership
         fields = "__all__"

@@ -6,18 +6,25 @@ from loguru import logger
 
 HERMES_API_URL = getattr(settings, "HERMES_API_URL", "http://localhost:5000")
 
+SUPPORT_MEMBERSHIP_ROLE_CHOICES = [
+    ("support_agent", "Support Agent"),
+    ("support_manager", "Support Manager"),
+    ("technician", "Technician"),
+    ("other", "Other"),
+]
+
 PRIORITY_CHOICES = [
-    ("Low", "Low"),
-    ("Medium", "Medium"),
-    ("High", "High"),
-    ("Urgent", "Urgent"),
+    ("low", "Low"),
+    ("medium", "Medium"),
+    ("high", "High"),
+    ("urgent", "Urgent"),
 ]
 
 STATUS_CHOICES = [
-    ("Open", "Open"),
-    ("In Progress", "In Progress"),
-    ("Resolved", "Resolved"),
-    ("Closed", "Closed"),
+    ("open", "Open"),
+    ("in_progress", "In Progress"),
+    ("resolved", "Resolved"),
+    ("closed", "Closed"),
 ]
 
 NOTIFICATION_TYPE_CHOICES = [
@@ -79,6 +86,17 @@ MECHANICAL_MACHINE_CHOICES = [
     ("combinada", "Combinada"),
     ("tractor", "Tractor"),
 ]
+
+
+class SupportMembership(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.CharField(
+        max_length=20, choices=SUPPORT_MEMBERSHIP_ROLE_CHOICES, default="other"
+    )
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role}"
 
 
 # Create your models here.

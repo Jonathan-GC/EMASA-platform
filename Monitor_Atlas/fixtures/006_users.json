@@ -15,7 +15,7 @@
     "fields": {
       "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
       "last_login": "2025-08-13T15:58:34Z",
-      "code": "admin_1",
+      "code": "support_manager",
       "img": "img_url",
       "name": "Alberto Colt",
       "last_name": "Rodriguez Smith",
@@ -25,7 +25,7 @@
       "phone": "3001234567",
       "tenant": 1,
       "address": 2,
-      "username": "emasa_admin",
+      "username": "support.manager",
       "is_active": true,
       "is_staff": false,
       "is_superuser": false,
@@ -124,5 +124,14 @@
     "model": "roles.workspacemembership",
     "pk": 4,
     "fields": { "workspace": 3, "user": 5, "role": 3 }
+  },
+  {
+    "model": "support.supportmembership",
+    "pk": 1,
+    "fields": {
+      "user": 2,
+      "role": "support_manager",
+      "joined_at": "2025-08-13T16:10:00Z"
+    }
   }
 ]

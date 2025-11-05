@@ -125,18 +125,12 @@ class UserViewSet(ModelViewSet):
         user = self.request.user
         if user.is_superuser:
             return User.objects.all()
-        
-        users = get_objects_for_user(
+        return get_objects_for_user(
             user,
             "users.view_user",
             klass=User,
             accept_global_perms=False,
         )
-        
-        if user.tenant:
-            users = users.filter(tenant=user.tenant)
-        
-        return users
 
     def perform_create(self, serializer):
         user = self.request.user
