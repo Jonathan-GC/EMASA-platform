@@ -1,3 +1,4 @@
+from loguru import logger
 from rest_framework import serializers
 from django.core.validators import validate_email
 from django.contrib.auth.password_validation import validate_password
@@ -29,11 +30,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             if user.tenant:
                 tenant = user.tenant
                 cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+                if cs_tenant_id is None:
+                    logger.warning(
+                        f"Tenant {tenant.id} for user {user.id} has no ChirpStack tenant ID."
+                    )
+                    cs_tenant_id = tenant.id
                 if tenant.name == "EMASA":
                     is_global = True
                 else:
                     is_global = False
             else:
+                logger.warning(
+                    f"User {user.id} has no tenant or workspace membership; setting is_global to False."
+                )
                 is_global = False
                 cs_tenant_id = None
 
@@ -108,6 +117,7 @@ class UserSerializer(serializers.ModelSerializer):
             "confirm_password",
             "img",
             "name",
+            "tenant",
             "last_name",
             "is_active",
             "phone",

@@ -1,4 +1,4 @@
-from guardian.shortcuts import assign_perm
+from guardian.shortcuts import assign_perm, remove_perm
 from loguru import logger
 
 
@@ -44,6 +44,9 @@ def assign_new_tenant_base_permissions(tenant, user):
 
     # Workspace creation permission is given to tenant owners
     assign_perm("organizations.add_workspace", user)
+
+    # Tenant creation is just one time usage
+    remove_perm("organizations.add_tenant", user)
 
     user.save()
 

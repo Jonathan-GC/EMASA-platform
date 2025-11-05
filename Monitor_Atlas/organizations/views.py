@@ -105,8 +105,9 @@ class TenantViewSet(viewsets.ModelViewSet):
         return Tenant.objects.none()
 
     def perform_create(self, serializer):
-        instance = serializer.save()
         user = self.request.user
+
+        instance = serializer.save()
 
         if not user.is_superuser:
             logger.debug(f"Assigning tenant {instance.name} to user {user.username}")
