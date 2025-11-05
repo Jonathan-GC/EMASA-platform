@@ -142,7 +142,7 @@
                   type="device"
                   :index="device.id" 
                   :name="device.name"
-                  :toView="`/infrastructure/applications/${ device.id}/devices`"
+                  :toView="`devices/${device.id}`"
                   to-edit
                   to-delete
                   :initial-data="setInitialData(device)"

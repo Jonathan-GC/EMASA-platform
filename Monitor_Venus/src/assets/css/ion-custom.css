@@ -67,3 +67,7 @@ ion-card-header.custom {
 ion-card-content.custom {
     padding-top: 0px;
 }
+
+ion-content.custom{
+    --background: #f9fafb;
+}
