@@ -108,12 +108,17 @@ class TenantViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         user = self.request.user
 
-        logger.debug(f"Assigning tenant {instance.name} to user {user.username}")
-        user.tenant = instance
-        user.save()
-        logger.debug(
-            f"Assigned tenant {instance.name} to user {user.username}: {user.tenant}"
-        )
+        if not user.is_superuser:
+            logger.debug(f"Assigning tenant {instance.name} to user {user.username}")
+            user.tenant = instance
+            user.save()
+            logger.debug(
+                f"Assigned tenant {instance.name} to user {user.username}: {user.tenant}"
+            )
+        else:
+            logger.debug(
+                f"User {user.username} is superuser, not assigning tenant automatically"
+            )
 
         assign_new_tenant_base_permissions(instance, user)
 
