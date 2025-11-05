@@ -5,7 +5,7 @@
     "fields": {
       "cs_tenant_id": "",
       "name": "EMASA",
-      "img": "img_url_placeholder",
+      "img": null,
       "subscription": 1,
       "description": "EMASA Tenant (Administration Management)",
       "sync_status": "PENDING",
@@ -19,7 +19,7 @@
     "fields": {
       "cs_tenant_id": "",
       "name": "Tecnobot",
-      "img": "img_url_placeholder",
+      "img": null,
       "subscription": 1,
       "description": "Tecnobot's Tenant",
       "sync_status": "PENDING",

@@ -79,7 +79,7 @@
     "pk": 3,
     "fields": {
       "name": "Bomba carepicha",
-      "img": "img_url_placeholder",
+      "img": null,
       "description": "Bomba del estanque 1 de la planta norte Tecnobot",
       "workspace": 1
     }

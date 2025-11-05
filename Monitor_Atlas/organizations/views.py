@@ -26,6 +26,13 @@ from roles.helpers import (
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
+from .helpers import (
+    get_or_create_default_workspace,
+    get_or_create_default_subscription,
+    get_no_role,
+    get_or_create_admin_role,
+)
+
 
 @extend_schema_view(
     list=extend_schema(description="Workspace List"),
@@ -106,20 +113,35 @@ class TenantViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
+        logger.debug(f"Creating tenant by user {user.username}")
 
         instance = serializer.save()
 
         if not user.is_superuser:
             logger.debug(f"Assigning tenant {instance.name} to user {user.username}")
             user.tenant = instance
-            user.save()
             logger.debug(
                 f"Assigned tenant {instance.name} to user {user.username}: {user.tenant}"
             )
+            workspace = get_or_create_default_workspace(instance)
+            admin_role = get_or_create_admin_role(workspace)
+            workspace_membership = workspace.workspacemembership_set.create(
+                user=user, role=admin_role
+            )
+            logger.debug(
+                f"Created workspace membership for user {user.username} in workspace {workspace.name} with role {admin_role.name}"
+            )
+            get_no_role(workspace)  # Ensure "No Role" exists
+            user.save()
+
         else:
             logger.debug(
                 f"User {user.username} is superuser, not assigning tenant automatically"
             )
+            # Creating workspace and admin role defaults anyways
+            get_or_create_default_workspace(instance)
+            get_or_create_admin_role(workspace)
+            get_no_role(workspace)  # Ensure "No Role" exists
 
         assign_new_tenant_base_permissions(instance, user)
 

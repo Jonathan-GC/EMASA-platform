@@ -34,7 +34,7 @@ class BillingAddress(Address):
 class UserBase(models.Model):
     code = models.CharField(max_length=80, null=True, blank=True)
     sub = models.CharField(max_length=80, null=True, blank=True)
-    img = models.CharField(max_length=255, blank=True, null=True)
+    img = models.FileField(upload_to="user_images/", blank=True, null=True)
     name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
     email = models.CharField(max_length=255, unique=True)

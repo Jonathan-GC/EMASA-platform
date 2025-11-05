@@ -130,3 +130,44 @@ def support_manager_can_view_all_support_members(support_manager, user):
     assign_perm("users.view_user", support_manager, user)
 
     user.save()
+
+
+def assign_base_tenant_admin_permissions_to_group(tenant, group):
+    """
+    Assign base tenant admin permissions to a group.
+    Permissions includes:
+    - Permission to modify/view/delete tenant
+    - Permission to add workspaces
+    """
+
+    assign_perm("organizations.view_tenant", group, tenant)
+    assign_perm("organizations.change_tenant", group, tenant)
+
+    # Workspace creation permission is given to tenant admins
+    assign_perm("organizations.add_workspace", group)
+
+    logger.debug(f"Assigned base tenant admin permissions to group {group.name}")
+
+    group.save()
+
+
+def assign_base_workspace_admin_permissions_to_group(workspace, group):
+    """
+    Assign base workspace admin permissions to a group.
+    Permissions includes:
+    - Permission to modify/view/delete workspace
+    - Permission to add roles
+    - Permission to add machines
+    """
+
+    assign_perm("workspaces.view_workspace", group, workspace)
+    assign_perm("workspaces.change_workspace", group, workspace)
+
+    # Role creation permission is given to workspace admins
+    assign_perm("roles.add_role", group)
+    # Machine creation permission is given to workspace admins
+    assign_perm("infrastructure.add_machine", group)
+
+    logger.debug(f"Assigned base workspace admin permissions to group {group.name}")
+
+    group.save()

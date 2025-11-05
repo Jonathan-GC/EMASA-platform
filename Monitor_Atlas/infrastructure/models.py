@@ -5,7 +5,7 @@ from chirpstack.models import DeviceProfile
 
 class Machine(models.Model):
     name = models.CharField(max_length=255)
-    img = models.CharField(max_length=255, blank=True, null=True)
+    img = models.FileField(upload_to="machine_icons/", blank=True, null=True)
     description = models.CharField(max_length=255, blank=True)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
 
@@ -15,7 +15,7 @@ class Machine(models.Model):
 
 class Type(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    img = models.CharField(max_length=255, blank=True, null=True)  # icon
+    img = models.FileField(upload_to="type_icons/", blank=True, null=True)  # icon
     description = models.CharField(max_length=255)
 
     def __str__(self):
@@ -213,3 +213,14 @@ class Gateway(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.workspace}"
+
+
+class Measurements(models.Model):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    min = models.FloatField()
+    max = models.FloatField()
+    threshold = models.FloatField()
+    unit = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"Measurement configuration for {self.device.name}"

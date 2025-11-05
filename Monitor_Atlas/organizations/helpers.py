@@ -1,5 +1,9 @@
 from .models import Workspace, Subscription, Tenant
 from roles.models import Role, WorkspaceMembership
+from roles.helpers import (
+    assign_base_tenant_admin_permissions_to_group,
+    assign_base_workspace_admin_permissions_to_group,
+)
 
 
 def get_or_create_default_workspace(tenant):
@@ -64,6 +68,10 @@ def get_or_create_admin_role(workspace):
         workspace=workspace,
         defaults={"name": "Admin", "is_admin": True, "color": "#ebcc34"},
     )
+    if created:
+        assign_base_tenant_admin_permissions_to_group(workspace.tenant, role.group)
+        assign_base_workspace_admin_permissions_to_group(workspace, role.group)
+
     return role
 
 

@@ -28,7 +28,7 @@ class Tenant(models.Model):
 
     cs_tenant_id = models.CharField(max_length=36, null=True, blank=True)
     name = models.CharField(max_length=90)
-    img = models.CharField(max_length=255, blank=True, null=True)
+    img = models.FileField(upload_to="tenant_images/", blank=True, null=True)
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
     description = models.CharField(max_length=255, blank=True, null=True)
     sync_status = models.CharField(
@@ -45,7 +45,7 @@ class Tenant(models.Model):
 
 class Workspace(models.Model):
     name = models.CharField(max_length=80)
-    img = models.CharField(max_length=255, blank=True, null=True)
+    img = models.FileField(upload_to="workspace_images/", blank=True, null=True)
     description = models.CharField(max_length=255)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
 
