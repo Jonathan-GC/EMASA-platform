@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from roles.models import WorkspaceMembership
 from .models import User, MainAddress, BillingAddress
+from support.models import SupportMembership
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -35,7 +36,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                         f"Tenant {tenant.id} for user {user.id} has no ChirpStack tenant ID."
                     )
                     cs_tenant_id = tenant.id
-                if tenant.name == "EMASA":
+                if tenant.name == "EMASA" or user.is_superuser:
                     is_global = True
                 else:
                     is_global = False
@@ -46,11 +47,18 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 is_global = False
                 cs_tenant_id = None
 
+        support_membership = SupportMembership.objects.filter(user=user).first()
+        if support_membership:
+            is_support = True
+        else:
+            is_support = False
+
         token["user_id"] = user.id
         token["username"] = user.username
         token["is_global"] = is_global
         token["cs_tenant_id"] = cs_tenant_id
         token["is_superuser"] = is_superuser
+        token["is_support"] = is_support
 
         return token
 

@@ -43,6 +43,8 @@ from roles.helpers import (
     assign_created_instance_permissions,
 )
 
+from support.serializers import SupportMembershipSerializer
+
 # User ViewSet
 
 
@@ -114,6 +116,18 @@ from roles.helpers import (
             ),
         ],
     ),
+    get_support_membership=extend_schema(
+        description="Get support membership for a user",
+        request=OpenApiTypes.NONE,
+        examples=[
+            OpenApiExample(
+                "Get Support Membership Example",
+                description="Get support membership details for a user",
+                value={"id": 1},
+                response_only=True,
+            ),
+        ],
+    ),
 )
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
@@ -181,6 +195,23 @@ class UserViewSet(ModelViewSet):
         instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="support_membership",
+    )
+    def get_support_membership(self, request, pk=None):
+        user = self.get_object()
+        try:
+            support_membership = SupportMembership.objects.get(user=user)
+            serializer = SupportMembershipSerializer(support_membership)
+            return Response(serializer.data)
+        except SupportMembership.DoesNotExist:
+            return Response(
+                {"error": "This user does not have a support membership."}, status=404
+            )
 
 
 # Authentication

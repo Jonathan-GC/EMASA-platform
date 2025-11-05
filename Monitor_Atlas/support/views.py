@@ -234,3 +234,16 @@ class NotificationViewSet(viewsets.ModelViewSet):
             return Response({"status": "failed", "error": str(e)}, status=500)
 
         return Response({"status": "marked_as_read"})
+
+
+@extend_schema_view(
+    list=extend_schema(description="Support Membership List"),
+    create=extend_schema(description="Support Membership Create"),
+    retrieve=extend_schema(description="Support Membership Retrieve"),
+    update=extend_schema(description="Support Membership Update"),
+    partial_update=extend_schema(description="Support Membership Partial Update"),
+    destroy=extend_schema(description="Support Membership Destroy"),
+)
+class SupportMembershipViewSet(viewsets.ModelViewSet):
+    queryset = SupportMembership.objects.all()
+    serializer_class = SupportMembershipSerializer
