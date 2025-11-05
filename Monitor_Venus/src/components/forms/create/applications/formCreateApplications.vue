@@ -3,7 +3,7 @@
     <ion-content class="ion-padding">
       <FormCreate
           :type="type"
-          :fields="fields"
+          :fields="formFields"
           :label="label"
           :additionalData="additionalData"
           @itemCreated="handleItemCreated"
@@ -53,36 +53,33 @@ const handleItemCreated = () => {
 };
 
 // Method to fetch user types from the API
-const fetchTypes = async () => {
+const fetchWorkspaces = async () => {
   try {
-    const headers = { 'API-VERSION': '1' };
-    const integraTypes = await API.get(API.INTEGRA_USER_TYPES, headers);
-    const typesField = formFields.value.find(f => f.key === 'type');
-    if (typesField) {
-      typesField.options = integraTypes.map((intType: string) => ({
-        label: intType,
-        value: intType.toUpperCase(),
+    const workspaces = await API.get(API.WORKSPACE);
+    const workspaceField = formFields.value.find(f => f.key === 'workspace_id');
+    if (workspaceField) {
+      workspaceField.options = workspaces.map((workspace: string) => ({
+        label: workspace.name,
+        value: workspace.id,
       }));
     }
   } catch (error) {
-    console.error('Error fetching user types:', error);
+    console.error('Error fetching workspaces:', error);
   }
 };
 
-// Method to fetch sex values from the API
-const fetchSex = async () => {
+const fetchType = async () => {
   try {
-    const headers = { 'API-VERSION': '1' };
-    const sexValues = await API.get(API.SEX_VALUES, headers);
-    const sexField = formFields.value.find(f => f.key === 'sex');
-    if (sexField) {
-      sexField.options = sexValues.map((sexValue: string) => ({
-        label: sexValue,
-        value: sexValue.toUpperCase(),
+    const types = await API.get(API.DEVICE_TYPE);
+    const typeField = formFields.value.find(f => f.key === 'device_type');
+    if (typeField) {
+      typeField.options = types.map((type: string) => ({
+        label: type.name,
+        value: type.id,
       }));
     }
   } catch (error) {
-    console.error('Error fetching sex values:', error);
+    console.error('Error fetching workspaces:', error);
   }
 };
 
@@ -100,6 +97,8 @@ onMounted(async () => {
   //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
+  await fetchType();
+  await fetchWorkspaces();
   loaded.value = true;
   emit('loaded');
 });

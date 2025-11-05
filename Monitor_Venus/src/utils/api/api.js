@@ -45,7 +45,7 @@ class API {
     //----[INFRACSTRUCTURE]----
     DEVICE = 'infrastructure/device/'
     GATEWAY = 'infrastructure/gateway/'
-    DEVICE_TYPE = 'infrastructure/device-type/'
+    DEVICE_TYPE = 'infrastructure/type/'
     MACHINE = 'infrastructure/machine/'
     APPLICATION = 'infrastructure/application/'
     LOCATION = 'infrastructure/location/'
