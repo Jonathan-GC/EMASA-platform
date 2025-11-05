@@ -10,6 +10,7 @@ from .serializers import (
 )
 
 from roles.permissions import HasPermission
+from guardian.shortcuts import get_objects_for_user
 
 from chirpstack.chirpstack_api import (
     sync_api_user_create,
@@ -44,6 +45,18 @@ class DeviceProfileViewSet(viewsets.ModelViewSet):
     serializer_class = DeviceProfileSerializer
     permission_classes = [HasPermission]
     scope = "device_profile"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return DeviceProfile.objects.all()
+        else:
+            return get_objects_for_user(
+                user,
+                "chirpstack.view_deviceprofile",
+                klass=DeviceProfile,
+                accept_global_perms=True,
+            )
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -144,6 +157,18 @@ class DeviceProfileTemplateViewSet(viewsets.ModelViewSet):
     permission_classes = [HasPermission]
     scope = "device_profile_template"
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return DeviceProfileTemplate.objects.all()
+        else:
+            return get_objects_for_user(
+                user,
+                "chirpstack.view_deviceprofiletemplate",
+                klass=DeviceProfileTemplate,
+                accept_global_perms=True,
+            )
+
     def perform_create(self, serializer):
         instance = serializer.save()
 
@@ -161,6 +186,15 @@ class ApiUserViewSet(viewsets.ModelViewSet):
     serializer_class = ApiUserSerializer
     permission_classes = [HasPermission]
     scope = "api_user"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return ApiUser.objects.all()
+        else:
+            return get_objects_for_user(
+                user, "chirpstack.view_apiuser", klass=ApiUser, accept_global_perms=True
+            )
 
     def perform_create(self, serializer):
         instance = serializer.save()
