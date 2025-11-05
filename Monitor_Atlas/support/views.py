@@ -32,6 +32,8 @@ from .models import (
     INFRASTRUCTURE_CATEGORY_CHOICES,
 )
 
+from roles.helpers import support_manager_can_view_all_support_members
+
 
 # Create your views here.
 @extend_schema_view(
@@ -247,3 +249,20 @@ class NotificationViewSet(viewsets.ModelViewSet):
 class SupportMembershipViewSet(viewsets.ModelViewSet):
     queryset = SupportMembership.objects.all()
     serializer_class = SupportMembershipSerializer
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        user = instance.user
+        support_managers = SupportMembership.objects.filter(role="support_manager")
+        support_managers_count = support_managers.count()
+        if support_managers_count > 1:
+            for support_manager in support_managers:
+                support_manager_can_view_all_support_members(
+                    support_manager=support_manager, user=user
+                )
+        elif support_managers_count == 1:
+            support_manager = support_managers.first()
+            support_manager_can_view_all_support_members(
+                support_manager=support_manager, user=user
+            )
+        return instance

@@ -118,3 +118,15 @@ def assign_created_instance_permissions(instance, user):
     assign_perm(delete_perm, user, instance)
 
     user.save()
+
+
+def support_manager_can_view_all_support_members(support_manager, user):
+    """
+    Assign support member permissions to a support manager for a specific user.
+    Permissions includes:
+    - Permission to view user
+    """
+
+    assign_perm("users.view_user", support_manager, user)
+
+    user.save()
