@@ -87,4 +87,13 @@ body a {
   .back-button-text {
     display: none;
   }
+  .table-card{
+    background: #f8f9fa;
+  }
+}
+
+@media (max-width: 480px) {
+  .ion-card-content {
+    padding-bottom: 140px!important;
+  }
 }

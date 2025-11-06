@@ -71,3 +71,8 @@ ion-card-content.custom {
 /*ion-content.custom{
     --background: #f9fafb;
 }*/
+@media (max-width: 480px) {
+  ion-card-content.custom {
+    padding-bottom: 140px!important;
+  }
+}

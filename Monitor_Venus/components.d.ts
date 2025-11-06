@@ -21,6 +21,7 @@ declare module 'vue' {
     DeviceInfo: typeof import('./src/components/cards/DeviceInfo.vue')['default']
     DeviceTabs: typeof import('./src/components/tabs/DeviceTabs.vue')['default']
     DualAxisBatteryChart: typeof import('./src/components/charts/DualAxisBatteryChart.vue')['default']
+    FloatingActionButtons: typeof import('./src/components/operators/FloatingActionButtons.vue')['default']
     Form: typeof import('./src/components/forms/create/form.vue')['default']
     FormActivationDevice: typeof import('./src/components/forms/create/device/formActivationDevice.vue')['default']
     FormCreate: typeof import('./src/components/forms/create/formCreate.vue')['default']

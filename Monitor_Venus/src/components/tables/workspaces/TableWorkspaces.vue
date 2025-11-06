@@ -8,7 +8,7 @@
         </ion-card-subtitle>
       </ion-card-header>
 
-      <ion-card-content>
+      <ion-card-content class="custom">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
@@ -31,11 +31,13 @@
             <ion-searchbar v-model="searchText" placeholder="Buscar Workspace..." @ionInput="handleSearch"
               show-clear-button="focus" class="custom"></ion-searchbar>
 
-            <ion-button @click="fetchGateways" fill="clear" shape="round">
-              <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
-            </ion-button>
-
-            <QuickControl :toCreate="true" type="workspace" @itemCreated="handleItemRefresh" text="hola" />
+            <!-- Desktop buttons -->
+            <div v-if="!isMobile" class="desktop-controls">
+              <ion-button @click="fetchGateways" fill="clear" shape="round">
+                <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
+              </ion-button>
+              <QuickControl :toCreate="true" type="workspace" @itemCreated="handleItemRefresh" text="hola" />
+            </div>
           </div>
 
           <!-- Table using ion-grid (Desktop) -->
@@ -171,6 +173,14 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons 
+      v-if="isMobile"
+      entity-type="workspace"
+      @refresh="fetchGateways"
+      @itemCreated="handleItemRefresh"
+    />
   </div>
 </template>
 
@@ -182,6 +192,8 @@ import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
+import QuickControl from '../../operators/quickControl.vue'
+import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
@@ -320,6 +332,12 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   gap: 16px;
+}
+
+.desktop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .data-table {

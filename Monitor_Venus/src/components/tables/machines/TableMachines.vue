@@ -8,7 +8,7 @@
         </ion-card-subtitle>
       </ion-card-header>
       
-      <ion-card-content>
+      <ion-card-content class="custom">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
@@ -36,15 +36,17 @@
               class="custom"
             ></ion-searchbar>
             
-            <ion-button @click="fetchmáquinas" fill="clear">
-              <ion-icon :icon="icons.refresh"></ion-icon>
-            </ion-button>
-
-            <QuickControl
-                :toCreate="true"
-                type="machine"
-                @itemCreated="handleItemRefresh"
-            />
+            <!-- Desktop buttons -->
+            <div v-if="!isMobile" class="desktop-controls">
+              <ion-button @click="fetchmáquinas" fill="clear">
+                <ion-icon :icon="icons.refresh"></ion-icon>
+              </ion-button>
+              <QuickControl
+                  :toCreate="true"
+                  type="machine"
+                  @itemCreated="handleItemRefresh"
+              />
+            </div>
           </div>
 
           <!-- Table using ion-grid (Desktop) -->
@@ -224,6 +226,14 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons 
+      v-if="isMobile"
+      entity-type="machine"
+      @refresh="fetchmáquinas"
+      @itemCreated="handleItemRefresh"
+    />
   </div>
 </template>
 
@@ -235,6 +245,8 @@ import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
+import QuickControl from '../../operators/quickControl.vue'
+import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
@@ -370,6 +382,12 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   gap: 16px;
+}
+
+.desktop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .data-table {

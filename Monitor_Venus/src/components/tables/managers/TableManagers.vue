@@ -8,7 +8,7 @@
         </ion-card-subtitle>
       </ion-card-header>
 
-      <ion-card-content>
+      <ion-card-content class="custom">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
@@ -31,11 +31,13 @@
             <ion-searchbar v-model="searchText" placeholder="Buscar gateway..." @ionInput="handleSearch"
               show-clear-button="focus" class="custom"></ion-searchbar>
 
-            <ion-button @click="fetchUsers" fill="clear">
-              <ion-icon :icon="icons.refresh"></ion-icon>
-            </ion-button>
-
-            <QuickControl :toCreate="true" type="manager" @itemCreated="handleItemRefresh" />
+            <!-- Desktop buttons -->
+            <div v-if="!isMobile" class="desktop-controls">
+              <ion-button @click="fetchUsers" fill="clear">
+                <ion-icon :icon="icons.refresh"></ion-icon>
+              </ion-button>
+              <QuickControl :toCreate="true" type="manager" @itemCreated="handleItemRefresh" />
+            </div>
           </div>
 
           <!-- Table using ion-grid (Desktop) -->
@@ -177,6 +179,14 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons 
+      v-if="isMobile"
+      entity-type="manager"
+      @refresh="fetchUsers"
+      @itemCreated="handleItemRefresh"
+    />
   </div>
 </template>
 
@@ -189,6 +199,8 @@ import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor, formatActiveStatus } from '@utils/formatters/formatters'
 import AvatarSVG from '@assets/svg/Avatar.svg'
+import QuickControl from '../../operators/quickControl.vue'
+import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
@@ -326,6 +338,12 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   gap: 16px;
+}
+
+.desktop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .data-table {
