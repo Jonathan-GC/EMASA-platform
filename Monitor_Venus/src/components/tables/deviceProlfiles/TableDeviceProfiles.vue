@@ -38,8 +38,8 @@
             <QuickControl :toCreate="true" type="device_profile" @itemCreated="handleItemRefresh" />
           </div>
 
-          <!-- Table using ion-grid -->
-          <ion-grid class="data-table">
+          <!-- Table using ion-grid (Desktop) -->
+          <ion-grid v-if="!isMobile" class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
@@ -120,6 +120,53 @@
             </ion-row>
           </ion-grid>
 
+          <!-- Mobile Card View -->
+          <div v-else class="mobile-cards">
+            <ion-card v-for="deviceProfile in paginatedItems" :key="deviceProfile.id" class="device-profile-card">
+              <ion-card-content>
+                <!-- Header with name and region -->
+                <div class="card-header">
+                  <div class="card-title-section">
+                    <h3 class="card-title">{{ deviceProfile.name }}</h3>
+                    <p class="card-subtitle">{{ deviceProfile.cs_device_profile_id }}</p>
+                  </div>
+                  <ion-chip :color="getStatusColor(deviceProfile.state)" class="card-chip-status">
+                    <ion-icon :icon="icons.globe" size="small"></ion-icon>
+                    {{ deviceProfile.region }}
+                  </ion-chip>
+                </div>
+
+                <!-- Card details -->
+                <div class="card-details">
+                  <div class="card-detail-row">
+                    <span class="detail-label">Versión MAC:</span>
+                    <span class="detail-value">{{ formatUnderscoreToSpace(deviceProfile.mac_version) }}</span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">Revisión:</span>
+                    <span class="detail-value">{{ deviceProfile.reg_param_revision }}</span>
+                  </div>
+                </div>
+
+                <!-- Card actions -->
+                <div class="card-actions">
+                  <quick-actions 
+                    type="device_profile"
+                    :index="deviceProfile.id" 
+                    :name="deviceProfile.name"
+                    :to-view="`/tenants/${deviceProfile.id}`"
+                    to-edit
+                    to-delete
+                    :initial-data="setInitialData(deviceProfile)"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
+                  />
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
             <ion-button fill="clear" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
@@ -156,10 +203,14 @@ import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor, formatUnderscoreToSpace } from '@utils/formatters/formatters'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+
+// Responsive view detection
+const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 
 // Component-specific state
 const deviceProfile = ref([])
@@ -402,5 +453,89 @@ onMounted(async () => {
     align-items: flex-start;
     gap: 4px;
   }
+}
+
+/* Mobile Cards Styles */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.device-profile-card {
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.device-profile-card ion-card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.card-chip-status {
+  flex-shrink: 0;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  text-align: right;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
 }
 </style>

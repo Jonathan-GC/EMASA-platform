@@ -19,6 +19,7 @@ export const decodeToken = (token) => {
       user_id: decoded.user_id,
       username: decoded.username,
       is_superuser: decoded.is_superuser,
+      is_support: decoded.is_support,
       is_global: decoded.is_global
     });
     return decoded;
@@ -42,6 +43,7 @@ export const getUserFromToken = (token) => {
       username: null,
       is_superuser: false,
       is_global: false,
+      is_support: false,
       cs_tenant_id: null,
       exp: null,
       iat: null
@@ -53,6 +55,7 @@ export const getUserFromToken = (token) => {
     username: decoded.username || null,
     is_superuser: decoded.is_superuser || false,
     is_global: decoded.is_global || false,
+    is_support: decoded.is_support || false,
     cs_tenant_id: decoded.cs_tenant_id || null,
     exp: decoded.exp || null,
     iat: decoded.iat || null
@@ -144,6 +147,16 @@ export const userRoleHelpers = {
     return user.is_superuser === true || user.is_global === true;
   },
 
+    /**
+   * Verifica si el usuario es un usuario de soporte (no admin, no global)
+   * @param {string} token - JWT token
+   * @returns {boolean}
+   */
+  isSupportUser: (token) => {
+    const user = getUserFromToken(token);
+    return is_support;
+  },
+
   /**
    * Verifica si el usuario es un usuario normal (no admin, no global)
    * @param {string} token - JWT token
@@ -152,7 +165,8 @@ export const userRoleHelpers = {
   isNormalUser: (token) => {
     const user = getUserFromToken(token);
     return !user.is_superuser && !user.is_global;
-  }
+  },
+  
 };
 
 /**
@@ -171,6 +185,7 @@ export const formatTokenInfo = (token) => {
   - ID: ${user.user_id || 'N/A'}
   - SuperUser: ${user.is_superuser ? '✅' : '❌'}
   - Global: ${user.is_global ? '✅' : '❌'}
+  - Soporte: ${user.is_support ? '✅' : '❌'}
   - Tenant ID: ${user.cs_tenant_id || 'N/A'}
   - Expira en: ${minutes} minutos
   `;

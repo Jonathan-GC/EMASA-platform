@@ -28,6 +28,7 @@
       
       <!-- Links del navegador -->
       <div class="nav-links">
+        <!-- Enlaces públicos (siempre visibles) -->
         <router-link 
           to="/home" 
           class="nav-link"
@@ -50,141 +51,156 @@
           ></ion-icon>
            Acerca de
         </router-link>
-        <router-link 
-          :to="paths.NOTIFICATIONS"
-          class="nav-link"
-          :class="{ active: $route.path === paths.NOTIFICATIONS }"
-          @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.notifications"
-          ></ion-icon>
-          Notifications
-        </router-link>
+
+        <!-- Enlaces para usuarios autenticados -->
+        <template v-if="authStore.isAuthenticated">
+          <router-link 
+            :to="paths.NOTIFICATIONS"
+            class="nav-link"
+            :class="{ active: $route.path === paths.NOTIFICATIONS }"
+            @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.notifications"
+            ></ion-icon>
+            Notifications
+          </router-link>
+        </template>
         
+        <!-- Enlaces de administración (solo superuser y admin) -->
+        <template v-if="showRootLinks">
+          <hr class="divider"/>
+          
+          <router-link
+              to="/tenants"
+              class="nav-link"
+              :class="{ active: $route.path === '/tenants' }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.building"
+            ></ion-icon>
+            Tenants
+          </router-link>
+
+          <router-link
+              :to=paths.TENANT_WORKSPACES
+              class="nav-link"
+              :class="{ active: $route.path === paths.TENANT_WORKSPACES }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.layers"
+            ></ion-icon>
+            Workspaces
+          </router-link>
+
+          <router-link
+              :to="paths.TENANT_MANAGERS"
+              class="nav-link"
+              :class="{ active: $route.path === paths.TENANT_MANAGERS }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.people"
+            ></ion-icon>
+            Managers
+          </router-link>
+
+          <router-link
+              :to=paths.TENANT_LOCATIONS
+              class="nav-link"
+              :class="{ active: $route.path === paths.TENANT_LOCATIONS }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.location"
+            ></ion-icon>
+            Locations
+          </router-link>
+        </template>
+
+        <!-- Enlaces de tenant (usuarios con tenant asignado) -->
+        <template v-if="!showSupportLinks && showTenantLinks || showRootLinks">
+          <hr class="divider"/>
+
+          <router-link 
+            to="/infrastructure/gateways"
+            class="nav-link"
+            :class="{ active: $route.path === paths.GATEWAYS }"
+            @click="closeNavbar"
+          >
+          <ion-icon
+                :icon="icons.wifi"
+            ></ion-icon>  
+            Gateways
+          </router-link>
+          
+          <router-link
+              :to=paths.DEVICE_PROFILES
+              class="nav-link"
+              :class="{ active: $route.path === paths.DEVICE_PROFILES }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.options"
+            ></ion-icon>
+            Device Profiles
+          </router-link>
+
+          <router-link
+              :to=paths.APPLICATIONS
+              class="nav-link"
+              :class="{ active: $route.path === paths.APPLICATIONS }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.package"
+            ></ion-icon>
+            Applications
+          </router-link>
+
+          <router-link
+              :to=paths.MACHINES
+              class="nav-link"
+              :class="{ active: $route.path === paths.MACHINES }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.settings"
+            ></ion-icon>
+            Maquinas
+          </router-link>
+        </template>
+
         <hr class="divider"/>
-        <router-link
-            to="/tenants"
-            class="nav-link"
-            :class="{ active: $route.path === '/tenants' }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.building"
-          ></ion-icon>
-          Tenants
-        </router-link>
 
-        <router-link
-            :to=paths.TENANT_WORKSPACES
-            class="nav-link"
-            :class="{ active: $route.path === paths.TENANT_WORKSPACES }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.layers"
-          ></ion-icon>
-          Workspaces
-        </router-link>
-
-        <router-link
-            :to="paths.TENANT_MANAGERS"
-            class="nav-link"
-            :class="{ active: $route.path === paths.TENANT_MANAGERS }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.people"
-          ></ion-icon>
-          Managers
-        </router-link>
-
-        <router-link
-            :to=paths.TENANT_LOCATIONS
-            class="nav-link"
-            :class="{ active: $route.path === paths.TENANT_LOCATIONS }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.location"
-          ></ion-icon>
-          Locations
-        </router-link>
-
-        <hr class="divider"/>
-
+        <!-- Enlaces de autenticación -->
         <router-link 
-          to="/infrastructure/gateways"
-          class="nav-link"
-          :class="{ active: $route.path === paths.GATEWAYS }"
-          @click="closeNavbar"
-        >
-        <ion-icon
-              :icon="icons.wifi"
-          ></ion-icon>  
-          Gateways
-        </router-link>
-        <router-link
-            :to=paths.DEVICE_PROFILES
-            class="nav-link"
-            :class="{ active: $route.path === paths.DEVICE_PROFILES }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.options"
-          ></ion-icon>
-          Device Profiles
-        </router-link>
-
-        <router-link
-            :to=paths.APPLICATIONS
-            class="nav-link"
-            :class="{ active: $route.path === paths.APPLICATIONS }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.package"
-          ></ion-icon>
-          Applications
-        </router-link>
-
-        <router-link
-            :to=paths.MACHINES
-            class="nav-link"
-            :class="{ active: $route.path === paths.MACHINES }"
-            @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.settings"
-          ></ion-icon>
-          Maquinas
-        </router-link>
-
-        <hr class="divider"/>
-
-        <router-link 
+          v-if="showAuthLinks"
           to="/" 
           class="nav-link"
           :class="{ active: $route.path === '/auth' }"
           @click="closeNavbar"
-
         >
           🔑 Iniciar Sesión
         </router-link>
         
-        <BtnLogout/>
+        <BtnLogout v-if="authStore.isAuthenticated"/>
       </div>
     </div>
   </nav>
 </template>
 
 <script setup>
-import {inject, ref} from 'vue'
+import {inject, ref, computed} from 'vue'
 import { useRoute } from 'vue-router'
 import { paths } from "@/plugins/router/paths"
 import BtnLogout from "@layouts/components/BtnLogout.vue";
+import { useAuthStore } from '@/stores/authStore'
 
 const icons = inject('icons', {})
+const authStore = useAuthStore()
 
 const $route = useRoute()
 const isOpen = ref(false)
@@ -196,6 +212,27 @@ const toggleNavbar = () => {
 const closeNavbar = () => {
   isOpen.value = false
 }
+
+// Computed properties para mostrar/ocultar enlaces según roles
+const showRootLinks = computed(() => {
+  return authStore.isSuperUser
+})
+
+const showAdminLinks = computed(() => {
+  return authStore.isAdmin && authStore.hasTenant
+})
+
+const showTenantLinks = computed(() => {
+  return authStore.isAuthenticated && authStore.hasTenant
+})
+const showSupportLinks = computed(() => {
+  return authStore.isSupportUser && authStore.hasTenant
+})
+ 
+const showAuthLinks = computed(() => {
+  return !authStore.isAuthenticated
+})
+
 </script>
 
 <style scoped>
@@ -242,7 +279,7 @@ const closeNavbar = () => {
   display: none;
   position: fixed;
   top: 1rem;
-  left: 1rem;
+  right: 1rem;
   flex-direction: column;
   cursor: pointer;
   padding: 12px;

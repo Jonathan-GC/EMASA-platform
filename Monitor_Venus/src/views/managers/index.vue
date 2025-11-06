@@ -34,9 +34,6 @@ const icons = inject('icons', {})
 <style scoped>
 @import '@assets/css/dashboard.css';
 
-.current-dashboard {
-  padding: 20px;
-}
 
 
 
@@ -68,9 +65,6 @@ const icons = inject('icons', {})
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-  .current-dashboard {
-    padding: 15px;
-  }
 
   .header h1 {
     font-size: 1.5rem;

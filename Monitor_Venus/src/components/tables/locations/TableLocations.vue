@@ -47,8 +47,8 @@
             />
           </div>
 
-          <!-- Table using ion-grid -->
-          <ion-grid class="data-table">
+          <!-- Table using ion-grid (Desktop) -->
+          <ion-grid v-if="!isMobile" class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="1" @click="sortBy('id')" class="sortable">
@@ -140,6 +140,57 @@
             </ion-row>
           </ion-grid>
 
+          <!-- Mobile Card View -->
+          <div v-else class="mobile-cards">
+            <ion-card v-for="location in paginatedItems" :key="location.id" class="location-card">
+              <ion-card-content>
+                <!-- Header with name -->
+                <div class="card-header">
+                  <div class="card-title-section">
+                    <h3 class="card-title">
+                      <ion-icon :icon="icons.location" color="primary"></ion-icon>
+                      {{ location.name }}
+                    </h3>
+                    <p class="card-subtitle">ID: {{ location.id }}</p>
+                  </div>
+                </div>
+
+                <!-- Card details -->
+                <div class="card-details">
+                  <div class="card-detail-row">
+                    <span class="detail-label">Presición:</span>
+                    <span class="detail-value">{{ location.accuracy }}</span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">Coordenadas:</span>
+                    <span class="detail-value">{{ location.latitude }}, {{ location.longitude }}, {{ location.altitude }}</span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">Fuente:</span>
+                    <span class="detail-value">{{ location.source }}</span>
+                  </div>
+                </div>
+
+                <!-- Card actions -->
+                <div class="card-actions">
+                  <QuickActions 
+                    type="location"
+                    :index="location.id" 
+                    :name="location.name"
+                    :to-view="`/tenants/${location.id}`"
+                    to-edit
+                    to-delete
+                    :initial-data="setInitialData(location)"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
+                  />
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
             <ion-button
@@ -184,10 +235,14 @@ import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+
+// Responsive view detection
+const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 
 // Component-specific state
 const application = ref([])
@@ -423,5 +478,85 @@ onMounted(async () => {
     align-items: flex-start;
     gap: 4px;
   }
+}
+
+/* Mobile Cards Styles */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.location-card {
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.location-card ion-card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  gap: 8px;
+}
+
+.detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  text-align: right;
+  word-break: break-word;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
 }
 </style>

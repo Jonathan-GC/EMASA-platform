@@ -47,8 +47,8 @@
             />
           </div>
 
-          <!-- Table using ion-grid -->
-          <ion-grid class="data-table">
+          <!-- Table using ion-grid (Desktop) -->
+          <ion-grid v-if="!isMobile" class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
@@ -134,6 +134,61 @@
             </ion-row>
           </ion-grid>
 
+          <!-- Mobile Card View -->
+          <div v-else class="mobile-cards">
+            <ion-card v-for="machine in paginatedItems" :key="machine.id" class="machine-card">
+              <ion-card-content>
+                <!-- Header with icon and name -->
+                <div class="card-header">
+                  <div class="card-icon-title">
+                    <ion-icon 
+                      :icon="icons.hardwareChip" 
+                      :color="getStatusColor(machine.state)"
+                      class="card-icon-large"
+                    ></ion-icon>
+                    <div class="card-title-section">
+                      <h3 class="card-title">{{ machine.name }}</h3>
+                      <p class="card-subtitle">ID: {{ machine.id }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card details -->
+                <div class="card-details">
+                  <div class="card-detail-row">
+                    <span class="detail-label">Tenant:</span>
+                    <span class="detail-value">
+                      <ion-chip size="small">{{ machine.workspace.tenant }}</ion-chip>
+                    </span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">
+                      <ion-icon :icon="icons.location" size="small"></ion-icon>
+                      Workspace:
+                    </span>
+                    <span class="detail-value">{{ machine.workspace.name }}</span>
+                  </div>
+                </div>
+
+                <!-- Card actions -->
+                <div class="card-actions">
+                  <quick-actions 
+                    type="machine"
+                    :index="machine.id" 
+                    :name="machine.name"
+                    :to-view="`/tenants/${machine.id}`"
+                    to-edit
+                    to-delete
+                    :initial-data="setInitialData(machine)"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
+                  />
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
             <ion-button 
@@ -178,10 +233,14 @@ import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+
+// Responsive view detection
+const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 
 // Component-specific state
 const máquinas = ref([])
@@ -399,20 +458,121 @@ onMounted(async () => {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .data-table {
     font-size: 0.8rem;
   }
-  
+
   .table-header ion-col,
   .table-row-stylized ion-col {
     padding: 8px 6px;
   }
-  
+
   .machine-info {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
+}
+
+/* Mobile Cards Styles */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.machine-card {
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.machine-card ion-card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.card-icon-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-icon-large {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-value ion-chip {
+  margin: 0;
+  height: 22px;
+  font-size: 0.8rem;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
 }
 </style>

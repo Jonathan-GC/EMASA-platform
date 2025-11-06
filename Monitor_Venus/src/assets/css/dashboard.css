@@ -229,6 +229,7 @@
 }
 
 @media (max-width: 480px) {
+  
   .info-card {
     padding: 16px;
   }
@@ -240,4 +241,10 @@
   .chart-container {
     min-height: 300px;
   }
+
+  .current-dashboard {
+    padding: 15px 0px 0px 0px;
+  }
+
+  
 }

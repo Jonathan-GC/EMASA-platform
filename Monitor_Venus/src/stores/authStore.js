@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
     username: null,
     is_superuser: false,
     is_global: false,
+    is_support: false,
     cs_tenant_id: null,
     exp: null,
     iat: null
@@ -40,8 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Verifica si el usuario es administrador (superuser O global)
    */
-  const isAdmin = computed(() => 
-    user.value.is_superuser === true || user.value.is_global === true
+  const isAdmin = computed(() => user.value.is_global === true
   );
 
   /**
@@ -50,6 +50,12 @@ export const useAuthStore = defineStore('auth', () => {
   const isNormalUser = computed(() => 
     !user.value.is_superuser && !user.value.is_global
   );
+
+  /**
+   * Verifica si el usuario es un usuario de soporte
+   */
+  const isSupportUser = computed(() => user.value.is_support === true);
+  
 
   /**
    * Verifica si el usuario pertenece a un tenant
@@ -117,7 +123,9 @@ export const useAuthStore = defineStore('auth', () => {
     console.log('✅ Autenticación inicializada:', {
       username: userData.username,
       is_superuser: userData.is_superuser,
-      is_global: userData.is_global
+      is_global: userData.is_global,
+      is_support: userData.is_support,
+      tenant_id: userData.cs_tenant_id
     });
 
     return true;
@@ -153,6 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
       username: userData.username,
       is_superuser: userData.is_superuser,
       is_global: userData.is_global,
+      is_support: userData.is_support,
       tenant_id: userData.cs_tenant_id
     });
 
@@ -189,6 +198,7 @@ export const useAuthStore = defineStore('auth', () => {
       username: null,
       is_superuser: false,
       is_global: false,
+      is_support: false,
       cs_tenant_id: null,
       exp: null,
       iat: null
@@ -220,6 +230,8 @@ export const useAuthStore = defineStore('auth', () => {
         return isGlobalUser.value;
       case 'normal':
         return isNormalUser.value;
+      case 'support':
+        return isSupportUser.value;
       default:
         console.warn(`⚠️ Rol desconocido: ${role}`);
         return false;
@@ -261,6 +273,7 @@ export const useAuthStore = defineStore('auth', () => {
     isGlobalUser,
     isAdmin,
     isNormalUser,
+    isSupportUser,
     hasTenant,
     needsTenantSetup,
     tenantId,
