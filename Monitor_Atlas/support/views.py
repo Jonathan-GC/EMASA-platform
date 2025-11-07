@@ -248,7 +248,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
         methods=["post"],
         description="Alert",
         permission_classes=[IsServiceOrHasPermission],
-        scope="device",
     )
     def alert(self, request):
         required_fields = ["title", "message", "type", "device_id"]
