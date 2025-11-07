@@ -35,7 +35,7 @@ environ.Env.read_env(BASE_DIR / ".env")
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="dev")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
-
+SERVICE_API_KEY = env("SERVICE_API_KEY", default="default_service_api_key")
 
 # ============================================================================
 # APPLICATION DEFINITION
@@ -294,10 +294,3 @@ MTR_LOGO_URL = env("MTR_LOGO_URL", default="https://placehold.co/500x200")
 HERMES_WS_URL = env("HERMES_WS_URL", default="ws://localhost:5000")
 HERMES_API_URL = env("HERMES_API_URL", default="http://localhost:5000")
 WS_SECRET = env("WS_SECRET", default="dummy32characterslong!!")
-
-
-# ============================================================================
-# SERVICE-TO-SERVICE AUTHENTICATION
-# ============================================================================
-
-SERVICE_API_KEY = env("SERVICE_API_KEY", default=None)

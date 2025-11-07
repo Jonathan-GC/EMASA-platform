@@ -2,6 +2,8 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from loguru import logger
 from guardian.shortcuts import get_objects_for_user
 
+from platform_backend import settings
+
 
 def has_permission(user, perm, obj=None):
     """
@@ -144,3 +146,19 @@ class IsAdminOrIsAuthenticatedReadOnly(BasePermission):
 
 
 # Support permissions can be added here in the future
+
+
+class IsServiceOrHasPermission(BasePermission):
+    def has_permission(self, request, view):
+        api_key = request.headers.get("X-API-Key")
+        if api_key and api_key == settings.SERVICE_API_KEY:
+            return True
+        has_perm_checker = HasPermission()
+        return has_perm_checker.has_permission(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        api_key = request.headers.get("X-Service-API-Key")
+        if api_key and api_key == settings.SERVICE_API_KEY:
+            return True
+        has_perm_checker = HasPermission()
+        return has_perm_checker.has_object_permission(request, view, obj)

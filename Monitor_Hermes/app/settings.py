@@ -27,6 +27,9 @@ class Settings(BaseSettings):
 
     WS_SECRET: str
 
+    # API Key para comunicación entre servicios
+    SERVICE_API_KEY: str
+
     class Config:
         env_file = ".env"
         extra = "ignore"

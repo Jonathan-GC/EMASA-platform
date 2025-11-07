@@ -214,19 +214,23 @@ class Notification(models.Model):
 
     def notify_ws(self):
         logger.debug("Sending WebSocket notification via Hermes")
+
+        url = f"{HERMES_API_URL}/notify"
+
+        headers = {"X-API-Key": settings.SERVICE_API_KEY}
+
+        data = {
+            "user_id": self.user.id,
+            "title": self.title,
+            "message": self.message,
+            "type": self.type,
+        }
+
         try:
-            payload = {
-                "user_id": self.user.id,
-                "title": self.title,
-                "message": self.message,
-                "type": self.type,
-            }
-            logger.debug(
-                f"Notification payload: {payload} \n to {HERMES_API_URL}/notify"
-            )
-            response = requests.post(f"{HERMES_API_URL}/notify", params=payload)
-            logger.debug(f"WebSocket notification sent: {response.status_code}")
+            logger.debug(f"Notification data: {data} \n to {url}")
+            response = requests.post(url, data=data, headers=headers, timeout=5)
             response.raise_for_status()
+            logger.debug(f"WebSocket notification sent: {response.status_code}")
         except requests.RequestException as e:
             logger.error(f"Failed to send notification via WebSocket: {e}")
 

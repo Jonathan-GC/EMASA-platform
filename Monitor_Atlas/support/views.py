@@ -18,6 +18,8 @@ from .serializers import (
 )
 from guardian.shortcuts import get_users_with_perms
 
+from roles.permissions import IsServiceOrHasPermission
+
 from infrastructure.models import Device
 from users.models import User
 
@@ -245,6 +247,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         description="Alert",
+        permission_classes=[IsServiceOrHasPermission],
+        scope="device",
     )
     def alert(self, request):
         required_fields = ["title", "message", "type", "device_id"]
