@@ -42,45 +42,24 @@ async def create_message(message: MessageIn, db=Depends(get_db)):
     return {"insert_id": insert_id}
 
 
-from pydantic import BaseModel
-
-
-class NotificationRequest(BaseModel):
-    user_id: str
-    title: str
-    message: str
-    type: str = "info"
-
-
 @app.post("/notify")
 async def notify_user(
-    request: NotificationRequest,
+    user_id: str,
+    title: str,
+    message: str,
+    type: str = "info",
     _: bool = Depends(verify_service_api_key),
 ):
-    """
-    Endpoint para que Atlas notifique a usuarios vía WebSocket.
-    Requiere autenticación mediante X-API-Key header.
-
-    Body (JSON):
-    {
-        "user_id": "123",
-        "title": "Título de la notificación",
-        "message": "Mensaje de la notificación",
-        "type": "info"  // opcional: info, success, warning, error
-    }
-    """
-    loguru.logger.debug(f"Notificando al usuario {request.user_id}: {request.message}")
+    loguru.logger.debug(f"Notificando al usuario {user_id}: {message}")
     payload = {
         "channel": "notifications",
-        "title": request.title,
-        "message": request.message,
-        "type": request.type,
+        "title": title,
+        "message": message,
+        "type": type,
     }
     try:
-        await manager.send_to_user(request.user_id, payload)
+        await manager.send_to_user(user_id, payload)
         return {"status": "success", "sent": True}
     except Exception:
-        loguru.logger.exception(
-            f"Failed to notify user {request.user_id} via websocket"
-        )
+        loguru.logger.exception(f"Failed to notify user {user_id} via websocket")
         return {"status": "error", "sent": False}
