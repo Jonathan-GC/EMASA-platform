@@ -1,4 +1,13 @@
-from .models import Machine, Type, Device, Application, Gateway, Location, Activation
+from .models import (
+    Machine,
+    Type,
+    Device,
+    Application,
+    Gateway,
+    Location,
+    Activation,
+    Measurements,
+)
 from rest_framework import serializers
 from organizations.serializers import WorkspaceSerializer
 from organizations.models import Workspace
@@ -128,4 +137,10 @@ class GatewaySerializer(serializers.ModelSerializer):
 class ActivationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Activation
+        fields = "__all__"
+
+
+class MeasurementsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Measurements
         fields = "__all__"

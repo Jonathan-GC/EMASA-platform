@@ -16,6 +16,10 @@ from .serializers import (
     SupportMembershipSerializer,
     TicketConversationSerializer,
 )
+from guardian.shortcuts import get_users_with_perms
+
+from infrastructure.models import Device
+from users.models import User
 
 from rest_framework.decorators import action
 from loguru import logger
@@ -236,6 +240,53 @@ class NotificationViewSet(viewsets.ModelViewSet):
             return Response({"status": "failed", "error": str(e)}, status=500)
 
         return Response({"status": "marked_as_read"})
+
+    @action(
+        detail=False,
+        methods=["post"],
+        description="Alert",
+    )
+    def alert(self, request):
+        required_fields = ["title", "message", "type", "device_id"]
+        data = request.data
+        device = Device.objects.filter(id=data.get("device_id")).first()
+        if not device:
+            return Response({"error": "Device not found."}, status=404)
+
+        users = get_users_with_perms(device, only_with_perms_in=["view_device"])
+        superuser = User.objects.filter(is_superuser=True).first()
+        if not users:
+            return Response(
+                {"error": "No users found with permission to view this device."},
+                status=404,
+            )
+        for user in users:
+            notification = Notification.objects.create(
+                title=data.get("title"),
+                message=data.get("message"),
+                type=data.get("type"),
+                user=user,
+            )
+            notification.save()
+            try:
+                notification.notify_ws()
+            except Exception as e:
+                logger.error(f"Failed to notify user {user.id}: {e}")
+
+        if superuser:
+            notification = Notification.objects.create(
+                title=data.get("title"),
+                message=data.get("message"),
+                type=data.get("type"),
+                user=superuser,
+            )
+            notification.save()
+            try:
+                notification.notify_ws()
+            except Exception as e:
+                logger.error(f"Failed to notify superuser {superuser.id}: {e}")
+
+        return Response({"status": "alert_sent"}, status=200)
 
 
 @extend_schema_view(

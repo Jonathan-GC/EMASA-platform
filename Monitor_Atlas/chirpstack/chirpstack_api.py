@@ -1214,7 +1214,7 @@ def sync_device_update(device):
 
     response = create_device_in_chirpstack(device)
 
-    if response.status_code == 200 or response is None:
+    if response is None or response.status_code == 200:
         logger.debug(f"Updating device {device.dev_eui} in Chirpstack.")
         response = requests.put(url, json=payload, headers=HEADERS)
 

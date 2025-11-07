@@ -10,11 +10,23 @@ from .serializers import (
     ApplicationSerializer,
     LocationSerializer,
     ActivationSerializer,
+    MeasurementsSerializer,
 )
-from .models import Gateway, Machine, Type, Device, Application, Location, Activation
+from .models import (
+    Gateway,
+    Machine,
+    Type,
+    Device,
+    Application,
+    Location,
+    Activation,
+    Measurements,
+)
 
 from roles.permissions import HasPermission
 from guardian.shortcuts import get_objects_for_user
+from .authentication import ServiceAPIKeyAuthentication
+from .permissions import IsServiceAuthenticated
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -611,6 +623,143 @@ class DeviceViewSet(viewsets.ModelViewSet):
             )
         serializer = ActivationSerializer(device.activation)
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def measurements(self, request, pk=None):
+        device = self.get_object()
+        measurements = Measurements.objects.filter(device=device)
+
+        if not measurements.exists():
+            return Response(
+                {"message": "No measurements found for this device"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(measurements, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def create_measurement(self, request, pk=None):
+        device = self.get_object()
+        serializer = MeasurementsSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(device=device)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        description="Get Device Metadata (Service-to-Service only)",
+        summary="Retrieve device metadata for Monitor_Hermes integration",
+    )
+    @action(
+        detail=True,
+        methods=["get"],
+        authentication_classes=[ServiceAPIKeyAuthentication],
+        permission_classes=[IsServiceAuthenticated],
+    )
+    def metadata(self, request, pk=None):
+        """
+        Service-to-Service endpoint to retrieve device metadata.
+        
+        This endpoint is protected by API Key authentication and is designed
+        specifically for Monitor_Hermes to consume device information.
+        
+        Returns comprehensive device metadata including:
+        - Device basic info (dev_eui, name, description)
+        - Machine information
+        - Device type
+        - Application details
+        - Workspace information
+        - Activation status
+        - Measurements configuration
+        
+        Authentication:
+            Requires X-API-Key header with valid SERVICE_API_KEY
+            
+        Example:
+            GET /api/devices/{id}/metadata/
+            Headers: X-API-Key: your-secret-key
+        """
+        device = self.get_object()
+        
+        # Build comprehensive metadata response
+        metadata = {
+            "dev_eui": device.dev_eui,
+            "name": device.name,
+            "description": device.description,
+            "is_disabled": device.is_disabled,
+            "is_active": device.is_active,
+            "enabled_activation": device.enabled_activation,
+            "last_seen_at": device.last_seen_at,
+            "machine": {
+                "id": device.machine.id,
+                "name": device.machine.name,
+                "description": device.machine.description,
+            },
+            "device_type": {
+                "id": device.device_type.id,
+                "name": device.device_type.name,
+                "description": device.device_type.description,
+            },
+            "application": {
+                "id": device.application.id,
+                "cs_application_id": device.application.cs_application_id,
+                "name": device.application.name,
+                "description": device.application.description,
+            },
+            "workspace": {
+                "id": device.workspace.id,
+                "name": device.workspace.name,
+            },
+            "device_profile": {
+                "id": device.device_profile.id,
+                "cs_device_profile_id": device.device_profile.cs_device_profile_id,
+                "name": device.device_profile.name,
+            },
+            "sync_status": device.sync_status,
+            "last_synced_at": device.last_synced_at,
+        }
+        
+        # Include measurements configuration if exists
+        measurements = Measurements.objects.filter(device=device)
+        if measurements.exists():
+            metadata["measurements"] = [
+                {
+                    "id": m.id,
+                    "min": m.min,
+                    "max": m.max,
+                    "threshold": m.threshold,
+                    "unit": m.unit,
+                }
+                for m in measurements
+            ]
+        else:
+            metadata["measurements"] = []
+        
+        # Include activation info if exists (without sensitive keys)
+        if device.activation:
+            metadata["activation"] = {
+                "id": device.activation.id,
+                "dev_addr": device.activation.dev_addr,
+                "f_cnt_up": device.activation.f_cnt_up,
+                "afcntdown": device.activation.afcntdown,
+                "n_f_cnt_down": device.activation.n_f_cnt_down,
+                # Sensitive keys are intentionally omitted for security
+            }
+        else:
+            metadata["activation"] = None
+        
+        return Response(metadata, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(
