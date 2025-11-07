@@ -1082,6 +1082,11 @@ def sync_application_update(application):
     url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
 
     response = sync_application_get(application)
+    if response is None:
+        logger.debug(
+            f"Application not found. Creating application {application.name} in Chirpstack."
+        )
+        response = create_application_in_chirpstack(application)
 
     if response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
