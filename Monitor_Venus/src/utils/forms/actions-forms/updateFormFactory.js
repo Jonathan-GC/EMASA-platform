@@ -15,6 +15,9 @@ const UpdateTenants = defineAsyncComponent(() => import("@components/forms/updat
 const UpdateWorkspaces = defineAsyncComponent(() => import("@components/forms/update/workspaces/formUpdateWorkspaces.vue"));
 const UpdateLocations = defineAsyncComponent(() => import("@components/forms/update/locations/formUpdateLocations.vue"));
 const UpdateGateways = defineAsyncComponent(() => import("@components/forms/update/gateways/formUpdateGateways.vue"));
+const updateApplications = defineAsyncComponent(() => import("@components/forms/update/application/formUpdateApplication.vue"));
+const UpdateDevices = defineAsyncComponent(() => import("@components/forms/update/device/formUpdateDevices.vue"));
+const UpdateMachines = defineAsyncComponent(() => import("@components/forms/update/machines/formUpdateMachines.vue"));
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
     const componentMap = {
@@ -69,7 +72,7 @@ export class UpdateFormFactory extends AbstractFormFactory {
         }
       },
       application: {
-        component: UpdateGateways,
+        component: updateApplications,
         props: {
           type: type,
           index: extraProps?.index,
@@ -79,7 +82,7 @@ export class UpdateFormFactory extends AbstractFormFactory {
         }
       },
       device: {
-        component: UpdateGateways,
+        component: UpdateDevices,
         props: {
           type: type,
           index: extraProps?.index,
@@ -89,7 +92,7 @@ export class UpdateFormFactory extends AbstractFormFactory {
         }
       },
       machine: {
-        component: UpdateGateways,
+        component: UpdateMachines,
         props: {
           type: type,
           index: extraProps?.index,

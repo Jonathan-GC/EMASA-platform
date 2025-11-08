@@ -2,16 +2,20 @@
   <ion-page>
     <ion-content class="ion-padding">
       <form-update
-        v-if="loaded"
-        :type="type"
-        :index="index"
-        :fields="formFields"
-        :label="label"
-        :additionalData="additionalData"
-        :initialData="initialData"
-        @itemEdited="handleitemEdited"
-        @closed="emit('closed')"
+          v-if="loaded"
+          :type="type"
+          :index="index"
+          :fields="formFields"
+          :label="label"
+          :additionalData="additionalData"
+          :initialData="initialData"
+          @itemEdited="handleitemEdited"
+          @closed="emit('closed')"
       />
+      <div v-else class="loading-container">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Cargando formulario...</p>
+      </div>
     </ion-content>
   </ion-page>
 </template>
@@ -63,14 +67,30 @@ const handleitemEdited = () => {
 };
 
 // Method to fetch user types from the API
-const fetchTenants = async () => {
+const fetchTypes = async () => {
   try {
-    const tenantValues = await API.get(API.TENANT);
-    const tenantField = formFields.value.find(f => f.key === 'tenant');
-    if (tenantField) {
-      tenantField.options = tenantValues.map((tenant: string) => ({
-        label: tenant.name,
-        value: tenant.id,
+    const integraTypes = await API.get(API.DEVICE_TYPE);
+    const typesField = formFields.value.find(f => f.key === 'device_type');
+    if (typesField) {
+      typesField.options = integraTypes.map((intType: string) => ({
+        label: intType.name,
+        value: intType.id,
+      }));
+    }
+  } catch (error) {
+    console.error('Error fetching user types:', error);
+  }
+};
+
+// Method to fetch sex values from the API
+const fetchWorkspaces = async () => {
+  try {
+    const workspaceValues = await API.get(API.WORKSPACE);
+    const workspaceField = formFields.value.find(f => f.key === 'workspace_id');
+    if (workspaceField) {
+      workspaceField.options = workspaceValues.map((workspace: string) => ({
+        label: workspace.name,
+        value: workspace.id,
       }));
     }
   } catch (error) {
@@ -92,7 +112,8 @@ onMounted(async () => {
   //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
-  await fetchTenants();
+  await fetchTypes();
+  await fetchWorkspaces();
   loaded.value = true;
   emit('loaded');
 });
@@ -103,3 +124,23 @@ onMounted(async () => {
   };
 });*/
 </script>
+
+<style scoped>
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-container ion-spinner {
+  margin-bottom: 16px;
+}
+
+.loading-container p {
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+}
+</style>

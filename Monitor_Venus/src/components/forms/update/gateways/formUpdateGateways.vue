@@ -2,14 +2,15 @@
   <ion-page>
     <ion-content class="ion-padding">
       <form-update
-          :type="type"
-          :index="index"
-          :fields="fields"
-          :label="label"
-          :additionalData="additionalData"
-          :initialData="initialData"
-          @itemEdited="handleitemEdited"
-          @closed="emit('closed')"
+        v-if="loaded"
+        :type="type"
+        :index="index"
+        :fields="fields"
+        :label="label"
+        :additionalData="additionalData"
+        :initialData="initialData"
+        @itemEdited="handleitemEdited"
+        @closed="emit('closed')"
       />
     </ion-content>
   </ion-page>
@@ -62,32 +63,14 @@ const handleitemEdited = () => {
 };
 
 // Method to fetch user types from the API
-const fetchTypes = async () => {
+const fetchWorkspaces = async () => {
   try {
-    const headers = { 'API-VERSION': '1' };
-    const integraTypes = await API.get(API.INTEGRA_USER_TYPES, headers);
-    const typesField = formFields.value.find(f => f.key === 'type');
-    if (typesField) {
-      typesField.options = integraTypes.map((intType: string) => ({
-        label: intType,
-        value: intType.toUpperCase(),
-      }));
-    }
-  } catch (error) {
-    console.error('Error fetching user types:', error);
-  }
-};
-
-// Method to fetch sex values from the API
-const fetchSex = async () => {
-  try {
-    const headers = { 'API-VERSION': '1' };
-    const sexValues = await API.get(API.SEX_VALUES, headers);
-    const sexField = formFields.value.find(f => f.key === 'sex');
-    if (sexField) {
-      sexField.options = sexValues.map((sexValue: string) => ({
-        label: sexValue,
-        value: sexValue.toUpperCase(),
+    const workspaceValues = await API.get(API.WORKSPACE);
+    const workspaceField = formFields.value.find(f => f.key === 'workspace_id');
+    if (workspaceField) {
+      workspaceField.options = workspaceValues.map((workspace: string) => ({
+        label: workspace.name,
+        value: workspace.id,
       }));
     }
   } catch (error) {
@@ -95,6 +78,20 @@ const fetchSex = async () => {
   }
 };
 
+const fetchLocations = async () => {
+  try {
+    const locationValues = await API.get(API.LOCATION);
+    const locationField = formFields.value.find(f => f.key === 'location_id');
+    if (locationField) {
+      locationField.options = locationValues.map((location: string) => ({
+        label: location.name,
+        value: location.id,
+      }));
+    }
+  } catch (error) {
+    console.error('Error fetching sex values:', error);
+  }
+};
 // Method to set additional data for the form
 const setAffiliation = () => {
   additionalData.value = {
@@ -109,6 +106,8 @@ onMounted(async () => {
   //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
+  await fetchWorkspaces();
+  await fetchLocations();
   loaded.value = true;
   emit('loaded');
 });

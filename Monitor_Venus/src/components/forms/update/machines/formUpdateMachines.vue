@@ -1,15 +1,14 @@
 <template>
   <ion-page>
     <ion-content class="ion-padding">
-      <form-update
+      <FormUpdate
         v-if="loaded"
         :type="type"
-        :index="index"
         :fields="formFields"
         :label="label"
         :additionalData="additionalData"
         :initialData="initialData"
-        @itemEdited="handleitemEdited"
+        @itemCreated="handleItemCreated"
         @closed="emit('closed')"
       />
     </ion-content>
@@ -17,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import {
   IonPage,
   IonHeader,
@@ -34,9 +33,6 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  index:{
-    type: Number,
-  },
   fields: {
     type: Array,
     default: () => [],
@@ -45,36 +41,37 @@ const props = defineProps({
     type: String,
     required: true,
   },
+
   initialData: {
     type: Object,
     default: () => ({}),
   }
 });
 
-const emit = defineEmits(['itemEdited', 'loaded']);
+const emit = defineEmits(['itemCreated', 'loaded', 'closed']);
 
 const loaded = ref(false);
 const additionalData = ref({});
 const formFields = ref([...props.fields]); // Use a ref to make a copy of the fields prop
 
 // Method to handle item creation success
-const handleitemEdited = () => {
-  emit('itemEdited');
+const handleItemCreated = () => {
+  emit('itemCreated');
 };
 
 // Method to fetch user types from the API
-const fetchTenants = async () => {
+const fetchWorkspaces = async () => {
   try {
-    const tenantValues = await API.get(API.TENANT);
-    const tenantField = formFields.value.find(f => f.key === 'tenant');
-    if (tenantField) {
-      tenantField.options = tenantValues.map((tenant: string) => ({
-        label: tenant.name,
-        value: tenant.id,
+    const workspaces = await API.get(API.WORKSPACE);
+    const workspaceField = formFields.value.find(f => f.key === 'workspace_id');
+    if (workspaceField) {
+      workspaceField.options = workspaces.map((workspace: string) => ({
+        label: workspace.name,
+        value: workspace.id,
       }));
     }
   } catch (error) {
-    console.error('Error fetching sex values:', error);
+    console.error('Error fetching workspaces:', error);
   }
 };
 
@@ -92,14 +89,8 @@ onMounted(async () => {
   //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
-  await fetchTenants();
+  await fetchWorkspaces();
   loaded.value = true;
   emit('loaded');
 });
-
-/*const setInitialData = computed(() => {
-  return {
-    name: props.initialData.name,
-  };
-});*/
 </script>

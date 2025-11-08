@@ -2,23 +2,22 @@
   "tenant": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "img", "label": "Imagen", "type": "text" },
-    { "key": "group", "label": "Grupo", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "subscription_id", "label": "Subscripción", "type": "text" }
   ],
 
   "workspace": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "tenant", "label": "Tenant id", "type": "select", "options": [] }
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "tenant", "label": "Tenant", "type": "select", "options": [] }
   ],
 
   "gateway": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "cs_gateway_id", "label":"EUID", "type": "text" },
     { "key": "workspace_id", "label": "Workspace", "type": "select" },
-    { "key": "location_id", "label": "Nombre de locacion", "type": "select" }
+    { "key": "location_id", "label": "Ubicaciópn", "type": "select" }
   ],
 
   "location": [
@@ -44,15 +43,15 @@
 
   "application": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "text" },
-    { "key": "workspace_id", "label":  "Id de Workspace", "type": "select" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "workspace_id", "label":  "Workspace", "type": "select" },
     { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" }
   ],
 
   
 
   "manager": [
-    { "key": "workspace_id", "label": "Id del workspace", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "text" },
     { "key": "email", "label": "Correo electrónico", "type": "text" },
     { "key": "password", "label": "Contraseña", "type": "text" },
     { "key": "is_admin", "label": "Es administrador Global", "type": "checkbox" },
@@ -65,8 +64,8 @@
   "device": [
     { "key": "dev_eui", "label": "Dev eui", "type": "text" },
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "workspace_id", "label": "Id del workspace", "type": "select" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" },
     { "key": "application", "label": "Aplicación", "type": "select" },
     { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" },
     { "key": "device_profile", "label": "Perfil del dispositivo", "type": "select" },
@@ -85,8 +84,8 @@
   ],
   "machine": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "workspace_id", "label": "Id del workspace", "type": "select" }
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" }
   ],
 
 

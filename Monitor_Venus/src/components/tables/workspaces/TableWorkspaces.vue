@@ -209,7 +209,7 @@ const selectedApplication = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'description', 'tenant'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
