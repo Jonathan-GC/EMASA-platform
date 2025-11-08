@@ -5,9 +5,9 @@
         <ion-card-title>📟 Dispositivo</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Nombre:</strong> {{ device.device_name || 'N/A' }}</p>
-        <p><strong>DevEUI:</strong> {{ device.dev_eui || 'N/A' }}</p>
-        <p><strong>Tenant:</strong> {{ device.tenant_name || 'N/A' }}</p>
+        <p><strong>Nombre:</strong> {{ device.device_name || 'N.A' }}</p>
+        <p><strong>DevEUI:</strong> {{ device.dev_eui || 'N.A' }}</p>
+        <p><strong>Tenant:</strong> {{ device.tenant_name || 'N.A' }}</p>
       </ion-card-content>
     </ion-card>
 
@@ -44,8 +44,8 @@
         <ion-card-title>📡 Radio</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Region:</strong> {{ device.radio_info?.rssi || 'N/A' }}dBm</p>
-        <p><strong>SNR:</strong> {{ device.radio_info?.snr || 'N/A' }}dB</p>
+        <p><strong>Region:</strong> {{ device.radio_info?.rssi || 'N.A' }}dBm</p>
+        <p><strong>SNR:</strong> {{ device.radio_info?.snr || 'N.A' }}dB</p>
         <p><strong>Frame:</strong> #{{ device.frame_counter || 0 }}</p>
       </ion-card-content>
     </ion-card>
@@ -79,59 +79,4 @@ const getVoltageStatusText = () => {
 }
 </script>
 
-<style scoped>
-.device-info {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.info-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.voltage-card {
-  border-left: 4px solid #3b82f6;
-}
-
-.voltage-display {
-  text-align: center;
-  margin: 15px 0;
-}
-
-.voltage-value {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #3b82f6;
-  margin-bottom: 10px;
-}
-
-.voltage-status {
-  font-size: 0.9rem;
-  color: #6b7280;
-}
-
-.info-card ion-card-content p {
-  margin: 8px 0;
-  font-size: 0.9rem;
-}
-
-.info-card ion-card-content p strong {
-  color: #374151;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .device-info {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-
-  .voltage-value {
-    font-size: 1.5rem;
-  }
-}
-</style>
+<!-- Styles moved to @/assets/css/card-styles.css -->

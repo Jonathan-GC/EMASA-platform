@@ -16,7 +16,7 @@
             <ion-buttons slot="start">
               <ion-back-button default-href="/home" class="text-neutral-50"></ion-back-button>
             </ion-buttons>
-            <ion-title class="text-neutral-50">Regresar</ion-title>
+            <ion-title class="text-neutral-50 back-button-text">Regresar</ion-title>
           </ion-toolbar>
         </ion-header>
 

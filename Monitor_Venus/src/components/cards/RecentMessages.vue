@@ -14,7 +14,7 @@
           <span class="device">{{ message.device_name }}</span>
           <span class="samples">{{ message.buffer_stats?.total_samples  }} muestras</span>
           <!--<span class="fragment">
-            Frag: {{ message.object?.fragment_number || 'N/A' }}/{{ message.object?.total_fragments || 'N/A' }}
+            Frag: {{ message.object?.fragment_number || 'N.A' }}/{{ message.object?.total_fragments || 'N.A' }}
           </span>-->
         </div>
       </div>
@@ -49,7 +49,7 @@ const formatTime = (timestamp) => {
       hour12: false 
     })
   } catch {
-    return 'N/A'
+    return 'N.A'
   }
 }
 
@@ -74,73 +74,4 @@ const getSampleCount = (message) => {
 }
 </script>
 
-<style scoped>
-.recent-messages {
-  margin-top: 30px;
-  font-family: monospace;
-}
-
-.message-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.message-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 10px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-.timestamp {
-  font-weight: 100;
-  color: #95a1adff;
-  min-width: 70px;
-}
-
-.device {
-  
-  font-weight: 500;
-  color: #495057;
-  flex: 1;
-}
-
-.samples {
-  background: #e7ffedff;
-  color: #28a745;
-  font-weight: 500;
-  min-width: 80px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8em;
-}
-
-.fragment {
-  background: #f3f4f6;
-  color: #6b7280;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8em;
-  min-width: 80px;
-  text-align: center;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .message-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
-  }
-  
-  .timestamp,
-  .samples,
-  .fragment {
-    min-width: unset;
-  }
-}
-</style>
+<!-- Styles moved to @/assets/css/card-styles.css -->

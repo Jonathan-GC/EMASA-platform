@@ -83,9 +83,6 @@
                 ></ion-icon>
               </ion-col>
               <ion-col size="1">
-                <strong>Dispositivos</strong>
-              </ion-col>
-              <ion-col size="1">
                 <strong>Acciones</strong>
               </ion-col>
             </ion-row>
@@ -124,7 +121,7 @@
               <ion-col size="2">
                 <div class="location-info">
                   <ion-icon :icon="icons.location" size="small"></ion-icon>
-                  {{ gateway.location }}
+                  {{ gateway.location.name || 'N.A' }}
                 </div>
               </ion-col>
               
@@ -134,12 +131,6 @@
                 </div>
               </ion-col>
               
-              <ion-col size="1">
-                <div class="devices-info">
-                  <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
-                  {{ gateway.connectedDevices || 0 }}
-                </div>
-              </ion-col>
               
               <ion-col size="1">
                 <quick-actions

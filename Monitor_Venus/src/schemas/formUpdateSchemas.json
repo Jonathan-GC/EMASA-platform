@@ -1,4 +1,11 @@
 {
+    "tenant": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "img", "label": "Imagen", "type": "text" },
+    { "key": "group", "label": "Grupo", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "subscription_id", "label": "Subscripción", "type": "text" }
+  ],
     "period":[
         { "key": "name", "label": "Nombre", "type": "text" },
         { "key": "start_date", "label": "Fecha de inicio", "type": "date" },

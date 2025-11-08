@@ -30,7 +30,7 @@
           <div class="table-controls">
             <ion-searchbar
                 v-model="searchText"
-                placeholder="Buscar device profile..."
+                placeholder="Buscar Ubicación..."
                 @ionInput="handleSearch"
                 show-clear-button="focus"
                 class="custom"
@@ -94,34 +94,34 @@
 
             <!-- Data rows -->
             <ion-row
-                v-for="deviceProfile in paginatedItems"
-                :key="deviceProfile.id"
+                v-for="location in paginatedItems"
+                :key="location.id"
                 class="table-row-stylized"
 
-                :class="{ 'row-selected': selectedApplication?.id === deviceProfile.id }"
+                :class="{ 'row-selected': selectedApplication?.id === location.id }"
             >
               <ion-col size="1">
                 <div class="gateway-info">
                   <div>
-                    <div class="gateway-name">{{ deviceProfile.id }}</div>
+                    <div class="gateway-name">{{ location.id }}</div>
                   </div>
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.name }}</div>
+                <div class="gateway-id">{{ location.name }}</div>
               </ion-col>
 
 
               <ion-col size="2">
-                <div class="location-info">{{ deviceProfile.accuracy }}</div>
+                <div class="location-info">{{ location.accuracy }}</div>
               </ion-col>
 
               <ion-col size="2">
-                <div class="location-info">{{ deviceProfile.latitude }}, {{ deviceProfile.longitude }}, {{ deviceProfile.altitude }}</div>
+                <div class="location-info">{{ location.latitude }}, {{ location.longitude }}, {{ location.altitude }}</div>
               </ion-col>
 
               <ion-col size="2">
-                <div class="time-info">{{ deviceProfile.source }}</div>
+                <div class="time-info">{{ location.source }}</div>
               </ion-col>
 
               <ion-col size="2">

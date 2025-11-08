@@ -19,7 +19,7 @@
 
     <!-- Modal -->
     <ion-modal :is-open="isOpen" @did-dismiss="closeModal">
-      <ion-header>
+      <ion-header class="custom">
         <ion-toolbar>
           <ion-title>{{ title }}</ion-title>
           <ion-buttons slot="end">
