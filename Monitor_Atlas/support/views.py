@@ -68,12 +68,12 @@ class TicketViewSet(viewsets.ModelViewSet):
             )
         user = support_member.user
         ticket = serializer.save()
+        ticket_number = f"TICKET-{ticket.id}"
         if ticket.organization:
             ticket_body = f"{ticket.organization} submitted a Ticket."
         else:
             ticket_body = f"Ticket {ticket_number} has been submitted."
 
-        ticket_number = f"TICKET-{ticket.id}"
         notification = Notification.objects.create(
             title="New Ticket Submitted",
             message=ticket_body,
