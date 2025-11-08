@@ -80,6 +80,9 @@ class User(UserBase, AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+    
+    def get_full_name(self):
+        return f"{self.name} {self.last_name}"
 
     def has_module_perms(self, app_label):
         return self.is_superuser
