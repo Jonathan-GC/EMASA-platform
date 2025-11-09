@@ -158,10 +158,10 @@ export const routes = [
                     requiresTenant: true,
                     roles: ['superuser', 'admin', 'normal'],
                     label: 'Notifications'
-                }
-            }
+                },
                 beforeEnter: requireAuth
             },
+                
 
          // ✅ Nueva ruta Support 
 

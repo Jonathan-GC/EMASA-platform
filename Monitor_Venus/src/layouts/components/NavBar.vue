@@ -174,7 +174,7 @@
         </template>
 
         <!-- Support navbar !-->
-
+        <hr class="divider"/>
         <router-link
           :to="paths.SUPPORT"
           class="nav-link"
