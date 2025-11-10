@@ -75,4 +75,7 @@ ion-card-content.custom {
   ion-card-content.custom {
     padding-bottom: 140px!important;
   }
+  ion-card-content.signup-card-content{
+    padding-inline: 10px;
+  }
 }

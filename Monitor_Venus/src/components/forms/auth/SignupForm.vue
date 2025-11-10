@@ -30,7 +30,7 @@
         </div>
       </ion-card-header>
 
-      <ion-card-content>
+      <ion-card-content class="signup-card-content">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>

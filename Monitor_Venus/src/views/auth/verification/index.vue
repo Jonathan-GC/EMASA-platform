@@ -139,7 +139,7 @@ const verifyAccount = async () => {
 
 // Navigate to login
 const goToLogin = () => {
-  router.push(paths.login)
+  router.push(paths.LOGIN)
 }
 
 // Get token from URL and verify on mount
