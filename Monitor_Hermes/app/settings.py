@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # API Key para comunicación entre servicios
     SERVICE_API_KEY: str
+    ATLAS_HOST_URL: str = "http://localhost:8000"
 
     class Config:
         env_file = ".env"

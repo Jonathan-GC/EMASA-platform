@@ -10,6 +10,7 @@ from app.persistence.mongo import (
 )
 from app.redis.redis import connect_to_redis, close_redis_connection
 from app.workers.redis_worker import process_messages
+from app.workers.test_notification_worker import test_notification_loop
 from app.persistence.models import MessageIn
 from app.mqtt.client import start_mqtt
 import loguru
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
     db = await get_db()
     loop.create_task(process_messages(db))
+    loop.create_task(test_notification_loop())  # Iniciar worker de prueba
 
     start_mqtt(db, loop)
     yield

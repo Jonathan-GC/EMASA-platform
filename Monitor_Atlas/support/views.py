@@ -276,7 +276,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 logger.error(f"Failed to notify user {user.id}: {e}")
 
-        if superuser:
+        if superuser and superuser not in users:
             notification = Notification.objects.create(
                 title=data.get("title"),
                 message=data.get("message"),

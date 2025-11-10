@@ -19,3 +19,17 @@ class MessageIn(BaseModel):
 class MessageDB(MessageIn):
     id: str = Field(alias="_id")
     timestamp: datetime
+
+
+class DeviceMeasurements(BaseModel):
+    dev_eui: str
+    max: float
+    min: float
+    threshold: float
+    unit: str
+
+
+class DeviceMeasurementsDB(DeviceMeasurements):
+    id: str = Field(alias="_id")
+    created_at: datetime
+    updated_at: datetime
