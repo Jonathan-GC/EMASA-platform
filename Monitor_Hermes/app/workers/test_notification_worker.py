@@ -23,7 +23,7 @@ async def send_test_notification():
         response = await atlas_client.post(
             "/api/v1/support/notification/alert/", json=payload
         )
-        loguru.logger.info(
+        loguru.logger.debug(
             f"✅ Test notification sent successfully. Status: {response.status_code}"
         )
         return response
