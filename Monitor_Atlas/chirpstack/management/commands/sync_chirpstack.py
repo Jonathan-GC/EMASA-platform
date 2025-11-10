@@ -72,7 +72,7 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.NOTICE("ℹ No tenant changes returned from ChirpStack.")
             )
-        elif response.status_code == 200:
+        elif response and response.status_code == 200:
             self.stdout.write(self.style.SUCCESS("✔ Tenants fetched successfully."))
         else:
             self.stdout.write(
@@ -98,7 +98,7 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.NOTICE("ℹ No gateway changes returned from ChirpStack.")
             )
-        elif response.status_code == 200:
+        elif response and response.status_code == 200:
             self.stdout.write(self.style.SUCCESS("✔ Gateways fetched successfully."))
         else:
             self.stdout.write(
@@ -124,7 +124,7 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.NOTICE("ℹ No APIUser changes returned from ChirpStack.")
             )
-        elif response.status_code == 200:
+        elif response and response.status_code == 200:
             self.stdout.write(self.style.SUCCESS("✔ APIUsers fetched successfully."))
         else:
             self.stdout.write(
@@ -152,7 +152,7 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.NOTICE("ℹ No application changes returned from ChirpStack.")
             )
-        elif response.status_code == 200:
+        elif response and response.status_code == 200:
             self.stdout.write(
                 self.style.SUCCESS("✔ Applications fetched successfully.")
             )
@@ -183,7 +183,7 @@ class Command(BaseCommand):
                     "ℹ No device profile changes returned from ChirpStack."
                 )
             )
-        elif response.status_code == 200:
+        elif response and response.status_code == 200:
             self.stdout.write(
                 self.style.SUCCESS("✔ DeviceProfiles fetched successfully.")
             )
@@ -211,7 +211,7 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.NOTICE("ℹ No device changes returned from ChirpStack.")
             )
-        elif response.status_code == 200:
+        elif response and response.status_code == 200:
             self.stdout.write(self.style.SUCCESS("✔ Devices fetched successfully."))
         else:
             self.stdout.write(

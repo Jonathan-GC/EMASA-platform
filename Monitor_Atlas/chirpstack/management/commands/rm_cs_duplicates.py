@@ -236,7 +236,7 @@ class Command(BaseCommand):
             },
         )
 
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             return response.json().get("result", [])
         return []
 
@@ -253,7 +253,7 @@ class Command(BaseCommand):
                 json=payload,
             )
 
-            if response.status_code == 200:
+            if response and response.status_code == 200:
                 logger.info(
                     f"Reassigned device {device['devEui']} to profile {new_profile_id}"
                 )

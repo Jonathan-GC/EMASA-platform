@@ -58,7 +58,7 @@ def set_status(instance, response):
     if response is None:
         logger.debug(f"No changes made to {instance} in chirpstack")
         return
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         instance.sync_status = "SYNCED"
         instance.sync_error = ""
         instance.last_synced_at = dt.datetime.now()
@@ -72,7 +72,7 @@ def set_status(instance, response):
 def test_connection():
     try:
         response = requests.get(CHIRPSTACK_API_URL, headers=HEADERS)
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             logger.debug("Connection to ChirpStack successful.")
             return True
         else:
@@ -97,7 +97,7 @@ def get_tenant_by_id(tenant):
             f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}",
             headers=HEADERS,
         )
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             found = True
     return found
 
@@ -216,7 +216,7 @@ def sync_tenant_update(tenant):
 
     response = sync_tenant_get(tenant)
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
 
     set_status(tenant, response)
@@ -241,7 +241,7 @@ def sync_tenant_destroy(tenant):
             headers=HEADERS,
         )
 
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             logger.debug(f"Tenant deleted in Chirpstack")
             return response
 
@@ -308,7 +308,7 @@ def get_gateway_by_id(gateway):
         f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
         headers=HEADERS,
     )
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         found = True
     return found
 
@@ -345,7 +345,7 @@ def sync_gateway_status(gateway):
         headers=HEADERS,
         params={"tenantId": gateway.workspace.tenant.cs_tenant_id, "limit": 100},
     )
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         results = response.json().get("result", [])
         match = next(
             (g for g in results if g["gatewayId"] == gateway.cs_gateway_id), None
@@ -400,7 +400,7 @@ def sync_gateway_update(gateway):
 
     response = create_gateway_in_chirpstack(gateway)
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         response = requests.put(
             f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
             json=payload,
@@ -417,7 +417,7 @@ def sync_gateway_destroy(gateway):
             f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
             headers=HEADERS,
         )
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             logger.debug(f"Gateway deleted in Chirpstack")
             return response
 
@@ -513,7 +513,7 @@ def get_api_user_by_id(api_user):
             f"{CHIRPSTACK_API_URL}/{api_user.cs_user_id}",
             headers=HEADERS,
         )
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             found = True
     return found
 
@@ -645,7 +645,7 @@ def sync_api_user_update(api_user):
 
     url = f"{CHIRPSTACK_API_URL}/{api_user.cs_user_id}"
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
 
     set_status(api_user, response)
@@ -671,7 +671,7 @@ def sync_api_user_destroy(api_user):
             headers=HEADERS,
         )
 
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             logger.debug(f"API User deleted in Chirpstack")
             return response
 
@@ -723,7 +723,7 @@ def get_device_profile_by_id(device_profile):
             f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}",
             headers=HEADERS,
         )
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             found = True
     return found
 
@@ -769,7 +769,7 @@ def create_device_profile_in_chirpstack(device_profile):
     )
     set_status(device_profile, response)
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         logger.info(f"Created new device profile: {device_profile.name}")
 
     return response
@@ -916,7 +916,7 @@ def sync_device_profile_update(device_profile):
 
     response = sync_device_profile_get(device_profile)
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
 
     set_status(device_profile, response)
@@ -934,7 +934,7 @@ def sync_device_profile_destroy(device_profile):
             headers=HEADERS,
         )
 
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             logger.debug(f"DeviceProfile deleted in Chirpstack")
             return response
 
@@ -997,7 +997,7 @@ def get_application_by_id(application):
             f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}",
             headers=HEADERS,
         )
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             found = True
     return found
 
@@ -1088,7 +1088,7 @@ def sync_application_update(application):
         )
         response = create_application_in_chirpstack(application)
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
 
     set_status(application, response)
@@ -1104,7 +1104,7 @@ def sync_application_destroy(application):
             headers=HEADERS,
         )
 
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             logger.debug(f"Application deleted in Chirpstack")
             return response
 
@@ -1154,7 +1154,7 @@ def get_device_by_id(device):
             f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}",
             headers=HEADERS,
         )
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             set_status(device, response)
             found = True
         else:
@@ -1180,7 +1180,7 @@ def create_device_in_chirpstack(device):
             f"Device not found. Creating device {device.dev_eui} in Chirpstack."
         )
         response = requests.post(CHIRPSTACK_DEVICE_URL, json=payload, headers=HEADERS)
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             logger.debug(f"Device {device.dev_eui} created in Chirpstack.")
             set_status(device, response)
         else:
@@ -1235,7 +1235,7 @@ def sync_device_destroy(device):
             headers=HEADERS,
         )
 
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             logger.debug(f"Device deleted in Chirpstack")
             return response
 
@@ -1275,7 +1275,7 @@ def device_activation_status(device):
     status = False
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
     response = requests.get(url, headers=HEADERS)
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         activation = response.json().get("device", {}).get("isDisabled", True)
 
         if not activation:

@@ -33,7 +33,7 @@ class ConnectionManager:
                 f"Device-only connection established: \n User: {str(info.get('username'))} \n Tenant: {str(tenant_id)}"
             )
         elif info.get("notification_only"):
-            # Conexión dedicada SOLO para notificaciones
+            # Connection dedicated ONLY for notifications
             loguru.logger.debug(
                 f"Notification-only connection established: \n User: {str(info.get('username'))} (ID: {info.get('user_id')})"
             )
@@ -46,8 +46,8 @@ class ConnectionManager:
                 self.tenants[tenant_id] = []
             self.tenants[tenant_id].append(websocket)
 
-        # Registrar para notificaciones (solo si no es device_only)
-        # Las conexiones notification_only, tenant, global y superuser pueden recibir notificaciones
+        # Register for notifications (only if not device_only)
+        # Notification_only, tenant, global and superuser connections can receive notifications
         try:
             if not info.get("device_only"):
                 user_id = info.get("user_id")
@@ -84,7 +84,7 @@ class ConnectionManager:
                 if not self.tenants[tenant_id]:
                     del self.tenants[tenant_id]
 
-        # Limpiar suscripciones a devices
+        # Clean device subscriptions
         try:
             for dev, conns in list(self.device_subs.items()):
                 if websocket in conns:
@@ -94,7 +94,7 @@ class ConnectionManager:
         except Exception:
             loguru.logger.exception("Error cleaning device subscriptions on disconnect")
 
-        # Limpiar registro de notificaciones de usuario
+        # Clean user notification registry
         try:
             if not info.get("device_only"):
                 user_id = info.get("user_id")

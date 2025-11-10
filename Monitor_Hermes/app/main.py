@@ -14,7 +14,7 @@ from app.persistence.models import MessageIn
 from app.mqtt.client import start_mqtt
 import loguru
 import asyncio
-from app.ws.manager import manager
+from app.ws.helpers import notify_user
 from app.auth.deps import verify_service_api_key
 
 
@@ -43,23 +43,24 @@ async def create_message(message: MessageIn, db=Depends(get_db)):
 
 
 @app.post("/notify")
-async def notify_user(
+async def notify_user_endpoint(
     user_id: str,
     title: str,
     message: str,
     type: str = "info",
     _: bool = Depends(verify_service_api_key),
 ):
-    loguru.logger.debug(f"Notificando al usuario {user_id}: {message}")
-    payload = {
-        "channel": "notifications",
-        "title": title,
-        "message": message,
-        "type": type,
-    }
-    try:
-        await manager.send_to_user(user_id, payload)
+    """
+    Send a notification to a user via WebSocket.
+
+    This endpoint allows external services to send notifications to users.
+    Requires SERVICE_API_KEY authentication via X-API-Key header.
+    """
+    loguru.logger.debug(f"Notifying user {user_id}: {message}")
+
+    success = await notify_user(user_id, title, message, type)
+
+    if success:
         return {"status": "success", "sent": True}
-    except Exception:
-        loguru.logger.exception(f"Failed to notify user {user_id} via websocket")
+    else:
         return {"status": "error", "sent": False}

@@ -17,24 +17,24 @@ router = APIRouter()
 @router.websocket("/ws/notifications")
 async def websocket_notifications(websocket: WebSocket):
     """
-    WebSocket dedicado EXCLUSIVAMENTE para notificaciones de usuario.
+    WebSocket dedicated EXCLUSIVELY for user notifications.
 
-    El cliente se conecta a este endpoint para recibir notificaciones personales:
-    - Alertas del sistema
-    - Mensajes de la aplicación
-    - Notificaciones de eventos importantes
+    Clients connect to this endpoint to receive personal notifications:
+    - System alerts
+    - Application messages
+    - Important event notifications
 
-    No recibe datos de devices ni de tenants, solo notificaciones enviadas
-    específicamente al user_id del usuario autenticado.
+    Does not receive device or tenant data, only notifications sent
+    specifically to the authenticated user's user_id.
 
-    Uso desde el cliente:
+    Client usage:
         ws://host/ws/notifications?token=JWT_TOKEN
 
-    Mensajes recibidos tienen el formato:
+    Received messages have the format:
         {
             "channel": "notifications",
-            "title": "Título de la notificación",
-            "message": "Contenido del mensaje",
+            "title": "Notification title",
+            "message": "Message content",
             "type": "info|warning|error|success"
         }
     """
@@ -53,12 +53,12 @@ async def websocket_notifications(websocket: WebSocket):
 
     await websocket.accept()
 
-    # Crear info específico para conexión de notificaciones
+    # Create specific info for notification connection
     info_for_notifications = {
         "user_id": info.get("user_id"),
         "username": info.get("username"),
-        "notification_only": True,  # Flag para identificar este tipo de conexión
-        "tenant_id": info.get("tenant_id"),  # Mantener para logging
+        "notification_only": True,  # Flag to identify this connection type
+        "tenant_id": info.get("tenant_id"),  # Keep for logging purposes
     }
 
     try:
@@ -73,15 +73,15 @@ async def websocket_notifications(websocket: WebSocket):
 
     try:
         while True:
-            # Mantener conexión abierta y permitir mensajes del cliente
-            # (opcional: el cliente puede enviar heartbeat o ACKs)
+            # Keep connection open and allow client messages
+            # (optional: client can send heartbeat or ACKs)
             data = await websocket.receive_text()
             loguru.logger.debug(
                 f"Notification channel received from {info.get('username')}: {data}"
             )
 
-            # Opcional: permitir al cliente enviar comandos
-            # Por ejemplo, marcar notificaciones como leídas, etc.
+            # Optional: allow client to send commands
+            # For example, mark notifications as read, etc.
             try:
                 import json
 
@@ -89,10 +89,10 @@ async def websocket_notifications(websocket: WebSocket):
                 action = payload.get("action")
 
                 if action == "ping":
-                    # Responder a heartbeat
+                    # Respond to heartbeat
                     await websocket.send_json({"action": "pong"})
                 elif action == "ack":
-                    # Cliente confirmó recepción de notificación
+                    # Client acknowledged notification receipt
                     notification_id = payload.get("notification_id")
                     loguru.logger.debug(
                         f"User {info.get('username')} acknowledged notification {notification_id}"
@@ -102,7 +102,7 @@ async def websocket_notifications(websocket: WebSocket):
                         f"Unknown action in notifications channel: {action}"
                     )
             except Exception:
-                # Si no es JSON o falla el parsing, ignorar
+                # If not JSON or parsing fails, ignore
                 pass
 
     except WebSocketDisconnect:

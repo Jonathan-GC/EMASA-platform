@@ -10,7 +10,7 @@ from django.conf import settings
 def fetch_chirpstack_users(api_url, headers):
     """Fetch global users from Chirpstack API."""
     response = requests.get(api_url, headers=headers, params={"limit": 100})
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         return response.json().get("result", []), response
     return [], response
 
