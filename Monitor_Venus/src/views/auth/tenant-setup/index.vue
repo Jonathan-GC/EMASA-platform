@@ -6,13 +6,13 @@
         <ion-buttons slot="end">
           <ion-button @click="handleLogout">
             <ion-icon :icon="logOutOutline"></ion-icon>
-            Cerrar Sesión
+            <span class="back-button-text">Cerrar Sesión</span>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding verification-page">
+    <ion-content class="verification-page custom">
       <div class="setup-container">
         <!-- Welcome Section -->
         <div class="welcome-section">
@@ -505,5 +505,13 @@ const skipSetup = () => {
   .info-cards {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 480px) {
+  .welcome-section {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-inline: 10px;
+}
 }
 </style>

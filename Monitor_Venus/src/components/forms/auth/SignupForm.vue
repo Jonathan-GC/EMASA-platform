@@ -46,8 +46,8 @@
           
           <!-- Name and Last Name -->
           <ion-item class="custom">
-            <div class="flex">
-              <div class="flex-2 mr-2 !pl-0 !pr-0">
+            <div :class="isMobile ? 'flex-column' : 'flex'">
+              <div :class="isMobile ? 'full-width mb-4' : 'flex-2 mr-2 !pl-0 !pr-0'">
                 <ion-label position="stacked" class="!mb-2">Nombre</ion-label>
                 <ion-input
                   v-model="credentials.name"
@@ -58,7 +58,7 @@
                   fill="solid"
                 ></ion-input>
               </div>
-              <div class="flex-2 ml-2">
+              <div :class="isMobile ? 'full-width' : 'flex-2 ml-2'">
                 <ion-label position="stacked" class="!mb-2">Apellido</ion-label>
                 <ion-input
                   v-model="credentials.last_name"
@@ -87,8 +87,8 @@
           
           <!-- Phone -->
           <ion-item class="custom">
-            <div class="flex">
-              <div class="flex-0 mr-2">
+            <div :class="isMobile ? 'flex-column' : 'flex'">
+              <div :class="isMobile ? 'full-width mb-4' : 'flex-0 mr-2'">
                 <ion-label position="stacked" class="!mb-2">Indicativo</ion-label>
                 <ModalSelector
                   v-model="selectedCountryCode"
@@ -112,7 +112,7 @@
                   </template>
                 </ModalSelector>
               </div>
-              <div class="flex-2 ml-2">
+              <div :class="isMobile ? 'full-width' : 'flex-2 ml-2'">
                 <ion-label position="stacked" class="!mb-2">Teléfono</ion-label>
                 <ion-input
                   v-model="credentials.phone"
@@ -127,8 +127,8 @@
           </ion-item>
 
           <!-- Address -->
-          <div class="flex">
-            <ion-item class="custom flex-2 mr-2 !pl-0 !pr-0">
+          <div :class="isMobile ? 'flex-column' : 'flex'">
+            <ion-item :class="isMobile ? 'custom full-width mb-4' : 'custom flex-2 mr-2 !pl-0 !pr-0'">
               <ion-label position="stacked" class="!mb-2">País</ion-label>
               <ModalSelector
                 v-model="address.country"
@@ -148,7 +148,7 @@
               </ModalSelector>
             </ion-item>
 
-            <ion-item class="custom flex-2 mr-2 !pl-0 !pr-0">
+            <ion-item :class="isMobile ? 'custom full-width mb-4' : 'custom flex-2 mr-2 !pl-0 !pr-0'">
               <ion-label position="stacked" class="!mb-2">Provincia</ion-label>
               <ModalSelector
                 v-model="address.state"
@@ -161,7 +161,7 @@
               />
             </ion-item>
 
-            <ion-item class="custom flex-2 !pl-0 !pr-0">
+            <ion-item :class="isMobile ? 'custom full-width' : 'custom flex-2 !pl-0 !pr-0'">
               <ion-label position="stacked" class="!mb-2">Ciudad</ion-label>
               <ModalSelector
                 v-model="address.city"
@@ -175,8 +175,8 @@
             </ion-item>
           </div>
 
-          <div class="flex">
-          <ion-item class="custom flex-3 mr-2">
+          <div :class="isMobile ? 'flex-column' : 'flex'">
+          <ion-item :class="isMobile ? 'custom full-width mb-4' : 'custom flex-3 mr-2'">
             <ion-label position="stacked" class="!mb-2">Dirección</ion-label>
             <ion-input
                 v-model="credentials.address.address"
@@ -188,7 +188,7 @@
             ></ion-input>
           </ion-item>
             
-          <ion-item class="custom flex-2">
+          <ion-item :class="isMobile ? 'custom full-width' : 'custom flex-2'">
             <ion-label position="stacked" class="!mb-2">Código Postal</ion-label>
             <ion-input
                 v-model="credentials.address.zip_code"
@@ -380,9 +380,13 @@ import { paths } from '@/plugins/router/paths.js'
 import { countries } from '@/data/countries.js'
 import { cities } from '@/data/cities.js'
 import ModalSelector from '@/components/ui/ModalSelector.vue'
+import { useResponsiveView } from '@/composables/useResponsiveView.js'
 
 // Router instance
 const router = useRouter()
+
+// Responsive view
+const { isMobile } = useResponsiveView(480)
 
 // Iconos desde el plugin
 const icons = inject('icons', {})
