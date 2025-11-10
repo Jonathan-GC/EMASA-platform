@@ -25,7 +25,7 @@ from users.models import User
 
 from rest_framework.decorators import action
 from loguru import logger
-from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
 from rest_framework.response import Response
 
 from .models import (
@@ -50,6 +50,20 @@ from roles.helpers import support_manager_can_view_all_support_members
     partial_update=extend_schema(description="Ticket Partial Update"),
     destroy=extend_schema(description="Ticket Destroy"),
     get_all_types=extend_schema(description="Get all classification types"),
+    get_support_members=extend_schema(description="Get support members"),
+    delegate=extend_schema(
+        description="Delegate the ticket",
+        examples=[
+            OpenApiExample(
+                "Delegate Ticket Example",
+                summary="Delegate Ticket Example",
+                description="Example payload for delegating a ticket to a support member.",
+                value={"assigned_to_id": 2},
+                request_only=True,
+                response_only=False,
+            ),
+        ],
+    ),
 )
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
@@ -192,6 +206,24 @@ class CommentAttachmentViewSet(viewsets.ModelViewSet):
     notify_user=extend_schema(description="Notify user via WebSocket"),
     my_notifications=extend_schema(description="Get user's notifications"),
     mark_as_read=extend_schema(description="Mark notification as read"),
+    alert=extend_schema(
+        description="Alert",
+        examples=[
+            OpenApiExample(
+                "Alert Example",
+                summary="Alert Example",
+                description="Example payload for sending an alert notification.",
+                value={
+                    "title": "Device Offline",
+                    "message": "The device with ID 12345 has gone offline.",
+                    "type": "error",
+                    "device_id": 1,
+                },
+                request_only=True,
+                response_only=False,
+            )
+        ],
+    ),
 )
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()

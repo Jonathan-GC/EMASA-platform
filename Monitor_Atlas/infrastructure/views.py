@@ -315,6 +315,19 @@ class TypeViewSet(viewsets.ModelViewSet):
         ],
     ),
     activation_details=extend_schema(description="Get Device Activation Details"),
+    create_measurement=extend_schema(
+        description="Create Measurement for Device",
+        request=MeasurementsSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to create a measurement for device",
+                value={"min": 10.5, "max": 25.3, "threshold": 20.0, "unit": "Volts"},
+            ),
+        ],
+    ),
+    measurements=extend_schema(description="Get Measurements config for Device"),
 )
 class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.all()
