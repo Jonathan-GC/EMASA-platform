@@ -16,7 +16,7 @@ async def send_test_notification():
         "title": "This is a test notification",
         "message": "This is a test notification, trying to communicate with atlas",
         "type": "info",
-        "user": 1,
+        "device_id": 1,
     }
 
     try:
