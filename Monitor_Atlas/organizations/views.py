@@ -139,7 +139,7 @@ class TenantViewSet(viewsets.ModelViewSet):
                 f"User {user.username} is superuser, not assigning tenant automatically"
             )
             # Creating workspace and admin role defaults anyways
-            get_or_create_default_workspace(instance)
+            workspace = get_or_create_default_workspace(instance)
             get_or_create_admin_role(workspace)
             get_no_role(workspace)  # Ensure "No Role" exists
 

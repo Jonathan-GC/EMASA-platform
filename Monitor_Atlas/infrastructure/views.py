@@ -324,10 +324,13 @@ class TypeViewSet(viewsets.ModelViewSet):
                 summary="Example Request",
                 description="Example request body to create a measurement for device",
                 value={"min": 10.5, "max": 25.3, "threshold": 20.0, "unit": "Volts"},
+                request_only=True,
+                response_only=False,
             ),
         ],
     ),
     measurements=extend_schema(description="Get Measurements config for Device"),
+    measurements_by_dev_eui=extend_schema(description="Get Measurements by DevEUI"),
 )
 class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.all()
@@ -638,11 +641,18 @@ class DeviceViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["get"],
-        permission_classes=[IsServiceOrHasPermission],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def measurements(self, request, pk=None):
         device = self.get_object()
+
+        if not device:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         measurements = Measurements.objects.filter(device=device)
 
         if not measurements.exists():
@@ -667,6 +677,40 @@ class DeviceViewSet(viewsets.ModelViewSet):
             serializer.save(device=device)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsServiceOrHasPermission],
+        scope="device",
+    )
+    def measurements_by_dev_eui(self, request):
+        dev_eui = request.query_params.get("dev_eui", None)
+
+        if not dev_eui:
+            return Response(
+                {"message": "No DevEUI provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            device = Device.objects.get(dev_eui=dev_eui)
+        except Device.DoesNotExist:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        measurements = Measurements.objects.filter(device=device)
+
+        if not measurements.exists():
+            return Response(
+                {"message": "No measurements found for this device"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(measurements, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema_view(
