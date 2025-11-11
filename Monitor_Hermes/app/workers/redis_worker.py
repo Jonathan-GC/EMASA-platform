@@ -4,6 +4,7 @@ import loguru
 import importlib
 from app.persistence.models import MessageIn
 from app.persistence.mongo import save_message
+from app.validation.orchestrator import validate_and_alert_if_needed
 
 
 async def save_mapping(dev_eui: str, tenant_id: str, redis_client):
@@ -85,6 +86,13 @@ async def process_messages(db):
             loguru.logger.debug(
                 f"Message saved to database for device {message.dev_eui} in tenant {message.tenant_id}"
             )
+
+            try:
+                await validate_and_alert_if_needed(payload, db)
+            except Exception:
+                loguru.logger.exception(
+                    f"Validation failed for {dev_eui} but continuing"
+                )
 
             try:
                 ws_mod = importlib.import_module("app.ws.manager")
