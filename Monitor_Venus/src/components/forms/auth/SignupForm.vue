@@ -478,6 +478,20 @@ const canSubmit = computed(() => {
   return canProceedToNextStep.value
 })
 
+// Fetch CSRF token on component mount
+onMounted(async () => {
+  console.log('🔧 SignupForm mounted - fetching CSRF token')
+  try {
+    console.log('🔐 Fetching CSRF token...')
+    await API.get(API.CSRF_TOKEN)
+    console.log('✅ CSRF token obtained and stored in cookies')
+  } catch (error) {
+    console.error('❌ Failed to fetch CSRF token:', error)
+    // Don't set error.value here to avoid blocking the form UI
+    // The CSRF will be fetched again when needed in handleRegistration
+  }
+})
+
 // Step navigation functions
 const nextStep = () => {
   if (canProceedToNextStep.value && currentStep.value < steps.length) {
@@ -562,7 +576,7 @@ const handleRegistration = async () => {
       profileImage: profileImage.value ? 'Present' : 'Not present'
     })
 
-    // Get CSRF token if needed
+    // Get CSRF token if needed (fallback in case onMounted failed)
     let csrfToken = getCookieValue('csrftoken')
     if (!csrfToken) {
       console.log('🛡️ No hay CSRF token, obteniendo uno...')

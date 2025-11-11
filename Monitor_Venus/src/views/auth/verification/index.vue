@@ -147,6 +147,18 @@ onMounted(async () => {
   token.value = route.query.token || ''
   console.log('Verification token:', token.value)
   
+  // Fetch CSRF token first (required by backend)
+  try {
+    console.log('🔐 Fetching CSRF token...')
+    await API.get(API.CSRF_TOKEN)
+    console.log('✅ CSRF token obtained')
+  } catch (error) {
+    console.error('❌ Failed to fetch CSRF token:', error)
+    errorMessage.value = 'Failed to initialize security token. Please try again.'
+    isLoading.value = false
+    return
+  }
+  
   // Automatically verify the account
   await verifyAccount()
 })
