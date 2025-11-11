@@ -48,6 +48,7 @@ declare module 'vue' {
     FormUpdateTenants: typeof import('./src/components/forms/update/tenants/formUpdateTenants.vue')['default']
     FormUpdateWorkspaces: typeof import('./src/components/forms/update/workspaces/formUpdateWorkspaces.vue')['default']
     GatewaysTable: typeof import('./src/components/tables/GatewaysTable.vue')['default']
+    ImageUpload: typeof import('./src/components/common/ImageUpload.vue')['default']
     IonAvatar: typeof import('@ionic/vue')['IonAvatar']
     IonBackButton: typeof import('@ionic/vue')['IonBackButton']
     IonBadge: typeof import('@ionic/vue')['IonBadge']

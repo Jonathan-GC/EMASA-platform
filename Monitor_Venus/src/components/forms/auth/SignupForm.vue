@@ -282,39 +282,17 @@
          <hr class="divider"/>
           
           <div class="profile-picture-section">
-            <div class="image-upload-container">
-              <div class="image-preview" @click="triggerFileInput">
-                <img 
-                  v-if="profileImage" 
-                  :src="profileImage" 
-                  alt="Profile preview" 
-                  class="profile-image"
-                />
-                <div v-else class="image-placeholder">
-                  <ion-icon :icon="icons.camera" size="large"></ion-icon>
-                  <p>Haz clic para seleccionar una imagen</p>
-                </div>
-              </div>
-              <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                @change="handleImageUpload"
-                style="display: none"
-              />
-            </div>
-            
-            <div class="image-actions">
-              <ion-button 
-                v-if="profileImage" 
-                fill="outline" 
-                color="danger" 
-                @click="removeImage"
-              >
-                <ion-icon :icon="icons.delete" slot="start"></ion-icon>
-                Remover
-              </ion-button>
-            </div>
+            <ImageUpload
+              ref="imageUploadRef"
+              v-model="profileImage"
+              :icon="icons.camera"
+              placeholder-text="Haz clic para seleccionar una imagen"
+              alt="Profile preview"
+              remove-button-text="Remover"
+              :max-size="5 * 1024 * 1024"
+              @change="handleImageChange"
+              @error="handleImageError"
+            />
           </div>
           </ion-card>
         </div>
@@ -380,6 +358,7 @@ import { paths } from '@/plugins/router/paths.js'
 import { countries } from '@/data/countries.js'
 import { cities } from '@/data/cities.js'
 import ModalSelector from '@/components/ui/ModalSelector.vue'
+import ImageUpload from '@/components/common/ImageUpload.vue'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
 
 // Router instance
@@ -406,7 +385,7 @@ const success = ref(null)
 const showPassword = ref(false)
 const selectedCountryCode = ref('+57')
 const profileImage = ref(null)
-const fileInput = ref(null)
+const imageUploadRef = ref(null)
 
 // Credenciales del usuario
 const credentials = ref({
@@ -512,27 +491,16 @@ const previousStep = () => {
   }
 }
 
-// Profile image functions
-const triggerFileInput = () => {
-  fileInput.value?.click()
+// Profile image functions - now handled by ImageUpload component
+const handleImageChange = (fileInfo) => {
+  console.log('📸 Image uploaded:', fileInfo)
+  // The profileImage is automatically updated via v-model
+  // Additional logic can be added here if needed
 }
 
-const handleImageUpload = (event) => {
-  const file = event.target.files[0]
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      profileImage.value = e.target.result
-    }
-    reader.readAsDataURL(file)
-  }
-}
-
-const removeImage = () => {
-  profileImage.value = null
-  if (fileInput.value) {
-    fileInput.value.value = ''
-  }
+const handleImageError = (errorMessage) => {
+  console.error('❌ Image upload error:', errorMessage)
+  error.value = errorMessage
 }
 
 const getCookieValue = (name) => {
@@ -602,15 +570,51 @@ const handleRegistration = async () => {
       await new Promise(resolve => setTimeout(resolve, 500))
     }
 
-    const headers = getHeadersWithCSRF()
-
-    // Prepare form data with image if present
-    const formData = { ...credentials.value }
-    if (profileImage.value) {
-      formData.profile_image = profileImage.value
+    // Get file info from ImageUpload component
+    const fileInfo = imageUploadRef.value?.getFileInfo()
+    
+    // Prepare payload - use FormData if there's a file, otherwise JSON
+    let payload
+    let headers = getHeadersWithCSRF()
+    
+    if (fileInfo?.file) {
+      // Has file - use FormData for file upload
+      console.log('📦 Using FormData for file upload')
+      const formData = new FormData()
+      
+      // Add all credential fields
+      formData.append('username', credentials.value.username)
+      formData.append('password', credentials.value.password)
+      formData.append('name', credentials.value.name)
+      formData.append('last_name', credentials.value.last_name)
+      formData.append('email', credentials.value.email)
+      formData.append('phone_code', credentials.value.phone_code)
+      formData.append('phone', credentials.value.phone)
+      
+      // Add address fields
+      formData.append('address_country', credentials.value.address.country)
+      formData.append('address_state', credentials.value.address.state)
+      formData.append('address_city', credentials.value.address.city)
+      formData.append('address_address', credentials.value.address.address)
+      formData.append('address_zip_code', credentials.value.address.zip_code)
+      
+      // Add profile image file
+      formData.append('profile_image', fileInfo.file)
+      
+      payload = formData
+      
+      // Remove Content-Type header - browser will set it with boundary
+      delete headers['Content-Type']
+    } else {
+      // No file - use regular JSON
+      console.log('📄 Using JSON payload (no file)')
+      payload = { 
+        ...credentials.value,
+        profile_image: null
+      }
     }
 
-    const response = await API.post(API.REGISTER, formData, headers)
+    const response = await API.post(API.REGISTER, payload, headers)
 
     console.log('✅ Registro exitoso:', response)
     success.value = '¡Registro exitoso! Revisa tu email para confirmar.'

@@ -304,10 +304,9 @@ const fetchGateways = async () => {
 const setInitialData = (gateway) => {
   return {
     name: gateway.name,
-    cs_tenant_id: gateway.cs_tenant_id,
-    group: gateway.group,
     description: gateway.description,
     subscription_id: gateway.subscription.id,
+    img: gateway.img
   }
 }
 

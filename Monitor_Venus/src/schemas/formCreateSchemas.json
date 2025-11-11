@@ -1,7 +1,7 @@
 {
   "tenant": [
+    { "key": "img", "label": "Imagen", "type": "image" },
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "img", "label": "Imagen", "type": "text" },
     { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "subscription_id", "label": "Subscripción", "type": "text" }
   ],

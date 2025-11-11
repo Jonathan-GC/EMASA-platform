@@ -322,11 +322,16 @@ class API {
     }
 
     // Preparar headers con autenticación
-    async prepareHeaders(additionalHeaders = {}) {
+    async prepareHeaders(additionalHeaders = {}, isFormData = false) {
         const headers = { 
-            'Content-Type': 'application/json',
             ...additionalHeaders 
         };
+
+        // Solo establecer Content-Type si NO es FormData
+        // El navegador establecerá automáticamente multipart/form-data con el boundary correcto
+        if (!isFormData && !headers['Content-Type']) {
+            headers['Content-Type'] = 'application/json';
+        }
 
         // Agregar CSRF si existe
         const csrfToken = this.getCookieValue('csrftoken');
@@ -449,8 +454,11 @@ class API {
     // Método unificado para hacer requests con manejo automático de tokens
     async makeRequest(method, endpoint, data = null, additionalHeaders = {}, options = {}) {
         try {
+            // Detectar si data es FormData
+            const isFormData = data instanceof FormData;
+            
             // Preparar headers con autenticación automática
-            const headers = await this.prepareHeaders(additionalHeaders);
+            const headers = await this.prepareHeaders(additionalHeaders, isFormData);
 
             // Configurar request
             const requestConfig = {
@@ -461,7 +469,8 @@ class API {
 
             // Agregar body si es POST/PUT/PATCH
             if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
-                requestConfig.body = JSON.stringify(data);
+                // Si es FormData, enviarlo tal cual; si no, convertir a JSON
+                requestConfig.body = isFormData ? data : JSON.stringify(data);
             }
 
             // Agregar timeout si está especificado
@@ -482,7 +491,7 @@ class API {
                     await this.refreshAccessToken();
                     
                     // Reintentar la petición original con el nuevo token
-                    const newHeaders = await this.prepareHeaders(additionalHeaders);
+                    const newHeaders = await this.prepareHeaders(additionalHeaders, isFormData);
                     const retryConfig = { ...requestConfig, headers: newHeaders };
                     
                     const retryResponse = await fetch(this.API_BASE_URL + endpoint, retryConfig);

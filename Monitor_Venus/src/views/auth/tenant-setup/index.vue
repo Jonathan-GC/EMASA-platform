@@ -62,8 +62,8 @@
             <ion-card-title>Crear Tu Organización</ion-card-title>
             <ion-card-subtitle class="section-description !mb-1">
               <ion-icon :icon="shieldCheckmarkOutline" class="card-icon" size="small"></ion-icon>
-              Tus datos estarán completamente aislados de otros usuarios. 
-                Solo tú y las personas que invites tendrán acceso a tu tenant.</ion-card-subtitle>
+              <span>Tus datos estarán completamente aislados de otros usuarios. 
+                Solo tú y las personas que invites tendrán acceso a tu tenant.</span></ion-card-subtitle>
           </ion-card-header>
   
           
@@ -71,17 +71,21 @@
           <ion-card-content>
             <form @submit.prevent="handleCreateTenant">
               <ion-list>
-                <ion-item class="custom">
-                  <ion-label position="stacked" class="!mb-2">Imagen</ion-label>
-                  <ion-input
+                <!-- Organization Image Upload -->
+                <div>
+                  <ImageUpload
+                    ref="imageUploadRef"
                     v-model="tenantForm.img"
-                    class="custom"
-                    placeholder="link de la imagen"
-                    rows="3"
+                    :icon="imageOutline"
+                    placeholder-text="Haz clic para seleccionar el logo"
+                    alt="Organization logo"
+                    remove-button-text="Remover logo"
+                    :max-size="5 * 1024 * 1024"
                     :disabled="loading"
-                    fill="solid"
-                  ></ion-input>
-                </ion-item>
+                    @change="handleImageChange"
+                    @error="handleImageError"
+                  />
+                </div>
 
                 <ion-item class="custom">
                   <ion-label position="stacked" class="!mb-2">Nombre de la Organización *</ion-label>
@@ -171,6 +175,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore.js';
 import API from '@/utils/api/index.js';
+import ImageUpload from '@/components/common/ImageUpload.vue';
 import {
   IonPage,
   IonHeader,
@@ -202,7 +207,8 @@ import {
   addOutline,
   logOutOutline,
   alertCircleOutline,
-  checkmarkCircleOutline
+  checkmarkCircleOutline,
+  imageOutline
 } from 'ionicons/icons';
 
 const router = useRouter();
@@ -210,20 +216,37 @@ const authStore = useAuthStore();
 
 // Form state
 const tenantForm = ref({
-  name: '',
-  description: '',
-  address: '',
-  country: ''
+  name: null,
+  description: null,
+  img: null,              // ✅ Add this
+  subcription_id: null      // ✅ Add this
 });
 
 const loading = ref(false);
 const error = ref(null);
 const success = ref(null);
+const imageUploadRef = ref(null);
 
 // Check if in development mode
 const isDevelopment = computed(() => {
   return import.meta.env.DEV;
 });
+
+/**
+ * Handle image upload
+ */
+const handleImageChange = (fileInfo) => {
+  console.log('📸 Organization logo uploaded:', fileInfo);
+  // The tenantForm.img is automatically updated via v-model
+};
+
+/**
+ * Handle image upload error
+ */
+const handleImageError = (errorMessage) => {
+  console.error('❌ Image upload error:', errorMessage);
+  error.value = errorMessage;
+};
 
 /**
  * Handles tenant creation
@@ -236,14 +259,34 @@ const handleCreateTenant = async () => {
   try {
     console.log('🏢 Creando tenant...', tenantForm.value);
 
+    // Get file info from ImageUpload component
+    const fileInfo = imageUploadRef.value?.getFileInfo();
+    
+    // Prepare payload - use FormData if there's a file, otherwise JSON
+    let payload;
+    
+    if (fileInfo?.file) {
+      // Has file - use FormData for file upload
+      console.log('📦 Using FormData for file upload');
+      const formData = new FormData();
+      formData.append('name', tenantForm.value.name);
+      formData.append('description', tenantForm.value.description || '');
+      formData.append('subscription_id', tenantForm.value.subcription_id || 'CO');
+      formData.append('img', fileInfo.file);
+      payload = formData;
+    } else {
+      // No file - use regular JSON
+      console.log('📄 Using JSON payload (no file)');
+      payload = {
+        name: tenantForm.value.name,
+        description: tenantForm.value.description || '',
+        subscription_id: tenantForm.value.subcription_id || 'CO',
+        img: null
+      };
+    }
+
     // Call API to create tenant
-    const response = await API.post(API.TENANT, {
-      name: tenantForm.value.name,
-      description: tenantForm.value.description || '',
-      img: tenantForm.value.img || '',
-      subscription_id: tenantForm.value.subcription_id || 'CO',
-      // El backend debería asignar automáticamente el user actual como owner
-    });
+    const response = await API.post(API.TENANT, payload);
 
     console.log('✅ Tenant creado:', response);
     success.value = '¡Organización creada exitosamente!';
@@ -422,6 +465,22 @@ const skipSetup = () => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
+/* Image Upload Section */
+.image-upload-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.upload-label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+}
 
 /* Alerts */
 .error-alert,
