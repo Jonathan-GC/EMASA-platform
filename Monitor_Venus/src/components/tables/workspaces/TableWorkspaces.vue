@@ -104,7 +104,13 @@
 
           <!-- Mobile Card View -->
           <div v-else class="mobile-cards">
-            <ion-card v-for="workspace in paginatedItems" :key="workspace.id" class="workspace-card">
+            <ion-card 
+              v-for="workspace in paginatedItems" 
+              :key="workspace.id" 
+              class="workspace-card"
+              :class="getCardClass(true)"
+              @click="(event) => getCardClickHandler(`/tenants/${workspace.id}`)(event)"
+            >
               <ion-card-content>
                 <!-- Header with name -->
                 <div class="card-header">
@@ -191,12 +197,17 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
+import { useCardNavigation } from '@composables/useCardNavigation.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 import QuickControl from '../../operators/quickControl.vue'
 import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
+import QuickActions from '../../operators/quickActions.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+
+// Card navigation composable
+const { getCardClickHandler, getCardClass } = useCardNavigation()
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
@@ -531,5 +542,22 @@ onMounted(async () => {
   justify-content: flex-end;
   padding-top: 12px;
   border-top: 1px solid var(--ion-color-light);
+}
+
+/* Clickable Card Styles */
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.clickable-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>
