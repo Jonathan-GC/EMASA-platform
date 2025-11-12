@@ -26,7 +26,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             if membership.role and membership.role.is_admin:
                 is_tenant_admin = True
             tenant = membership.workspace.tenant
+            logger.debug(
+                f"Tenant for user {user.id}: {tenant.id} with {tenant.cs_tenant_id}"
+            )
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+            logger.debug(f"ChirpStack tenant ID for tenant {tenant.id}: {cs_tenant_id}")
             if tenant.name == "EMASA":
                 is_global = True
             else:
@@ -50,6 +54,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 )
                 is_global = False
                 cs_tenant_id = None
+
+        logger.debug(f"ChirpStack tenant ID for user {user.id}: {cs_tenant_id}")
 
         support_membership = SupportMembership.objects.filter(user=user).first()
         if support_membership:
