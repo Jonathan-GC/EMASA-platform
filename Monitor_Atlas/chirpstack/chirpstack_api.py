@@ -356,6 +356,7 @@ def sync_gateway_status(gateway):
             gateway.last_seen_at = match.get("lastSeenAt", gateway.last_seen_at)
         else:
             logger.warning(f"Gateway {gateway.cs_gateway_id} not found in Chirpstack.")
+        gateway.save(update_fields=["state", "last_seen_at"])
         set_status(gateway, response)
     return response
 
