@@ -65,6 +65,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["is_support"] = is_support
         token["is_tenant_admin"] = is_tenant_admin
 
+        logger.debug(f"Token's payload: \n{token.payload}")
+
         return token
 
     def validate(self, attrs):
