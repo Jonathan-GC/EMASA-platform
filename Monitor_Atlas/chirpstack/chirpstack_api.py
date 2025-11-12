@@ -50,7 +50,7 @@ def error_syncing(instance, response):
     instance.sync_status = "ERROR"
     instance.sync_error = response.text
     instance.last_synced_at = dt.datetime.now()
-    instance.save()
+    instance.save(update_fields=["sync_status", "sync_error", "last_synced_at"])
     logger.error(f"Error syncing {instance}: {response.text}")
 
 
@@ -62,7 +62,7 @@ def set_status(instance, response):
         instance.sync_status = "SYNCED"
         instance.sync_error = ""
         instance.last_synced_at = dt.datetime.now()
-        instance.save()
+        instance.save(update_fields=["sync_status", "sync_error", "last_synced_at"])
         logger.debug(f"{instance} synced successfully")
     else:
         error_syncing(instance, response)
@@ -124,6 +124,7 @@ def create_tenant_in_chirpstack(tenant):
             match = next((t for t in results if t["name"] == tenant.name), None)
             if match:
                 tenant.cs_tenant_id = match["id"]
+                tenant.save(update_fields=["cs_tenant_id"])
                 set_status(tenant, search_instance)
                 return search_instance
             else:
@@ -548,6 +549,7 @@ def create_api_user_in_chirpstack(api_user):
             match = next((u for u in results if u["email"] == api_user.email), None)
             if match:
                 api_user.cs_user_id = match["id"]
+                api_user.save(update_fields=["cs_user_id"])
                 set_status(api_user, search_instance)
                 return search_instance
             else:
@@ -800,6 +802,7 @@ def check_existing_device_profile(new_dp):
 
         if match:
             new_dp.cs_device_profile_id = match["id"]
+            new_dp.save(update_fields=["cs_device_profile_id"])
             set_status(new_dp, search_response)
             logger.info(
                 f"Using existing device profile: {match['name']} (ID: {match['id']})"
@@ -812,6 +815,7 @@ def check_existing_device_profile(new_dp):
                         f"but doesn't exist in Chirpstack. Clearing ID."
                     )
                     new_dp.cs_device_profile_id = None
+                    new_dp.save(update_fields=["cs_device_profile_id"])
                     return False
             return True
         else:
@@ -1026,6 +1030,7 @@ def create_application_in_chirpstack(application):
             match = next((a for a in results if a["name"] == application.name), None)
             if match:
                 application.cs_application_id = match["id"]
+                application.save(update_fields=["cs_application_id"])
                 set_status(application, search_instance)
                 return search_instance
             else:
