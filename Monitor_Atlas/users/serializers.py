@@ -21,18 +21,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         )
         is_superuser = user.is_superuser
         is_tenant_admin = False
-        if membership:
-            logger.debug(f"Workspace membership for user {user.id}: {membership.id}")
 
         if membership:
             if membership.role and membership.role.is_admin:
                 is_tenant_admin = True
             tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
-            logger.debug(
-                f"Tenant for user {user.id}: {tenant.id} with {tenant.cs_tenant_id}"
-            )
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
-            logger.debug(f"ChirpStack tenant ID for tenant {tenant.id}: {cs_tenant_id}")
             if tenant.name == "EMASA":
                 is_global = True
             else:
@@ -57,8 +51,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 is_global = False
                 cs_tenant_id = None
 
-        logger.debug(f"ChirpStack tenant ID for user {user.id}: {cs_tenant_id}")
-
         support_membership = SupportMembership.objects.filter(user=user).first()
         if support_membership:
             is_support = True
@@ -72,8 +64,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["is_superuser"] = is_superuser
         token["is_support"] = is_support
         token["is_tenant_admin"] = is_tenant_admin
-
-        logger.debug(f"Token's payload: \n{token.payload}")
 
         return token
 
