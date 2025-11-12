@@ -108,7 +108,19 @@
           </router-link>
 
           <router-link
-              :to=paths.TENANT_LOCATIONS
+              :to="paths.USERS"
+              class="nav-link"
+              :class="{ active: $route.path === paths.USERS }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.person"
+            ></ion-icon>
+            Usuarios
+          </router-link>
+
+          <router-link
+              :to="paths.TENANT_LOCATIONS"
               class="nav-link"
               :class="{ active: $route.path === paths.TENANT_LOCATIONS }"
               @click="closeNavbar"
@@ -122,8 +134,8 @@
 
         <!-- Enlaces de tenant (usuarios con tenant asignado) -->
         <template v-if="!showSupportLinks && showTenantLinks || showRootLinks">
-          <hr class="divider"/>
 
+          <hr class="divider"/>
           <router-link 
             to="/infrastructure/gateways"
             class="nav-link"

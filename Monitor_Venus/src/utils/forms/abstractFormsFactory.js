@@ -10,8 +10,10 @@ export class AbstractFormFactory {
     return {
       component: defineComponent({
         render() {
+          this.$emit('loaded');
           return h('div', 'Formulario no encontrado');
         }
+        
       }),
       props: {}
     };
