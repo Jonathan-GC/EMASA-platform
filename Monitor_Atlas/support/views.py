@@ -129,7 +129,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def alert(self, request):
         required_fields = ["title", "message", "type", "device_id"]
         data = request.data
-        device = Device.objects.filter(id=data.get("device_id")).first()
+        device = Device.objects.filter(dev_eui=data.get("device_id")).first()
         if not device:
             return Response({"error": "Device not found."}, status=404)
 
