@@ -118,6 +118,19 @@ class UserSerializer(serializers.ModelSerializer):
         write_only=True, required=False, allow_blank=True
     )
 
+    address_address = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+    address_city = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+    address_state = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+    address_zip_code = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+
     class Meta:
         model = User
         fields = [
@@ -135,6 +148,10 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "phone_code",
             "address",
+            "address_address",
+            "address_city",
+            "address_state",
+            "address_zip_code",
         ]
 
     def validate_password(self, value):
@@ -197,7 +214,13 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        # Extraer campos de dirección aplanados
         address_data = validated_data.pop("address", None)
+        address_address = validated_data.pop("address_address", None)
+        address_city = validated_data.pop("address_city", None)
+        address_state = validated_data.pop("address_state", None)
+        address_zip_code = validated_data.pop("address_zip_code", None)
+
         password = validated_data.pop("password", None)
         confirm_password = validated_data.pop("confirm_password", None)
 
@@ -213,6 +236,20 @@ class UserSerializer(serializers.ModelSerializer):
 
         user.save()
 
+        # Si se enviaron campos aplanados de dirección, construir address_data
+        if not address_data and any(
+            [address_address, address_city, address_state, address_zip_code]
+        ):
+            address_data = {}
+            if address_address:
+                address_data["address"] = address_address
+            if address_city:
+                address_data["city"] = address_city
+            if address_state:
+                address_data["state"] = address_state
+            if address_zip_code:
+                address_data["zip_code"] = address_zip_code
+
         if address_data:
             # MainAddress has no 'user' field — create address and assign to user.address
             address = MainAddress.objects.create(**address_data)
@@ -222,7 +259,13 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
+        # Extraer campos de dirección aplanados
         address_data = validated_data.pop("address", None)
+        address_address = validated_data.pop("address_address", None)
+        address_city = validated_data.pop("address_city", None)
+        address_state = validated_data.pop("address_state", None)
+        address_zip_code = validated_data.pop("address_zip_code", None)
+
         password = validated_data.pop("password", None)
         confirm_password = validated_data.pop("confirm_password", None)
 
@@ -236,6 +279,20 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
 
         instance.save()
+
+        # Si se enviaron campos aplanados de dirección, construir address_data
+        if not address_data and any(
+            [address_address, address_city, address_state, address_zip_code]
+        ):
+            address_data = {}
+            if address_address:
+                address_data["address"] = address_address
+            if address_city:
+                address_data["city"] = address_city
+            if address_state:
+                address_data["state"] = address_state
+            if address_zip_code:
+                address_data["zip_code"] = address_zip_code
 
         if address_data:
             if instance.address:

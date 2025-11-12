@@ -195,7 +195,7 @@ class TenantViewSet(viewsets.ModelViewSet):
                 logger.error(
                     f"No se han realizado cambios en Chirpstack, verifique en los logs"
                 )
-                return
+                continue
 
             if sync_response.status_code != 200:
                 logger.error(
@@ -236,7 +236,7 @@ class TenantViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["get"],
-        url_path="(?P<cs_tenant_id>[^/.]+)",
+        url_path="by-cs-id/(?P<cs_tenant_id>[^/.]+)",
         permission_classes=[HasPermission],
         scope="tenant",
     )
