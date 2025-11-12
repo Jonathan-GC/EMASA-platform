@@ -48,6 +48,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     f"User {user.id} has no tenant or workspace membership; setting is_global to False."
                 )
                 is_global = False
+                cs_tenant_id = None
 
         support_membership = SupportMembership.objects.filter(user=user).first()
         if support_membership:

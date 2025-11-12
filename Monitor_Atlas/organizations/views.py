@@ -132,6 +132,7 @@ class TenantViewSet(viewsets.ModelViewSet):
                 f"Created workspace membership for user {user.username} in workspace {workspace.name} with role {admin_role.name}"
             )
             get_no_role(workspace)  # Ensure "No Role" exists
+            workspace_membership.save()
             user.save()
 
         else:
