@@ -20,8 +20,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         )
         is_superuser = user.is_superuser
         is_tenant_admin = False
+        logger.debug(f"Workspace membership for user {user.id}: {membership.id}")
 
-        if membership and membership.workspace and membership.workspace.tenant:
+        if membership:
             if membership.role and membership.role.is_admin:
                 is_tenant_admin = True
             tenant = membership.workspace.tenant
