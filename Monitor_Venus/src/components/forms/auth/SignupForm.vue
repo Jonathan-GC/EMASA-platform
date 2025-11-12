@@ -131,7 +131,7 @@
             <ion-item :class="isMobile ? 'custom full-width mb-4' : 'custom flex-2 mr-2 !pl-0 !pr-0'">
               <ion-label position="stacked" class="!mb-2">País</ion-label>
               <ModalSelector
-                v-model="address.country"
+                v-model="country"
                 :options="countries"
                 :value-field="'name'"
                 :display-field="'name'"
@@ -157,7 +157,7 @@
                 title="Selecciona tu provincia"
                 placeholder=" -"
                 search-placeholder="Buscar provincia..."
-                :disabled="loading || !address.country"
+                :disabled="loading || !country"
               />
             </ion-item>
 
@@ -170,7 +170,7 @@
                 title="Selecciona tu ciudad"
                 placeholder=" -"
                 search-placeholder="Buscar ciudad..."
-                :disabled="loading || !address.country || !address.state"
+                :disabled="loading || !country || !address.state"
               />
             </ion-item>
           </div>
@@ -360,6 +360,7 @@ import { cities } from '@/data/cities.js'
 import ModalSelector from '@/components/ui/ModalSelector.vue'
 import ImageUpload from '@/components/common/ImageUpload.vue'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
+import { cloudyNightSharp } from 'ionicons/icons'
 
 // Router instance
 const router = useRouter()
@@ -373,7 +374,7 @@ const icons = inject('icons', {})
 // Multi-step state
 const currentStep = ref(1)
 const steps = [
-  { label: 'Personal', required: ['name', 'last_name', 'email', 'phone', 'address.country', 'address.city', 'address.address'] },
+  { label: 'Personal', required: ['name', 'last_name', 'email', 'phone', 'country', 'address.city', 'address.address'] },
   { label: 'Cuenta', required: ['username', 'password'] },
   { label: 'Foto', required: [] } // Profile picture is optional
 ]
@@ -391,13 +392,14 @@ const imageUploadRef = ref(null)
 const credentials = ref({
   username: '',
   password: '',
+  confirm_password: '',
   name: '',
   last_name: '',
+  country: '',
   email: '',
   phone_code: selectedCountryCode.value,
   phone: '',
   address: {
-    country: '',
     state: '',
     city: '',
     address: '',
@@ -405,9 +407,9 @@ const credentials = ref({
   }
 })
 
-// Dirección reactiva para CountryRegionSelect
+// Reactive variables for country/state/city selection
+const country = ref('')
 const address = ref({
-  country: '',
   state: '',
   city: ''
 })
@@ -421,16 +423,21 @@ watch(selectedCountryCode, (newCode) => {
   credentials.value.phone_code = newCode
 })
 
-// Watchers para sincronizar address con credentials.address
-watch(() => address.value.country, (newVal) => {
-  credentials.value.address.country = newVal
+// Watchers to sync country/state/city with credentials
+watch(country, (newVal) => {
+  credentials.value.country = newVal
   address.value.state = ''
   address.value.city = ''
+  credentials.value.address.state = ''
+  credentials.value.address.city = ''
 })
+
 watch(() => address.value.state, (newVal) => {
   credentials.value.address.state = newVal
   address.value.city = ''
+  credentials.value.address.city = ''
 })
+
 watch(() => address.value.city, (newVal) => {
   credentials.value.address.city = newVal
 })
@@ -439,23 +446,23 @@ watch(() => address.value.city, (newVal) => {
 const passwordInputType = computed(() => showPassword.value ? 'text' : 'password')
 
 const availableStates = computed(() => {
-  const countryName = address.value.country
+  const countryName = country.value
   if (!countryName) return []
-  const country = countries.find(c => c.name === countryName)
-  if (!country) return []
-  const countryCode = country.code
+  const selectedCountry = countries.find(c => c.name === countryName)
+  if (!selectedCountry) return []
+  const countryCode = selectedCountry.code
   const countryCities = cities[countryCode]
   if (!countryCities) return []
   return Object.keys(countryCities)
 })
 
 const availableCities = computed(() => {
-  const countryName = address.value.country
+  const countryName = country.value
   const stateName = address.value.state
   if (!countryName || !stateName) return []
-  const country = countries.find(c => c.name === countryName)
-  if (!country) return []
-  const countryCode = country.code
+  const selectedCountry = countries.find(c => c.name === countryName)
+  if (!selectedCountry) return []
+  const countryCode = selectedCountry.code
   const countryCities = cities[countryCode]
   if (!countryCities) return []
   const stateCities = countryCities[stateName] || []
@@ -596,24 +603,27 @@ const handleRegistration = async () => {
       console.log('📦 Using FormData for file upload')
       const formData = new FormData()
       
-      // Add all credential fields
+      // Add user fields (exact structure expected by backend)
       formData.append('username', credentials.value.username)
       formData.append('password', credentials.value.password)
+      formData.append('confirm_password', credentials.value.confirm_password)
       formData.append('name', credentials.value.name)
       formData.append('last_name', credentials.value.last_name)
       formData.append('email', credentials.value.email)
+      formData.append('country', credentials.value.country)
       formData.append('phone_code', credentials.value.phone_code)
       formData.append('phone', credentials.value.phone)
       
-      // Add address fields
-      formData.append('address_country', credentials.value.address.country)
-      formData.append('address_state', credentials.value.address.state)
-      formData.append('address_city', credentials.value.address.city)
-      formData.append('address_address', credentials.value.address.address)
-      formData.append('address_zip_code', credentials.value.address.zip_code)
+      // Add nested address object as JSON string
+      formData.append('address', JSON.stringify({
+        address: credentials.value.address.address,
+        city: credentials.value.address.city,
+        state: credentials.value.address.state,
+        zip_code: credentials.value.address.zip_code
+      }))
       
       // Add profile image file
-      formData.append('profile_image', fileInfo.file)
+      formData.append('img', fileInfo.file)
       
       payload = formData
       
@@ -622,9 +632,22 @@ const handleRegistration = async () => {
     } else {
       // No file - use regular JSON
       console.log('📄 Using JSON payload (no file)')
-      payload = { 
-        ...credentials.value,
-        profile_image: null
+      payload = {
+        username: credentials.value.username,
+        password: credentials.value.password,
+        confirm_password: credentials.value.confirm_password,
+        name: credentials.value.name,
+        last_name: credentials.value.last_name,
+        email: credentials.value.email,
+        country: credentials.value.country,
+        phone_code: credentials.value.phone_code,
+        phone: credentials.value.phone,
+        address: {
+          address: credentials.value.address.address,
+          city: credentials.value.address.city,
+          state: credentials.value.address.state,
+          zip_code: credentials.value.address.zip_code
+        }
       }
     }
 

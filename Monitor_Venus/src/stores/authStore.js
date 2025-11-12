@@ -16,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
     is_superuser: false,
     is_global: false,
     is_support: false,
+    is_tenant_admin: false,
     cs_tenant_id: null,
     exp: null,
     iat: null
@@ -39,12 +40,6 @@ export const useAuthStore = defineStore('auth', () => {
   const isGlobalUser = computed(() => user.value.is_global === true);
 
   /**
-   * Verifica si el usuario es administrador (superuser O global)
-   */
-  const isAdmin = computed(() => user.value.is_global === true
-  );
-
-  /**
    * Verifica si el usuario es un usuario normal
    */
   const isNormalUser = computed(() => 
@@ -56,6 +51,10 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const isSupportUser = computed(() => user.value.is_support === true);
   
+/**
+   * Verifica si el usuario pertenece a un administrador de tenant 
+   */
+  const isTenantAdmin = computed(() => user.value.is_tenant_admin === true);
 
   /**
    * Verifica si el usuario pertenece a un tenant
@@ -125,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_superuser: userData.is_superuser,
       is_global: userData.is_global,
       is_support: userData.is_support,
+      is_tenant_admin: userData.is_tenant_admin,
       tenant_id: userData.cs_tenant_id
     });
 
@@ -162,7 +162,8 @@ export const useAuthStore = defineStore('auth', () => {
       is_superuser: userData.is_superuser,
       is_global: userData.is_global,
       is_support: userData.is_support,
-      tenant_id: userData.cs_tenant_id
+      tenant_id: userData.cs_tenant_id,
+      is_tenant_admin: userData.is_tenant_admin
     });
 
     return true;
@@ -199,6 +200,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_superuser: false,
       is_global: false,
       is_support: false,
+      is_tenant_admin: false,
       cs_tenant_id: null,
       exp: null,
       iat: null
@@ -224,8 +226,8 @@ export const useAuthStore = defineStore('auth', () => {
     switch (role.toLowerCase()) {
       case 'superuser':
         return isSuperUser.value;
-      case 'admin':
-        return isAdmin.value;
+      case 'tenant_admin':
+        return isTenantAdmin.value;
       case 'global':
         return isGlobalUser.value;
       case 'normal':
@@ -271,7 +273,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Getters
     isSuperUser,
     isGlobalUser,
-    isAdmin,
+    isTenantAdmin,
     isNormalUser,
     isSupportUser,
     hasTenant,
