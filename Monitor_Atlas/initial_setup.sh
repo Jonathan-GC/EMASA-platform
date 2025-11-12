@@ -52,10 +52,13 @@ echo -e "${GREEN}✅ All fixtures loaded successfully.${NC}"
 
 echo ""
 echo -e "${CYAN}🔄 ---- Synchronizing data with ChirpStack ---- 🔄${NC}"
-if ! output=$(python manage.py sync_chirpstack 2>&1); then
-    echo -e "${RED}❌ sync_chirpstack failed:${NC}\n$output"
+if output=$(python manage.py sync_chirpstack 2>&1); then
+    echo -e "$output"
+    echo -e "${GREEN}✨ ChirpStack synchronization completed.${NC}"
+else
+    echo -e "$output"
+    echo -e "${RED}❌ sync_chirpstack failed.${NC}"
     exit 1
 fi
-echo -e "${GREEN}✨ ChirpStack synchronization completed.${NC}"
 
 exec "$@"
