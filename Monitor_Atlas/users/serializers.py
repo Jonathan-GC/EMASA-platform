@@ -7,6 +7,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from roles.models import WorkspaceMembership
 from .models import User, MainAddress, BillingAddress
 from support.models import SupportMembership
+from organizations.models import Tenant
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -26,7 +27,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if membership:
             if membership.role and membership.role.is_admin:
                 is_tenant_admin = True
-            tenant = membership.workspace.tenant
+            tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
             logger.debug(
                 f"Tenant for user {user.id}: {tenant.id} with {tenant.cs_tenant_id}"
             )
