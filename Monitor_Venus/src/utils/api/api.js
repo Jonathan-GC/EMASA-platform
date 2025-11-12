@@ -19,6 +19,10 @@ class API {
     // Configuración de almacenamiento
     USE_PERSISTENT_STORAGE = true; // Cambiar a false para solo memoria
 
+    // Queue for failed requests during token refresh
+    isRefreshing = false;
+    failedQueue = [];
+
     //====[ENDPOINTS]====
     //----[USERS]----
     USER = 'users/user/'
@@ -169,39 +173,35 @@ class API {
         return null;
     }
 
-    // Guardar token con sistema híbrido
-    saveTokens(accessToken, refreshToken, expiryInMs) {
+    // Guardar solo access token (refresh token está en httpOnly cookie)
+    saveAccessToken(accessToken, expiryInMs) {
         const expirationTime = Date.now() + expiryInMs;
         
         // 1. Guardar en memoria (primera prioridad)
         this._accessToken = accessToken;
-        this._refreshToken = refreshToken;
         this._tokenExpiry = expirationTime;
         
         // 2. Guardar en storage si está habilitado (backup)
         if (this.USE_PERSISTENT_STORAGE) {
             sessionStorage.setItem('access_token', accessToken);
-            sessionStorage.setItem('refresh_token', refreshToken);
             sessionStorage.setItem('access_token_expiry', expirationTime.toString());
         }
         
-        console.log('✅ Tokens guardados en memoria y storage');
+        console.log('✅ Access token guardado en memoria y storage');
     }
 
-    // Limpiar tokens de memoria
+    // Limpiar access token de memoria
     _clearMemoryTokens() {
         this._accessToken = null;
-        this._refreshToken = null;
         this._tokenExpiry = null;
-        console.log('🧹 Tokens eliminados de memoria');
+        console.log('🧹 Access token eliminado de memoria');
     }
 
-    // Limpiar tokens de storage
+    // Limpiar access token de storage
     _clearStorageTokens() {
         sessionStorage.removeItem('access_token');
-        sessionStorage.removeItem('refresh_token');
         sessionStorage.removeItem('access_token_expiry');
-        console.log('🧹 Tokens eliminados de storage');
+        console.log('🧹 Access token eliminado de storage');
     }
 
     // Limpiar todos los tokens
@@ -211,7 +211,7 @@ class API {
         console.log('🗑️ Todos los tokens eliminados');
     }
 
-    // Refresh del access token con sistema híbrido
+    // Delegado al authStore (usa httpOnly cookie)
     async refreshAccessToken() {
         if (this.isRefreshing) {
             // Si ya está refrescando, agregar a la cola
@@ -223,57 +223,27 @@ class API {
         this.isRefreshing = true;
 
         try {
-            console.log('🔄 Refrescando access token...');
+            console.log('🔄 Delegando refresh a authStore...');
             
-            // Obtener refresh token (primero de memoria, luego de storage)
-            let refreshToken = this._refreshToken;
-            if (!refreshToken && this.USE_PERSISTENT_STORAGE) {
-                refreshToken = sessionStorage.getItem('refresh_token');
-            }
+            // Usar authStore para refrescar (lee desde httpOnly cookie)
+            const { useAuthStore } = await import('@/stores/authStore.js');
+            const authStore = useAuthStore();
             
-            if (!refreshToken) {
-                throw new Error('No hay refresh token disponible');
-            }
+            const newAccessToken = await authStore.refreshAccessToken();
             
-            const response = await fetch(this.API_BASE_URL + this.REFRESH_TOKEN, {
-                method: 'POST',
-                credentials: "include",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ refresh: refreshToken })
-            });
-
-            if (!response.ok) {
-                throw new Error('Refresh token inválido');
-            }
-
-            const data = await response.json();
-            const newAccessToken = Array.isArray(data) ? data[0]?.access : data?.access;
-            const newRefreshToken = Array.isArray(data) ? data[0]?.refresh : data?.refresh;
+            // Guardar token en memoria para futuras peticiones
+            this.saveAccessToken(newAccessToken, 60 * 60 * 1000); // 60 minutos
             
-            if (newAccessToken) {
-                // Guardar tokens con sistema híbrido
-                const expiryInMs = 60 * 60 * 1000; // 60 minutos
-                this.saveTokens(
-                    newAccessToken, 
-                    newRefreshToken || refreshToken, // Usar nuevo refresh o mantener el actual
-                    expiryInMs
-                );
-                
-                console.log('✅ Access token refrescado exitosamente');
-                
-                // Procesar cola de peticiones fallidas
-                this.processQueue(null, newAccessToken);
-                
-                return newAccessToken;
-            } else {
-                throw new Error('No se recibió access token en la respuesta');
-            }
+            console.log('✅ Token refrescado y guardado en API memory');
+            
+            // Procesar cola de peticiones fallidas con el nuevo token
+            this.processQueue(null, newAccessToken);
+            
+            return newAccessToken;
         } catch (error) {
-            console.error('❌ Error refrescando token:', error);
+            console.error('❌ Error en refresh delegado:', error.message);
             
-            // Limpiar todos los tokens si el refresh falla
+            // Limpiar tokens locales
             this.clearAllTokens();
             
             // Procesar cola con error
@@ -484,21 +454,57 @@ class API {
             const response = await fetch(this.API_BASE_URL + endpoint, requestConfig);
 
             // Si es 401 (token expirado), intentar refresh
-            if (response.status === 401 && endpoint !== this.REFRESH_TOKEN) {
-                console.log('🔄 Token expirado, intentando refresh...');
+            if (response.status === 401 && endpoint !== this.REFRESH_TOKEN && endpoint !== this.TOKEN) {
+                console.log('🔄 Token expirado (401), intentando refresh...');
                 
                 try {
-                    await this.refreshAccessToken();
+                    // Refresh the access token
+                    const newAccessToken = await this.refreshAccessToken();
+                    
+                    if (!newAccessToken) {
+                        throw new Error('No se pudo obtener nuevo access token');
+                    }
+                    
+                    console.log('✅ Token refrescado, reintentando petición original...');
                     
                     // Reintentar la petición original con el nuevo token
                     const newHeaders = await this.prepareHeaders(additionalHeaders, isFormData);
-                    const retryConfig = { ...requestConfig, headers: newHeaders };
+                    const retryConfig = {
+                        ...requestConfig,
+                        headers: newHeaders
+                    };
                     
                     const retryResponse = await fetch(this.API_BASE_URL + endpoint, retryConfig);
+                    
+                    if (retryResponse.status === 401) {
+                        // Still 401 after refresh, something is wrong
+                        console.error('❌ Aún 401 después de refresh, sesión inválida');
+                        throw new Error('SESSION_INVALID');
+                    }
+                    
                     return await this.handleResponse(retryResponse, endpoint);
                 } catch (refreshError) {
-                    console.error('❌ Error en refresh, redirigiendo a auth');
-                    // Aquí podrías redirigir al auth o emitir un evento
+                    console.error('❌ Error en refresh:', refreshError.message);
+                    
+                    // Clear everything and redirect to login
+                    this.clearAllTokens();
+                    
+                    try {
+                        const { useAuthStore } = await import('@/stores/authStore.js');
+                        const authStore = useAuthStore();
+                        authStore.logout();
+                    } catch (storeError) {
+                        console.error('⚠️ Error limpiando auth store:', storeError);
+                    }
+                    
+                    // Redirect to login
+                    try {
+                        const { default: router } = await import('@/plugins/router/index.js');
+                        router.push('/login');
+                    } catch (routerError) {
+                        window.location.href = '/login';
+                    }
+                    
                     throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
                 }
             }

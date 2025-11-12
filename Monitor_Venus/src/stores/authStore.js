@@ -218,6 +218,59 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
+   * Refresca el access token usando el refresh token de la cookie httpOnly
+   * El backend lee el refresh_token de la cookie automáticamente
+   * @returns {Promise<string>} - Nuevo access token
+   */
+  const refreshAccessToken = async () => {
+    console.log('🔄 Intentando refresh token desde cookie httpOnly...');
+    
+    try {
+      // NO enviamos refresh_token en el body, el backend lo lee de la cookie
+      const response = await fetch('/api/v1/token/refresh/', {
+        method: 'POST',
+        credentials: 'include', // ← Crucial: Envía la cookie httpOnly
+        headers: { 
+          'Content-Type': 'application/json',
+          // Agregar CSRF token si existe
+          'X-CSRFToken': document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1] || ''
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Refresh falló:', response.status, errorData);
+        throw new Error('REFRESH_FAILED');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.access) {
+        throw new Error('NO_ACCESS_TOKEN_IN_RESPONSE');
+      }
+      
+      // Guardar nuevo access token
+      tokenManager.saveAccessToken(data.access);
+      
+      // Actualizar store con nuevo token decodificado
+      const userData = getUserFromToken(data.access);
+      user.value = userData;
+      
+      console.log('✅ Token refrescado exitosamente desde cookie httpOnly');
+      return data.access;
+      
+    } catch (error) {
+      console.error('❌ Error refrescando token:', error.message);
+      // Limpiar todo y forzar re-login
+      logout();
+      throw error;
+    }
+  };
+
+  /**
    * Verifica si el usuario tiene un rol específico
    * @param {string} role - 'superuser', 'admin', 'global', 'normal'
    * @returns {boolean}
@@ -287,6 +340,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     refreshToken,
+    refreshAccessToken,
     hasRole,
     canAccessRoute
   };
