@@ -15,12 +15,7 @@ class TicketSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def validate(self, data):
-        if not data.get("user") and (
-            not data.get("guest_name") or not data.get("guest_email")
-        ):
-            raise serializers.ValidationError(
-                "Guest tickets must have a name and email address."
-            )
+
         if data.get("infrastructure_category") == "Machines":
             machine_type = data.get("machine_type")
             electric_sub = data.get("electric_machine_subtype")
