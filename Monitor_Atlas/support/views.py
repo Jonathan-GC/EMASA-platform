@@ -127,11 +127,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
         permission_classes=[IsServiceOrHasPermission],
     )
     def alert(self, request):
-        required_fields = ["title", "message", "type", "device_id"]
+        required_fields = ["title", "message", "type", "dev_eui"]
         data = request.data
-        device = Device.objects.filter(dev_eui=data.get("device_id")).first()
+        device = Device.objects.filter(dev_eui=data.get("dev_eui")).first()
         if not device:
-            logger.error(f"Device with ID {data.get('device_id')} not found.")
+            logger.error(f"Device with ID {data.get('dev_eui')} not found.")
             return Response({"error": "Device not found."}, status=404)
 
         users = get_users_with_perms(device, only_with_perms_in=["view_device"])
