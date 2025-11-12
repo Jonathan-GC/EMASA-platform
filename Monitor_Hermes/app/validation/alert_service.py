@@ -49,17 +49,24 @@ def build_atlas_payload(
     """
     alert_msg = build_alert_message(dev_eui, device_name, violations)
 
+    metadata_detail = {
+        "source": "monitor_hermes",
+        "device_name": device_name,
+        "violation_count": len(violations),
+        "violations": [v.to_dict() for v in violations],
+    }
+
+    import json
+
+    message_with_metadata = (
+        f"{alert_msg['message']}\n\nDetails: {json.dumps(metadata_detail, indent=2)}"
+    )
+
     return {
         "title": alert_msg["title"],
-        "message": alert_msg["message"],
+        "message": message_with_metadata,
         "type": "warning",
-        "metadata": {
-            "source": "monitor_hermes",
-            "dev_eui": dev_eui,
-            "device_name": device_name,
-            "violation_count": len(violations),
-            "violations": [v.to_dict() for v in violations],
-        },
+        "dev_eui": dev_eui,
     }
 
 
