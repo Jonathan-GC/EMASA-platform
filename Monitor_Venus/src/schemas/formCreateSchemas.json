@@ -87,14 +87,17 @@
   ],
 
   "user": [
-    { "key": "workspace_id", "label": "Workspace", "type": "select" },
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "last_name", "label": "Apellido", "type": "text" },
+    { "key": "code", "label": "Código de empleado", "type": "text" }, 
     { "key": "email", "label": "Correo electrónico", "type": "text" },
-    { "key": "password", "label": "Contraseña", "type": "text" },
-    { "key": "is_admin", "label": "Es administrador Global", "type": "checkbox" },
-    { "key": "is_active", "label": "Estado", "type": "checkbox" },
-    { "key": "is_tenant_admin", "label": "Es administrador del tenant", "type": "checkbox" },
-    { "key": "is_device_admin", "label": "Es administrador de dispositivos", "type": "checkbox" },
-    { "key": "is_gateway_admin", "label": "Es administrador de gateways", "type": "checkbox" }
+    { "key": "phone_code", "label": "Código de teléfono", "type": "select" },
+    { "key": "phone", "label": "Número de teléfono", "type": "text" },
+    { "key": "country", "label": "País", "type": "select" },
+    { "key": "address.city", "label": "Ciudad", "type": "select" },
+    { "key": "address.state", "label": "Estado", "type": "select" },
+    { "key": "address.address", "label": "Dirección", "type": "text" },
+    { "key": "address.zipcode", "label": "Código postal", "type": "text" }
   ]
 
  }

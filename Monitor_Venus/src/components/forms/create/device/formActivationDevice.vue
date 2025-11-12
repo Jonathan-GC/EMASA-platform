@@ -178,6 +178,7 @@ import {
   IonLabel,
   IonProgressBar,
   IonIcon,
+  alertController,
 } from '@ionic/vue'
 import API from '@utils/api/api'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
@@ -370,6 +371,32 @@ async function submitActivationKeys() {
     return
   }
 
+  // Show confirmation dialog
+  const alert = await alertController.create({
+    header: 'Confirm Device Keys',
+    subHeader: `Device: ${props.device?.device_name || 'Unknown'}`,
+    message: 'Are you sure you want to set the activation keys for this device? This will configure the LoRaWAN communication parameters.',
+    buttons: [
+      {
+        text: 'Cancel',
+        role: 'cancel',
+        cssClass: 'secondary',
+      },
+      {
+        text: 'Confirm',
+        role: 'confirm',
+        handler: async () => {
+          await performSetKeys()
+        }
+      }
+    ]
+  })
+
+  await alert.present()
+}
+
+// Perform the actual key setting operation
+async function performSetKeys() {
   keysLoading.value = true
   try {
     console.log('🔑 Setting activation keys for device:', activeDeviceId.value)
@@ -418,6 +445,42 @@ async function handleActivationToggle(event) {
     return
   }
 
+  // Show confirmation dialog for deactivation only
+  if (!shouldActivate) {
+    const alert = await alertController.create({
+      header: 'Confirm Device Deactivation',
+      subHeader: `Device: ${props.device?.device_name || 'Unknown'}`,
+      message: 'Are you sure you want to disable this device? The device will stop communicating with the network until reactivated.',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'secondary',
+          handler: () => {
+            // Revert toggle
+            event.target.checked = true
+          }
+        },
+        {
+          text: 'Disable Device',
+          role: 'destructive',
+          cssClass: 'danger',
+          handler: async () => {
+            await performActivationToggle(shouldActivate, event)
+          }
+        }
+      ]
+    })
+
+    await alert.present()
+  } else {
+    // No confirmation needed for activation
+    await performActivationToggle(shouldActivate, event)
+  }
+}
+
+// Perform the actual activation/deactivation operation
+async function performActivationToggle(shouldActivate, event) {
   activationLoading.value = true
   
   try {

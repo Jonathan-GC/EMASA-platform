@@ -215,18 +215,9 @@ async function createItem() {
       'application': API.APPLICATION,
       'workspace': API.WORKSPACE,
       'manager': API.API_USER,
-      'group': API.INVESTIGATION_GROUPS,
-      'seedbed': API.RESEARCH_SEEDBEDS,
-      'user_integra': API.USERS_INTEGRA,
-      'user_external': API.USERS,
+      'user': API.USERS,
       'role': API.ROLES,
-      'functionary_profile': API.FUNCTIONARY_PROFILES,
-      'student_profile': API.STUDENT_PROFILES,
-      'external_profile': API.EXTERNAL_USER_PROFILES,
-      'external_seedbed_profile': API.EXTERNAL_USER_PROFILES,
-      'group_profile': API.INVESTIGATION_GRUOPS_PROFILES,
-      'seedbed_profile': API.RESEARCH_SEEDBEDS_PROFILES,
-      'seedbed_member': API.RESEARCH_SEEDBEDS_MEMBERS,
+
     };
     const endpoint = apiEndpoints[props.type];
     if (endpoint) {

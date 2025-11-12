@@ -27,7 +27,7 @@ const CreateMachines = defineAsyncComponent(() => import("@components/forms/crea
 const CreateApplications = defineAsyncComponent(() => import("@components/forms/create/applications/formCreateApplications.vue"));
 const CreateWorkspaces = defineAsyncComponent(() => import("@components/forms/create/workspaces/formCreateWorkspaces.vue"));
 const CreateManagers = defineAsyncComponent(() => import("@components/forms/create/managers/formCreateManagers.vue"));
-
+const CreateUsers = defineAsyncComponent(() => import("@components/forms/create/users/formCreateUsers.vue"));
 
 
 export class CreateFormFactory extends AbstractFormFactory {
@@ -111,6 +111,14 @@ export class CreateFormFactory extends AbstractFormFactory {
                     type: type,
                     label: 'manager',
                     fields: schema.manager,
+                }
+            },
+            user: {
+                component: CreateUsers,
+                props: {
+                    type: type,
+                    label: 'usuario',
+                    fields: schema.user,
                 }
             },
         }
