@@ -131,11 +131,15 @@ class NotificationViewSet(viewsets.ModelViewSet):
         data = request.data
         device = Device.objects.filter(dev_eui=data.get("device_id")).first()
         if not device:
+            logger.error(f"Device with ID {data.get('device_id')} not found.")
             return Response({"error": "Device not found."}, status=404)
 
         users = get_users_with_perms(device, only_with_perms_in=["view_device"])
         superuser = User.objects.filter(is_superuser=True).first()
-        if not users:
+        if not users and not superuser:
+            logger.error(
+                f"No users found with permission to view device with ID {data.get('device_id')}."
+            )
             return Response(
                 {"error": "No users found with permission to view this device."},
                 status=404,
