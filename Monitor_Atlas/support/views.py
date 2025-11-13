@@ -36,6 +36,7 @@ from .models import (
     ELECTRIC_MACHINE_CHOICES,
     MECHANICAL_MACHINE_CHOICES,
     INFRASTRUCTURE_CATEGORY_CHOICES,
+    SUPPORT_MEMBERSHIP_ROLE_CHOICES,
 )
 
 from roles.helpers import support_manager_can_view_all_support_members
@@ -296,6 +297,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 "machine_types": dict(MACHINE_TYPE_CHOICES),
                 "electric_machine_subtypes": dict(ELECTRIC_MACHINE_CHOICES),
                 "mechanical_machine_subtypes": dict(MECHANICAL_MACHINE_CHOICES),
+                "support_membership_roles": dict(SUPPORT_MEMBERSHIP_ROLE_CHOICES),
             }
         )
 
