@@ -568,7 +568,9 @@ class PasswordResetConfirmView(APIView):
             except ValidationError as ve:
                 return Response({"detail": ve.messages}, status=400)
 
-            payload = verify_token(token, scope=["password_reset", "set_password"])
+            payload = verify_token(
+                token, expected_scope=["password_reset", "set_password"]
+            )
             user_id = payload.get("user_id")
             user = User.objects.get(id=user_id)
             user.set_password(new_password)
