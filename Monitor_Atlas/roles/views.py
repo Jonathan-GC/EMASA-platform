@@ -11,6 +11,8 @@ from .models import Role, WorkspaceMembership
 from drf_spectacular.utils import extend_schema_view, extend_schema
 from .helpers import assign_new_role_base_permissions
 
+from django.contrib.auth.models import Group
+
 from loguru import logger
 
 
@@ -64,3 +66,15 @@ class WorkspaceMembershipViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+
+        role = instance.role
+        group = role.group
+        user = instance.user
+
+        # Assign role group to user
+        if group:
+            user.groups.add(group)
+            user.save()
+            logger.debug(
+                f"Added user {user.username} to group {group.name} for role {role.name}"
+            )

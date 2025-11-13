@@ -39,6 +39,9 @@ class Tenant(models.Model):
     sync_error = models.CharField(max_length=255, blank=True, null=True)
     last_synced_at = models.DateTimeField(auto_now=True)
 
+    # Monitor
+    is_global = models.BooleanField(default=False)
+
     def __str__(self):
         return self.name
 

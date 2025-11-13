@@ -221,6 +221,8 @@ class Measurements(models.Model):
     max = models.FloatField()
     threshold = models.FloatField()
     unit = models.CharField(max_length=50)
+    ref = models.CharField(max_length=100, blank=True, null=True)
+    icon = models.FileField(upload_to="measurement_icons/", blank=True, null=True)
 
     def __str__(self):
         return f"Measurement configuration for {self.device.name}"
