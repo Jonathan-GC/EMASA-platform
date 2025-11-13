@@ -7,6 +7,10 @@
 @import "./card-styles.css";
 @import "./chart-styles.css";
 @import "./auth-styles.css";
+@import "./common.css";
+@import "./footer.css";
+@import "./tables.css";
+/*@import "./tabs.css";*/
 
 body a {
     color: var(--color-amber-600);
@@ -82,5 +86,14 @@ body a {
 @media (max-width: 768px) {
   .back-button-text {
     display: none;
+  }
+  .table-card{
+    background: #f8f9fa;
+  }
+}
+
+@media (max-width: 480px) {
+  .ion-card-content {
+    padding-bottom: 140px!important;
   }
 }

@@ -2,17 +2,22 @@
   "tenant": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "img", "label": "Imagen", "type": "text" },
-    { "key": "group", "label": "Grupo", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "subscription_id", "label": "Subscripción", "type": "text" }
+  ],
+
+  "workspace": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "tenant", "label": "Tenant", "type": "select", "options": [] }
   ],
 
   "gateway": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "cs_gateway_id", "label":"EUID", "type": "text" },
-    { "key": "workspace_id", "label": "Workspace", "type": "text" },
-    { "key": "location_id", "label": "Nombre de locacion", "type": "text" }
+    { "key": "workspace_id", "label": "Workspace", "type": "select" },
+    { "key": "location_id", "label": "Ubicaciópn", "type": "select" }
   ],
 
   "location": [
@@ -26,9 +31,9 @@
 
   "device_profile": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "region", "label": "Región", "type": "text" },
-    { "key": "workspace_id", "label": "Workspace", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" },
     { "key": "abp_rx1_delay", "label": "Abp rx1 delay", "type": "text" },
     { "key": "abp_rx1_dr_offset", "label": "Abp rx1 dr offset", "type": "text" },
     { "key": "abp_rx2_freq", "label": "Abp rx2 frequency", "type": "text" },
@@ -38,19 +43,15 @@
 
   "application": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "text" },
-    { "key": "workspace_id", "label":  "Id de Workspace", "type": "text" },
-    { "key": "device_type", "label": "Tipo de dispositivo", "type": "text" }
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "workspace_id", "label":  "Workspace", "type": "select" },
+    { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" }
   ],
 
-  "workspace": [
-    { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "tenant", "label": "Tenant id", "type": "text" }
-  ],
+  
 
   "manager": [
-    { "key": "workspace_id", "label": "Id del workspace", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "text" },
     { "key": "email", "label": "Correo electrónico", "type": "text" },
     { "key": "password", "label": "Contraseña", "type": "text" },
     { "key": "is_admin", "label": "Es administrador Global", "type": "checkbox" },
@@ -63,12 +64,12 @@
   "device": [
     { "key": "dev_eui", "label": "Dev eui", "type": "text" },
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "workspace_id", "label": "Id del workspace", "type": "text" },
-    { "key": "application", "label": "Aplicación", "type": "text" },
-    { "key": "device_type", "label": "Tipo de dispositivo", "type": "text" },
-    { "key": "device_profile", "label": "Perfil del dispositivo", "type": "text" },
-    { "key": "machine", "label": "Máquina", "type": "text" }
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" },
+    { "key": "application", "label": "Aplicación", "type": "select" },
+    { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" },
+    { "key": "device_profile", "label": "Perfil del dispositivo", "type": "select" },
+    { "key": "machine", "label": "Máquina", "type": "select" }
   ],
 
   "device_activation": [
@@ -83,8 +84,8 @@
   ],
   "machine": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
-    { "key": "workspace_id", "label": "Id del workspace", "type": "text" }
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" }
   ],
 
 

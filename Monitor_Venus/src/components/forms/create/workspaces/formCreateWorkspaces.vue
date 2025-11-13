@@ -3,10 +3,11 @@
     <ion-content class="ion-padding">
       <FormCreate
           :type="type"
-          :fields="fields"
+          :fields="formFields"
           :label="label"
           :additionalData="additionalData"
           @itemCreated="handleItemCreated"
+          @closed="emit('closed')"
       />
     </ion-content>
   </ion-page>
@@ -40,7 +41,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['itemCreated', 'loaded']);
+const emit = defineEmits(['itemCreated', 'loaded', 'closed']);
 
 const loaded = ref(false);
 const additionalData = ref({});
@@ -52,36 +53,18 @@ const handleItemCreated = () => {
 };
 
 // Method to fetch user types from the API
-const fetchTypes = async () => {
+const fetchTenants = async () => {
   try {
-    const headers = { 'API-VERSION': '1' };
-    const integraTypes = await API.get(API.INTEGRA_USER_TYPES, headers);
-    const typesField = formFields.value.find(f => f.key === 'type');
-    if (typesField) {
-      typesField.options = integraTypes.map((intType: string) => ({
-        label: intType,
-        value: intType.toUpperCase(),
+    const tenants = await API.get(API.TENANT);
+    const tenantField = formFields.value.find(f => f.key === 'tenant');
+    if (tenantField) {
+      tenantField.options = tenants.map((intType: string) => ({
+        label: intType.name,
+        value: intType.id,
       }));
     }
   } catch (error) {
     console.error('Error fetching user types:', error);
-  }
-};
-
-// Method to fetch sex values from the API
-const fetchSex = async () => {
-  try {
-    const headers = { 'API-VERSION': '1' };
-    const sexValues = await API.get(API.SEX_VALUES, headers);
-    const sexField = formFields.value.find(f => f.key === 'sex');
-    if (sexField) {
-      sexField.options = sexValues.map((sexValue: string) => ({
-        label: sexValue,
-        value: sexValue.toUpperCase(),
-      }));
-    }
-  } catch (error) {
-    console.error('Error fetching sex values:', error);
   }
 };
 
@@ -99,6 +82,7 @@ onMounted(async () => {
   //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
+  await fetchTenants();
   loaded.value = true;
   emit('loaded');
 });

@@ -2,10 +2,62 @@
     "tenant": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "img", "label": "Imagen", "type": "text" },
-    { "key": "group", "label": "Grupo", "type": "text" },
-    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "subscription_id", "label": "Subscripción", "type": "text" }
   ],
+  "workspace": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "tenant", "label": "Tenant", "type": "select" }
+  ],
+  "location": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "accuracy", "label":  "Presición", "type": "text" },
+    { "key": "latitude", "label":"Latitud", "type": "text" },
+    { "key": "longitude", "label": "Longitud", "type": "text" },
+    { "key": "altitude", "label": "Altitud", "type": "text" },
+    { "key": "source", "label": "Fuente", "type": "text" }
+  ],
+  "gateway": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "cs_gateway_id", "label":"EUID", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" },
+    { "key": "location_id", "label": "Nombre de locacion", "type": "select" }
+  ],
+  "device_profile": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "region", "label": "Región", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" },
+    { "key": "abp_rx1_delay", "label": "Abp rx1 delay", "type": "text" },
+    { "key": "abp_rx1_dr_offset", "label": "Abp rx1 dr offset", "type": "text" },
+    { "key": "abp_rx2_freq", "label": "Abp rx2 frequency", "type": "text" },
+    { "key": "abp_rx2_dr", "label": "Abp rx2 dr", "type": "text" },
+    { "key": "payload_codec_script", "label": "Payload codec script", "type": "textarea" }
+  ],
+  "application": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "text" },
+    { "key": "workspace_id", "label":  "Workspace", "type": "select" },
+    { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" }
+  ],
+  "device": [
+    { "key": "dev_eui", "label": "Dev eui", "type": "text" },
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "descripción", "type": "textarea" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" },
+    { "key": "application", "label": "Aplicación", "type": "select" },
+    { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" },
+    { "key": "device_profile", "label": "Perfil del dispositivo", "type": "select" },
+    { "key": "machine", "label": "Máquina", "type": "select" }
+  ],
+  "machine": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" }
+  ],
+  
     "period":[
         { "key": "name", "label": "Nombre", "type": "text" },
         { "key": "start_date", "label": "Fecha de inicio", "type": "date" },

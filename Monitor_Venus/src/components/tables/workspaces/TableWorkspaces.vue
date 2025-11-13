@@ -8,7 +8,7 @@
         </ion-card-subtitle>
       </ion-card-header>
 
-      <ion-card-content>
+      <ion-card-content class="custom">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
@@ -31,15 +31,17 @@
             <ion-searchbar v-model="searchText" placeholder="Buscar Workspace..." @ionInput="handleSearch"
               show-clear-button="focus" class="custom"></ion-searchbar>
 
-            <ion-button @click="fetchGateways" fill="clear" shape="round">
-              <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
-            </ion-button>
-
-            <QuickControl :toCreate="true" type="workspace" @itemCreated="handleItemRefresh" />
+            <!-- Desktop buttons -->
+            <div v-if="!isMobile" class="desktop-controls">
+              <ion-button @click="fetchGateways" fill="clear" shape="round">
+                <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
+              </ion-button>
+              <QuickControl :toCreate="true" type="workspace" @itemCreated="handleItemRefresh" text="hola" />
+            </div>
           </div>
 
-          <!-- Table using ion-grid -->
-          <ion-grid class="data-table">
+          <!-- Table using ion-grid (Desktop) -->
+          <ion-grid v-if="!isMobile" class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="3" @click="sortBy('name')" class="sortable">
@@ -85,10 +87,66 @@
               </ion-col>
 
               <ion-col size="1">
-                <QuickActions :toView="true" />
+                <QuickActions 
+                  type="workspace"
+                  :index="workspace.id" 
+                  :name="workspace.name"
+                  :to-view="`/tenants/${workspace.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(workspace)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
+
+          <!-- Mobile Card View -->
+          <div v-else class="mobile-cards">
+            <ion-card v-for="workspace in paginatedItems" :key="workspace.id" class="workspace-card">
+              <ion-card-content>
+                <!-- Header with name -->
+                <div class="card-header">
+                  <div class="card-title-section">
+                    <h3 class="card-title">{{ workspace.name }}</h3>
+                    <p class="card-subtitle">Workspace</p>
+                  </div>
+                  <ion-chip class="card-chip">
+                    {{ workspace.tenant }}
+                  </ion-chip>
+                </div>
+
+                <!-- Card details -->
+                <div class="card-details">
+                  <div class="card-detail-row">
+                    <span class="detail-label">Descripción:</span>
+                    <span class="detail-value">{{ workspace.description || 'N/A' }}</span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">Cliente:</span>
+                    <span class="detail-value">{{ workspace.tenant }}</span>
+                  </div>
+                </div>
+
+                <!-- Card actions -->
+                <div class="card-actions">
+                  <QuickActions 
+                    type="workspace"
+                    :index="workspace.id" 
+                    :name="workspace.name"
+                    :to-view="`/tenants/${workspace.id}`"
+                    to-edit
+                    to-delete
+                    :initial-data="setInitialData(workspace)"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
+                  />
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
 
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
@@ -109,14 +167,20 @@
         <!-- Empty state -->
         <div v-else class="empty-state">
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
-          <h3>No hay gateways</h3>
-          <p>No se encontraron gateways en el sistema</p>
-          <ion-button @click="fetchWorkspaces" fill="outline">
-            Buscar gateways
-          </ion-button>
+          <h3>No hay workspaces</h3>
+          <p>No se encontraron workspaces en el sistema</p>
+          <quick-control to-initial type="workspace" @item-created="handleItemRefresh" text="Agregar Workspace" />
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons 
+      v-if="isMobile"
+      entity-type="workspace"
+      @refresh="fetchGateways"
+      @itemCreated="handleItemRefresh"
+    />
   </div>
 </template>
 
@@ -126,10 +190,16 @@ import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
+import QuickControl from '../../operators/quickControl.vue'
+import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+
+// Responsive view detection
+const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 
 // Component-specific state
 const application = ref([])
@@ -139,7 +209,7 @@ const selectedApplication = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'description', 'tenant'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -147,7 +217,13 @@ const { currentPage, totalPages, changePage, paginatedItems } = useTablePaginati
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ejemplo.com'
 
-
+const setInitialData = (workspace) => {
+  return {
+    name: workspace.name,
+    description: workspace.description,
+    tenant: workspace.tenant,
+  }
+}
 
 // Fetch data from API
 const fetchWorkspaces = async () => {
@@ -258,6 +334,12 @@ onMounted(async () => {
   gap: 16px;
 }
 
+.desktop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .data-table {
   border: 1px solid var(--ion-color-light);
   border-radius: 8px;
@@ -362,5 +444,92 @@ onMounted(async () => {
     align-items: flex-start;
     gap: 4px;
   }
+}
+
+/* Mobile Cards Styles */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.workspace-card {
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.workspace-card ion-card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.card-chip {
+  flex-shrink: 0;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  gap: 8px;
+}
+
+.detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  text-align: right;
+  word-break: break-word;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
 }
 </style>

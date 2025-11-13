@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from '@ionic/vue-router'
+import { createPinia } from 'pinia'
 import { registerPlugins } from './plugins/plugins'
 import { createIonic } from '@/plugins/ionic'
 import App from './App.vue'
@@ -25,6 +26,10 @@ import '@ionic/vue/css/display.css'
 // Routes are handled by the router plugin
 
 const app = createApp(App)
+
+// Create Pinia instance for state management
+const pinia = createPinia()
+app.use(pinia)
 
 // Use Ionic plugin with centralized configuration
 app.use(createIonic({

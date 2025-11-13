@@ -45,7 +45,7 @@ class API {
     //----[INFRACSTRUCTURE]----
     DEVICE = 'infrastructure/device/'
     GATEWAY = 'infrastructure/gateway/'
-    DEVICE_TYPE = 'infrastructure/device-type/'
+    DEVICE_TYPE = 'infrastructure/type/'
     MACHINE = 'infrastructure/machine/'
     APPLICATION = 'infrastructure/application/'
     LOCATION = 'infrastructure/location/'
@@ -122,6 +122,13 @@ class API {
     ATTACMEENT_CREATE = 'support/attachment/'
     GET_TYPES = 'support/ticket/get_all_types/'
 
+
+    //----[INBOX]----
+    SUPPORT_MEMBERS = 'support/ticket/get_support_members/'
+    
+    DELEGATE(ticketId){
+        return `support/ticket/${ticketId}/delegate/`
+    }
 
     static instance;
 

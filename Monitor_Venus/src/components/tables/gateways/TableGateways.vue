@@ -8,7 +8,7 @@
         </ion-card-subtitle>
       </ion-card-header>
       
-      <ion-card-content>
+      <ion-card-content class="custom">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
@@ -36,19 +36,21 @@
               class="custom"
             ></ion-searchbar>
             
-            <ion-button @click="fetchGateways" fill="clear" shape="round">
-              <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
-            </ion-button>
-
-            <QuickControl
-                :toCreate="true"
-                type="gateway"
-                @itemCreated="handleItemRefresh"
-            />
+            <!-- Desktop buttons -->
+            <div v-if="!isMobile" class="desktop-controls">
+              <ion-button @click="fetchGateways" fill="clear" shape="round">
+                <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
+              </ion-button>
+              <QuickControl
+                  :toCreate="true"
+                  type="gateway"
+                  @itemCreated="handleItemRefresh"
+              />
+            </div>
           </div>
 
-          <!-- Table using ion-grid -->
-          <ion-grid class="data-table">
+          <!-- Table using ion-grid (Desktop) -->
+          <ion-grid v-if="!isMobile" class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
@@ -133,12 +135,76 @@
               
               
               <ion-col size="1">
-                <quick-actions
-                :toView="true"
+                <QuickActions 
+                  type="gateway"
+                  :index="gateway.id" 
+                  :name="gateway.name"
+                  :to-view="`/tenants/${gateway.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(gateway)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
                 />
               </ion-col>
             </ion-row>
           </ion-grid>
+
+          <!-- Mobile Card View -->
+          <div v-else class="mobile-cards">
+            <ion-card v-for="gateway in paginatedItems" :key="gateway.id" class="gateway-card">
+              <ion-card-content>
+                <!-- Header with icon, name and status -->
+                <div class="card-header">
+                  <div class="card-icon-title">
+                    <ion-icon 
+                      :icon="icons.hardwareChip" 
+                      :color="getStatusColor(gateway.state)"
+                      class="card-icon-large"
+                    ></ion-icon>
+                    <div class="card-title-section">
+                      <h3 class="card-title">{{ gateway.name }}</h3>
+                      <p class="card-subtitle">ID: {{ gateway.cs_gateway_id }}</p>
+                    </div>
+                  </div>
+                  <ion-chip :color="getStatusColor(gateway.state)" class="card-chip-status">
+                    {{ gateway.state }}
+                  </ion-chip>
+                </div>
+
+                <!-- Card details -->
+                <div class="card-details">
+                  <div class="card-detail-row">
+                    <span class="detail-label">
+                      <ion-icon :icon="icons.location" size="small"></ion-icon>
+                      Ubicación:
+                    </span>
+                    <span class="detail-value">{{ gateway.location.name || 'N.A' }}</span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">Última conexión:</span>
+                    <span class="detail-value">{{ formatTime(gateway.last_seen_at) }}</span>
+                  </div>
+                </div>
+
+                <!-- Card actions -->
+                <div class="card-actions">
+                  <QuickActions 
+                    type="gateway"
+                    :index="gateway.id" 
+                    :name="gateway.name"
+                    :to-view="`/tenants/${gateway.id}`"
+                    to-edit
+                    to-delete
+                    :initial-data="setInitialData(gateway)"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
+                  />
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
 
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
@@ -175,6 +241,14 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons 
+      v-if="isMobile"
+      entity-type="gateway"
+      @refresh="fetchGateways"
+      @itemCreated="handleItemRefresh"
+    />
   </div>
 </template>
 
@@ -184,10 +258,16 @@ import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
+import QuickControl from '../../operators/quickControl.vue'
+import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+
+// Responsive view detection
+const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 
 // Component-specific state
 const gateways = ref([])
@@ -237,6 +317,16 @@ const fetchGateways = async () => {
     console.error('❌ Error fetching gateways:', err)
   } finally {
     loading.value = false
+  }
+}
+
+const setInitialData = (gateway) => {
+  return {
+    name: gateway.name,
+    description: gateway.description,
+    cs_gateway_id: gateway.cs_gateway_id,
+    location_id: gateway.location.id,
+    workspace_id: gateway.workspace.id,
   }
 }
 
@@ -310,6 +400,12 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   gap: 16px;
+}
+
+.desktop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .data-table {
@@ -398,20 +494,120 @@ onMounted(async () => {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .data-table {
     font-size: 0.8rem;
   }
-  
+
   .table-header ion-col,
   .table-row-stylized ion-col {
     padding: 8px 6px;
   }
-  
+
   .gateway-info {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
+}
+
+/* Mobile Cards Styles */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gateway-card {
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gateway-card ion-card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.card-icon-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-icon-large {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.card-chip-status {
+  flex-shrink: 0;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  text-align: right;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
 }
 </style>

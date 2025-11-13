@@ -7,6 +7,7 @@
           :label="label"
           :additionalData="additionalData"
           @itemCreated="handleItemCreated"
+          @closed="emit('closed')"
       />
     </ion-content>
   </ion-page>
@@ -40,7 +41,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['itemCreated', 'loaded']);
+const emit = defineEmits(['itemCreated', 'loaded', 'closed']);
 
 const loaded = ref(false);
 const additionalData = ref({});

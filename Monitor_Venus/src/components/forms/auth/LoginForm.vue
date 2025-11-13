@@ -106,11 +106,15 @@
 <script setup>
 import { ref, inject, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore.js'
 import API from '@utils/api/index.js'
 import {paths}  from '@/plugins/router/paths.js'
 
 // Router instance
 const router = useRouter()
+
+// Auth Store
+const authStore = useAuthStore()
 
 // Iconos desde el plugin
 const icons = inject('icons', {})
@@ -247,18 +251,27 @@ const handleLogin = async () => {
 
     console.log('✅ Login exitoso:', response)
     
-    // Guardar tokens en sessionStorage
+    // Guardar tokens y decodificar JWT usando authStore
     if (response && response.length > 0) {
       const loginData = response[0]; // API.handleResponse retorna array
       
       if (loginData.access) {
-        sessionStorage.setItem('access_token', loginData.access);
-        console.log('💾 Access token guardado en sessionStorage');
+        // Usar authStore para guardar token y decodificar info del usuario
+        const loginSuccess = authStore.login(loginData.access);
         
-        // Calcular tiempo de expiración (60 minutos)
-        const expirationTime = Date.now() + (60 * 60 * 1000);
-        sessionStorage.setItem('access_token_expiry', expirationTime.toString());
-        console.log('⏰ Token expira en 60 minutos');
+        if (loginSuccess) {
+          console.log('💾 Token guardado y usuario autenticado');
+          console.log('👤 Usuario:', authStore.username);
+          console.log('🔑 Rol:', {
+            superuser: authStore.isSuperUser,
+            admin: authStore.isAdmin,
+            normal: authStore.isNormalUser
+          });
+        } else {
+          console.error('❌ Error procesando token');
+          error.value = 'Error procesando autenticación';
+          return;
+        }
       }
       
       if (loginData.refresh) {
@@ -267,11 +280,24 @@ const handleLogin = async () => {
       }
     }
     
-    success.value = '¡Login exitoso! Tokens guardados.'
+    success.value = '¡Login exitoso! Redirigiendo...'
     
-    // Redirigir a /tenants después de un segundo
+    // Redirigir según el estado del usuario
     setTimeout(() => {
-      router.push('/tenants');
+      // 1. Verificar si necesita configurar tenant
+      if (authStore.needsTenantSetup) {
+        console.log('⚠️ Usuario sin tenant - Redirigiendo a configuración');
+        router.push('/tenant-setup');
+        return;
+      }
+      
+      // 2. Si es admin o superuser, ir a tenants
+      if (authStore.isSuperUser || authStore.isAdmin) {
+        router.push('/tenants');
+      } else {
+        // 3. Usuarios normales van a home
+        router.push('/home');
+      }
     }, 500);
 
     // Verificar cookies después del auth

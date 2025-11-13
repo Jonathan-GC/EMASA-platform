@@ -4,11 +4,11 @@
       <ion-card-header>
         <ion-card-title>📟 Devices - Datos desde API</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${application.length} applications encontrados` }}
+          {{ loading ? 'Cargando...' : `${device.length} applications encontrados` }}
         </ion-card-subtitle>
       </ion-card-header>
 
-      <ion-card-content>
+      <ion-card-content class="custom">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
@@ -25,7 +25,7 @@
         </div>
 
         <!-- Data table -->
-        <div v-else-if="application.length > 0">
+        <div v-else-if="device.length > 0">
           <!-- Controls -->
           <div class="table-controls">
             <ion-searchbar
@@ -36,20 +36,22 @@
                 class="custom"
             ></ion-searchbar>
 
-            <ion-button @click="fetchApplications" fill="clear">
-              <ion-icon :icon="icons.refresh"></ion-icon>
-            </ion-button>
-
-            <QuickControl
-                :toCreate="true"
-                type="device"
-                @itemCreated="handleItemRefresh"
-            />
+            <!-- Desktop buttons -->
+            <div v-if="!isMobile" class="desktop-controls">
+              <ion-button @click="fetchApplications" fill="clear">
+                <ion-icon :icon="icons.refresh"></ion-icon>
+              </ion-button>
+              <QuickControl
+                  :toCreate="true"
+                  type="device"
+                  @itemCreated="handleItemRefresh"
+              />
+            </div>
           </div>
           
 
-          <!-- Table using ion-grid -->
-          <ion-grid class="data-table">
+          <!-- Table using ion-grid (Desktop) -->
+          <ion-grid v-if="!isMobile" class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
@@ -73,7 +75,7 @@
                     v-if="sortField === 'lastSeen'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2">
+              <ion-col size="1">
                 <strong>Tipo</strong>
               </ion-col>
               <ion-col size="1">
@@ -86,7 +88,7 @@
                     v-if="sortField === 'status'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="1">
+              <ion-col size="2">
                 <strong>Acciones</strong>
               </ion-col>
             </ion-row>
@@ -94,56 +96,117 @@
 
             <!-- Data rows -->
             <ion-row
-                v-for="deviceProfile in paginatedItems"
-                :key="deviceProfile.id"
+                v-for="device in paginatedItems"
+                :key="device.id"
                 class="table-row-stylized"
 
-                :class="{ 'row-selected': selectedApplication?.id === deviceProfile.id }"
+                :class="{ 'row-selected': selectedApplication?.id === device.id }"
             >
               <ion-col size="2">
                 <div class="gateway-info">
                   <div>
-                    <div class="gateway-name">{{ deviceProfile.name }}</div>
+                    <div class="gateway-name">{{ device.name }}</div>
                   </div>
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ deviceProfile.dev_eui }}</div>
+                <div class="gateway-id">{{ device.dev_eui }}</div>
               </ion-col>
 
 
               <ion-col size="2">
                 <ion-chip class="p-2.5 rounded-full">
-                  {{ deviceProfile.workspace.tenant }}
+                  {{ device.workspace.tenant }}
                 </ion-chip>
               </ion-col>
 
-              <ion-col size="2">
+              <ion-col size="1">
                 <div class="location-info">
-                  {{ deviceProfile.device_type }}
+                  {{ device.device_type }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
                 <div class="devices-info">
-                  {{ deviceProfile.machine || 0 }}
+                  {{ device.machine || 0 }}
                 </div>
               </ion-col>
               <ion-col size="2">
                 <ion-chip
-                    :color="getStatusColor(deviceProfile.sync_status)"
+                    :color="getStatusColor(device.sync_status)"
                 >
-                  {{ deviceProfile.sync_status }}
+                  {{ device.sync_status }}
                 </ion-chip>
               </ion-col>
 
-              <ion-col size="1">
-                <quick-actions
-                :toView="`devices/${deviceProfile.id}`"
+              <ion-col size="2">
+                <QuickActions 
+                  type="device"
+                  :index="device.id" 
+                  :name="device.name"
+                  :toView="`devices/${device.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(device)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
                 />
               </ion-col>
             </ion-row>
           </ion-grid>
+
+          <!-- Mobile Card View -->
+          <div v-else class="mobile-cards">
+            <ion-card v-for="device in paginatedItems" :key="device.id" class="device-card">
+              <ion-card-content>
+                <!-- Header with name and sync status -->
+                <div class="card-header">
+                  <div class="card-title-section">
+                    <h3 class="card-title">{{ device.name }}</h3>
+                    <p class="card-subtitle">{{ device.dev_eui }}</p>
+                  </div>
+                  <ion-chip :color="getStatusColor(device.sync_status)" class="card-chip-status">
+                    {{ device.sync_status }}
+                  </ion-chip>
+                </div>
+
+                <!-- Card details -->
+                <div class="card-details">
+                  <div class="card-detail-row">
+                    <span class="detail-label">Cliente:</span>
+                    <span class="detail-value">
+                      <ion-chip size="small">{{ device.workspace.tenant }}</ion-chip>
+                    </span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">Tipo:</span>
+                    <span class="detail-value">{{ device.device_type }}</span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">Máquina:</span>
+                    <span class="detail-value">{{ device.machine || 'N/A' }}</span>
+                  </div>
+                </div>
+
+                <!-- Card actions -->
+                <div class="card-actions">
+                  <QuickActions 
+                    type="device"
+                    :index="device.id" 
+                    :name="device.name"
+                    :toView="`devices/${device.id}`"
+                    to-edit
+                    to-delete
+                    :initial-data="setInitialData(device)"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
+                  />
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
 
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
@@ -169,6 +232,8 @@
           </div>
         </div>
 
+        
+
         <!-- Empty state -->
         <div v-else class="empty-state">
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
@@ -178,13 +243,22 @@
             Buscar gateways
           </ion-button>
           <QuickControl
-                :toCreate="true"
-                type="device"
-                @itemCreated="handleItemRefresh"
-            />
+            :toCreate="true"
+            type="device"
+            @itemCreated="handleItemRefresh"
+          />
+            
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons 
+      v-if="isMobile"
+      entity-type="device"
+      @refresh="fetchApplications"
+      @itemCreated="handleItemRefresh"
+    />
   </div>
 </template>
 
@@ -196,22 +270,28 @@ import { parameters } from '@/plugins/router/parameters.js'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
+import QuickControl from '../../operators/quickControl.vue'
+import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
 const router = useRouter()
 const route = useRoute()
 
+// Responsive view detection
+const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
+
 // Component-specific state
-const application = ref([])
+const device = ref([])
 const loading = ref(false)
 const error = ref(null)
 const selectedApplication = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(device, ['name', 'cs_gateway_id', 'location'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -243,7 +323,7 @@ const fetchApplications = async () => {
     // Ensure response is an array, if not, wrap it or use a default
     const mockData = Array.isArray(response) ? response : (response?.data || []);
 
-    application.value = mockData
+    device.value = mockData
     console.log('✅ Gateways cargados:', mockData.length)
 
   } catch (err) {
@@ -253,6 +333,19 @@ const fetchApplications = async () => {
     loading.value = false
   }
 }
+
+const setInitialData = (workspace) => {
+  return {
+    dev_eui: workspace.dev_eui,
+    name: workspace.name,
+    description: workspace.description,
+    workspace_id: workspace?.id,
+    application: workspace.application,
+    device_type: workspace.device_type,
+    device_profile: workspace.device_profile,
+    machine: workspace.machine,
+  }
+}  
 
 // Component-specific methods
 const selectGateway = (gateway) => {
@@ -325,6 +418,12 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   gap: 16px;
+}
+
+.desktop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .data-table {
@@ -428,5 +527,97 @@ onMounted(async () => {
     align-items: flex-start;
     gap: 4px;
   }
+}
+
+/* Mobile Cards Styles */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.device-card {
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.device-card ion-card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.card-chip-status {
+  flex-shrink: 0;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-value ion-chip {
+  margin: 0;
+  height: 22px;
+  font-size: 0.8rem;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
 }
 </style>

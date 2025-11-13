@@ -1,115 +1,100 @@
 <template>
   <ion-page>
-    <ion-card-header>
-      <ion-toolbar>
-        <ion-title>Actualizar {{ label }}</ion-title>
-      </ion-toolbar>
-    </ion-card-header>
+
     <ion-content class="ion-padding">
-      <ion-card>
-        <ion-card-content>
-          <form @submit.prevent="createItem">
-            <ion-list>
-              <div v-for="(field, index) in fields" :key="index">
-                <ion-item v-if="field.type === 'text'">
-                  <ion-input
-                      v-model="formValues[field.key]"
-                      :label="field.label"
-                      label-placement="floating"
-                  />
-                </ion-item>
+      <ion-card-header class="custom">
+        <ion-toolbar>
+          <ion-title>Actualizar {{ label }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="closeModal">
+              <ion-icon :icon="icons.close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-card-header>
+      <hr class="divider" />
+      <ion-card-content>
+        <form @submit.prevent="createItem">
+          <ion-list>
+            <div v-for="(field, index) in fields" :key="index">
+              <ion-item v-if="field.type === 'text'" class="custom">
+                <ion-label class="!mb-2" position="stacked">{{ field.label }}</ion-label>
+                <ion-input v-model="formValues[field.key]" class="custom" fill="solid" />
+              </ion-item>
 
-                <ion-item v-else-if="field.type === 'date'">
-                  <ion-input
-                      v-model="formValues[field.key]"
-                      :label="field.label"
-                      label-placement="floating"
-                      type="date"
-                  />
-                </ion-item>
+              <ion-item v-else-if="field.type === 'date'">
+                <ion-input v-model="formValues[field.key]" :label="field.label" label-placement="floating"
+                  type="date" />
+              </ion-item>
 
-                <ion-item v-else-if="field.type === 'radio-group'">
-                  <ion-radio-group v-model="formValues[field.key]">
-                    <ion-list-header>
-                      <ion-label>{{ field.label }}</ion-label>
-                    </ion-list-header>
-                    <ion-item v-for="(option, idx) in field.options" :key="idx">
-                      <ion-radio :value="option.value">{{ option.label }}</ion-radio>
-                    </ion-item>
-                  </ion-radio-group>
-                </ion-item>
-
-                <ion-item v-else-if="field.type === 'select'">
-                  <ion-select
-                      :key="`${field.key}-${componentKey}`"
-                      v-model="formValues[field.key]"
-                      :label="field.label"
-                      label-placement="floating"
-                      :disabled="field.disabled"
-                      :required="field.required"
-                      @ion-change="handleFieldChange(field.key, $event.detail.value)"
-                  >
-                    <ion-select-option
-                        v-for="option in field.options"
-                        :key="option.value"
-                        :value="option.value"
-                    >
-                      {{ option.label }}
-                    </ion-select-option>
-                  </ion-select>
-                </ion-item>
-
-                <ion-item v-else-if="field.type === 'multiple-select'">
-                  <ion-select
-                      multiple="true"
-                      v-model="formValues[field.key]"
-                      :label="field.label"
-                      label-placement="floating"
-                  >
-                    <ion-select-option
-                        v-for="option in field.options"
-                        :key="option.value"
-                        :value="option.value"
-                    >
-                      {{ option.label }}
-                    </ion-select-option>
-                  </ion-select>
-                </ion-item>
-
-                <ion-item v-else-if="field.type === 'textarea'">
-                  <ion-textarea
-                      v-model="formValues[field.key]"
-                      :label="field.label"
-                      label-placement="floating"
-                      rows="5"
-                  />
-                </ion-item>
-
-                <ion-item v-else-if="field.type === 'checkbox'">
-                  <ion-checkbox
-                      v-model="formValues[field.key]"
-                      :checked="formValues[field.key]"
-                  >
+              <ion-item v-else-if="field.type === 'radio-group'">
+                <ion-radio-group v-model="formValues[field.key]">
+                  <ion-list-header>
                     <ion-label>{{ field.label }}</ion-label>
-                  </ion-checkbox>
-                </ion-item>
-              </div>
-            </ion-list>
-            <div class="ion-text-end ion-padding-top">
-              <ion-button type="submit" :disabled="loading">
-                <ion-spinner v-if="loading" slot="start"></ion-spinner>
-                Guardar
-              </ion-button>
+                  </ion-list-header>
+                  <ion-item v-for="(option, idx) in field.options" :key="idx">
+                    <ion-radio :value="option.value">{{ option.label }}</ion-radio>
+                  </ion-item>
+                </ion-radio-group>
+              </ion-item>
+
+              <ion-item v-else-if="field.type === 'select'" class="custom">
+                <ion-label position="stacked" class="!mb-2">{{ field.label }}</ion-label>
+                <ModalSelector
+                  v-model="formValues[field.key]"
+                  :options="field.options || []"
+                  :title="field.label || 'Seleccionar'"
+                  :placeholder="field.placeholder || 'Seleccionar...'"
+                  :disabled="field.disabled || false"
+                  :searchable="field.searchable !== false"
+                  display-field="label"
+                  value-field="value"
+                  @update:modelValue="handleFieldChange(field.key, $event)"
+                >
+                <template #display="{ selected }">
+                    <span v-if="selected">{{ selected.label }}</span>
+                    <span v-else class="text-gray-500">{{ field.placeholder || 'Seleccionar...' }}</span>
+                  </template>
+                  
+                </ModalSelector>
+              </ion-item>
+
+              <ion-item v-else-if="field.type === 'multiple-select'">
+                <ion-select multiple="true" v-model="formValues[field.key]" :label="field.label"
+                  label-placement="floating">
+                  <ion-select-option v-for="option in field.options" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </ion-select-option>
+                </ion-select>
+              </ion-item>
+
+              <ion-item v-else-if="field.type === 'textarea'" class="custom">
+                <ion-label position="stacked" class="!mb-2">{{field.label}}</ion-label>
+                <ion-textarea v-model="formValues[field.key]" class="custom" fill="solid" rows="5"
+                  ></ion-textarea>
+              </ion-item>
+
+              <ion-item v-else-if="field.type === 'checkbox'">
+                <ion-checkbox v-model="formValues[field.key]" :checked="formValues[field.key]">
+                  <ion-label>{{ field.label }}</ion-label>
+                </ion-checkbox>
+              </ion-item>
             </div>
-          </form>
-        </ion-card-content>
-      </ion-card>
+          </ion-list>
+          <div class="ion-text-end ion-padding-top">
+            <ion-button type="submit" :disabled="loading">
+              <ion-spinner v-if="loading" slot="start"></ion-spinner>
+              Guardar
+            </ion-button>
+          </div>
+        </form>
+      </ion-card-content>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, toRefs } from 'vue';
+import { ref, watch, toRefs, inject } from 'vue';
 import {
   IonPage,
   IonHeader,
@@ -156,7 +141,7 @@ const props = defineProps({
 
 console.log("index:", props.index);
 
-const emit = defineEmits(['itemEdited', 'fieldChanged']);
+const emit = defineEmits(['itemEdited', 'fieldChanged', 'closed']);
 
 const { fields, additionalData } = toRefs(props);
 
@@ -164,9 +149,19 @@ const loading = ref(false);
 const formValues = ref({ ...fields.value, ...additionalData.value, ...props.initialData });
 const componentKey = ref(0);
 
+const icons = inject('icons',{});
+
+const closeModal = () => {
+  emit('closed');
+}
 // Watch for changes in props.fields to update formValues
+// Preserve initialData when fields update (e.g., after fetching dropdown options)
 watch(fields, (newFields) => {
-  formValues.value = { ...newFields, ...additionalData.value };
+  formValues.value = { 
+    ...newFields, 
+    ...additionalData.value, 
+    ...props.initialData  // Always preserve initialData last so it has highest priority
+  };
 }, { deep: true });
 
 function handleFieldChange(fieldKey, value) {

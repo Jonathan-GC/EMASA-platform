@@ -207,6 +207,7 @@
         <!-- Step 2: Account Details -->
         <div v-else-if="currentStep === 2" class="step-content">
             <ion-card class="form-card">
+              <ion-card-content>
           <h1 class="step-title">Detalles de Cuenta</h1>
           <hr class="divider"/>
           
@@ -270,6 +271,7 @@
               </ion-button>
             </ion-input>
           </ion-item>
+          </ion-card-content>
           </ion-card>
         </div>
 

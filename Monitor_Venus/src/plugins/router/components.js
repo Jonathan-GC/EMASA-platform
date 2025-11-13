@@ -20,9 +20,12 @@ export const components = {
     DEVICE_MEASUREMENTS: () => import('@views/infrastructure/application/devices/measurments/index.vue'),
     NOTIFICATIONS: () => import('@views/notifications/index.vue'),
     EMAIL_VERIFICATION: () => import('@views/auth/verification/index.vue'),
+    UNAUTHORIZED: () => import('@views/UnauthorizedView.vue'),
+    TENANT_SETUP: () => import('@views/auth/tenant-setup/index.vue'),
 
     
     // rute support
     SUPPORT: () => import('@views/support/index.vue'),
+    INBOX: () => import('@views/inbox/index.vue'),
 
 }

@@ -3,7 +3,11 @@ ion-item.custom ion-input.custom {
     --border-color: #cccccc;
     --highlight-color-focused: #000000;
 }
-
+ion-item.custom ion-textarea.custom {
+    --placeholder-color: #858585;
+    --border-color: #cccccc;
+    --highlight-color-focused: #000000;
+}
 ion-item.custom{
     --padding-start: 0px;
     --font-size: 14px;
@@ -13,6 +17,11 @@ ion-item.custom{
     --border--style: 0px;
     box-shadow: none!important;
     --border-radius: 0px!important;
+    --background-hover: transparent;
+    --background-focused: transparent;
+    --background-activated: transparent;
+    --ripple-color: transparent;
+    cursor: default;
 }
 ion-input-password-toggle.custom ion-button {
     --color: #000000;
@@ -50,4 +59,20 @@ ion-card{
 
 ion-chip ion-icon{
     margin-inline: 0px;
+}
+
+ion-card-header.custom {
+    padding-bottom: 0px;
+}
+ion-card-content.custom {
+    padding-top: 0px;
+}
+
+/*ion-content.custom{
+    --background: #f9fafb;
+}*/
+@media (max-width: 480px) {
+  ion-card-content.custom {
+    padding-bottom: 140px!important;
+  }
 }
