@@ -86,28 +86,13 @@ const fetchDevices = async () => {
   }
 };
 
-// Method to fetch sex values from the API
-const fetchSex = async () => {
-  try {
-    const headers = { 'API-VERSION': '1' };
-    const sexValues = await API.get(API.SEX_VALUES, headers);
-    const sexField = formFields.value.find(f => f.key === 'sex');
-    if (sexField) {
-      sexField.options = sexValues.map((sexValue: string) => ({
-        label: sexValue,
-        value: sexValue.toUpperCase(),
-      }));
-    }
-  } catch (error) {
-    console.error('Error fetching sex values:', error);
-  }
-};
+
 
 // Method to set additional data for the form
-const setAffiliation = () => {
+const setDevice = () => {
   additionalData.value = {
     ...additionalData.value,
-    is_external_user: true
+    device: route.params.device_id
   };
   console.log("Additional Data Set:", additionalData.value);
 };
@@ -117,6 +102,7 @@ onMounted(async () => {
   //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
+  setDevice();
   await fetchDevices();
   loaded.value = true;
   emit('loaded');

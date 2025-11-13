@@ -140,8 +140,8 @@ const props = defineProps({
   type: String,
   label: String,
   fields: {
-    type: Object,
-    default: () => ({}),
+    type: Array,
+    default: () => [],
   },
   additionalData: {
     type: Object,
@@ -171,10 +171,10 @@ const closeModal = () => {
   emit('closed');
 }
 
-// Watch for changes in props.fields to update formValues
-watch(fields, (newFields) => {
-  formValues.value = { ...newFields, ...additionalData.value };
-}, { deep: true });
+// Watch for changes in additionalData to update formValues
+watch(additionalData, (newAdditionalData) => {
+  formValues.value = { ...formValues.value, ...newAdditionalData };
+}, { deep: true, immediate: true });
 
 function handleFieldChange(fieldKey, value) {
   formValues.value[fieldKey] = value;

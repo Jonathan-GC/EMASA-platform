@@ -511,9 +511,10 @@ const getThresholdStatusText = (data) => {
 }
 
 const calculateThresholdPercentage = (data) => {
-  if (!data || !data.min || !data.max || !data.threshold) return 0
+  if (!data || data.min == null || data.max == null || data.threshold == null) return 0
   
   const range = data.max - data.min
+  if (range === 0) return 0
   const position = data.threshold - data.min
   const percentage = (position / range) * 100
   
@@ -521,25 +522,27 @@ const calculateThresholdPercentage = (data) => {
 }
 
 const calculateSafeZoneWidth = (data) => {
-  if (!data || !data.min || !data.max || !data.threshold) return 0
+  if (!data || data.min == null || data.max == null || data.threshold == null) return 0
   
   const range = data.max - data.min
+  if (range === 0) return 0
   const safeWidth = data.threshold // threshold is the buffer size
   
   return Math.max(0, Math.min(100, (safeWidth / range) * 100))
 }
 
 const calculateWarningValue = (data) => {
-  if (!data || !data.min || !data.max || !data.threshold) return data?.min || 0
+  if (!data || data.min == null || data.max == null || data.threshold == null) return data?.min ?? 0
   
   // Warning zone ends at max - threshold
   return data.max - data.threshold
 }
 
 const calculateWarningZoneWidth = (data) => {
-  if (!data || !data.min || !data.max || !data.threshold) return 0
+  if (!data || data.min == null || data.max == null || data.threshold == null) return 0
   
   const range = data.max - data.min
+  if (range === 0) return 0
   const warningStart = data.threshold
   const warningEnd = data.max - data.threshold
   const warningWidth = warningEnd - warningStart
@@ -548,9 +551,10 @@ const calculateWarningZoneWidth = (data) => {
 }
 
 const calculateDangerZoneWidth = (data) => {
-  if (!data || !data.min || !data.max || !data.threshold) return 0
+  if (!data || data.min == null || data.max == null || data.threshold == null) return 0
   
   const range = data.max - data.min
+  if (range === 0) return 0
   const dangerStart = calculateWarningValue(data) - data.min
   const dangerWidth = data.max - calculateWarningValue(data)
   
