@@ -123,6 +123,13 @@ class API {
     GET_TYPES = 'support/ticket/get_all_types/'
 
 
+    //----[INBOX]----
+    SUPPORT_MEMBERS = 'support/ticket/get_support_members/'
+    
+    DELEGATE(ticketId){
+        return `support/ticket/${ticketId}/delegate/`
+    }
+
     static instance;
 
     constructor() { }

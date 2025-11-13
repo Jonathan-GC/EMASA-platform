@@ -25,6 +25,7 @@ export const paths = {
     NOTIFICATIONS: '/notifications',
     EMAIL_VERIFICATION: '/verify-email',
 
-    // Suport path
+    // Support and inbox paths
     SUPPORT: '/support',
+    INBOX: '/inbox',
 }

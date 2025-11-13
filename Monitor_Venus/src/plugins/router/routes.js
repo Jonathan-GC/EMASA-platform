@@ -163,13 +163,27 @@ export const routes = [
             },
                 
 
-         // ✅ Nueva ruta Support 
+         // ✅ New route Support and Inbox
 
             {
-            name: 'support',
             path: P.SUPPORT,
-            component: C.SUPPORT,            
-            meta: { title: 'Support' },       
+            component: C.SUPPORT,    
+            beforeEnter: allowAll,        
+            meta: { public: true },       
+            },
+
+
+            {
+                path: P.INBOX,
+                component: C.INBOX,
+                beforeEnter: requireTenant,
+                meta: { 
+                    requiresAuth: true,
+                    requiresTenant: true,
+                    roles: ['superuser', 'admin'],
+                    label: 'Inbox'
+                },
+                beforeEnter: requireAuth
             },
 
 
