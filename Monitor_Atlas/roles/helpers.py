@@ -1,5 +1,7 @@
 from guardian.shortcuts import assign_perm, remove_perm
 from loguru import logger
+from organizations.models import Tenant, Workspace
+from users.models import User
 
 
 def assign_new_user_base_permissions(user):
@@ -17,8 +19,10 @@ def assign_new_user_base_permissions(user):
     assign_perm("users.delete_user", user, user)
 
     if user.tenant is not None:
-        assign_perm("organizations.view_tenant", user, user.tenant)
+        tenant = Tenant.objects.get(id=user.tenant.id)
+        assign_perm("organizations.view_tenant", user, tenant)
         logger.debug(f"Assigned tenant member view permission to user {user.username}")
+        user.save()
         return
 
     assign_perm("organizations.add_tenant", user)
@@ -126,6 +130,9 @@ def support_manager_can_view_all_support_members(support_manager, user):
     Permissions includes:
     - Permission to view user
     """
+
+    user = User.objects.get(id=user.id)
+    support_manager = User.objects.get(id=support_manager.id)
 
     assign_perm("users.view_user", support_manager, user)
 
