@@ -28,6 +28,7 @@ const CreateApplications = defineAsyncComponent(() => import("@components/forms/
 const CreateWorkspaces = defineAsyncComponent(() => import("@components/forms/create/workspaces/formCreateWorkspaces.vue"));
 const CreateManagers = defineAsyncComponent(() => import("@components/forms/create/managers/formCreateManagers.vue"));
 const CreateUsers = defineAsyncComponent(() => import("@components/forms/create/users/formCreateUsers.vue"));
+const CreateMeasurements = defineAsyncComponent(() => import("@components/forms/create/measurements/formCreateMeasurements.vue"));
 
 
 export class CreateFormFactory extends AbstractFormFactory {
@@ -121,6 +122,14 @@ export class CreateFormFactory extends AbstractFormFactory {
                     fields: schema.user,
                 }
             },
+            measurement: {
+                component: CreateMeasurements,
+                props: {
+                    type: type,
+                    label: 'measurement',
+                    fields: schema.measurement,
+                }
+            },   
         }
 
         if (!(type in componentMap) || !EntityTypes.includes(type)) {

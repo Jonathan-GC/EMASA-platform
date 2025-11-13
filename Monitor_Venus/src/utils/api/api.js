@@ -70,6 +70,14 @@ class API {
         return `infrastructure/device/${deviceId}/deactivate/`
     }
 
+    DEVICE_GET_MEASUREMENTS(deviceId) {
+        return `infrastructure/device/${deviceId}/measurements/`
+    }
+
+    DEVICE_CREATE_MEASUREMENTS(deviceId) {
+        return `infrastructure/device/${deviceId}/create_measurement/`
+    }
+
 
     //----[WEBSOCKET]----
     

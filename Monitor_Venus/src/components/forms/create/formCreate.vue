@@ -203,6 +203,10 @@ async function createItem() {
   loading.value = true;
   try {
     let response;
+    
+    // Get deviceId from additionalData if type is measurements
+    const deviceId = props.additionalData?.device_id;
+    
     // Map of types to API endpoints
     const apiEndpoints = {
       'tenant': API.TENANT,
@@ -217,6 +221,7 @@ async function createItem() {
       'manager': API.API_USER,
       'user': API.USERS,
       'role': API.ROLES,
+      'measurement': deviceId ? API.DEVICE_CREATE_MEASUREMENTS(deviceId) : null,
 
     };
     const endpoint = apiEndpoints[props.type];

@@ -98,6 +98,13 @@
     { "key": "address.state", "label": "Estado", "type": "select" },
     { "key": "address.address", "label": "Dirección", "type": "text" },
     { "key": "address.zipcode", "label": "Código postal", "type": "text" }
+  ],
+  "measurement": [
+    { "key": "unit", "label": "Unidad de medida", "type": "text" },
+    { "key": "device", "label": "Dispositivo", "type": "select" },
+    { "key": "min", "label": "Valor mínimo", "type": "text" },
+    { "key": "max", "label": "Valor máximo", "type": "text" },
+    { "key": "threshold", "label": "Umbral", "type": "text" }
   ]
 
  }

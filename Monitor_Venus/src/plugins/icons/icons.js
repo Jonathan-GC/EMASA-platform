@@ -84,6 +84,8 @@ import {
   arrowForwardOutline,
   caretUpOutline,
   caretDownOutline,
+  arrowUpCircleOutline,
+  arrowDownCircleOutline,
 
   // Status icons
   alertCircleOutline,
@@ -214,6 +216,8 @@ export const icons = {
   'arrowForward': arrowForwardOutline,
   'caretUp': caretUpOutline,
   'caretDown': caretDownOutline,
+  'arrowUpCircle': arrowUpCircleOutline,
+  'arrowDownCircle': arrowDownCircleOutline,
 
   // Status icons
   'alert': alertCircleOutline,

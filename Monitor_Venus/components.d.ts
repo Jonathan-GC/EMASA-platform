@@ -34,6 +34,7 @@ declare module 'vue' {
     FormCreateLocations: typeof import('./src/components/forms/create/locations/formCreateLocations.vue')['default']
     FormCreateMachines: typeof import('./src/components/forms/create/machines/formCreateMachines.vue')['default']
     FormCreateManagers: typeof import('./src/components/forms/create/managers/formCreateManagers.vue')['default']
+    FormCreateMeasurements: typeof import('./src/components/forms/create/measurements/formCreateMeasurements.vue')['default']
     FormCreateTenants: typeof import('./src/components/forms/create/tenants/formCreateTenants.vue')['default']
     FormCreateUsers: typeof import('./src/components/forms/create/users/formCreateUsers.vue')['default']
     FormCreateWorkspaces: typeof import('./src/components/forms/create/workspaces/formCreateWorkspaces.vue')['default']
