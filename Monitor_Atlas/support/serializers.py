@@ -8,11 +8,29 @@ from .models import (
 )
 from rest_framework import serializers
 
+from users.models import User
+
 
 class TicketSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), write_only=True, source="user"
+    )
+
     class Meta:
         model = Ticket
         fields = "__all__"
+
+    def get_user(self, obj):
+        user = obj.user
+        if user:
+            return {
+                "id": user.id,
+                "username": user.username,
+                "full_name": user.get_full_name() or user.username,
+                "email": user.email,
+            }
+        return None
 
     def validate(self, data):
 
