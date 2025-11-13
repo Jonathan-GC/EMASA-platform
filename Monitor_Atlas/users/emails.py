@@ -91,9 +91,7 @@ def send_password_reset_email(user, token: str):
     """
     to = user.email
     subject = "Reset your password"
-    reset_link = (
-        f"{APP_URL}/reset-password?{urlencode({'token': token, 'uid': user.id})}"
-    )
+    reset_link = f"{APP_URL}/reset-password?{urlencode({'token': token})}"
     text = f"Please reset your password by clicking the following link: {reset_link}"
     vars = {"logo_url": MTR_LOGO_URL, "urltoken": reset_link, "name": user.name}
 
