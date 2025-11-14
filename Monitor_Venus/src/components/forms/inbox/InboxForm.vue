@@ -1,31 +1,191 @@
 <template>
   <div class="inbox-form">
     <div class="header-actions">
+      <!-- Signed-in badge -->
+      <div v-if="isLoggedIn" class="account-bar">
+        <ion-icon :icon="icons.personCircle || icons.person" class="account-icon" />
+        <div class="account-text">
+          <div class="label">Signed in as</div>
+          <div class="value">
+            {{ sessionUserLabel }}
+            <span v-if="userRole" class="user-role"> • {{ userRole }}</span>
+          </div>
+        </div>
+      </div>
+
   <ion-searchbar v-model="search" placeholder="Search (sender, subject, text)" class="search" />
-  <ion-button size="small" fill="outline" @click="clearSearch" :disabled="!search">Clear</ion-button>
-      <ion-button size="small" fill="outline" @click="showUnreadOnly = !showUnreadOnly" :color="showUnreadOnly ? 'primary' : 'medium'">
+  <ion-button v-if="!isMobile" size="small" fill="outline" @click="clearSearch" :disabled="!search">Clear</ion-button>
+      <ion-button v-if="!isMobile" size="small" fill="outline" @click="showUnreadOnly = !showUnreadOnly" :color="showUnreadOnly ? 'primary' : 'medium'">
         <ion-icon :icon="showUnreadOnly ? icons.eye : icons.eyeOff" slot="start" />
   {{ showUnreadOnly ? 'Unread only' : 'All' }}
       </ion-button>
-      <ion-button size="small" fill="solid" @click="refreshMock">
+      <ion-button v-if="!isMobile" size="small" fill="solid" @click="refreshMock">
         <ion-icon :icon="icons.refresh" slot="start" />
         Refresh
+      </ion-button>
+      <!-- Mobile refresh icon only -->
+      <ion-button v-if="isMobile" size="small" fill="clear" @click="refreshMock">
+        <ion-icon :icon="icons.refresh" />
       </ion-button>
   <ion-badge :color="isConnected ? 'success' : 'medium'" title="WebSocket status">{{ isConnected ? 'Live' : 'Offline' }}</ion-badge>
       <ion-spinner v-if="loading" name="dots" />
     </div>
     <div v-if="loadError" class="error-line">{{ loadError }}</div>
-    <div class="split-container">
+    
+    <!-- Mobile: show list OR reading pane -->
+    <div v-if="isMobile" class="mobile-container">
+      <!-- Message list (hidden when reading) -->
+      <div v-if="!showMobileReading" class="message-list mobile-list" :class="{ 'empty': filteredMessages.length === 0 }">
+        <template v-if="filteredMessages.length">
+          <div v-for="msg in filteredMessages" :key="msg.id" :class="['message-item',{selected:msg.id===selectedId,unread:msg.unread}]" @click="selectMessage(msg.id)">
+            <div class="message-main">
+              <div class="from-subject">
+                <span class="from">{{ msg.from }}</span>
+                <div class="subject">
+                  <span>{{ msg.subject }}</span>
+                  <ion-badge class="prio" :color="priorityColor(msg.priority)">{{ msg.priority }}</ion-badge>
+                </div>
+              </div>
+              <div class="meta-row">
+                <span class="date">{{ formatDate(msg.date) }}</span>
+                <span v-if="msg.unread" class="dot" title="Unread"></span>
+              </div>
+            </div>
+            <div class="snippet">{{ msg.organization || msg.snippet }}</div>
+            <div v-if="!isMobile" class="item-actions">
+              <ion-button size="small" fill="clear" @click.stop="toggleUnread(msg)">
+                <ion-icon :icon="msg.unread ? icons.eyeOff : icons.eye" />
+              </ion-button>
+            </div>
+          </div>
+        </template>
+        <div v-else class="empty-state">
+          <ion-icon :icon="icons.inbox" class="empty-icon" />
+          <p>No messages match your search.</p>
+        </div>
+      </div>
+      
+      <!-- Mobile reading pane (full screen) -->
+      <div v-if="showMobileReading && selectedMessage" class="reading-pane mobile-reading">
+        <div class="mobile-header">
+          <ion-button fill="clear" @click="backToList">
+            <ion-icon :icon="icons.arrowBack || icons.chevronBack" slot="icon-only" />
+          </ion-button>
+          <span class="mobile-title">Message</span>
+        </div>
+        <div class="reading-content">
+          <div class="reading-header">
+            <h2 class="reading-subject">{{ selectedMessage.subject }}</h2>
+            <div class="reading-actions">
+              <ion-badge v-if="selectedMessage.unread" color="primary">Unread</ion-badge>
+              <ion-button size="small" fill="outline" @click="toggleUnread(selectedMessage)">
+                <ion-icon :icon="selectedMessage.unread ? icons.eyeOff : icons.eye" slot="icon-only" />
+              </ion-button>
+              <ion-button v-if="isSupportManager" id="assign-trigger-mobile" size="small" fill="outline" @click="openAssignPopover($event)" :disabled="membersLoading || assigning">
+                <ion-icon :icon="icons.personAdd || icons.person" slot="icon-only" />
+              </ion-button>
+              <ion-spinner v-if="isSupportManager && (membersLoading || assigning)" name="dots" />
+              <!-- Priority change button -->
+              <ion-button v-if="isSupportManager" id="priority-trigger-mobile" size="small" fill="outline" @click="openPriorityPopover($event)" :disabled="!selectedMessage || updatingPriority">
+                <ion-icon :icon="icons.flag || icons.alert" slot="icon-only" />
+              </ion-button>
+              <ion-spinner v-if="isSupportManager && updatingPriority" name="dots" />
+              <!-- Popover dropdown for member selection -->
+              <ion-popover v-if="isSupportManager" :is-open="assignPopoverOpen" :event="assignPopoverEvent" @didDismiss="assignPopoverOpen=false">
+                <ion-content>
+                  <ion-list>
+                    <ion-item v-if="membersLoading">
+                      <ion-spinner name="dots" />
+                      <ion-label class="ml-2">Loading members...</ion-label>
+                    </ion-item>
+                    <ion-item v-for="m in members" :key="m.id" button @click="assigneeId = m.id; assignPopoverOpen=false;">
+                      <ion-label>
+                        {{ m.name }}<span v-if="m.role" class="role-pill"> • {{ m.role }}</span>
+                      </ion-label>
+                    </ion-item>
+                    <ion-item v-if="!membersLoading && members.length===0">
+                      <ion-label>No members found</ion-label>
+                    </ion-item>
+                  </ion-list>
+                </ion-content>
+              </ion-popover>
+              <!-- Popover for priority selection -->
+              <ion-popover v-if="isSupportManager" :is-open="priorityPopoverOpen" :event="priorityPopoverEvent" @didDismiss="priorityPopoverOpen=false">
+                <ion-content>
+                  <ion-list>
+                    <ion-item button @click="setTicketPriority('low')">
+                      <ion-label>Low</ion-label>
+                    </ion-item>
+                    <ion-item button @click="setTicketPriority('medium')">
+                      <ion-label>Medium</ion-label>
+                    </ion-item>
+                    <ion-item button @click="setTicketPriority('high')">
+                      <ion-label>High</ion-label>
+                    </ion-item>
+                    <ion-item button @click="setTicketPriority('urgent')">
+                      <ion-label>Urgent</ion-label>
+                    </ion-item>
+                  </ion-list>
+                </ion-content>
+              </ion-popover>
+            </div>
+          </div>
+          <div class="reading-meta">
+            <span class="from">From: <strong>{{ selectedMessage.from }}</strong></span>
+            <span v-if="selectedMessage.email" class="email">Email: <strong>{{ selectedMessage.email }}</strong></span>
+            <span class="org">Organization: <strong>{{ selectedMessage.organization }}</strong></span>
+            <span class="prio">Priority: <ion-badge :color="priorityColor(selectedMessage.priority)">{{ selectedMessage.priority }}</ion-badge></span>
+            <span class="date">{{ formatDate(selectedMessage.date) }}</span>
+          </div>
+          <div v-if="assigneeId" class="assigned-line">Assigned: <strong>{{ resolveAssigneeName(assigneeId) }}</strong></div>
+          <div class="assign-feedback">
+            <span v-if="membersError" class="error-line">{{ membersError }}</span>
+            <span v-if="assignError" class="error-line">{{ assignError }}</span>
+            <span v-if="assignSuccess" class="success-line">{{ assignSuccess }}</span>
+            <span v-if="priorityError" class="error-line">{{ priorityError }}</span>
+            <span v-if="prioritySuccess" class="success-line">{{ prioritySuccess }}</span>
+          </div>
+          <div class="detail-grid">
+            <div v-if="selectedMessage.category"><label>Category</label><span>{{ selectedMessage.category }}</span></div>
+            <div v-if="selectedMessage.infrastructure_category"><label>Infrastructure</label><span>{{ selectedMessage.infrastructure_category }}</span></div>
+            <div v-if="selectedMessage.machine_type"><label>Machine</label><span>{{ selectedMessage.machine_type }}</span></div>
+            <div v-if="selectedMessage.electric_machine_subtype"><label>Electric</label><span>{{ selectedMessage.electric_machine_subtype }}</span></div>
+            <div v-if="selectedMessage.mechanical_machine_subtype"><label>Mechanical</label><span>{{ selectedMessage.mechanical_machine_subtype }}</span></div>
+          </div>
+          <pre class="reading-body">{{ selectedMessage.body }}</pre>
+          <!-- Attachments section -->
+          <div class="attachments" v-if="attachmentsLoading || attachmentsError || attachments.length">
+            <div class="attachments-title">
+              <ion-icon :icon="icons.attach || icons.document" class="attach-icon" />
+              <span>Attachments</span>
+            </div>
+            <div v-if="attachmentsLoading" class="attachments-loading">
+              <ion-spinner name="dots" />
+              <span>Loading attachments...</span>
+            </div>
+            <div v-else-if="attachmentsError" class="error-line">{{ attachmentsError }}</div>
+            <ul v-else class="attachments-list">
+              <li v-for="att in attachments" :key="att.id">
+                <a :href="att.url" target="_blank" rel="noopener" :download="att.name">{{ att.name }}</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop: split view (list + reading pane side by side) -->
+    <div v-else class="split-container">
       <div class="message-list" :class="{ 'empty': filteredMessages.length === 0 }">
         <template v-if="filteredMessages.length">
           <div v-for="msg in filteredMessages" :key="msg.id" :class="['message-item',{selected:msg.id===selectedId,unread:msg.unread}]" @click="selectMessage(msg.id)">
             <div class="message-main">
               <div class="from-subject">
                 <span class="from">{{ msg.from }}</span>
-                <span class="subject">
-                  {{ msg.subject }}
+                <div class="subject">
+                  <span>{{ msg.subject }}</span>
                   <ion-badge class="prio" :color="priorityColor(msg.priority)">{{ msg.priority }}</ion-badge>
-                </span>
+                </div>
               </div>
               <div class="meta-row">
                 <span class="date">{{ formatDate(msg.date) }}</span>
@@ -45,8 +205,14 @@
           <p>No messages match your search.</p>
         </div>
       </div>
+      
+      <!-- Desktop reading pane -->
       <div class="reading-pane">
-        <div v-if="selectedMessage" class="reading-content">
+        <div v-if="!selectedMessage" class="no-selection">
+          <ion-icon :icon="icons.mailOpen || icons.mail" class="placeholder-icon" />
+          <p>Select a message to read</p>
+        </div>
+        <div v-else class="reading-content">
           <div class="reading-header">
             <h2 class="reading-subject">{{ selectedMessage.subject }}</h2>
             <div class="reading-actions">
@@ -148,10 +314,6 @@
             </ul>
           </div>
         </div>
-        <div v-else class="no-selection">
-          <ion-icon :icon="icons.mailOpen" class="placeholder-icon" />
-          <p>Select a message to view it here.</p>
-        </div>
       </div>
     </div>
   </div>
@@ -171,6 +333,7 @@
 import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotifications } from '@/composables/useNotifications';
+import { useResponsiveView } from '@/composables/useResponsiveView';
 import { IonSearchbar, IonButton, IonBadge, IonSpinner, IonIcon, IonLabel, IonPopover, IonList, IonItem, IonContent } from '@ionic/vue';
 import API from '@/utils/api/api';
 // ------------------ UI popovers (assignment & priority) ------------------
@@ -190,6 +353,10 @@ function openPriorityPopover(ev){ priorityPopoverEvent.value = ev; priorityPopov
 // ------------------ Injected icons ------------------
 const icons = inject('icons', {});
 
+// ------------------ Responsive ------------------
+const { isMobile } = useResponsiveView(768);
+const showMobileReading = ref(false);
+
 // ------------------ Base inbox state ------------------
 // Reactive list mapped from SUPPORT_TICKET endpoint
 const messages = ref([]);
@@ -202,6 +369,47 @@ const loadError = ref('');
 // ------------------ Auth & role ------------------
 const auth = useAuthStore();
 const currentUserId = computed(() => auth.userId);
+const isLoggedIn = computed(() => auth.isAuthenticated);
+const sessionUserLabel = ref('Authenticated user');
+const userRole = ref('');
+
+// Load session context: display name from auth store
+async function loadSessionContext() {
+  try {
+    if (!auth.isAuthenticated) return;
+    const name = auth.username || null;
+    sessionUserLabel.value = name || 'Authenticated user';
+    
+    // Role will be set after fetching support members
+    userRole.value = '';
+  } catch {
+    sessionUserLabel.value = 'Authenticated user';
+    userRole.value = '';
+  }
+}
+
+// Update user role based on support members list
+function updateUserRole() {
+  if (!auth.isAuthenticated || !currentUserId.value) {
+    userRole.value = '';
+    return;
+  }
+  
+  const currentMember = members.value.find(m => String(m.id) === String(currentUserId.value));
+  if (currentMember && currentMember.role) {
+    userRole.value = currentMember.role;
+  } else {
+    // Fallback to generic labels if not found in support members
+    if (auth.isSuperUser) {
+      userRole.value = 'Superuser';
+    } else if (auth.isGlobalUser) {
+      userRole.value = 'Global Admin';
+    } else {
+      userRole.value = 'User';
+    }
+  }
+}
+
 // Determine if the user is a support manager (or admin/global)
 // Heuristic: superuser OR admin => manager; OR support member whose role contains 'manager'
 const isSupportManager = computed(() => {
@@ -284,21 +492,9 @@ async function fetchTickets() {
   try {
     const res = await API.get(API.SUPPORT_TICKET);
     const list = Array.isArray(res) ? res : (res?.results || []);
-  messages.value = list.map(mapTicketToMessage).sort((a,b) => b.date - a.date);
-    selectedId.value = messages.value[0]?.id ?? null;
-    // initialize selected assignee from message if available
-    if (selectedId.value) {
-      const sel = messages.value.find(m => m.id === selectedId.value);
-      skipAssignPost.value = true;
-      assigneeId.value = sel?.assigned_to ?? null;
-      await nextTick();
-      skipAssignPost.value = false;
-      if (assigneeId.value && members.value.length === 0 && !membersLoading.value) {
-        fetchSupportMembers();
-      }
-      // Fetch attachments for the initially selected ticket
-      fetchAttachments(selectedId.value);
-    }
+    messages.value = list.map(mapTicketToMessage).sort((a,b) => b.date - a.date);
+    // Don't auto-select any ticket - user must click to view
+    // selectedId.value = messages.value[0]?.id ?? null;
   } catch (err) {
     console.error('Error fetching tickets', err);
     loadError.value = err?.message || 'Could not load tickets.';
@@ -318,6 +514,8 @@ async function fetchSupportMembers() {
     const res = await API.get(API.SUPPORT_MEMBERS);
     const list = Array.isArray(res) ? res : (res?.results || []);
     members.value = list.map((m) => ({ id: m.id, name: m.full_name || m.name || `User #${m.id}`, role: m.role || m.position || m.title }));
+    // Update user role after loading members
+    updateUserRole();
   } catch (error) {
     console.error('Error fetching support members:', error);
     membersError.value = error?.message || 'Could not load support members.';
@@ -379,10 +577,22 @@ function selectMessage(id){
   }
   // fetch attachments for this ticket
   if (id) fetchAttachments(id);
+  // On mobile, show reading pane full screen
+  if (isMobile.value) {
+    showMobileReading.value = true;
+  }
+}
+
+// Go back to list on mobile
+function backToList() {
+  showMobileReading.value = false;
+  selectedId.value = null;
 }
 // If initial ticket has an assignee and we don't yet have member data, fetch it to resolve the name
 // Unified initialization
 onMounted(async () => {
+  // Load user context
+  await loadSessionContext();
   // Load members first (for role info) then tickets
   await fetchSupportMembers();
   await fetchTickets();
@@ -461,24 +671,22 @@ async function setTicketPriority(level){
     // PATCH the priority
     const endpoint = API.SUPPORT_TICKET + String(selectedId.value) + '/';
     await API.patch(endpoint, { priority: target });
-    // Optionally GET the updated ticket to ensure state is synced
-    try {
-      const detailRes = await API.get(API.SUPPORT_TICKET + String(selectedId.value) + '/');
-      const t = Array.isArray(detailRes) ? detailRes[0] : detailRes;
-      if (t && typeof t === 'object') {
-        const idx = messages.value.findIndex(m => m.id === selectedId.value);
-        if (idx !== -1) {
-          // Preserve read flag and only update priority field (plus updated_at if present)
-          messages.value[idx].priority = (t.priority || target);
-          if (t.updated_at) messages.value[idx].updated_at = t.updated_at;
-        }
-      } else {
-        // Fallback: update from chosen target
-        if (msg) msg.priority = target;
+    
+    // Refresh the entire ticket list to ensure all users see the update via WebSocket
+    await fetchTickets();
+    
+    // Re-select the current ticket after refresh
+    selectedId.value = msg?.id ?? null;
+    if (selectedId.value) {
+      const refreshedMsg = messages.value.find(m => m.id === selectedId.value);
+      if (refreshedMsg) {
+        skipAssignPost.value = true;
+        assigneeId.value = refreshedMsg.assigned_to ?? null;
+        await nextTick();
+        skipAssignPost.value = false;
       }
-    } catch {
-      if (msg) msg.priority = target;
     }
+    
     prioritySuccess.value = 'Priority updated';
     setTimeout(() => { prioritySuccess.value = ''; }, 1800);
   } catch (e) {
@@ -557,10 +765,27 @@ async function fetchAttachments(ticketId){
 .message-item:hover { background: #f8fafc; }
 .message-item.selected { background: #eef6ff; }
 .message-item.unread .subject { font-weight: 600; }
-.message-main { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.from-subject { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.from { font-size: 0.75rem; color: #555; text-overflow: ellipsis; overflow: hidden; }
-.subject { font-size: 0.95rem; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; gap: 8px; }
+.message-main { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; }
+.from-subject { display: flex; flex-direction: column; gap: 2px; min-width: 0; width: 100%; max-width: 100%; }
+.from { font-size: 0.75rem; color: #555; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.subject { 
+  font-size: 0.95rem; 
+  color: #111; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  display: flex; 
+  align-items: center; 
+  gap: 8px;
+  max-width: 100%;
+}
+.subject > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
 .meta-row { display: flex; align-items: center; gap: 6px; }
 .date { font-size: 0.7rem; color: #888; }
 .dot { width: 8px; height: 8px; background: var(--ion-color-primary); border-radius: 50%; }
@@ -648,5 +873,98 @@ ion-badge.prio { --padding-start: 6px; --padding-end: 6px; --border-radius: 12px
 @media (max-width: 900px){ .split-container{ grid-template-columns:1fr; } .message-list{ max-height:none; } .reading-pane{ max-height:none; margin-top:8px; } }
 @media (max-width: 600px){ .header-actions{ flex-direction:column; align-items:stretch; } .search{ flex:1 1 auto; width:100%; } }
  .error-line { color: var(--ion-color-danger, #ef4444); font-size: 0.85rem; }
+/* Account badge */
+.account-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  background: var(--ion-color-light, #f5f5f5);
+  border-radius: 8px;
+  border: 1px solid var(--ion-color-light-shade, #e0e0e0);
+}
+.account-icon {
+  font-size: 26px;
+  color: var(--ion-color-primary);
+}
+.account-text .label {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  line-height: 1.1;
+}
+.account-text .value {
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  line-height: 1.2;
+  font-size: 0.95rem;
+}
+.user-role {
+  color: var(--ion-color-medium);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Mobile responsive styles */
+.mobile-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(70vh);
+  position: relative;
+}
+
+.mobile-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mobile-reading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-header {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.mobile-reading .reading-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mobile-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.mobile-reading .reading-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* Mobile: hide item actions on list items */
+@media (max-width: 768px) {
+  .message-item .item-actions {
+    display: none;
+  }
+}
 </style>
 
