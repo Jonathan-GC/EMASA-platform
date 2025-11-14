@@ -394,7 +394,7 @@ type SupportTicketPayload = {
   organization?: string | null
   guest_name?: string
   guest_email?: string
-  user?: string | number
+  user_id?: string | number
   category?: string | null
   infrastructure_category?: string | null
   machine_type?: string | null
@@ -501,7 +501,7 @@ const errors = reactive<Record<keyof Required<SupportTicketPayload>, string | nu
   organization: null,
   guest_name: null,
   guest_email: null,
-  user: null,
+  user_id: null,
   category: null,
   infrastructure_category: null,
   machine_type: null,
@@ -510,7 +510,7 @@ const errors = reactive<Record<keyof Required<SupportTicketPayload>, string | nu
 })
 
 // touched map and submitAttempted flag: only show errors after blur or submit
-const touched = reactive<Record<string, boolean>>({ title: false, description: false, organization: false, guest_name: false, guest_email: false, user: false, category: false, infrastructure_category: false, machine_type: false, electric_machine_subtype: false, mechanical_machine_subtype: false })
+const touched = reactive<Record<string, boolean>>({ title: false, description: false, organization: false, guest_name: false, guest_email: false, user_id: null, category: false, infrastructure_category: false, machine_type: false, electric_machine_subtype: false, mechanical_machine_subtype: false })
 const submitAttempted = ref(false)
 
 function onBlur(field: keyof SupportTicketPayload) {
@@ -630,12 +630,12 @@ function removeFile() {
 
 // ------------------ API endpoints ------------------
 // Ticket (JSON)
-const RAW_TICKET = (API as any).SUPPORT_TICKET || 'support/ticket'
+const RAW_TICKET = (API as any).SUPPORT_TICKET || 'support/ticket/'
 const TICKET_ENDPOINT = RAW_TICKET
 const ALT_TICKET = RAW_TICKET.endsWith('/') ? RAW_TICKET.slice(0, -1) : `${RAW_TICKET}/`
 
 // Attachment (FormData)
-const RAW_ATTACHMENT = (API as any).ATTACMEENT_CREATE || 'support/ticket/attachment'
+const RAW_ATTACHMENT = (API as any).ATTACMEENT_CREATE || 'support/ticket/attachment/'
 const ATTACHMENT_ENDPOINT = RAW_ATTACHMENT
 const ALT_ATTACHMENT = RAW_ATTACHMENT.endsWith('/') ? RAW_ATTACHMENT.slice(0, -1) : `${RAW_ATTACHMENT}/`
 
@@ -756,7 +756,7 @@ async function handleSubmit() {
     if (ticketSelection.mechanical_subtype) payload.mechanical_machine_subtype = ticketSelection.mechanical_subtype
 
     if (isLoggedIn.value && sessionUserId.value != null) {
-      payload.user = sessionUserId.value // IMPORTANT: backend expects "user"
+      payload.user_id = sessionUserId.value // IMPORTANT: backend expects "user_id"
     } else if (!isLoggedIn.value) {
       payload.guest_name = form.guest_name?.trim()
       payload.guest_email = form.guest_email?.trim()
