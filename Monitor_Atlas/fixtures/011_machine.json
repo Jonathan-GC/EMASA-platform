@@ -6,17 +6,7 @@
       "name": "Generador principal",
       "img": null,
       "description": "Generador principal de la planta norte Tecnobot",
-      "workspace": 3
-    }
-  },
-  {
-    "model": "infrastructure.Machine",
-    "pk": 2,
-    "fields": {
-      "name": "Bomba estanque 1",
-      "img": null,
-      "description": "Bomba del estanque 1 de la planta norte Tecnobot",
-      "workspace": 3
+      "workspace": 1
     }
   }
 ]

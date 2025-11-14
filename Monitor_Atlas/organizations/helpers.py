@@ -41,8 +41,8 @@ def get_or_create_default_subscription():
     return subscription
 
 
-def get_emasa_tenant():
-    tenant = Tenant.objects.get(name="EMASA")
+def get_global_tenant():
+    tenant = Tenant.objects.get(is_global=True)
     return tenant
 
 

@@ -15,17 +15,17 @@
     "fields": {
       "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
       "last_login": "2025-08-13T15:58:34Z",
-      "code": "support_manager",
+      "code": "administrador_1",
       "img": null,
       "name": "Alberto Colt",
       "last_name": "Rodriguez Smith",
-      "email": "alberto.colt@gmail.com",
+      "email": "alberto.colt@email.com",
       "country": "Colombia",
       "phone_code": "+57",
       "phone": "3001234567",
       "tenant": 1,
       "address": 2,
-      "username": "support.manager",
+      "username": "monitor.administrador",
       "is_active": true,
       "is_staff": false,
       "is_superuser": false,
@@ -39,21 +39,21 @@
     "fields": {
       "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
       "last_login": "2025-08-13T16:01:12Z",
-      "code": "employee_1",
+      "code": "gerente_1",
       "img": null,
       "name": "Jhon Otoniel",
       "last_name": "Oppenheimer Gutierrez",
-      "email": "jhon.otoniel@gmail.com",
+      "email": "jhon.otoniel@email.com",
       "country": "Colombia",
       "phone_code": "+57",
       "phone": "3008910111",
       "tenant": 1,
       "address": 2,
-      "username": "emasa_employee",
+      "username": "monitor.gerente_1",
       "is_active": true,
       "is_staff": false,
       "is_superuser": false,
-      "groups": [1],
+      "groups": [2],
       "user_permissions": []
     }
   },
@@ -63,21 +63,21 @@
     "fields": {
       "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
       "last_login": "2025-08-13T16:05:02Z",
-      "code": "admin_tec_1",
+      "code": "technician_1",
       "img": null,
       "name": "Eduardo Steven",
       "last_name": "White Perez",
-      "email": "eduardo.steven@gmail.com",
+      "email": "eduardo.steven@email.com",
       "country": "Colombia",
       "phone_code": "+57",
       "phone": "3001213141",
-      "tenant": 2,
+      "tenant": 1,
       "address": 2,
-      "username": "tec_admin",
+      "username": "monitor.technician_1",
       "is_active": true,
       "is_staff": false,
       "is_superuser": false,
-      "groups": [2],
+      "groups": [3],
       "user_permissions": []
     }
   },
@@ -87,51 +87,42 @@
     "fields": {
       "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
       "last_login": "2025-08-13T16:06:54Z",
-      "code": "employee_tec_1",
+      "code": "viewer_1",
       "img": null,
       "name": "Igor Guantanamero",
       "last_name": "Morgan Jimenez",
-      "email": "igor.guantanamero@gmail.com",
+      "email": "igor.guantanamero@email.com",
       "country": "Colombia",
       "phone_code": "+57",
       "phone": "3001516171",
-      "tenant": 2,
+      "tenant": 1,
       "address": 2,
-      "username": "tec_employee",
+      "username": "monitor.viewer_1",
       "is_active": true,
       "is_staff": false,
       "is_superuser": false,
-      "groups": [2],
+      "groups": [4],
       "user_permissions": []
     }
   },
   {
     "model": "roles.workspacemembership",
     "pk": 1,
-    "fields": { "workspace": 1, "user": 2, "role": 4 }
+    "fields": { "workspace": 1, "user": 2, "role": 2 }
   },
   {
     "model": "roles.workspacemembership",
     "pk": 2,
-    "fields": { "workspace": 1, "user": 3, "role": 1 }
+    "fields": { "workspace": 1, "user": 3, "role": 3 }
   },
   {
     "model": "roles.workspacemembership",
     "pk": 3,
-    "fields": { "workspace": 3, "user": 4, "role": 5 }
+    "fields": { "workspace": 1, "user": 4, "role": 4 }
   },
   {
     "model": "roles.workspacemembership",
     "pk": 4,
-    "fields": { "workspace": 3, "user": 5, "role": 3 }
-  },
-  {
-    "model": "support.supportmembership",
-    "pk": 1,
-    "fields": {
-      "user": 2,
-      "role": "support_manager",
-      "joined_at": "2025-08-13T16:10:00Z"
-    }
+    "fields": { "workspace": 1, "user": 5, "role": 5 }
   }
 ]

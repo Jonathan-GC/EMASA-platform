@@ -252,11 +252,11 @@ class TypeViewSet(viewsets.ModelViewSet):
     scope = "type"
 
     def get_queryset(self):
-        # Todos ven todos los tipos
+        # Everyone can see types
         return Type.objects.all()
 
     def get_permissions(self):
-        # Solo superuser o staff de EMASA puede gestionar tipos
+        # Only superuser or global Tenant staff can manage types
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsAdminUser()]
         return [IsAuthenticated()]

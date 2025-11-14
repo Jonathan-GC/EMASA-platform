@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+# ----- Color definitions -----
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -27,6 +28,7 @@ echo -e "${GREEN}✨ Migrations completed.${NC}"
 echo ""
 echo -e "${CYAN}📦 ---- Loading fixtures ---- 📦${NC}"
 
+# Load fixtures with progress bar
 for fixture in "${FIXTURE_FILES[@]}"; do
     CURRENT_FIXTURE=$((CURRENT_FIXTURE + 1))
     PERCENTAGE=$((CURRENT_FIXTURE * 100 / TOTAL_FIXTURES))
@@ -38,9 +40,9 @@ for fixture in "${FIXTURE_FILES[@]}"; do
     printf "\033[2K\r${GREEN}[%s%s]${NC} %3d%% (%d/%d) ${CYAN}%s${NC}" \
            "$PROGRESS_BAR" "$EMPTY_BAR" "$PERCENTAGE" "$CURRENT_FIXTURE" "$TOTAL_FIXTURES" "$(basename "$fixture")"
 
-    # Ejecutar y capturar salida: sólo mostrar si falla
+    # Execute and print output only if it fails
     if ! output=$(python manage.py loaddata "$fixture" 2>&1); then
-        echo ""  # saltar a nueva línea antes del error
+        echo "" 
         echo -e "${RED}❌ Failed loading fixture: $(basename "$fixture")${NC}"
         echo -e "${RED}${output}${NC}"
         exit 1
@@ -49,6 +51,19 @@ done
 
 echo ""
 echo -e "${GREEN}✅ All fixtures loaded successfully.${NC}"
+
+echo ""
+echo -e "${CYAN}🔐 ---- Applying global base permissions ---- 🔐${NC}"
+
+# Run the Django command that assigns base global permissions
+if output=$(python manage.py setup_global_permissions 2>&1); then
+    echo -e "$output"
+    echo -e "${GREEN}✨ Global permissions applied successfully.${NC}"
+else
+    echo -e "$output"
+    echo -e "${RED}❌ setup_global_permissions failed.${NC}"
+    exit 1
+fi
 
 echo ""
 echo -e "${CYAN}🔄 ---- Synchronizing data with ChirpStack ---- 🔄${NC}"

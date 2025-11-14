@@ -3,30 +3,10 @@
     "model": "organizations.workspace",
     "pk": 1,
     "fields": {
-      "name": "Principal EMASA",
+      "name": "Principal Monitor",
       "img": null,
-      "description": "Workspace principal de EMASA",
+      "description": "Workspace principal de Monitor",
       "tenant": 1
-    }
-  },
-  {
-    "model": "organizations.workspace",
-    "pk": 2,
-    "fields": {
-      "name": "Tecnobot en EMASA",
-      "img": null,
-      "description": "Workspace de Tecnobot en EMASA",
-      "tenant": 1
-    }
-  },
-  {
-    "model": "organizations.workspace",
-    "pk": 3,
-    "fields": {
-      "name": "Principal",
-      "img": null,
-      "description": "Workspace principal de Tecnobot",
-      "tenant": 2
     }
   }
 ]

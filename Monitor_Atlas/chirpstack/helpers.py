@@ -2,7 +2,7 @@ import datetime as dt
 from loguru import logger
 import requests
 from .models import ApiUser, DeviceProfile
-from organizations.helpers import get_or_create_default_workspace, get_emasa_tenant
+from organizations.helpers import get_or_create_default_workspace, get_global_tenant
 from infrastructure.models import Application, Type, Machine, Device
 from django.conf import settings
 
@@ -49,7 +49,7 @@ def resolve_workspace_for_user(user_id, user_tenant_mapping):
     if tenant_info_list:
         tenant = tenant_info_list[0]["tenant"]
     else:
-        tenant = get_emasa_tenant()
+        tenant = get_global_tenant()
     return get_or_create_default_workspace(tenant), tenant_info_list
 
 

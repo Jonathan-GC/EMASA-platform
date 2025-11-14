@@ -4,27 +4,14 @@
     "pk": 1,
     "fields": {
       "cs_tenant_id": "",
-      "name": "EMASA",
+      "name": "Monitor",
       "img": null,
       "subscription": 1,
-      "description": "EMASA Tenant (Administration Management)",
+      "description": "Monitor (Administración y Gerencia)",
       "sync_status": "PENDING",
       "sync_error": "",
-      "last_synced_at": "2023-01-01T00:00:00+00:00"
-    }
-  },
-  {
-    "model": "organizations.tenant",
-    "pk": 2,
-    "fields": {
-      "cs_tenant_id": "",
-      "name": "Tecnobot",
-      "img": null,
-      "subscription": 1,
-      "description": "Tecnobot's Tenant",
-      "sync_status": "PENDING",
-      "sync_error": "",
-      "last_synced_at": "2023-01-01T00:00:00+00:00"
+      "last_synced_at": "2023-01-01T00:00:00+00:00",
+      "is_global": true
     }
   }
 ]

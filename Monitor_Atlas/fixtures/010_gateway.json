@@ -3,34 +3,17 @@
     "model": "infrastructure.gateway",
     "pk": 1,
     "fields": {
-      "cs_gateway_id": "a84041fcfe2765c2",
-      "name": "Gateway planta Norte",
-      "description": "Gateway principal de la planta Norte",
-      "stats_interval": 30,
+      "cs_gateway_id": "a84041fdfe2764b6",
+      "name": "Dragino Gateway 01",
+      "description": "Dragino Gateway en el edificio principal",
+      "stats_interval": 0,
       "location": 1,
-      "workspace": 3,
-      "state":"",
-      "last_seen_at": "2023-01-01T00:00:00+00:00",
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
-    }
-  },
-  {
-    "model": "infrastructure.gateway",
-    "pk": 2,
-    "fields": {
-      "cs_gateway_id": "a0102030a4b0c5d1",
-      "name": "Gateway planta Sur",
-      "description": "Gateway principal de la planta Sur",
-      "stats_interval": 30,
-      "location": 1,
-      "workspace": 3,
-      "state":"",
-      "last_seen_at": "2023-01-01T00:00:00+00:00",
-      "sync_status":"PENDING",
-      "sync_error":"",
-      "last_synced_at":"2023-01-01T00:00:00+00:00"
+      "workspace": 1,
+      "state": "NEVER_SEEN",
+      "last_seen_at": "2025-10-27T15:31:13.956Z",
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2025-10-27T15:31:18.168Z"
     }
   }
 ]

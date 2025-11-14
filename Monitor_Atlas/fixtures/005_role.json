@@ -1,1 +1,74 @@
-[{"model": "roles.role", "pk": 1, "fields": {"name": "Sin rol", "description": "Sin ningún permiso en ningún lado", "color": "#b5b5b5", "workspace": 1, "is_admin": false}}, {"model": "roles.role", "pk": 2, "fields": {"name": "Sin rol", "description": "Sin ningún permiso en ningún lado", "color": "#b5b5b5", "workspace": 2, "is_admin": false}}, {"model": "roles.role", "pk": 3, "fields": {"name": "Sin rol", "description": "Sin ningún permiso en ningún lado", "color": "#b5b5b5", "workspace": 3, "is_admin": false}}, {"model": "roles.role", "pk": 4, "fields": {"name": "Admin", "description": "Administrador de EMASA", "color": "#ffeb91", "workspace": 1, "is_admin": true}}, {"model": "roles.role", "pk": 5, "fields": {"name": "Admin", "description": "Administrador de Tecnobot", "color": "#ffeb91", "workspace": 3, "is_admin": true}}, {"model": "roles.role", "pk": 6, "fields": {"name": "Tecnico Tecnobot", "description": "Tecnico de emasa en Tecnobot", "color": "#91adff", "workspace": 2, "is_admin": false}}]
+[
+  {
+    "model": "roles.role",
+    "pk": 1,
+    "fields": {
+      "name": "Sin rol",
+      "description": "Sin ningún permiso en ningún lado",
+      "color": "#b5b5b5",
+      "group": 5,
+      "workspace": 1,
+      "is_admin": false
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": 2,
+    "fields": {
+      "name": "Administrador",
+      "description": "Rol con todos los permisos globales",
+      "color": "#ff0000",
+      "group": 1,
+      "workspace": 1,
+      "is_admin": true
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": 3,
+    "fields": {
+      "name": "Gerente",
+      "description": "Rol con permisos de gestión globales",
+      "color": "#00ff00",
+      "group": 2,
+      "workspace": 1,
+      "is_admin": false
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": 4,
+    "fields": {
+      "name": "Técnico",
+      "description": "Rol con permisos técnicos globales",
+      "color": "#0000ff",
+      "group": 3,
+      "workspace": 1,
+      "is_admin": false
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": 5,
+    "fields": {
+      "name": "Visualizador",
+      "description": "Rol con permisos de solo lectura globales",
+      "color": "#ffff00",
+      "group": 4,
+      "workspace": 1,
+      "is_admin": false
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": 6,
+    "fields": {
+      "name": "Soporte",
+      "description": "Rol con permisos de soporte globales",
+      "color": "#ffff00",
+      "group": 6,
+      "workspace": 1,
+      "is_admin": false
+    }
+  }
+]

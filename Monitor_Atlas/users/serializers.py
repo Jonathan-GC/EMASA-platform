@@ -27,7 +27,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 is_tenant_admin = True
             tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
-            if tenant.name == "EMASA":
+            if tenant.is_global:
                 is_global = True
             else:
                 is_global = False
@@ -40,7 +40,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                         f"Tenant {tenant.id} for user {user.id} has no ChirpStack tenant ID."
                     )
                     cs_tenant_id = tenant.id
-                if tenant.name == "EMASA" or user.is_superuser:
+                if tenant.is_global or user.is_superuser:
                     is_global = True
                 else:
                     is_global = False
