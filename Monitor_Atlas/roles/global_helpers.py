@@ -15,6 +15,7 @@ GLOBAL_PERMISSIONS_PRESET = {
         "infrastructure": [
             "device",
             "gateway",
+            "location",
             "application",
             "machine",
             "type",

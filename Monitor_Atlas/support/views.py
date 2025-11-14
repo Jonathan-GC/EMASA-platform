@@ -249,6 +249,13 @@ class TicketViewSet(viewsets.ModelViewSet):
         serializer = TicketConversationSerializer(ticket)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"], description="Mark ticket as read")
+    def mark_as_read(self, request, pk=None):
+        ticket = self.get_object()
+        ticket.is_read = True
+        ticket.save()
+        return Response({"status": "ticket_marked_as_read"})
+
     @action(detail=True, methods=["post"], description="Delegate the ticket")
     def delegate(self, request, pk=None):
         ticket = self.get_object()
@@ -259,6 +266,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         try:
             assigned_user = User.objects.get(id=assigned_to_id)
             ticket.assigned_to = assigned_user
+            ticket.is_read = False
             ticket.save()
             notification = Notification.objects.create(
                 title="New Ticket Assignment",

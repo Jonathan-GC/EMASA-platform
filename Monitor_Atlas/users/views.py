@@ -160,7 +160,7 @@ class UserViewSet(ModelViewSet):
 
         assign_created_instance_permissions(instance, user)
 
-        token = generate_token(instance.id, scope="verify_email", expires_minutes=60)
+        token = generate_token(instance.id, scope="set_password", expires_minutes=60)
 
         send_password_reset_email(instance, token)
 
