@@ -14,7 +14,7 @@ from users.models import User
 class TicketSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), write_only=True, source="user"
+        queryset=User.objects.all(), write_only=True, source="user", required=False, allow_null=True
     )
 
     class Meta:
