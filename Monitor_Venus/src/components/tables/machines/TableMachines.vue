@@ -262,7 +262,7 @@ const selectedmachine = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(máquinas, ['name', 'cs_machine_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(máquinas, ['name', 'id', 'workspace.tenant', 'workspace.name'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

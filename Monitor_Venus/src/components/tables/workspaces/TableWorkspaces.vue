@@ -59,7 +59,7 @@
                 <ion-icon :icon="sortOrder.tenant === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'lastSeen'"></ion-icon>
               </ion-col>
-              <ion-col size="1">
+              <ion-col size="2">
                 <strong>Acciones</strong>
               </ion-col>
             </ion-row>
@@ -86,7 +86,7 @@
                 </ion-chip>
               </ion-col>
 
-              <ion-col size="1">
+              <ion-col size="2">
                 <QuickActions 
                   type="workspace"
                   :index="workspace.id" 
@@ -259,11 +259,11 @@ const fetchWorkspaces = async () => {
     const mockData = Array.isArray(response) ? response : (response?.data || []);
 
     application.value = mockData
-    console.log('✅ Gateways cargados:', mockData.length)
+    console.log('✅ Workspaces cargados:', mockData.length)
 
   } catch (err) {
-    error.value = `❌Error al cargar gateways: ${err.message}`
-    console.error('❌ Error fetching Application:', err)
+    error.value = `❌Error al cargar workspaces: ${err.message}`
+    console.error('❌ Error fetching Workspaces:', err)
   } finally {
     loading.value = false
   }
@@ -272,7 +272,6 @@ const fetchWorkspaces = async () => {
 // Component-specific methods
 const selectGateway = (gateway) => {
   selectedApplication.value = gateway
-  console.log('Gateway seleccionado:', gateway)
 }
 
 const viewGateway = (gateway) => {

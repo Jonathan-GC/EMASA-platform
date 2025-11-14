@@ -215,8 +215,16 @@ const error = ref(null)
 const selectedUser = ref(null)
 const isMounted = ref(false)
 
+// Transform users data to include searchable status text
+const searchableUsers = computed(() => {
+  return users.value.map(user => ({
+    ...user,
+    statusText: formatActiveStatus(user.is_active)
+  }))
+})
+
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(users, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(searchableUsers, ['name', 'email', 'cs_user_id', 'statusText'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

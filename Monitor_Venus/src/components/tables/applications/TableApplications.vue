@@ -67,15 +67,12 @@
                     v-if="sortField === 'cs_application_id'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
+              <ion-col size="2" @click="sortBy('application.workspace.tenant')" class="sortable">
                 <strong>Cliente</strong>
                 <ion-icon
-                    :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'lastSeen'"
+                    :icon="sortOrder.application.workspace.tenant === 'asc' ? icons.chevronUp : icons.chevronDown"
+                    v-if="sortField === 'application.workspace.tenant'"
                 ></ion-icon>
-              </ion-col>
-              <ion-col size="1">
-                <strong>Tipo</strong>
               </ion-col>
               <ion-col size="1">
                 <strong>Dispositivos</strong>
@@ -117,12 +114,6 @@
                 <ion-chip class="p-2.5 rounded-full">
                   {{  application.workspace.tenant }}
                 </ion-chip>
-              </ion-col>
-
-              <ion-col size="1">
-                <div class="location-info">
-                  {{  application.device_type }}
-                </div>
               </ion-col>
 
               <ion-col size="1">
@@ -296,8 +287,18 @@ const error = ref(null)
 const selectedApplication = ref(null)
 const isMounted = ref(false)
 
+// Create searchable applications with flattened tenant field
+const searchableApplications = computed(() => {
+  return application.value.map(app => ({
+    ...app,
+    tenantName: app.workspace?.tenant || '',
+    status: app.sync_status || '',
+  }))
+})
+
+
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(application, ['name', 'cs_ application_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(searchableApplications, ['name', 'cs_application_id', 'tenantName', 'status'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

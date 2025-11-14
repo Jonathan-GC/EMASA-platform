@@ -4,7 +4,7 @@
       <ion-card-header>
         <ion-card-title>📟 Devices - Datos desde API</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${device.length} applications encontrados` }}
+          {{ loading ? 'Cargando...' : `${device.length} dispositivos encontrados` }}
         </ion-card-subtitle>
       </ion-card-header>
 
@@ -12,7 +12,7 @@
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
-          <p>Obteniendo datos de los Applications...</p>
+          <p>Obteniendo datos de los dispositivos...</p>
         </div>
 
         <!-- Error state -->
@@ -30,7 +30,7 @@
           <div class="table-controls">
             <ion-searchbar
                 v-model="searchText"
-                placeholder="Buscar device profile..."
+                placeholder="Buscar dispositivo..."
                 @ionInput="handleSearch"
                 show-clear-button="focus"
                 class="custom"
@@ -61,18 +61,18 @@
                     v-if="sortField === 'name'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('cs_gateway_id')" class="sortable">
+              <ion-col size="2" @click="sortBy('dev_eui')" class="sortable">
                 <strong>ID</strong>
                 <ion-icon
-                    :icon="sortOrder.cs_gateway_id === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'cs_gateway_id'"
+                    :icon="sortOrder.dev_eui === 'asc' ? icons.chevronUp : icons.chevronDown"
+                      v-if="sortField === 'dev_eui'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
+              <ion-col size="2" @click="sortBy('tenant')" class="sortable">
                 <strong>Cliente</strong>
                 <ion-icon
-                    :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'lastSeen'"
+                    :icon="sortOrder.tenant === 'asc' ? icons.chevronUp : icons.chevronDown"
+                    v-if="sortField === 'tenant'"
                 ></ion-icon>
               </ion-col>
               <ion-col size="1">
@@ -302,7 +302,7 @@ const selectedApplication = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(device, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(device, ['name', 'dev_eui', 'workspace.tenant', 'sync_status'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

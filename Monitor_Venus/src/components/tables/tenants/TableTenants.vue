@@ -19,7 +19,7 @@
         <div v-else-if="error" class="error-container">
           <ion-icon :icon="icons.alertCircle" color="danger"></ion-icon>
           <p>Error: {{ error }}</p>
-          <ion-button @click="fetchGateways" fill="outline" color="danger">
+          <ion-button @click="fetchTenants" fill="outline" color="danger">
             Reintentar
           </ion-button>
         </div>
@@ -28,12 +28,12 @@
         <div v-else-if="tenants.length > 0">
           <!-- Controls -->
           <div class="table-controls">
-            <ion-searchbar v-model="searchText" placeholder="Buscar gateway..." @ionInput="handleSearch"
+            <ion-searchbar v-model="searchText" placeholder="Buscar cliente..." @ionInput="handleSearch"
               show-clear-button="focus" class="custom"></ion-searchbar>
 
             <!-- Desktop buttons -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button @click="fetchGateways" fill="clear" shape="round">
+              <ion-button @click="fetchTenants" fill="clear" shape="round">
                 <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
               </ion-button>
               <QuickControl :toCreate="true" type="tenant" @itemCreated="handleItemRefresh" />
@@ -56,11 +56,6 @@
                 <ion-icon :icon="sortOrder.cs_tenant_id === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'cs_tenant_id'"></ion-icon>
               </ion-col>
-              <ion-col size="1" @click="sortBy('status')" class="sortable">
-                <strong>Grupo</strong>
-                <ion-icon :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
-                  v-if="sortField === 'status'"></ion-icon>
-              </ion-col>
               <ion-col size="2">
                 <strong>subscription</strong>
               </ion-col>
@@ -78,44 +73,38 @@
             </ion-row>
 
             <!-- Data rows -->
-            <ion-row v-for="gateway in paginatedItems" :key="gateway.id" class="table-row-stylized"
-              :class="{ 'row-selected': selectedGateway?.id === gateway.id }">
+            <ion-row v-for="tenant in paginatedItems" :key="tenant.id" class="table-row-stylized"
+              :class="{ 'row-selected': selectedTenant?.id === tenant.id }">
               <ion-col size="2">
                 <div class="gateway-info">
                   <ion-avatar aria-hidden="true" slot="start" class="table-avatar">
-                    <img alt="" :src="gateway.img || OrganizationSVG" />
+                    <img alt="" :src="tenant.img || OrganizationSVG" />
                   </ion-avatar>
                   <div>
-                    <div class="gateway-name">{{ gateway.name }}</div>
+                    <div class="gateway-name">{{ tenant.name }}</div>
                   </div>
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ gateway.cs_tenant_id }}</div>
-              </ion-col>
-
-              <ion-col size="1">
-                <ion-chip :color="getStatusColor(gateway.state)">
-                  {{ gateway.group }}
-                </ion-chip>
+                <div class="gateway-id">{{ tenant.cs_tenant_id }}</div>
               </ion-col>
 
               <ion-col size="2">
                 <div class="location-info">
-                  {{ gateway.subscription.name || 'N.A' }}
+                  {{ tenant.subscription.name || 'N.A' }}
                 </div>
               </ion-col>
 
               <ion-col size="2">
                 <div class="time-info">
-                  {{ formatTime(gateway.last_seen_at) }}
+                  {{ formatTime(tenant.last_seen_at) }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
                 <div class="devices-info">
                   <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
-                  {{ gateway.connectedDevices || 0 }}
+                  {{ tenant.connectedDevices || 0 }}
                 </div>
               </ion-col>
 
@@ -123,12 +112,12 @@
 
                 <QuickActions 
                   type="tenant"
-                  :index="gateway.id" 
-                  :name="gateway.name"
-                  :to-view="`/tenants/${gateway.id}`"
+                  :index="tenant.id" 
+                  :name="tenant.name"
+                  :to-view="`/tenants/${tenant.id}`"
                   to-edit
                   to-delete
-                  :initial-data="setInitialData(gateway)"
+                  :initial-data="setInitialData(tenant)"
                   @item-edited="handleItemRefresh"
                   @item-deleted="handleItemRefresh"
 
@@ -140,24 +129,24 @@
           <!-- Mobile Card View -->
           <div v-else class="mobile-cards">
             <ion-card 
-              v-for="gateway in paginatedItems" 
-              :key="gateway.id" 
+              v-for="tenant in paginatedItems" 
+              :key="tenant.id" 
               class="tenant-card"
               :class="getCardClass(true)"
-              @click="(event) => getCardClickHandler(`/tenants/${gateway.id}`)(event)"
+              @click="(event) => getCardClickHandler(`/tenants/${tenant.id}`)(event)"
             >
               <ion-card-content>
                 <!-- Header with avatar and name -->
                 <div class="card-header">
                   <ion-avatar class="card-avatar">
-                    <img alt="" :src="gateway.img || OrganizationSVG" />
+                    <img alt="" :src="tenant.img || OrganizationSVG" />
                   </ion-avatar>
                   <div class="card-title-section">
-                    <h3 class="card-title">{{ gateway.name }}</h3>
-                    <p class="card-subtitle">ID: {{ gateway.cs_tenant_id }}</p>
+                    <h3 class="card-title">{{ tenant.name }}</h3>
+                    <p class="card-subtitle">ID: {{ tenant.cs_tenant_id }}</p>
                   </div>
-                  <ion-chip :color="getStatusColor(gateway.state)" class="card-chip">
-                    {{ gateway.group }}
+                  <ion-chip :color="getStatusColor(tenant.state)" class="card-chip">
+                    {{ tenant.group }}
                   </ion-chip>
                 </div>
 
@@ -165,19 +154,19 @@
                 <div class="card-details">
                   <div class="card-detail-row">
                     <span class="detail-label">Subscription:</span>
-                    <span class="detail-value">{{ gateway.subscription.name || 'N.A' }}</span>
+                    <span class="detail-value">{{ tenant.subscription.name || 'N.A' }}</span>
                   </div>
                   
                   <div class="card-detail-row">
                     <span class="detail-label">Última conexión:</span>
-                    <span class="detail-value">{{ formatTime(gateway.last_seen_at) }}</span>
+                    <span class="detail-value">{{ formatTime(tenant.last_seen_at) }}</span>
                   </div>
                   
                   <div class="card-detail-row">
                     <span class="detail-label">Dispositivos:</span>
                     <span class="detail-value">
                       <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
-                      {{ gateway.connectedDevices || 0 }}
+                      {{ tenant.connectedDevices || 0 }}
                     </span>
                   </div>
                 </div>
@@ -186,12 +175,12 @@
                 <div class="card-actions">
                   <QuickActions 
                     type="tenant"
-                    :index="gateway.id" 
-                    :name="gateway.name"
-                    :to-view="`/tenants/${gateway.id}`"
+                    :index="tenant.id" 
+                    :name="tenant.name"
+                    :to-view="`/tenants/${tenant.id}`"
                     to-edit
                     to-delete
-                    :initial-data="setInitialData(gateway)"
+                    :initial-data="setInitialData(tenant)"
                     @item-edited="handleItemRefresh"
                     @item-deleted="handleItemRefresh"
                   />
@@ -219,10 +208,10 @@
         <!-- Empty state -->
         <div v-else class="empty-state">
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
-          <h3>No hay gateways</h3>
-          <p>No se encontraron gateways en el sistema</p>
-          <ion-button @click="fetchGateways" fill="outline">
-            Buscar gateways
+          <h3>No hay clientes</h3>
+          <p>No se encontraron clientes en el sistema</p>
+          <ion-button @click="fetchTenants" fill="outline">
+            Buscar clientes
           </ion-button>
         </div>
       </ion-card-content>
@@ -232,7 +221,7 @@
     <FloatingActionButtons 
       v-if="isMobile"
       entity-type="tenant"
-      @refresh="fetchGateways"
+      @refresh="fetchTenants"
       @itemCreated="handleItemRefresh"
     />
   </div>
@@ -265,11 +254,11 @@ const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 const tenants = ref([])
 const loading = ref(false)
 const error = ref(null)
-const selectedGateway = ref(null)
+const selectedTenant = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(tenants, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(tenants, ['name', 'cs_tenant_id', 'subscription.name, '])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -279,7 +268,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ejemplo.com'
 
 
 // Fetch data from API
-const fetchGateways = async () => {
+const fetchTenants = async () => {
   // Ensure component is mounted before fetching
   if (!isMounted.value) {
     console.log('⏳ Component not ready, waiting...')
@@ -333,7 +322,7 @@ const viewGateway = (gateway) => {
 }
 
 const handleItemRefresh = () => {
-  fetchGateways();
+  fetchTenants();
 };
 
 // Lifecycle
@@ -348,7 +337,7 @@ onMounted(async () => {
 
   // Small delay to ensure Ionic page transition is complete
   setTimeout(() => {
-    fetchGateways()
+    fetchTenants()
   }, 100)
 })
 </script>

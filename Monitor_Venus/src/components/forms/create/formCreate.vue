@@ -172,7 +172,7 @@ const closeModal = () => {
 }
 
 // Watch for changes in props.fields to update formValues
-watch(field, (newFields) => {
+watch(fields, (newFields) => {
   formValues.value = { ...newFields, ...additionalData.value };
 }, { deep: true });
 

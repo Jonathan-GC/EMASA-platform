@@ -132,7 +132,7 @@
               
               <ion-col size="1">
                 <ion-chip :color="user.is_active ? 'success' : 'secondary'">
-                  {{ user.is_active ? 'Activo' : 'Inactivo' }}
+                  {{ formatActiveStatus(user.is_active) }}
                 </ion-chip>
               </ion-col>
 
@@ -172,7 +172,7 @@
                     <p class="card-subtitle">@{{ user.username }}</p>
                   </div>
                   <ion-chip :color="user.is_active ? 'success' : 'danger'" class="card-chip">
-                    {{ user.is_active ? 'Activo' : 'Inactivo' }}
+                    {{ formatActiveStatus(user.is_active) }}
                   </ion-chip>
                 </div>
 
@@ -276,6 +276,7 @@ import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { useCardNavigation } from '@composables/useCardNavigation.js'
+import { formatActiveStatus } from '@utils/formatters/formatters'
 import AvatarSVG from '@assets/svg/Avatar.svg'
 import QuickControl from '../../operators/quickControl.vue'
 import QuickActions from '../../operators/quickActions.vue'
@@ -298,8 +299,16 @@ const error = ref(null)
 const selectedUser = ref(null)
 const isMounted = ref(false)
 
+// Transform users data to include searchable status text
+const searchableUsers = computed(() => {
+  return users.value.map(user => ({
+    ...user,
+    statusText: formatActiveStatus(user.is_active)
+  }))
+})
+
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(users, ['code', 'username', 'email', 'name', 'last_name'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(searchableUsers, ['code', 'username', 'email', 'name', 'last_name', 'tenant', 'statusText'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

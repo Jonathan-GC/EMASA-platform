@@ -232,7 +232,7 @@ const selecteddeviceProfile = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(deviceProfile, ['name', 'cs_device_profile_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(deviceProfile, ['name', 'cs_device_profile_id', 'region', 'mac_version', 'reg_param_revision'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
