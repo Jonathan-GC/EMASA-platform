@@ -287,18 +287,10 @@ const error = ref(null)
 const selectedApplication = ref(null)
 const isMounted = ref(false)
 
-// Create searchable applications with flattened tenant field
-const searchableApplications = computed(() => {
-  return application.value.map(app => ({
-    ...app,
-    tenantName: app.workspace?.tenant || '',
-    status: app.sync_status || '',
-  }))
-})
 
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(searchableApplications, ['name', 'cs_application_id', 'tenantName', 'status'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(searchableApplications, ['name', 'cs_application_id', 'workspace.tenant', 'sync_status'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
