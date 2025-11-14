@@ -20,5 +20,6 @@ export const EntityTypes = [
   "workspace",
   "manager",
   "user",
-  "measurement"
+  "measurement",
+  "role"
 ];

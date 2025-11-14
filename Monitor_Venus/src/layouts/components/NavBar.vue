@@ -120,6 +120,18 @@
           </router-link>
 
           <router-link
+              :to="paths.ROLES"
+              class="nav-link"
+              :class="{ active: $route.path === paths.ROLES }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.shield"
+            ></ion-icon>
+            Roles
+          </router-link>
+
+          <router-link
               :to="paths.TENANT_LOCATIONS"
               class="nav-link"
               :class="{ active: $route.path === paths.TENANT_LOCATIONS }"

@@ -16,6 +16,7 @@ export const paths = {
     TENANT_LOCATIONS: '/locations',
     TENANT_WORKSPACES: '/workspaces',
     USERS: '/users',
+    ROLES: '/roles',
     LOGIN: '/login',
     SIGNUP: '/signup',
     TENANT_SETUP: '/tenant-setup',

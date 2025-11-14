@@ -85,6 +85,16 @@ export const routes = [
                     label: 'Users'
                 }
             },
+            {
+                path: P.ROLES,
+                component: C.ROLES,
+                beforeEnter: requireRoles,
+                meta: { 
+                    requiresAuth: true,
+                    roles: ['superuser', 'admin'],
+                    label: 'Roles'
+                }
+            },
             // ========================================
             // RUTAS COMPARTIDAS
             // Accesibles para Admin y Normal Users

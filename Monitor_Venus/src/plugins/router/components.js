@@ -14,6 +14,7 @@ export const components = {
     TENANT_LOCATIONS: () => import('@views/locations/index.vue' ),
     TENANT_WORKSPACES: () => import('@views/workspaces/index.vue' ),
     USERS: () => import('@views/users/index.vue'),
+    ROLES: () => import('@views/roles/index.vue'),
     LOGIN: () => import('@views/auth/login/index.vue'),
     REGISTER: () => import('@views/auth/signup/index.vue'),
     DEVICES: () => import('@views/infrastructure/application/devices/index.vue'),

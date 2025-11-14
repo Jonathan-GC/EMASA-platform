@@ -140,8 +140,8 @@ const props = defineProps({
   type: String,
   label: String,
   fields: {
-    type: Array,
-    default: () => [],
+    type: Object,
+    default: () => ({}),
   },
   additionalData: {
     type: Object,
@@ -154,7 +154,7 @@ const emit = defineEmits(['itemCreated', 'fieldChanged', 'closed']);
 const { fields, additionalData } = toRefs(props);
 
 const loading = ref(false);
-const formValues = ref({ ...fields.value, ...additionalData.value });
+const formValues = ref({ ...fields.value, ...fields.value, ...additionalData.value });
 const componentKey = ref(0);
 const imageUploadRefs = ref({});
 
@@ -171,10 +171,10 @@ const closeModal = () => {
   emit('closed');
 }
 
-// Watch for changes in additionalData to update formValues
-watch(additionalData, (newAdditionalData) => {
-  formValues.value = { ...formValues.value, ...newAdditionalData };
-}, { deep: true, immediate: true });
+// Watch for changes in props.fields to update formValues
+watch(field, (newFields) => {
+  formValues.value = { ...newFields, ...additionalData.value };
+}, { deep: true });
 
 function handleFieldChange(fieldKey, value) {
   formValues.value[fieldKey] = value;
