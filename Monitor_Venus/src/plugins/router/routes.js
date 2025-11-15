@@ -8,6 +8,10 @@ import {
     requireSuperUser,
     requireAdmin,
     requireNormalUser,
+    requireManager,
+    requireTechnician,
+    requireViewer,
+    requireTenantUser,
     requireRoles,
     requireTenant
 } from "@utils/auth/guards.js";
@@ -23,14 +27,20 @@ export const routes = [
             {
                 path: P.HOME,
                 component: C.HOME,
-                beforeEnter: allowAll,
-                meta: { public: true }
+                beforeEnter: requireRoles,
+                meta: { 
+                    requiresAuth: true,
+                    label: 'Home'
+                }
             },
             {
                 path: P.ABOUT,
                 component: C.ABOUT,
-                beforeEnter: requireAuth,
-                meta: { requiresAuth: true }
+                beforeEnter: requireRoles,
+                meta: { 
+                    requiresAuth: true,
+                    label: 'About'
+                }
             },
             // ========================================
             // RUTAS DE ADMINISTRACIÓN
@@ -42,27 +52,27 @@ export const routes = [
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['superuser', 'admin'], // Solo superuser o admin
+                    roles: ['root', 'admin'],
                     label: 'Tenants'
                 }
             },
-            {
+            /*{
                 path: P.TENANT_MANAGERS,
                 component: C.TENANT_MANAGERS,
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['superuser', 'admin'],
+                    roles: ['root', 'admin', 'manager'],
                     label: 'Managers'
                 }
-            },
+            },*/
             {
                 path: P.TENANT_LOCATIONS,
                 component: C.TENANT_LOCATIONS,
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['superuser', 'admin'],
+                    roles: ['root', 'admin'],
                     label: 'Locations'
                 }
             },
@@ -72,6 +82,7 @@ export const routes = [
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
+                    roles: ['root', 'admin', 'manager', 'viewer', 'tenant_admin', 'tenant_user'],
                     label: 'Workspaces'
                 }
             },
@@ -81,7 +92,7 @@ export const routes = [
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['superuser', 'admin'],
+                    roles: ['root', 'admin', 'manager', 'tenant_admin'],
                     label: 'Users'
                 }
             },
@@ -91,7 +102,7 @@ export const routes = [
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['superuser', 'admin'],
+                    roles: ['root', 'admin', 'manager', 'tenant_admin'],
                     label: 'Roles'
                 }
             },
@@ -103,33 +114,33 @@ export const routes = [
             {
                 path: P.GATEWAYS,
                 component: C.GATEWAYS,
-                beforeEnter: requireTenant,
+                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['superuser', 'admin', 'normal'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
                     label: 'Gateways'
                 }
             },
             {
                 path: P.DEVICE_PROFILES,
                 component: C.DEVICE_PROFILES,
-                beforeEnter: requireTenant,
+                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['superuser', 'admin', 'normal'],
+                    roles: ['root', 'admin', 'technician'],
                     label: 'Device Profiles'
                 }
             },
             {
                 path: P.APPLICATIONS,
                 component: C.APPLICATIONS,
-                beforeEnter: requireTenant,
+                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['superuser', 'admin', 'normal'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
                     label: 'Applications'
                 }
             },
@@ -137,11 +148,11 @@ export const routes = [
                 name: 'application_devices',
                 path: P.APPLICATIONS + V.APPLICATION_ID + P.DEVICES,
                 component: C.DEVICES,
-                beforeEnter: requireTenant,
+                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['superuser', 'admin', 'normal'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
                     label: 'Devices'
                 }
             },
@@ -149,11 +160,11 @@ export const routes = [
                 name: 'device_details',
                 path: P.APPLICATIONS + V.APPLICATION_ID + P.DEVICES + V.DEVICE_ID,
                 component: C.DEVICE_MEASUREMENTS,
-                beforeEnter: requireTenant,
+                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['superuser', 'admin', 'normal'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
                     label: 'Device Details'
                 }
             },
@@ -161,22 +172,21 @@ export const routes = [
                 name: 'machine_details',
                 path: P.MACHINES,
                 component: C.MACHINES,
-                beforeEnter: requireTenant,
+                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['superuser', 'admin', 'normal'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
                     label: 'Machines'
                 }
             },
             {
                 path: P.NOTIFICATIONS,
                 component: C.NOTIFICATIONS,
-                beforeEnter: requireTenant,
+                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['superuser', 'admin', 'normal'],
                     label: 'Notifications'
                 }
             }

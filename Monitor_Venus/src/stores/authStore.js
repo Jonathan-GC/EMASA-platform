@@ -17,6 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
     is_global: false,
     is_support: false,
     is_tenant_admin: false,
+    role_type: null, // 'technician', 'viewer', 'tenant_user', etc.
     cs_tenant_id: null,
     exp: null,
     iat: null
@@ -51,17 +52,37 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const isSupportUser = computed(() => user.value.is_support === true);
   
-/**
+  /**
    * Verifica si el usuario pertenece a un administrador de tenant 
    */
   const isTenantAdmin = computed(() => user.value.is_tenant_admin === true);
 
   /**
-   * Verifica si el usuario pertenece a un tenant
+   * Verifica si el usuario es un técnico
    */
-  const hasTenant = computed(() => user.value.cs_tenant_id !== null);
+  const isTechnician = computed(() => user.value.role_type === 'technician');
 
   /**
+   * Verifica si el usuario es un viewer (solo lectura)
+   */
+  const isViewer = computed(() => user.value.role_type === 'viewer');
+
+  /**
+   * Verifica si el usuario es un usuario de tenant (tenant_user)
+   */
+  const isTenantUser = computed(() => user.value.role_type === 'tenant_user');
+
+  /**
+   * Verifica si el usuario es un manager (tenant manager)
+   */
+  const isManager = computed(() => 
+    user.value.is_tenant_admin === true || user.value.role_type === 'manager'
+  );
+
+  /**
+   * Verifica si el usuario pertenece a un tenant
+   */
+  const hasTenant = computed(() => user.value.cs_tenant_id !== null);  /**
    * Verifica si el usuario necesita configurar un tenant
    * TRUE si: no es global, no tiene tenant, y está autenticado
    */
@@ -201,6 +222,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_global: false,
       is_support: false,
       is_tenant_admin: false,
+      role_type: null,
       cs_tenant_id: null,
       exp: null,
       iat: null
@@ -272,21 +294,31 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Verifica si el usuario tiene un rol específico
-   * @param {string} role - 'superuser', 'admin', 'global', 'normal'
+   * @param {string} role - Role name to check
    * @returns {boolean}
    */
   const hasRole = (role) => {
     switch (role.toLowerCase()) {
+      case 'root':
       case 'superuser':
         return isSuperUser.value;
-      case 'tenant_admin':
-        return isTenantAdmin.value;
+      case 'admin':
+        return isGlobalUser.value;
       case 'global':
         return isGlobalUser.value;
-      case 'normal':
-        return isNormalUser.value;
+      case 'manager':
+      case 'tenant_admin':
+        return isManager.value;
+      case 'technician':
+        return isTechnician.value;
+      case 'viewer':
+        return isViewer.value;
+      case 'tenant_user':
+        return isTenantUser.value;
       case 'support':
         return isSupportUser.value;
+      case 'normal':
+        return isNormalUser.value;
       default:
         console.warn(`⚠️ Rol desconocido: ${role}`);
         return false;
@@ -327,6 +359,10 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperUser,
     isGlobalUser,
     isTenantAdmin,
+    isManager,
+    isTechnician,
+    isViewer,
+    isTenantUser,
     isNormalUser,
     isSupportUser,
     hasTenant,

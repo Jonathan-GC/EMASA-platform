@@ -44,6 +44,8 @@ export const getUserFromToken = (token) => {
       is_superuser: false,
       is_global: false,
       is_support: false,
+      is_tenant_admin: false,
+      role_type: null,
       cs_tenant_id: null,
       exp: null,
       iat: null
@@ -56,6 +58,8 @@ export const getUserFromToken = (token) => {
     is_superuser: decoded.is_superuser || false,
     is_global: decoded.is_global || false,
     is_support: decoded.is_support || false,
+    is_tenant_admin: decoded.is_tenant_admin || false,
+    role_type: decoded.role_type || null,
     cs_tenant_id: decoded.cs_tenant_id || null,
     exp: decoded.exp || null,
     iat: decoded.iat || null
