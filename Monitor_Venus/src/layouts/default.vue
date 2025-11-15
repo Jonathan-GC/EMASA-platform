@@ -17,6 +17,15 @@
 </template>
 
 <script setup>
+import { provide } from 'vue'
+import { useNotifications } from '@/composables/useNotifications'
+
+// Initialize notifications WebSocket at app level (persists across routes)
+const notificationSystem = useNotifications()
+
+// Make available to all child components via inject
+provide('notifications', notificationSystem)
+
 // NavBar se auto-importa
 </script>
 

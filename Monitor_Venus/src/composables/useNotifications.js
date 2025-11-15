@@ -14,7 +14,8 @@ export function useNotifications() {
     const notifications = ref([]);
     const connectionStatus = ref('disconnected');
     let websocket = null;
-    let reconnectAttempts = 0;
+    // Convert reconnectAttempts to a reactive ref so other components can read updates
+    const reconnectAttempts = ref(0);
     const maxReconnectAttempts = 10;
     let reconnectTimeout = null;
 
@@ -50,7 +51,7 @@ export function useNotifications() {
             websocket.onopen = () => {
                 console.log('✅ Notification WebSocket connected');
                 connectionStatus.value = 'connected';
-                reconnectAttempts = 0;
+                reconnectAttempts.value = 0;
             };
 
             websocket.onmessage = (event) => {
@@ -85,10 +86,10 @@ export function useNotifications() {
                 websocket = null;
 
                 // Auto-reconnect if not a normal closure and under max attempts
-                if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
-                    reconnectAttempts++;
-                    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff, max 30s
-                    console.log(`🔄 Reconnecting notification WebSocket in ${delay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+                if (event.code !== 1000 && reconnectAttempts.value < maxReconnectAttempts) {
+                    reconnectAttempts.value++;
+                    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.value), 30000); // Exponential backoff, max 30s
+                    console.log(`🔄 Reconnecting notification WebSocket in ${delay}ms (attempt ${reconnectAttempts.value}/${maxReconnectAttempts})`);
                     
                     connectionStatus.value = 'connecting';
                     reconnectTimeout = setTimeout(() => {
@@ -116,7 +117,7 @@ export function useNotifications() {
         }
         
         connectionStatus.value = 'disconnected';
-        reconnectAttempts = 0;
+        reconnectAttempts.value = 0;
     };
 
     const clearNotifications = () => {
@@ -164,5 +165,7 @@ export function useNotifications() {
         requestNotificationPermission,
         connect,
         disconnect
+        ,
+        reconnectAttempts
     };
 }
