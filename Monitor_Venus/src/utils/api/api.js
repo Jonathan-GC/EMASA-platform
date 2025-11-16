@@ -34,6 +34,8 @@ class API {
     LOGOUT = 'logout/';
     REGISTER = 'users/auth/register/';
     VERIFY_ACCOUNT = 'users/auth/verify-account/'
+    RESET_PASSWRORD_REQUEST = 'users/auth/request-password-reset/';
+    RESET_PASSWORD_CONFIRM = 'users/auth/reset-password-confirm/';
 
     //----[ORGANIZATIONS]----
     TENANT = 'organizations/tenant/'

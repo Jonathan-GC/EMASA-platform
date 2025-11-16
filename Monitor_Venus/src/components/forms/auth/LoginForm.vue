@@ -38,6 +38,10 @@
               class="bg-zinc-300 rounded-md p-100 custom"
               fill="solid"
             ></ion-input>
+
+            <router-link :to="paths.RESET_PASSWORD_REQUEST" class="text-sm text-primary-600 hover:underline">
+              ¿Olvidaste tu contraseña?
+            </router-link>
           </ion-item>
 
           <!-- Error message -->

@@ -20,6 +20,8 @@ export const paths = {
     LOGIN: '/login',
     SIGNUP: '/signup',
     TENANT_SETUP: '/tenant-setup',
+    RESET_PASSWORD_REQUEST: '/forgot-password',
+    RESET_PASSWORD_CONFIRM: '/reset-password',
 
     // Relative paths
     DEVICES: '/devices',

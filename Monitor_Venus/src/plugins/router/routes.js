@@ -214,6 +214,18 @@ export const routes = [
                 meta: { public: true }
             },
             {
+                path: P.RESET_PASSWORD_REQUEST,
+                component: C.RESET_PASSWORD_REQUEST,
+                beforeEnter: allowAll,
+                meta: { public: true, guest: true }
+            },
+            {
+                path: P.RESET_PASSWORD_CONFIRM,
+                component: C.RESET_PASSWORD_CONFIRM,
+                beforeEnter: allowAll,
+                meta: { public: true, guest: true }
+            },
+            {
                 path: '/unauthorized',
                 component: C.UNAUTHORIZED,
                 beforeEnter: requireAuth,
