@@ -20,13 +20,13 @@
 import { provide } from 'vue'
 import { useNotifications } from '@/composables/useNotifications'
 
-// Initialize notifications WebSocket at app level (persists across routes)
+/**
+ * Initialize global notification system
+ * - WebSocket connection persists across all routes
+ * - Available to all child components via inject('notifications')
+ */
 const notificationSystem = useNotifications()
-
-// Make available to all child components via inject
 provide('notifications', notificationSystem)
-
-// NavBar se auto-importa
 </script>
 
 <style scoped>

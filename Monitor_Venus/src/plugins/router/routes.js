@@ -27,7 +27,6 @@ export const routes = [
             {
                 path: P.HOME,
                 component: C.HOME,
-                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
                     label: 'Home'

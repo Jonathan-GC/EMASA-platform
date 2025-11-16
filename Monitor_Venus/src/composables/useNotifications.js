@@ -1,4 +1,6 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import API from '@/utils/api/api';
 
 /**
@@ -14,7 +16,6 @@ export function useNotifications() {
     const notifications = ref([]);
     const connectionStatus = ref('disconnected');
     let websocket = null;
-    // Convert reconnectAttempts to a reactive ref so other components can read updates
     const reconnectAttempts = ref(0);
     const maxReconnectAttempts = 10;
     let reconnectTimeout = null;
@@ -54,24 +55,17 @@ export function useNotifications() {
                 reconnectAttempts.value = 0;
             };
 
-            websocket.onmessage = (event) => {
+            websocket.onmessage = async (event) => {
                 try {
                     const notification = JSON.parse(event.data);
-                    console.log('📨 Notification received:', notification);
-
+                    
                     // Add notification to the list (keep last 50)
                     notifications.value = [notification, ...notifications.value].slice(0, 50);
 
-                    // Browser notification
-                    if ('Notification' in window && Notification.permission === 'granted') {
-                        new Notification(notification.title, {
-                            body: notification.message,
-                            icon: '/logo.png',
-                            tag: notification.timestamp?.toString() || Date.now().toString()
-                        });
-                    }
+                    // Show notification (native or browser)
+                    await showNotification(notification);
                 } catch (error) {
-                    console.error('❌ Error parsing notification message:', error);
+                    console.error('Error parsing notification:', error);
                 }
             };
 
@@ -128,26 +122,127 @@ export function useNotifications() {
         notifications.value.splice(index, 1);
     };
 
-    // Request browser notification permission
-    const requestNotificationPermission = async () => {
-        if ('Notification' in window && Notification.permission === 'default') {
-            try {
-                const permission = await Notification.requestPermission();
-                console.log('🔔 Notification permission:', permission);
-                return permission === 'granted';
-            } catch (error) {
-                console.error('❌ Error requesting notification permission:', error);
-                return false;
-            }
+    /**
+     * Show notification (native app or browser)
+     */
+    const showNotification = async (notification) => {
+        if (Capacitor.isNativePlatform()) {
+            // Native platform - use LocalNotifications with heads-up display
+            await showNativeNotification(notification);
+        } else {
+            // Browser - use Web Notifications API
+            await showBrowserNotification(notification);
         }
-        return Notification.permission === 'granted';
     };
 
-    onMounted(() => {
-        // Request notification permission if needed
-        requestNotificationPermission();
-        
-        // Connect to WebSocket
+    /**
+     * Show native notification with heads-up display
+     */
+    const showNativeNotification = async (notification) => {
+        try {
+            const permission = await LocalNotifications.checkPermissions();
+            
+            if (permission.display !== 'granted') {
+                return;
+            }
+
+            await LocalNotifications.schedule({
+                notifications: [{
+                    title: notification.title,
+                    body: notification.message,
+                    id: Math.floor(Math.random() * 1000000),
+                    schedule: { at: new Date(Date.now() + 100) },
+                    channelId: 'alerts',
+                    sound: 'default',
+                    smallIcon: 'ic_stat_icon_config_sample',
+                    largeBody: notification.message,
+                    autoCancel: true,
+                    ongoing: false,
+                    silent: false
+                }]
+            });
+        } catch (error) {
+            console.error('Error showing native notification:', error);
+        }
+    };
+
+    /**
+     * Show browser notification (cross-platform compatible)
+     */
+    const showBrowserNotification = async (notification) => {
+        if (!('Notification' in window) || Notification.permission !== 'granted') {
+            return;
+        }
+
+        try {
+            const options = {
+                body: notification.message,
+                icon: '/logo.png',
+                badge: '/logo.png',
+                tag: notification.timestamp?.toString() || Date.now().toString(),
+                requireInteraction: false
+            };
+
+            // Use Service Worker for mobile browsers (required)
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                await registration.showNotification(notification.title, {
+                    ...options,
+                    vibrate: [200, 100, 200]
+                });
+            } else {
+                // Fallback for desktop browsers
+                new Notification(notification.title, options);
+            }
+        } catch (error) {
+            console.error('Error showing notification:', error);
+        }
+    };
+
+    /**
+     * Request browser notification permission
+     */
+    const requestNotificationPermission = async () => {
+        if (!('Notification' in window)) return false;
+        if (Notification.permission === 'granted') return true;
+        if (Notification.permission === 'denied') return false;
+
+        try {
+            const permission = await Notification.requestPermission();
+            
+            // Ensure Service Worker is ready for mobile
+            if (permission === 'granted' && 'serviceWorker' in navigator) {
+                await navigator.serviceWorker.ready;
+            }
+            
+            return permission === 'granted';
+        } catch (error) {
+            console.error('Error requesting notification permission:', error);
+            return false;
+        }
+    };
+
+    onMounted(async () => {
+        // Create notification channel for Android
+        if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+            try {
+                await LocalNotifications.createChannel({
+                    id: 'alerts',
+                    name: 'Important Alerts',
+                    description: 'High priority notifications that appear as heads-up',
+                    importance: 4,
+                    visibility: 1,
+                    sound: 'default',
+                    vibration: true,
+                    lights: true,
+                    lightColor: '#FF0000'
+                });
+            } catch (error) {
+                console.error('Error creating notification channel:', error);
+            }
+        }
+
+        await requestNotificationPermission();
         connect();
     });
 
@@ -160,12 +255,11 @@ export function useNotifications() {
         isConnected,
         connectionStatus,
         unreadCount,
+        reconnectAttempts,
         clearNotifications,
         removeNotification,
         requestNotificationPermission,
         connect,
         disconnect
-        ,
-        reconnectAttempts
     };
 }
