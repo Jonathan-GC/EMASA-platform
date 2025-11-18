@@ -39,7 +39,7 @@
               fill="solid"
             ></ion-input>
 
-            <router-link :to="paths.RESET_PASSWORD_REQUEST" class="text-sm text-primary-600 hover:underline">
+            <router-link :to="paths.RESET_PASSWORD_REQUEST" class="text-sm text-primary-600 text-right mt-2 no-underline">
               ¿Olvidaste tu contraseña?
             </router-link>
           </ion-item>
@@ -90,15 +90,7 @@
               Ver Cookies
             </ion-button>
 
-            <ion-button 
-              expand="block" 
-              fill="clear" 
-              color="danger" 
-              @click="logout"
-            >
-              <ion-icon :icon="icons.logOut" slot="start"></ion-icon>
-              Cerrar Sesión
-            </ion-button>
+            
             <p class="text-center">¿No tienes cuenta? <router-link :to="paths.SIGNUP">Regístrate</router-link></p>
           </div>
         </div>
