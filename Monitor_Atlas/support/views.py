@@ -252,7 +252,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 expires_minutes=60 * 24 * 3,
                 ticket_id=str(ticket.id),
             )  # 3 days validity
-            ticket_user = User.objects.get(id=ticket.user.id)
+            ticket_user = User.objects.get(id=ticket.user)
             ticket_user_name = ticket_user.get_full_name() or ticket_user.username
             ticket_user_email = ticket_user.email
 
