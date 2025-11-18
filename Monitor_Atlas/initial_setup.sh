@@ -56,12 +56,12 @@ echo ""
 echo -e "${CYAN}🔐 ---- Applying global base permissions ---- 🔐${NC}"
 
 # Run the Django command that assigns base global permissions
-if output=$(python manage.py setup_global_permissions 2>&1); then
+if output=$(python manage.py global_permissions 2>&1); then
     echo -e "$output"
     echo -e "${GREEN}✨ Global permissions applied successfully.${NC}"
 else
     echo -e "$output"
-    echo -e "${RED}❌ setup_global_permissions failed.${NC}"
+    echo -e "${RED}❌ global_permissions failed.${NC}"
     exit 1
 fi
 
