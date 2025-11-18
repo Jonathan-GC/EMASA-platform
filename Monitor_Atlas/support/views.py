@@ -237,7 +237,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
         notification.notify_ws()
 
-        if not ticket.user:
+        if not ticket.user_id:
             token = generate_token(
                 scope="ticket_access",
                 expires_minutes=60 * 24 * 3,
@@ -247,12 +247,12 @@ class TicketViewSet(viewsets.ModelViewSet):
             ticket_user_email = ticket.guest_email
         else:
             token = generate_token(
-                user_id=ticket.user.id,
+                user_id=ticket.user_id,
                 scope="ticket_access",
                 expires_minutes=60 * 24 * 3,
                 ticket_id=str(ticket.id),
             )  # 3 days validity
-            ticket_user = User.objects.get(id=ticket.user)
+            ticket_user = User.objects.get(id=ticket.user_id)
             ticket_user_name = ticket_user.get_full_name() or ticket_user.username
             ticket_user_email = ticket_user.email
 
@@ -361,6 +361,47 @@ class TicketViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+
+    def perform_create(self, serializer):
+        comment = serializer.save()
+        ticket = comment.ticket
+        ticket.is_read = False
+        ticket.save()
+
+        if comment.response:
+            # Comment from technician/staff
+            if ticket.user_id:
+                ticket_user = User.objects.get(id=ticket.user_id)
+                ticket_user_name = ticket_user.get_full_name() or ticket_user.username
+                ticket_user_email = ticket_user.email
+            else:
+                ticket_user_name = ticket.guest_name
+                ticket_user_email = ticket.guest_email
+
+            token = generate_token(
+                scope="ticket_access",
+                expires_minutes=60 * 24 * 3,
+                ticket_id=str(ticket.id),
+            )  # 3 days validity
+
+            send_ticket_updated_notification_email(
+                name=ticket_user_name,
+                email=ticket_user_email,
+                ticket=ticket,
+                comment=comment,
+                token=token,
+            )
+        else:
+            # Comment from user/guest
+            assigned_staff = ticket.assigned_to
+            if assigned_staff:
+                send_ticket_updated_notification_email_to_staff(
+                    staff_email=assigned_staff.email,
+                    ticket=ticket,
+                    comment=comment,
+                )
+
+        return comment
 
 
 @extend_schema_view(
