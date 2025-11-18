@@ -239,7 +239,9 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         if not ticket.user:
             token = generate_token(
-                scope="ticket_access", expires_minutes=60 * 24 * 3, ticket_id=ticket.id
+                scope="ticket_access",
+                expires_minutes=60 * 24 * 3,
+                ticket_id=str(ticket.id),
             )  # 3 days validity
             ticket_user_name = ticket.guest_name
             ticket_user_email = ticket.guest_email
@@ -248,7 +250,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 user_id=ticket.user.id,
                 scope="ticket_access",
                 expires_minutes=60 * 24 * 3,
-                ticket_id=ticket.id,
+                ticket_id=str(ticket.id),
             )  # 3 days validity
             ticket_user = User.objects.get(id=ticket.user.id)
             ticket_user_name = ticket_user.get_full_name() or ticket_user.username

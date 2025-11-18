@@ -113,7 +113,7 @@ def send_ticket_created_notification_email(name, email, ticket, token: str):
     )
     vars = {
         "logo_url": MTR_LOGO_URL,
-        "ticket_id": ticket.id,
+        "ticket_id": str(ticket.id),
         "ticket_title": ticket.title,
         "ticket_status": ticket.status,
         "ticket_link": ticket_link,
@@ -136,7 +136,7 @@ def send_ticket_updated_notification_email(name, email, ticket, comment, token: 
     text = f"Your ticket '{ticket.title}' has been updated. View it here: {ticket_link}"
     vars = {
         "logo_url": MTR_LOGO_URL,
-        "ticket_id": ticket.id,
+        "ticket_id": str(ticket.id),
         "ticket_title": ticket.title,
         "ticket_status": ticket.status,
         "ticket_link": ticket_link,
@@ -162,7 +162,7 @@ def send_new_ticket_notification_email_to_staff(staff_email, ticket, comment):
     ticket_link = f"{APP_URL}"
     vars = {
         "logo_url": MTR_LOGO_URL,
-        "ticket_id": ticket.id,
+        "ticket_id": str(ticket.id),
         "ticket_title": ticket.title,
         "ticket_status": ticket.status,
         "comment_content": comment.content if comment else "",
@@ -185,7 +185,7 @@ def send_ticket_updated_notification_email_to_staff(staff_email, ticket, comment
     ticket_link = f"{APP_URL}"
     vars = {
         "logo_url": MTR_LOGO_URL,
-        "ticket_id": ticket.id,
+        "ticket_id": str(ticket.id),
         "ticket_title": ticket.title,
         "ticket_status": ticket.status,
         "comment_content": comment.content if comment else "",
