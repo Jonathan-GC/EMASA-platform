@@ -13,16 +13,26 @@
    =========================== */
 
 .form-card{
+  width: 100%;
+  max-width: 500px;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.login-container {
+.step-content .form-card{
+  width: 100%;
+  max-width: 800px;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-inline: 0;
+}
+/*.login-container {
   max-width: 500px;
   margin: 0 auto;
   padding: 20px;
-}
+}*/
 
 .loading-container {
   text-align: center;
@@ -39,6 +49,15 @@
 
 .success-item {
   margin: 10px 0;
+}
+
+.success-card
+{
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  z-index: 999999!important;
 }
 
 .button-container {
@@ -132,6 +151,7 @@ ion-input {
 .signup-container {
   max-width: 900px;
   margin: 0 auto;
+  width: 100%;
 }
 .progress-container {
   margin: 20px 0;

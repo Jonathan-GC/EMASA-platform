@@ -183,7 +183,7 @@ onMounted(async () => {
 }
 
 .transparent-toolbar {
-  --background: rgba(180, 83, 9, 0.1); /* amber-700 with 10% opacity */
+  --background: rgba(180, 83, 9, 0); /* amber-700 with 10% opacity */
   --color: white;
 }
 

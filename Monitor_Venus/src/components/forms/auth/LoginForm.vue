@@ -1,5 +1,5 @@
 <template>
-  <div class="login-container">
+
     <ion-card class="form-card">
       <ion-card-header class="text-center">
         <ion-card-title>¡Bienvenido!</ion-card-title>
@@ -104,7 +104,7 @@
         </div>
       </ion-card-content>
     </ion-card>
-  </div>
+ 
 </template>
 
 <script setup>

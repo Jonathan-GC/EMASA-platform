@@ -34,6 +34,7 @@ class API {
     LOGOUT = 'logout/';
     REGISTER = 'users/auth/register/';
     VERIFY_ACCOUNT = 'users/auth/verify-account/'
+    RESEND_VERIFICATION = 'users/auth/re-send-verification/'
     RESET_PASSWRORD_REQUEST = 'users/auth/request-password-reset/';
     RESET_PASSWORD_CONFIRM = 'users/auth/reset-password-confirm/';
 
