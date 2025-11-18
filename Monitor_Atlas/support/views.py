@@ -41,6 +41,15 @@ from .models import (
 
 from roles.helpers import support_manager_can_view_all_support_members
 
+from users.emails import (
+    send_ticket_created_notification_email,
+    send_ticket_updated_notification_email,
+    send_ticket_updated_notification_email_to_staff,
+    send_new_ticket_notification_email_to_staff,
+)
+
+from users.jwt import generate_token
+
 
 @extend_schema_view(
     list=extend_schema(description="Notification List"),
@@ -213,7 +222,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 "Support manager not found. If in development, please run initial setup."
             )
         user = support_member.user
-        ticket = serializer.save()
+        ticket = serializer.save(assigned_to=user)
         ticket_number = f"TICKET-{ticket.id}"
         if ticket.organization:
             ticket_body = f"{ticket.organization} submitted a Ticket."
@@ -226,8 +235,38 @@ class TicketViewSet(viewsets.ModelViewSet):
             type="warning",
             user=user,
         )
-        notification.save()
         notification.notify_ws()
+
+        if not ticket.user:
+            token = generate_token(
+                scope="ticket_access", expires_minutes=60 * 24 * 3, ticket_id=ticket.id
+            )  # 3 days validity
+            ticket_user_name = ticket.guest_name
+            ticket_user_email = ticket.guest_email
+        else:
+            token = generate_token(
+                user_id=ticket.user.id,
+                scope="ticket_access",
+                expires_minutes=60 * 24 * 3,
+                ticket_id=ticket.id,
+            )  # 3 days validity
+            ticket_user = User.objects.get(id=ticket.user.id)
+            ticket_user_name = ticket_user.get_full_name() or ticket_user.username
+            ticket_user_email = ticket_user.email
+
+        send_ticket_created_notification_email(
+            name=ticket_user_name,
+            email=ticket_user_email,
+            ticket=ticket,
+            token=token,
+        )
+
+        send_new_ticket_notification_email_to_staff(
+            staff_email=user.email,
+            ticket=ticket,
+            comment=None,
+        )
+
         return ticket
 
     @action(detail=True, methods=["get"], description="Get ticket conversation")
@@ -241,7 +280,6 @@ class TicketViewSet(viewsets.ModelViewSet):
         """
         ticket = self.get_object()
 
-        # Prefetch related data to optimize queries
         ticket = Ticket.objects.prefetch_related(
             "attachments", "comments__attachments", "comments__user"
         ).get(pk=ticket.pk)

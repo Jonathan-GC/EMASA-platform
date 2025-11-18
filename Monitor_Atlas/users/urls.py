@@ -32,4 +32,9 @@ urlpatterns = [
         views.ReSendVerificationEmailView.as_view(),
         name="resend-verification",
     ),
+    path(
+        "auth/verify-ticket-token/",
+        views.VerifyTicketToken.as_view(),
+        name="verify-ticket-token",
+    ),
 ]

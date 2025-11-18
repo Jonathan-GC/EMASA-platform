@@ -3,6 +3,7 @@ from users.models import User
 import requests
 from django.conf import settings
 from loguru import logger
+import uuid
 
 HERMES_API_URL = getattr(settings, "HERMES_API_URL", "http://localhost:5000")
 
@@ -101,6 +102,7 @@ class SupportMembership(models.Model):
 
 # Create your models here.
 class Ticket(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     description = models.TextField()
 

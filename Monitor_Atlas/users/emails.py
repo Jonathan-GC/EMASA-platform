@@ -96,3 +96,100 @@ def send_password_reset_email(user, token: str):
     vars = {"logo_url": MTR_LOGO_URL, "urltoken": reset_link, "name": user.name}
 
     return send_email(to, subject, text=text, template="password.recovery", vars=vars)
+
+
+def send_ticket_created_notification_email(name, email, ticket, token: str):
+    """Send a ticket notification email to the user.
+
+    param user: User object with 'email' and 'name' attributes
+    param ticket: Ticket object with 'id', 'title', and 'status' attributes
+    param comment: Optional Comment object with 'content' attribute
+    """
+    to = email
+    subject = f"New Ticket #{ticket.id}: {ticket.title}"
+    ticket_link = f"{APP_URL}/tickets?{urlencode({'token': token})}"
+    text = (
+        f"You have created a new ticket '{ticket.title}'. View it here: {ticket_link}"
+    )
+    vars = {
+        "logo_url": MTR_LOGO_URL,
+        "ticket_id": ticket.id,
+        "ticket_title": ticket.title,
+        "ticket_status": ticket.status,
+        "ticket_link": ticket_link,
+        "name": name,
+    }
+
+    return send_email(to, subject, text=text, template="ticket.create", vars=vars)
+
+
+def send_ticket_updated_notification_email(name, email, ticket, comment, token: str):
+    """Send a ticket notification email to the user.
+
+    param user: User object with 'email' and 'name' attributes
+    param ticket: Ticket object with 'id', 'title', and 'status' attributes
+    param comment: Optional Comment object with 'content' attribute
+    """
+    to = email
+    subject = f"Ticket #{ticket.id} Updated: {ticket.title}"
+    ticket_link = f"{APP_URL}/tickets?{urlencode({'token': token})}"
+    text = f"Your ticket '{ticket.title}' has been updated. View it here: {ticket_link}"
+    vars = {
+        "logo_url": MTR_LOGO_URL,
+        "ticket_id": ticket.id,
+        "ticket_title": ticket.title,
+        "ticket_status": ticket.status,
+        "ticket_link": ticket_link,
+        "comment_content": comment.content if comment else "",
+        "name": name,
+    }
+
+    return send_email(to, subject, text=text, template="ticket.notification", vars=vars)
+
+
+def send_new_ticket_notification_email_to_staff(staff_email, ticket, comment):
+    """Send a new ticket notification email to support staff.
+
+    param staff_email: Support staff email address
+    param ticket: Ticket object with 'id', 'title', and 'status' attributes
+    param comment: Optional Comment object with 'content' attribute
+    """
+    to = staff_email
+    subject = f"New Ticket #{ticket.id}: {ticket.title}"
+    text = (
+        f"A new ticket '{ticket.title}' has been created with status '{ticket.status}'."
+    )
+    ticket_link = f"{APP_URL}"
+    vars = {
+        "logo_url": MTR_LOGO_URL,
+        "ticket_id": ticket.id,
+        "ticket_title": ticket.title,
+        "ticket_status": ticket.status,
+        "comment_content": comment.content if comment else "",
+        "ticket_link": ticket_link,
+    }
+
+    return send_email(to, subject, text=text, template="ticket.staff", vars=vars)
+
+
+def send_ticket_updated_notification_email_to_staff(staff_email, ticket, comment):
+    """Send a ticket updated notification email to support staff.
+
+    param staff_email: Support staff email address
+    param ticket: Ticket object with 'id', 'title', and 'status' attributes
+    param comment: Optional Comment object with 'content' attribute
+    """
+    to = staff_email
+    subject = f"Ticket #{ticket.id} Updated: {ticket.title}"
+    text = f"The ticket '{ticket.title}' has been updated to status '{ticket.status}'."
+    ticket_link = f"{APP_URL}"
+    vars = {
+        "logo_url": MTR_LOGO_URL,
+        "ticket_id": ticket.id,
+        "ticket_title": ticket.title,
+        "ticket_status": ticket.status,
+        "comment_content": comment.content if comment else "",
+        "ticket_link": ticket_link,
+    }
+
+    return send_email(to, subject, text=text, template="ticket.staff", vars=vars)

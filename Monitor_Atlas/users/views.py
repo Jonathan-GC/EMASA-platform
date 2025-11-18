@@ -661,6 +661,40 @@ class ReSendVerificationEmailView(APIView):
         )
 
 
+class VerifyTicketToken(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(csrf_protect)
+    @extend_schema(
+        description="Verify ticket access token",
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {"token": {"type": "string"}},
+                "required": ["token"],
+            }
+        },
+        examples=[
+            OpenApiExample(
+                "Verify Ticket Token",
+                value={"token": "string"},
+                request_only=True,
+            )
+        ],
+    )
+    def post(self, request):
+        token = request.data.get("token")
+        if not token:
+            return Response({"detail": "Token is required."}, status=400)
+
+        try:
+            payload = verify_token(token, expected_scope="ticket_access")
+            ticket_id = payload.get("ticket_id")
+            return Response({"ticket_id": ticket_id}, status=200)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=400)
+
+
 @ensure_csrf_cookie
 @api_view(["GET"])
 @permission_classes([AllowAny])
