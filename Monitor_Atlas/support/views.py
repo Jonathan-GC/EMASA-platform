@@ -50,6 +50,8 @@ from users.emails import (
 
 from users.jwt import generate_token
 
+from .helpers import is_support_member
+
 
 @extend_schema_view(
     list=extend_schema(description="Notification List"),
@@ -292,9 +294,18 @@ class TicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], description="Mark ticket as read")
     def mark_as_read(self, request, pk=None):
         ticket = self.get_object()
+        user = request.user
+
+        if user and not is_support_member(user):
+            return Response({"not_modified": "no need to mark as read"}, status=304)
+        elif user and ticket.assigned_to_id != user.id:
+            return Response({"not_modified": "no need to mark as read"}, status=304)
+        elif not user:
+            return Response({"not_modified": "no need to mark as read"}, status=304)
+
         ticket.is_read = True
         ticket.save()
-        return Response({"status": "ticket_marked_as_read"})
+        return Response({"status": "ticket_marked_as_read"}, status=200)
 
     @action(detail=True, methods=["post"], description="Delegate the ticket")
     def delegate(self, request, pk=None):
@@ -365,7 +376,16 @@ class CommentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         comment = serializer.save()
         ticket = comment.ticket
-        ticket.is_read = False
+
+        commenter = self.request.user or None
+
+        if commenter and not is_support_member(commenter):
+            # Comment from user/guest
+            ticket.is_read = False
+        elif not commenter:
+            # Comment from guest (no user)
+            ticket.is_read = False
+
         ticket.save()
 
         if comment.response:

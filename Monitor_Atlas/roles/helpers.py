@@ -3,7 +3,7 @@ from loguru import logger
 from organizations.models import Tenant, Workspace
 from users.models import User
 from roles.models import Role
-from global_helpers import GLOBAL_PERMISSIONS_PRESET, MONITOR_TENANT
+from .global_helpers import GLOBAL_PERMISSIONS_PRESET, MONITOR_TENANT
 
 
 def assign_new_user_base_permissions(user):
@@ -193,10 +193,14 @@ def get_user_workspace_admin_status(user, workspace):
         bool: True if the user has admin permissions for the workspace, False otherwise.
     """
 
-    change_perm = "workspaces.change_workspace"
+    change_perm = "change_workspace"
 
     if change_perm in get_perms(user, workspace):
         return True
+    logger.debug(
+        f"User permissions {get_perms(user, workspace)} do not include admin rights for workspace {workspace.name}"
+    )
+
     return False
 
 
@@ -221,6 +225,7 @@ def get_assignable_permissions(user, workspace):
         is_admin = True
 
     if not is_admin:
+        logger.debug(f"User {user.username} is not admin in workspace {workspace.name}")
         return assignable_permissions
 
     is_global_tenant = workspace.tenant == MONITOR_TENANT
@@ -229,8 +234,11 @@ def get_assignable_permissions(user, workspace):
     # Placeholder for future global permissions logic
 
     object_models = {
-        "tenant": ("organizations", workspace.tenant),
-        "workspace": ("organizations", workspace),
+        "tenant": (
+            "organizations",
+            [workspace.tenant] if workspace.tenant is not None else [],
+        ),
+        "workspace": ("organizations", [workspace]),
         "device": ("infrastructure", workspace.device_set.all()),
         "gateway": ("infrastructure", workspace.gateway_set.all()),
         "application": ("infrastructure", workspace.application_set.all()),
@@ -247,8 +255,11 @@ def get_assignable_permissions(user, workspace):
 
         for obj in queryset:
             perms_for_obj = []
-
+            logger.debug(f"Object: {model_name} ({obj.id})")
             if not is_global_tenant:
+                logger.debug(
+                    f"Fetching assignable permissions for object {model_name} ({obj.id}) in workspace {workspace.name}"
+                )
                 for action in safe_actions:
                     perms_for_obj.append(f"{action}_{model_name}")
             else:
@@ -258,4 +269,5 @@ def get_assignable_permissions(user, workspace):
             assignable_permissions["object"][model_name].append(
                 {"id": obj.id, "name": str(obj), "permissions": perms_for_obj}
             )
+
     return assignable_permissions
