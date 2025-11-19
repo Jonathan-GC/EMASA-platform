@@ -10,7 +10,11 @@ from .serializers import (
 from .models import Role, WorkspaceMembership
 
 from drf_spectacular.utils import extend_schema_view, extend_schema
-from .helpers import assign_new_role_base_permissions, get_assignable_permissions
+from .helpers import (
+    assign_new_role_base_permissions,
+    get_assignable_permissions,
+    bulk_assign_permissions,
+)
 
 from django.contrib.auth.models import Group
 from rest_framework.decorators import action
@@ -63,6 +67,13 @@ class RoleViewSet(viewsets.ModelViewSet):
         role = self.get_object()
         permissions = get_assignable_permissions(user, workspace, role)
         return Response({"assignable_permissions": permissions})
+
+    @action(detail=True, methods=["post"])
+    def bulk_assign_permissions(self, request, pk=None):
+        role = self.get_object()
+        permissions = request.data.get("permissions", {})
+        bulk_assign_permissions(permissions, role)
+        return Response({"status": "permissions updated"})
 
 
 @extend_schema_view(
