@@ -276,5 +276,4 @@ def get_assignable_permissions(user, workspace, role):
                     "permissions": perms_for_obj,
                 }
             )
-
     return assignable_permissions

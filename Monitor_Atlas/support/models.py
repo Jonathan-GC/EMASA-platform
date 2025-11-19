@@ -169,7 +169,9 @@ class Comment(models.Model):
         Ticket, related_name="comments", on_delete=models.CASCADE
     )
     response = models.BooleanField(default=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    guest_name = models.CharField(max_length=100, null=True, blank=True)
+    guest_email = models.EmailField(null=True, blank=True)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
