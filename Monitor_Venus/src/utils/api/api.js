@@ -51,6 +51,9 @@ class API {
     ASSIGNABLE_PERMISSIONS(roleId) {
         return `roles/role/${roleId}/get_assignable_permissions/`
     }
+    BULK_ASSIGN_PERMISSIONS(roleId) {
+        return `roles/role/${roleId}/bulk_assign_permissions/`
+    } 
 
     //----[INFRACSTRUCTURE]----
     DEVICE = 'infrastructure/device/'

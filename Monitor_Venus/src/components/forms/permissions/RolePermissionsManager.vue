@@ -74,7 +74,7 @@
                       v-for="(value, permKey) in item.permissions" 
                       :key="permKey"
                       :checked="isPermissionChecked(category.key, item.id, permKey)"
-                      @update:checked="(val) => togglePermission(category.key, item.id, permKey, val)"
+                      @ionChange="(e) => togglePermission(category.key, item.id, permKey, e.detail.checked)"
                       class="permission-checkbox"
                     >
                       <span>
@@ -235,7 +235,9 @@ const isPermissionChecked = (categoryKey, itemId, permissionType) => {
 // Helper to toggle permission
 const togglePermission = (categoryKey, itemId, permissionType, value) => {
   const key = getPermissionKey(categoryKey, itemId, permissionType)
+  console.log(`🔄 Toggle: ${key} = ${value}`)
   permissions.value[key] = value
+  console.log('📝 Current permissions state:', permissions.value)
 }
 
 const closeModal = () => {
@@ -317,24 +319,61 @@ const savePermissions = async () => {
   loading.value = true
   
   try {
-    // Prepare payload - convert to proper format
-    const selectedPermissions = {}
+    // Build assign and revoke structures
+    const assign = {}
+    const revoke = {}
     
-    for (const [key, value] of Object.entries(permissions.value)) {
-      if (value === true) {
-        selectedPermissions[key] = true
+    if (!assignablePermissions.value?.object) {
+      console.error('❌ No permissions data available')
+      return
+    }
+    
+    const objectPerms = assignablePermissions.value.object
+    
+    // Iterate through all categories and items
+    for (const [categoryKey, items] of Object.entries(objectPerms)) {
+      if (!Array.isArray(items)) continue
+      
+      console.log(`🔍 Processing category: ${categoryKey} with ${items.length} items`)
+      
+      for (const item of items) {
+        if (!item.permissions) continue
+        
+        for (const [permKey, apiValue] of Object.entries(item.permissions)) {
+          // Get current value using the same logic as the UI
+          const currentValue = isPermissionChecked(categoryKey, item.id, permKey)
+          const initialValue = apiValue === true
+          
+          console.log(`📊 ${categoryKey}.${item.id}.${permKey}: current=${currentValue}, initial=${initialValue}`)
+          
+          // Permission was added (assign)
+          if (currentValue === true && initialValue === false) {
+            console.log(`✅ ASSIGN: ${categoryKey}.${permKey} for item ${item.id}`)
+            if (!assign[categoryKey]) assign[categoryKey] = {}
+            if (!assign[categoryKey][permKey]) assign[categoryKey][permKey] = []
+            assign[categoryKey][permKey].push(item.id)
+          }
+          
+          // Permission was removed (revoke)
+          if (currentValue === false && initialValue === true) {
+            console.log(`❌ REVOKE: ${categoryKey}.${permKey} for item ${item.id}`)
+            if (!revoke[categoryKey]) revoke[categoryKey] = {}
+            if (!revoke[categoryKey][permKey]) revoke[categoryKey][permKey] = []
+            revoke[categoryKey][permKey].push(item.id)
+          }
+        }
       }
     }
     
     const payload = {
       role_id: props.role.id,
-      permissions: selectedPermissions
+      assign: assign,
+      revoke: revoke
     }
 
-    console.log('📤 Saving permissions:', payload)
+    console.log('📤 Saving permissions:', JSON.stringify(payload, null, 2))
     
-    // Update the API endpoint according to your backend
-    const response = await API.post(API.ROLE_PERMISSIONS, payload)
+    const response = await API.post(API.BULK_ASSIGN_PERMISSIONS(props.role.id), payload)
     
     if (!response.error) {
       console.log('✅ Permissions saved successfully')
