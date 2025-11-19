@@ -1,7 +1,9 @@
-from guardian.shortcuts import assign_perm, remove_perm
+from guardian.shortcuts import assign_perm, remove_perm, get_perms
 from loguru import logger
 from organizations.models import Tenant, Workspace
 from users.models import User
+from roles.models import Role
+from global_helpers import GLOBAL_PERMISSIONS_PRESET, MONITOR_TENANT
 
 
 def assign_new_user_base_permissions(user):
@@ -178,3 +180,82 @@ def assign_base_workspace_admin_permissions_to_group(workspace, group):
     logger.debug(f"Assigned base workspace admin permissions to group {group.name}")
 
     group.save()
+
+
+def get_user_workspace_admin_status(user, workspace):
+    """
+    Check if a user has admin permissions for a specific workspace.
+
+    Args:
+        user (User): The user object to check permissions for.
+        workspace (Workspace): The workspace object to check against.
+    Returns:
+        bool: True if the user has admin permissions for the workspace, False otherwise.
+    """
+
+    change_perm = "workspaces.change_workspace"
+
+    if change_perm in get_perms(user, workspace):
+        return True
+    return False
+
+
+def get_assignable_permissions(user, workspace):
+    """
+    Get a list of permissions that a user can assign within a specific workspace.
+
+    Args:
+        user (User): The user object to check permissions for.
+        workspace (Workspace): The workspace object to check against.
+    Returns:
+        list: A list of permission codenames that the user can assign.
+    """
+
+    assignable_permissions = {"global": {}, "object": {}}
+    actions = ["view", "change", "delete"]
+    safe_actions = ["view"]
+
+    is_admin = get_user_workspace_admin_status(user, workspace)
+
+    if not is_admin and user.is_superuser:
+        is_admin = True
+
+    if not is_admin:
+        return assignable_permissions
+
+    is_global_tenant = workspace.tenant == MONITOR_TENANT
+
+    # Global permissions
+    # Placeholder for future global permissions logic
+
+    object_models = {
+        "tenant": ("organizations", workspace.tenant),
+        "workspace": ("organizations", workspace),
+        "device": ("infrastructure", workspace.device_set.all()),
+        "gateway": ("infrastructure", workspace.gateway_set.all()),
+        "application": ("infrastructure", workspace.application_set.all()),
+        "machine": ("infrastructure", workspace.machine_set.all()),
+        "deviceprofile": ("chirpstack", workspace.deviceprofile_set.all()),
+        "apiuser": ("chirpstack", workspace.apiuser_set.all()),
+        "role": ("roles", workspace.role_set.all()),
+        "workspacemembership": ("roles", workspace.workspacemembership_set.all()),
+    }
+
+    for model_name, (app_label, queryset) in object_models.items():
+
+        assignable_permissions["object"][model_name] = []
+
+        for obj in queryset:
+            perms_for_obj = []
+
+            if not is_global_tenant:
+                for action in safe_actions:
+                    perms_for_obj.append(f"{action}_{model_name}")
+            else:
+                for action in actions:
+                    perms_for_obj.append(f"{action}_{model_name}")
+
+            assignable_permissions["object"][model_name].append(
+                {"id": obj.id, "name": str(obj), "permissions": perms_for_obj}
+            )
+    return assignable_permissions
