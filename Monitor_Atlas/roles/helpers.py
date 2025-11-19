@@ -3,7 +3,8 @@ from loguru import logger
 from organizations.models import Tenant, Workspace
 from users.models import User
 from roles.models import Role
-from .global_helpers import GLOBAL_PERMISSIONS_PRESET, MONITOR_TENANT
+from .global_helpers import GLOBAL_PERMISSIONS_PRESET, get_monitor_tenant
+from django.contrib.contenttypes.models import ContentType
 
 
 def assign_new_user_base_permissions(user):
@@ -204,39 +205,29 @@ def get_user_workspace_admin_status(user, workspace):
     return False
 
 
-def get_assignable_permissions(user, workspace):
+def get_assignable_permissions(user, workspace, role):
     """
-    Get a list of permissions that a user can assign within a specific workspace.
-
-    Args:
-        user (User): The user object to check permissions for.
-        workspace (Workspace): The workspace object to check against.
-    Returns:
-        list: A list of permission codenames that the user can assign.
+    Returns all permissions a role may assign inside a workspace.
     """
 
     assignable_permissions = {"global": {}, "object": {}}
-    actions = ["view", "change", "delete"]
-    safe_actions = ["view"]
 
+    # --- Check workspace-level admin ---
     is_admin = get_user_workspace_admin_status(user, workspace)
-
     if not is_admin and user.is_superuser:
         is_admin = True
 
     if not is_admin:
-        logger.debug(f"User {user.username} is not admin in workspace {workspace.name}")
         return assignable_permissions
 
-    is_global_tenant = workspace.tenant == MONITOR_TENANT
+    group = role.group
+    is_global_tenant = workspace.tenant == get_monitor_tenant()
 
-    # Global permissions
-    # Placeholder for future global permissions logic
-
+    # --- Object models related to workspace ---
     object_models = {
         "tenant": (
             "organizations",
-            [workspace.tenant] if workspace.tenant is not None else [],
+            [workspace.tenant] if workspace.tenant else [],
         ),
         "workspace": ("organizations", [workspace]),
         "device": ("infrastructure", workspace.device_set.all()),
@@ -249,25 +240,41 @@ def get_assignable_permissions(user, workspace):
         "workspacemembership": ("roles", workspace.workspacemembership_set.all()),
     }
 
-    for model_name, (app_label, queryset) in object_models.items():
+    # --- Permissions allowed per tenant type ---
+    full_actions = ["view", "change", "delete"]
+    safe_actions = ["view"]
+    allowed_actions = full_actions if is_global_tenant else safe_actions
 
+    # --- Object-level permissions ---
+    for model_name, (app_label, queryset) in object_models.items():
         assignable_permissions["object"][model_name] = []
 
+        ct = ContentType.objects.get(app_label=app_label, model=model_name)
+
         for obj in queryset:
-            perms_for_obj = []
-            logger.debug(f"Object: {model_name} ({obj.id})")
-            if not is_global_tenant:
-                logger.debug(
-                    f"Fetching assignable permissions for object {model_name} ({obj.id}) in workspace {workspace.name}"
-                )
-                for action in safe_actions:
-                    perms_for_obj.append(f"{action}_{model_name}")
-            else:
-                for action in actions:
-                    perms_for_obj.append(f"{action}_{model_name}")
+            perms_for_obj = {}
+
+            for action in allowed_actions:
+                codename = f"{action}_{model_name}"
+
+                # Check object-level permission
+                has = codename in get_perms(group, obj)
+
+                # Check global permission fallback
+                if not has:
+                    if group.permissions.filter(
+                        content_type=ct, codename=codename
+                    ).exists():
+                        has = True
+
+                perms_for_obj[codename] = has
 
             assignable_permissions["object"][model_name].append(
-                {"id": obj.id, "name": str(obj), "permissions": perms_for_obj}
+                {
+                    "id": obj.id,
+                    "name": str(obj),
+                    "permissions": perms_for_obj,
+                }
             )
 
     return assignable_permissions

@@ -2,7 +2,20 @@ from organizations.models import Tenant
 from guardian.shortcuts import assign_perm
 from django.contrib.auth.models import Group
 
-MONITOR_TENANT = Tenant.objects.filter(is_global=True).first()
+
+def get_monitor_tenant():
+    """
+    Return the monitor (global) Tenant instance or None.
+
+    This function performs the database lookup lazily. Avoids executing
+    queries at module import time (which can raise errors during test DB
+    creation or before migrations have run).
+    """
+    try:
+        return Tenant.objects.filter(is_global=True).first()
+    except Exception:
+        return None
+
 
 GLOBAL_ROLES = ["admin", "manager", "technician", "viewer"]
 GROUP_PREFIX = "global_"

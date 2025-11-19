@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .permissions import HasPermission
 
@@ -9,10 +10,11 @@ from .serializers import (
 from .models import Role, WorkspaceMembership
 
 from drf_spectacular.utils import extend_schema_view, extend_schema
-from .helpers import assign_new_role_base_permissions
+from .helpers import assign_new_role_base_permissions, get_assignable_permissions
 
 from django.contrib.auth.models import Group
-
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from loguru import logger
 
 
@@ -35,18 +37,32 @@ class RoleViewSet(viewsets.ModelViewSet):
     scope = "role"
 
     def perform_create(self, serializer):
-        instance = serializer.save()
         user = self.request.user
         user_tenant = user.tenant
-        role_tenant = instance.workspace.tenant
-        if user_tenant != role_tenant:
-            raise PermissionError(
+
+        workspace = serializer.validated_data.get("workspace")
+        if workspace is None:
+            raise ValidationError({"workspace": "Workspace is required."})
+
+        role_tenant = workspace.tenant
+        if user_tenant != role_tenant and not user.is_superuser:
+            raise PermissionDenied(
                 "User does not have permission to create role for this tenant"
             )
+
+        instance = serializer.save()
         assign_new_role_base_permissions(instance, user)
         logger.debug(
             f"Assigned base role permissions to user {user.username} for role {instance.name}"
         )
+
+    @action(detail=True, methods=["get"])
+    def get_assignable_permissions(self, request, pk=None):
+        user = request.user
+        workspace = self.get_object().workspace
+        role = self.get_object()
+        permissions = get_assignable_permissions(user, workspace, role)
+        return Response({"assignable_permissions": permissions})
 
 
 @extend_schema_view(
