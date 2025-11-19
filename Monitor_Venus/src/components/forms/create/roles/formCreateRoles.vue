@@ -18,7 +18,12 @@
           <!-- Role Preview Section -->
           <div class="role-preview-section">
             <h3>Vista Previa</h3>
-            <div class="role-preview-card">
+            <div 
+              class="role-preview-card"
+              :style="{ 
+                background: `linear-gradient(135deg, var(--ion-color-light-tint) 0%, ${formValues.color}10 100%)` 
+              }"
+            >
               <div class="role-badge-preview">
                 <div 
                   class="role-color-circle" 
@@ -45,7 +50,7 @@
           <div class="form-section">
             <h3>Información Básica</h3>
             
-            <ion-list>
+            <ion-list class="custom">
               <ion-item class="custom">
                 <ion-label position="stacked" class="!mb-2">Nombre del Rol</ion-label>
                 <ion-input 
@@ -65,6 +70,21 @@
                   fill="solid" 
                   rows="3"
                   placeholder="Describe el propósito de este rol..."
+                />
+              </ion-item>
+
+              <ion-item class="custom">
+                <ion-label position="stacked" class="!mb-2">Workspace</ion-label>
+                <ModalSelector
+                  v-model="formValues.workspace_id"
+                  :options="workspaces"
+                  title="Seleccionar Workspace"
+                  placeholder="Selecciona un workspace..."
+                  display-field="name"
+                  value-field="id"
+                  :searchable="true"
+                  search-placeholder="Buscar workspace..."
+                  :search-fields="['name', 'description']"
                 />
               </ion-item>
             </ion-list>
@@ -96,113 +116,20 @@
                 </div>
               </div>
               
-              <!-- Custom color input -->
-              <div class="custom-color-input">
-                <ion-item class="custom">
-                  <ion-label position="stacked" class="!mb-2">Color Personalizado</ion-label>
-                  <div class="color-input-wrapper">
-                    <input 
-                      type="color" 
-                      v-model="formValues.color"
-                      class="color-picker"
-                    />
-                    <ion-input 
-                      v-model="formValues.color" 
-                      class="custom color-hex-input" 
-                      fill="solid"
-                      placeholder="#5865F2"
-                      pattern="^#[0-9A-Fa-f]{6}$"
-                    />
-                  </div>
-                </ion-item>
+              <!-- Custom color picker -->
+              <div class="custom-color-picker">
+                <ColorPicker
+                  v-model="formValues.color"
+                  label="Color Personalizado"
+                  title="Seleccionar Color del Rol"
+                  :show-palette="false"
+                  :show-rgb="false"
+                />
               </div>
             </div>
           </div>
 
-          <!-- Permissions Section -->
-          <div class="form-section">
-            <h3>Permisos</h3>
-            <p class="section-description">
-              Configura los permisos que tendrán los usuarios con este rol
-            </p>
-
-            <div class="permissions-grid">
-              <!-- General Permissions -->
-              <div class="permission-category">
-                <h4>Generales</h4>
-                <ion-list>
-                  <ion-item 
-                    v-for="perm in generalPermissions" 
-                    :key="perm.key"
-                    class="permission-item"
-                  >
-                    <ion-checkbox 
-                      v-model="formValues.permissions[perm.key]"
-                      justify="space-between"
-                    >
-                      <div class="permission-info">
-                        <ion-icon :icon="perm.icon" class="permission-icon"></ion-icon>
-                        <div class="permission-text">
-                          <strong>{{ perm.label }}</strong>
-                          <p>{{ perm.description }}</p>
-                        </div>
-                      </div>
-                    </ion-checkbox>
-                  </ion-item>
-                </ion-list>
-              </div>
-
-              <!-- Management Permissions -->
-              <div class="permission-category">
-                <h4>Gestión</h4>
-                <ion-list>
-                  <ion-item 
-                    v-for="perm in managementPermissions" 
-                    :key="perm.key"
-                    class="permission-item"
-                  >
-                    <ion-checkbox 
-                      v-model="formValues.permissions[perm.key]"
-                      justify="space-between"
-                    >
-                      <div class="permission-info">
-                        <ion-icon :icon="perm.icon" class="permission-icon"></ion-icon>
-                        <div class="permission-text">
-                          <strong>{{ perm.label }}</strong>
-                          <p>{{ perm.description }}</p>
-                        </div>
-                      </div>
-                    </ion-checkbox>
-                  </ion-item>
-                </ion-list>
-              </div>
-
-              <!-- Device Permissions -->
-              <div class="permission-category">
-                <h4>Dispositivos</h4>
-                <ion-list>
-                  <ion-item 
-                    v-for="perm in devicePermissions" 
-                    :key="perm.key"
-                    class="permission-item"
-                  >
-                    <ion-checkbox 
-                      v-model="formValues.permissions[perm.key]"
-                      justify="space-between"
-                    >
-                      <div class="permission-info">
-                        <ion-icon :icon="perm.icon" class="permission-icon"></ion-icon>
-                        <div class="permission-text">
-                          <strong>{{ perm.label }}</strong>
-                          <p>{{ perm.description }}</p>
-                        </div>
-                      </div>
-                    </ion-checkbox>
-                  </ion-item>
-                </ion-list>
-              </div>
-            </div>
-          </div>
+          
 
           <!-- Action Buttons -->
           <div class="form-actions">
@@ -250,6 +177,8 @@ import {
   IonButtons
 } from '@ionic/vue'
 import API from '@utils/api/api'
+import ModalSelector from '@/components/ui/ModalSelector.vue'
+import ColorPicker from '@/components/ui/ColorPicker.vue'
 
 const props = defineProps({
   type: String,
@@ -264,6 +193,8 @@ const emit = defineEmits(['itemCreated', 'closed'])
 
 const icons = inject('icons', {})
 const loading = ref(false)
+const workspaces = ref([])
+const permissions = ref([])
 
 // Form values
 const formValues = ref({
@@ -435,7 +366,31 @@ const createRole = async () => {
   }
 }
 
-onMounted(() => {
+const fetchWorkspaces = async () => {
+  try {
+    const response = await API.get(API.WORKSPACE)
+    workspaces.value = Array.isArray(response) ? response : []
+    console.log('✅ Workspaces loaded:', workspaces.value.length)
+  } catch (error) {
+    console.error('❌ Error fetching workspaces:', error)
+    workspaces.value = []
+  }
+};
+
+const fetchPermissions = async () => {
+  // Placeholder for future permission fetching logic if needed
+  try {
+    const response = await API.get(API.ASSIGNABLE_PERMISSIONS(formValues.value.id))
+    permissions.value = Array.isArray(response) ? response : []
+  } catch (error) {
+    c
+    console.error('❌ Error fetching permissions:', error)
+    permissions.value = []
+  }
+};
+
+onMounted( async () => {
+  await fetchWorkspaces();
   console.log('🎭 Role creation form mounted')
 })
 </script>
@@ -481,11 +436,10 @@ onMounted(() => {
 }
 
 .role-preview-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 1.5rem;
   border-radius: 12px;
-  color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .role-badge-preview {
@@ -499,28 +453,27 @@ onMounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  border: 3px solid var(--ion-color-light);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .role-name-preview {
   font-size: 1.5rem;
   font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .role-description-preview {
   margin: 0 0 1rem 0;
-  opacity: 0.9;
   font-size: 0.95rem;
+  color: var(--ion-color-medium);
 }
 
 .role-members-preview {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  opacity: 0.8;
   font-size: 0.9rem;
+  color: var(--ion-color-medium);
 }
 
 /* Color Picker */

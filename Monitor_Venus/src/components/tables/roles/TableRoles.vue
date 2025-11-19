@@ -33,6 +33,7 @@
               placeholder="Buscar rol..."
               @ionInput="handleSearch"
               show-clear-button="focus"
+              class="custom"
             ></ion-searchbar>
             
             <ion-button @click="fetchRoles" fill="clear">
@@ -50,27 +51,27 @@
           <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
-              <ion-col size="3" @click="sortBy('name')" class="sortable">
+              <ion-col size="2.5" @click="sortBy('name')" class="sortable">
                 <strong>Nombre</strong>
                 <ion-icon
                   :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'name'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="4">
+              <ion-col size="3.5">
                 <strong>Descripción</strong>
               </ion-col>
-              <ion-col size="2">
+              <ion-col size="1.5">
                 <strong>Color</strong>
               </ion-col>
-              <ion-col size="2" @click="sortBy('users_count')" class="sortable">
+              <ion-col size="1.5" @click="sortBy('users_count')" class="sortable">
                 <strong>Usuarios</strong>
                 <ion-icon 
                   :icon="sortOrder.users_count === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'users_count'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="1">
+              <ion-col size="2">
                 <strong>Acciones</strong>
               </ion-col>
             </ion-row>
@@ -82,7 +83,7 @@
               class="table-row-stylized"
               :class="{ 'row-selected': selectedRole?.id === role.id }"
             >
-              <ion-col size="3">
+              <ion-col size="2.5">
                 <div class="role-info">
                   <ion-avatar 
                     aria-hidden="true" 
@@ -101,12 +102,12 @@
                   </div>
                 </div>
               </ion-col>
-              <ion-col size="4">
+              <ion-col size="3.5">
                 <div class="role-description">
                   {{ role.description || 'Sin descripción' }}
                 </div>
               </ion-col>
-              <ion-col size="2">
+              <ion-col size="1.5">
                 <ion-chip 
                   :style="{ 
                     backgroundColor: role.color || '#5865F2',
@@ -117,20 +118,31 @@
                   {{ role.color || '#5865F2' }}
                 </ion-chip>
               </ion-col>
-              <ion-col size="2">
+              <ion-col size="1.5">
                 <div class="users-count">
                   <ion-icon :icon="icons.people"></ion-icon>
                   <span>{{ role.users_count || 0 }}</span>
                 </div>
               </ion-col>
-              <ion-col size="1">
-                <ion-button 
-                  fill="clear" 
-                  size="small"
-                  @click.stop="viewRole(role)"
-                >
-                  <ion-icon :icon="icons.eye"></ion-icon>
-                </ion-button>
+              <ion-col size="2">
+                <div class="action-buttons">
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    @click.stop="openPermissionsManager(role)"
+                    title="Gestionar permisos"
+                  >
+                    <ion-icon :icon="icons.key"></ion-icon>
+                  </ion-button>
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    @click.stop="viewRole(role)"
+                    title="Ver detalles"
+                  >
+                    <ion-icon :icon="icons.eye"></ion-icon>
+                  </ion-button>
+                </div>
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -180,7 +192,8 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import QuickControl from '@components/operators/QuickControl.vue'
-import { IonAvatar } from '@ionic/vue'
+import RolePermissionsManager from '@components/forms/permissions/RolePermissionsManager.vue'
+import { IonAvatar, modalController } from '@ionic/vue'
 
 // Inject icons
 const icons = inject('icons', {})
@@ -191,6 +204,7 @@ const loading = ref(false)
 const error = ref(null)
 const selectedRole = ref(null)
 const isMounted = ref(false)
+const permissionsModal = ref(null)
 
 // Table composables
 const { searchText, filteredItems, handleSearch } = useTableSearch(roles, ['name', 'description'])
@@ -252,6 +266,25 @@ const selectRole = (role) => {
 const viewRole = (role) => {
   console.log('View role details:', role)
   // Navigate to role details page
+}
+
+const openPermissionsManager = async (role) => {
+  console.log('Opening permissions manager for role:', role.name)
+  
+  const modal = await modalController.create({
+    component: RolePermissionsManager,
+    componentProps: {
+      role: role
+    },
+    cssClass: 'full-modal'
+  })
+  
+  modal.onDidDismiss().then(() => {
+    console.log('Permissions manager closed')
+    fetchRoles() // Refresh roles after permissions update
+  })
+  
+  await modal.present()
 }
 
 const handleItemRefresh = () => {
@@ -410,6 +443,17 @@ onMounted(async () => {
 
 .users-count ion-icon {
   font-size: 18px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.action-buttons ion-button {
+  --padding-start: 8px;
+  --padding-end: 8px;
 }
 
 .pagination {

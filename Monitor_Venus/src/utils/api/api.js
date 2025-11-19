@@ -48,6 +48,9 @@ class API {
     ROLE_PERMISSION = 'roles/role-permission/'
     PERMISSION_KEY = 'roles/permission-key/'
     WORKSPACE_MEMBERSHIP = 'roles/workspace-membership/'
+    ASSIGNABLE_PERMISSIONS(roleId) {
+        return `roles/role/${roleId}/get_assignable_permissions/`
+    }
 
     //----[INFRACSTRUCTURE]----
     DEVICE = 'infrastructure/device/'
