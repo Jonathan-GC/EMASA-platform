@@ -47,7 +47,7 @@ class ApiUser(models.Model):
     last_synced_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.cs_user_id} - {self.email}"
+        return self.email
 
 
 class DeviceProfileTemplate(models.Model):
@@ -75,7 +75,7 @@ class DeviceProfileTemplate(models.Model):
     is_rlay_ed = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.name} - {self.region}"
+        return self.name
 
 
 class DeviceProfile(models.Model):
@@ -113,4 +113,4 @@ class DeviceProfile(models.Model):
     last_synced_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.cs_device_profile_id} - {self.name}"
+        return self.name

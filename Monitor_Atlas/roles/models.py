@@ -29,7 +29,7 @@ class Role(models.Model):
         super().delete(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} - {self.workspace}"
+        return self.name
 
 
 class WorkspaceMembership(models.Model):
@@ -51,4 +51,4 @@ class WorkspaceMembership(models.Model):
         super().delete(*args, **kwargs)
 
     def __str__(self):
-        return f"Membership: {self.user} - {self.role} - {self.workspace}"
+        return f"{self.user} - {self.role}"

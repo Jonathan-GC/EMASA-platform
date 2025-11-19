@@ -56,7 +56,7 @@ class Application(models.Model):
     last_synced_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.cs_application_id} - {self.name}"
+        return self.name
 
 
 class Activation(models.Model):
@@ -147,7 +147,7 @@ class Device(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.dev_eui} - {self.name}"
+        return self.name
 
 
 class Location(models.Model):
@@ -212,7 +212,7 @@ class Gateway(models.Model):
     last_synced_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} - {self.workspace}"
+        return f"{self.name}"
 
 
 class Measurements(models.Model):
@@ -225,4 +225,4 @@ class Measurements(models.Model):
     icon = models.FileField(upload_to="measurement_icons/", blank=True, null=True)
 
     def __str__(self):
-        return f"Measurement configuration for {self.device.name}"
+        return f"{self.device.name} - {self.unit}"

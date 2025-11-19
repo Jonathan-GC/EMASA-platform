@@ -97,7 +97,7 @@ class SupportMembership(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.role}"
+        return self.user.username
 
 
 # Create your models here.
@@ -160,8 +160,7 @@ class Ticket(models.Model):
             raise ValidationError("Guest tickets must have a name and email address.")
 
     def __str__(self):
-        user_repr = self.user.username if self.user else self.guest_email
-        return f"{self.title} - {self.status} - {self.priority} - {user_repr}"
+        return self.title
 
 
 class Comment(models.Model):
@@ -176,7 +175,7 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Comment by {self.user.username} on {self.ticket.title}"
+        return f"{self.ticket.title} - Comment"
 
 
 class Attachment(models.Model):
@@ -188,7 +187,7 @@ class Attachment(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Attachment for {self.ticket.title}"
+        return self.file.name
 
 
 class CommentAttachment(models.Model):
@@ -200,7 +199,7 @@ class CommentAttachment(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Attachment for comment {self.comment.id} on ticket {self.comment.ticket.title}"
+        return self.file.name
 
 
 class Notification(models.Model):
@@ -242,4 +241,4 @@ class Notification(models.Model):
             logger.error(f"Failed to send notification via WebSocket: {e}")
 
     def __str__(self):
-        return f"Notification for {self.user.username} - {self.type}"
+        return self.title

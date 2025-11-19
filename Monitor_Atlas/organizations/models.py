@@ -53,4 +53,4 @@ class Workspace(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.name} - {self.tenant}"
+        return self.name
