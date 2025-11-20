@@ -182,7 +182,7 @@
             <div class="bubble-header">
               <ion-icon :icon="icons.personCircle || icons.person" class="bubble-avatar" />
               <div class="bubble-info">
-                <strong class="bubble-user-name">{{ comment.user_name || 'Unknown User' }}</strong>
+                <strong class="bubble-user-name">{{ comment.guest_name || comment.user_name || 'Unknown User' }}</strong>
                 <span class="bubble-date">{{ formatDate(comment.created_at) }}</span>
               </div>
             </div>
@@ -373,18 +373,14 @@ const currentUserDisplayName = computed(() => {
 
 // Function: Check if a comment is from current user
 const isCurrentUserComment = (comment) => {
-  // If logged in, compare with user ID from comment
+  // Priority 1: If logged in (authenticated user), ONLY compare with current user ID
   if (currentUserId.value && comment.user) {
     return comment.user === currentUserId.value;
   }
   
-  // If accessing via token (ticket user), compare with ticket user ID
-  if (ticketUserId.value && comment.user) {
-    return comment.user === ticketUserId.value;
-  }
-  
-  // For guests, compare guest_name and guest_email
-  if (guestUserName.value && guestUserEmail.value && comment.guest_name && comment.guest_email) {
+  // Priority 2: If guest user accessing via email (not logged in), compare guest info
+  if (!currentUserId.value && guestUserName.value && guestUserEmail.value && 
+      comment.guest_name && comment.guest_email) {
     return comment.guest_name === guestUserName.value && 
            comment.guest_email === guestUserEmail.value;
   }
