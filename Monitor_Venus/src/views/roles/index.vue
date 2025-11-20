@@ -1,24 +1,26 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/home"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Roles</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
     <ion-content :fullscreen="true">
-      <div v-if="pageReady" class="roles-view">
+      <div v-if="pageReady" class="current-dashboard">
         <!-- Header -->
         <div class="header">
-          <h1>🎭 Gestión de Roles</h1>
-          <div class="header-subtitle">
-            <p>Administra roles y permisos del sistema</p>
+          <div class="header-title">
+            <ion-back-button default-href="/home"></ion-back-button>
+            <h1>🎭 Gestión de Roles</h1>
           </div>
         </div>
         
+        <!--<div class="header">
+          <div class="header-title">
+            <ion-back-button default-href="/home"></ion-back-button>
+            <h1>
+              <ion-icon
+                :icon="icons.building"
+            ></ion-icon>
+              Clientes
+            </h1>
+          </div>
+        </div>-->
         <!-- Main roles table -->
         <TableRoles />
       </div>
@@ -56,6 +58,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import '@assets/css/dashboard.css';
 .roles-view {
   padding: 20px;
   max-width: 1400px;
@@ -63,15 +66,9 @@ onMounted(() => {
 }
 
 .header {
-  text-align: center;
   margin-bottom: 30px;
 }
 
-.header h1 {
-  font-size: 2rem;
-  margin-bottom: 10px;
-  color: var(--ion-color-primary);
-}
 
 .header-subtitle p {
   color: var(--ion-color-medium);

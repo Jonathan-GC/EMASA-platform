@@ -6,7 +6,7 @@
         <ion-card-subtitle>
           {{ loading ? 'Cargando...' : `${roles.length} roles encontrados` }}
         </ion-card-subtitle>
-      </ion-card-header>
+      </ion-card-header>e
       
       <ion-card-content>
         <!-- Loading state -->
@@ -36,18 +36,21 @@
               class="custom"
             ></ion-searchbar>
             
-            <ion-button @click="fetchRoles" fill="clear">
-              <ion-icon :icon="icons.refresh"></ion-icon>
-            </ion-button>
-
-            <QuickControl
-                :toCreate="true"
-                type="role"
-                @itemCreated="handleItemRefresh"
-            />
+            <!-- Desktop buttons -->
+            <div v-if="!isMobile" class="desktop-controls">
+              <ion-button @click="fetchRoles" fill="clear" shape="round">
+                <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
+              </ion-button>
+              <QuickControl
+                  :toCreate="true"
+                  type="role"
+                  @itemCreated="handleItemRefresh"
+              />
+            </div>
           </div>
 
-          <!-- Table using ion-grid -->
+          <!-- Table using ion-grid (Desktop) -->
+          <div class="table-wrapper" v-if="!isMobile">
           <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
@@ -146,6 +149,77 @@
               </ion-col>
             </ion-row>
           </ion-grid>
+          </div>
+
+          <!-- Mobile Card View -->
+          <div v-else class="mobile-cards">
+            <ion-card 
+              v-for="role in paginatedItems" 
+              :key="role.id" 
+              class="role-card"
+            >
+              <ion-card-content>
+                <!-- Header with avatar and name -->
+                <div class="card-header">
+                  <ion-avatar 
+                    class="card-avatar"
+                    :style="{ backgroundColor: role.color || '#5865F2' }"
+                  >
+                    <ion-icon 
+                      v-if="!role.img"
+                      :icon="icons.shield" 
+                      class="avatar-icon"
+                    ></ion-icon>
+                    <img v-else alt="" :src="role.img" />
+                  </ion-avatar>
+                  <div class="card-title-section">
+                    <h3 class="card-title">{{ role.name }}</h3>
+                    <p class="card-subtitle">{{ role.description || 'Sin descripción' }}</p>
+                  </div>
+                  <ion-chip 
+                    :style="{ 
+                      backgroundColor: role.color || '#5865F2',
+                      color: getContrastColor(role.color || '#5865F2')
+                    }"
+                    class="card-chip"
+                  >
+                    {{ role.color || '#5865F2' }}
+                  </ion-chip>
+                </div>
+
+                <!-- Card details -->
+                <div class="card-details">
+                  <div class="card-detail-row">
+                    <span class="detail-label">Usuarios:</span>
+                    <span class="detail-value">
+                      <ion-icon :icon="icons.people"></ion-icon>
+                      {{ role.users_count || 0 }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Card actions -->
+                <div class="card-actions">
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    @click.stop="openPermissionsManager(role)"
+                  >
+                    <ion-icon :icon="icons.key"></ion-icon>
+                    Permisos
+                  </ion-button>
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    @click.stop="viewRole(role)"
+                  >
+                    <ion-icon :icon="icons.eye"></ion-icon>
+                    Ver
+                  </ion-button>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
 
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
@@ -182,6 +256,14 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons 
+      v-if="isMobile"
+      entity-type="role"
+      @refresh="fetchRoles"
+      @itemCreated="handleItemRefresh"
+    />
   </div>
 </template>
 
@@ -191,12 +273,17 @@ import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import QuickControl from '@components/operators/QuickControl.vue'
+import FloatingActionButtons from '@components/operators/FloatingActionButtons.vue'
 import RolePermissionsManager from '@components/forms/permissions/RolePermissionsManager.vue'
 import { IonAvatar, modalController } from '@ionic/vue'
 
 // Inject icons
 const icons = inject('icons', {})
+
+// Responsive view detection
+const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 
 // Component state
 const roles = ref([])
@@ -329,9 +416,8 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 16px;
-  flex-wrap: wrap;
 }
 
 .table-controls ion-searchbar {
@@ -339,9 +425,21 @@ onMounted(async () => {
   min-width: 200px;
 }
 
-.data-table {
+.desktop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--ion-color-light);
   border-radius: 8px;
-  overflow: hidden;
+}
+
+.data-table {
+  min-width: 1000px;
+  margin: 0;
 }
 
 .table-header {
@@ -351,8 +449,7 @@ onMounted(async () => {
 }
 
 .table-header ion-col {
-  padding: 12px;
-  cursor: default;
+  padding: 16px 12px;
 }
 
 .sortable {
@@ -364,7 +461,7 @@ onMounted(async () => {
 }
 
 .sortable:hover {
-  background-color: var(--ion-color-light-shade);
+  background-color: var(--ion-color-light-tint);
 }
 
 .table-row-stylized {
@@ -481,30 +578,117 @@ onMounted(async () => {
   opacity: 0.5;
 }
 
+/* Mobile Cards Styles */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.role-card {
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.role-card ion-card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.card-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ion-color-light-shade);
+}
+
+.card-avatar .avatar-icon {
+  font-size: 28px;
+  color: white;
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-chip {
+  flex-shrink: 0;
+  height: 24px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .table-controls {
     flex-direction: column;
     align-items: stretch;
-  }
-  
-  .data-table {
-    font-size: 0.8rem;
-  }
-  
-  .table-header ion-col,
-  .table-row-stylized ion-col {
-    padding: 8px 6px;
-  }
-  
-  .role-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  
-  .role-description {
-    font-size: 0.75rem;
   }
 }
 </style>
