@@ -71,7 +71,7 @@ def set_status(instance, response):
 # Helpers
 def test_connection():
     try:
-        response = requests.get(CHIRPSTACK_API_URL, headers=HEADERS)
+        response = requests.get(CHIRPSTACK_API_URL, headers=HEADERS, timeout=10)
         if response and response.status_code == 200:
             logger.debug("Connection to ChirpStack successful.")
             return True
@@ -80,6 +80,11 @@ def test_connection():
                 f"Failed to connect to ChirpStack. Status code: {response.status_code}, Response: {response.text}"
             )
             return False
+    except requests.exceptions.Timeout:
+        logger.error(
+            f"Timeout connecting to ChirpStack. The server took too long to respond."
+        )
+        return False
     except requests.exceptions.RequestException as e:
         logger.error(f"Error connecting to ChirpStack: {e}")
         return False

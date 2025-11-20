@@ -55,16 +55,6 @@ echo -e "${GREEN}✅ All fixtures loaded successfully.${NC}"
 echo ""
 echo -e "${CYAN}🔐 ---- Applying global base permissions ---- 🔐${NC}"
 
-# Run the Django command that assigns base global permissions
-if output=$(python manage.py global_permissions 2>&1); then
-    echo -e "$output"
-    echo -e "${GREEN}✨ Global permissions applied successfully.${NC}"
-else
-    echo -e "$output"
-    echo -e "${RED}❌ global_permissions failed.${NC}"
-    exit 1
-fi
-
 echo ""
 echo -e "${CYAN}🔄 ---- Synchronizing data with ChirpStack ---- 🔄${NC}"
 if output=$(python manage.py sync_chirpstack 2>&1); then
@@ -73,6 +63,15 @@ if output=$(python manage.py sync_chirpstack 2>&1); then
 else
     echo -e "$output"
     echo -e "${RED}❌ sync_chirpstack failed.${NC}"
+    exit 1
+fi
+
+if output=$(python manage.py global_permissions 2>&1); then
+    echo -e "$output"
+    echo -e "${GREEN}✨ Global permissions applied successfully.${NC}"
+else
+    echo -e "$output"
+    echo -e "${RED}❌ global_permissions failed.${NC}"
     exit 1
 fi
 
