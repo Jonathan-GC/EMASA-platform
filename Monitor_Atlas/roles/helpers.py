@@ -280,20 +280,16 @@ def get_assignable_permissions(user, workspace, role):
 
 
 def bulk_assign_permissions(permissions, role):
-    """
-    Assign or revoke multiple permissions for a role's group.
-
-    Args:
-        permissions (dict): Structure with 'assign' and/or 'revoke' actions
-        role (Role): The role whose group will receive permission changes
-    """
     group = role.group
 
+    # Build a mapping of model_name -> app_label using ALL roles, to be safe
     MODEL_MAPPING = {}
-    for app_label, models in GLOBAL_PERMISSIONS_PRESET["admin"].items():
-        for model_name in models:
-            MODEL_MAPPING[model_name] = app_label
+    for role_name, apps in GLOBAL_PERMISSIONS_PRESET.items():
+        for app_label, models in apps.items():
+            for model_name in models:
+                MODEL_MAPPING[model_name] = app_label
 
+    # Assign
     if "assign" in permissions:
         for model_name, perms_dict in permissions["assign"].items():
             if model_name not in MODEL_MAPPING:
@@ -305,15 +301,15 @@ def bulk_assign_permissions(permissions, role):
             ).model_class()
 
             for perm_codename, obj_ids in perms_dict.items():
-                perm_name = f"{app_label}.{perm_codename}"
-
+                # For object-level: ONLY codename (NO app label)
                 for obj_id in obj_ids:
                     try:
                         obj = model_class.objects.get(id=obj_id)
-                        assign_perm(perm_name, group, obj)
+                        assign_perm(perm_codename, group, obj)
                     except model_class.DoesNotExist:
-                        logger.warning(f"Object {model_name}({obj_id}) not found")
+                        logger.warning(f"{model_name}({obj_id}) not found.")
 
+    # Revoke
     if "revoke" in permissions:
         for model_name, perms_dict in permissions["revoke"].items():
             if model_name not in MODEL_MAPPING:
@@ -325,11 +321,9 @@ def bulk_assign_permissions(permissions, role):
             ).model_class()
 
             for perm_codename, obj_ids in perms_dict.items():
-                perm_name = f"{app_label}.{perm_codename}"
-
                 for obj_id in obj_ids:
                     try:
                         obj = model_class.objects.get(id=obj_id)
-                        remove_perm(perm_name, group, obj)
+                        remove_perm(perm_codename, group, obj)
                     except model_class.DoesNotExist:
-                        logger.warning(f"Object {model_name}({obj_id}) not found")
+                        logger.warning(f"{model_name}({obj_id}) not found.")

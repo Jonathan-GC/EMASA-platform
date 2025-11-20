@@ -14,7 +14,11 @@ from users.models import User
 class TicketSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), write_only=True, source="user", required=False, allow_null=True
+        queryset=User.objects.all(),
+        write_only=True,
+        source="user",
+        required=False,
+        allow_null=True,
     )
 
     class Meta:
@@ -83,6 +87,8 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def get_user_name(self, obj):
+        if not obj.user:
+            return "Guest"
         return obj.user.get_full_name() or obj.user.username
 
 

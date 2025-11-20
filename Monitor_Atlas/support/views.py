@@ -297,12 +297,11 @@ class TicketViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if user and not is_support_member(user):
-            return Response({"not_modified": "no need to mark as read"}, status=304)
-        elif user and ticket.assigned_to_id != user.id:
-            return Response({"not_modified": "no need to mark as read"}, status=304)
+            return Response({"not_modified": "no need to mark as read"}, status=204)
+        elif user and ticket.assigned_to.id != user.id:
+            return Response({"not_modified": "no need to mark as read"}, status=204)
         elif not user:
-            return Response({"not_modified": "no need to mark as read"}, status=304)
-
+            return Response({"not_modified": "no need to mark as read"}, status=204)
         ticket.is_read = True
         ticket.save()
         return Response({"status": "ticket_marked_as_read"}, status=200)
