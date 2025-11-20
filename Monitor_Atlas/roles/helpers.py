@@ -281,123 +281,85 @@ def get_assignable_permissions(user, workspace, role):
 
 def bulk_assign_permissions(permissions, role):
     group = role.group
-    logger.debug(f"[INIT] Bulk permission assign for group={group.name}")
+    logger.info(f"Bulk permission assign for group={group.name}")
+    valid_keys = {"assign", "revoke"}
+    permissions = {k: v for k, v in permissions.items() if k in valid_keys}
 
     # Build model->app mapping
     MODEL_MAPPING = {}
     for preset_name, apps in GLOBAL_PERMISSIONS_PRESET.items():
-        logger.debug(f"[MAPPING] Processing preset: {preset_name}")
         for app_label, models in apps.items():
             for model_name in models:
                 MODEL_MAPPING[model_name] = app_label
-                logger.debug(f"[MAPPING] model='{model_name}' => app='{app_label}'")
 
     # -------------------------------
     # ASSIGN
     # -------------------------------
     if "assign" in permissions:
-        logger.debug(f"[ASSIGN] Processing assign: {permissions['assign']}")
-
         for model_name, perms_dict in permissions["assign"].items():
-            logger.debug(f"[ASSIGN] Model='{model_name}'")
-
             if model_name not in MODEL_MAPPING:
                 logger.warning(f"[ASSIGN] Model '{model_name}' NOT FOUND in mapping.")
                 continue
 
             app_label = MODEL_MAPPING[model_name]
-            logger.debug(f"[ASSIGN] model='{model_name}' mapped to app='{app_label}'")
 
             try:
                 model_class = ContentType.objects.get(
                     app_label=app_label, model=model_name
                 ).model_class()
-                logger.debug(f"[ASSIGN] Loaded model class: {model_class}")
             except Exception as e:
-                logger.error(f"[ASSIGN] Could not load ContentType: {e}")
+                logger.error(
+                    f"[ASSIGN] Could not load ContentType for {app_label}.{model_name}: {e}"
+                )
                 continue
 
             for perm_codename, obj_ids in perms_dict.items():
-                logger.debug(
-                    f"[ASSIGN] Permission='{perm_codename}' for objects={obj_ids}"
-                )
-
                 for obj_id in obj_ids:
                     try:
                         obj = model_class.objects.get(id=obj_id)
-                        logger.debug(
-                            f"[ASSIGN] Assigning '{perm_codename}' "
-                            f"to group='{group.name}' on {model_name}({obj_id})"
-                        )
-
                         assign_perm(perm_codename, group, obj)
-
-                        logger.debug(
-                            f"[ASSIGN] SUCCESS: perm='{perm_codename}' "
-                            f"-> group='{group.name}' on {model_name}({obj_id})"
-                        )
                     except model_class.DoesNotExist:
                         logger.warning(
                             f"[ASSIGN] Object not found: {model_name}({obj_id})"
                         )
                     except Exception as e:
                         logger.error(
-                            f"[ASSIGN] ERROR assigning '{perm_codename}' "
-                            f"to {model_name}({obj_id}): {e}"
+                            f"[ASSIGN] ERROR assigning '{perm_codename}' to {model_name}({obj_id}): {e}"
                         )
 
     # -------------------------------
     # REVOKE
     # -------------------------------
     if "revoke" in permissions:
-        logger.debug(f"[REVOKE] Processing revoke: {permissions['revoke']}")
-
         for model_name, perms_dict in permissions["revoke"].items():
-            logger.debug(f"[REVOKE] Model='{model_name}'")
-
             if model_name not in MODEL_MAPPING:
                 logger.warning(f"[REVOKE] Model '{model_name}' NOT FOUND in mapping.")
                 continue
 
             app_label = MODEL_MAPPING[model_name]
-            logger.debug(f"[REVOKE] model='{model_name}' mapped to app='{app_label}'")
 
             try:
                 model_class = ContentType.objects.get(
                     app_label=app_label, model=model_name
                 ).model_class()
-                logger.debug(f"[REVOKE] Loaded model class: {model_class}")
             except Exception as e:
-                logger.error(f"[REVOKE] Could not load ContentType: {e}")
+                logger.error(
+                    f"[REVOKE] Could not load ContentType for {app_label}.{model_name}: {e}"
+                )
                 continue
 
             for perm_codename, obj_ids in perms_dict.items():
-                logger.debug(
-                    f"[REVOKE] Permission='{perm_codename}' for objects={obj_ids}"
-                )
-
                 for obj_id in obj_ids:
                     try:
                         obj = model_class.objects.get(id=obj_id)
-                        logger.debug(
-                            f"[REVOKE] Removing '{perm_codename}' "
-                            f"from group='{group.name}' on {model_name}({obj_id})"
-                        )
-
                         remove_perm(perm_codename, group, obj)
-
-                        logger.debug(
-                            f"[REVOKE] SUCCESS remove perm='{perm_codename}' "
-                            f"from group='{group.name}' on {model_name}({obj_id})"
-                        )
                     except model_class.DoesNotExist:
                         logger.warning(
                             f"[REVOKE] Object not found: {model_name}({obj_id})"
                         )
                     except Exception as e:
                         logger.error(
-                            f"[REVOKE] ERROR removing '{perm_codename}' "
-                            f"from {model_name}({obj_id}): {e}"
+                            f"[REVOKE] ERROR removing '{perm_codename}' from {model_name}({obj_id}): {e}"
                         )
 
-    logger.debug("[DONE] Bulk permission changes processed.")
+    logger.info("Bulk permission changes processed.")
