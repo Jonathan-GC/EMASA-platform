@@ -1,6 +1,11 @@
 <template>
   <ion-page>
-    <ion-content :fullscreen="true" class="h-full reset-password-page" :scroll-y="true">
+    <ion-content 
+      :fullscreen="true" 
+      class="h-full reset-password-page ion-no-padding" 
+      :scroll-y="true"
+      :keyboard-offset="!isMobile"
+    >
       <ion-header class="ion-no-border transparent-header">
         <ion-toolbar color="amber-700/10 transparent-toolbar">
           <ion-buttons slot="start">
@@ -28,7 +33,12 @@
 <script setup>
 import MonitorLogo from '@assets/monitor_logo_dark.svg'
 import { splineCurveMonotone } from "chart.js/helpers";
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import SignupForm from '../../../components/forms/auth/SignupForm.vue';
+
+// Responsive view detection
+const { isMobile } = useResponsiveView(768)
+
 //import ComplexSignUp from '../../../components/forms/auth/ComplexSignUp.vue';
 // El componente LoginForm se auto-importa gracias a unplugin-vue-components
 </script>

@@ -367,9 +367,10 @@ const savePermissions = async () => {
     }
     
     const payload = {
-      role_id: props.role.id,
-      assign: assign,
-      revoke: revoke
+      permissions: {
+        assign: assign,
+        revoke: revoke
+      }
     }
 
     console.log('📤 Saving permissions:', JSON.stringify(payload, null, 2))

@@ -24,6 +24,7 @@
               :disabled="loading"
               class="bg-zinc-300 rounded-md p-100 form-field custom"
               fill="solid"
+              :scroll-y="isMobile"
             ></ion-input>
           </ion-item>
 
@@ -37,6 +38,7 @@
               @keyup.enter="handleLogin"
               class="bg-zinc-300 rounded-md p-100 custom"
               fill="solid"
+              :scroll-y="isMobile"
             ></ion-input>
 
             <router-link :to="paths.RESET_PASSWORD_REQUEST" class="text-sm text-primary-600 text-right mt-2 no-underline">
@@ -103,11 +105,15 @@
 import { ref, inject, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore.js'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
 import API from '@utils/api/index.js'
 import {paths}  from '@/plugins/router/paths.js'
 
 // Router instance
 const router = useRouter()
+
+// Responsive view detection
+const { isMobile } = useResponsiveView(768)
 
 // Auth Store
 const authStore = useAuthStore()

@@ -1,7 +1,11 @@
 <template>
   <ion-page>
     
-    <ion-content :fullscreen="true" class="h-full">
+    <ion-content 
+      :fullscreen="true" 
+      class="h-full ion-no-padding"
+      :scroll-y="isMobile"
+    >
         <ion-header class="ion-no-border transparent-header">
           <ion-toolbar color="amber-700/10" class="transpatent-toolbar">
             <ion-buttons slot="start">
@@ -27,6 +31,11 @@
 <script setup>
 import MonitorLogo from '@assets/monitor_logo_dark.svg'
 import {splineCurveMonotone} from "chart.js/helpers";
+import { useResponsiveView } from '@composables/useResponsiveView.js'
+
+// Responsive view detection
+const { isMobile } = useResponsiveView(768)
+
 // El componente LoginForm se auto-importa gracias a unplugin-vue-components
 </script>
 
