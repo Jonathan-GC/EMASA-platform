@@ -218,11 +218,22 @@
         <div v-if="commentError" class="error-line">{{ commentError }}</div>
         <div v-if="commentSuccess" class="success-line">{{ commentSuccess }}</div>
         
+        <!-- Ticket resolved message -->
+        <div v-if="isTicketResolved" class="ticket-resolved-message">
+          <ion-icon :icon="icons.checkmarkCircle || icons.checkmark" class="resolved-icon" />
+          <div class="resolved-text">
+            <strong>This conversation has been resolved</strong>
+            <p>If you need further assistance, please create a new support ticket.</p>
+          </div>
+        </div>
+        
+        <!-- Comment input (disabled if resolved) -->
         <textarea
           v-model="newComment"
           placeholder="Write your response..."
           rows="3"
           class="comment-textarea"
+          :disabled="isTicketResolved || sendingComment"
           @keydown.ctrl.enter="sendComment"
           @keydown.meta.enter="sendComment"
         ></textarea>
@@ -261,7 +272,7 @@
             size="small"
             color="medium"
             @click="triggerFilePicker"
-            :disabled="sendingComment"
+            :disabled="isTicketResolved || sendingComment"
           >
             <ion-icon :icon="icons.attach || icons.document" slot="icon-only" />
           </ion-button>
@@ -269,7 +280,7 @@
           <ion-button 
             color="warning"
             @click="sendComment" 
-            :disabled="!newComment.trim() || sendingComment"
+            :disabled="isTicketResolved || !newComment.trim() || sendingComment"
             expand="block"
             class="send-button"
           >
@@ -361,6 +372,11 @@ const normalizedStatus = computed(() => {
   return conversationData.value?.status?.toLowerCase().replace(/ /g, '_') || '';
 });
 
+// Computed: Check if ticket is resolved (conversation closed)
+const isTicketResolved = computed(() => {
+  return normalizedStatus.value === 'resolved';
+});
+
 // Computed: Current user display name (auth.username or guest_name)
 const currentUserDisplayName = computed(() => {
   // If logged in, use auth username
@@ -372,19 +388,64 @@ const currentUserDisplayName = computed(() => {
 });
 
 // Function: Check if a comment is from current user
+// Logic:
+// - If comment is from current logged user (compare IDs) -> RIGHT
+// - If comment is from ticket owner (via token access) -> RIGHT
+// - If comment is from current guest (compare guest info) -> RIGHT  
+// - Otherwise -> LEFT
+// Note: 'response' field indicates if author is support (true) or regular user (false)
 const isCurrentUserComment = (comment) => {
-  // Priority 1: If logged in (authenticated user), ONLY compare with current user ID
+  console.log('🔍 Checking comment:', {
+    commentId: comment.id,
+    commentResponse: comment.response,
+    commentUser: comment.user,
+    commentGuestName: comment.guest_name,
+    commentGuestEmail: comment.guest_email,
+    currentUserId: currentUserId.value,
+    ticketUserId: ticketUserId.value,
+    guestUserName: guestUserName.value,
+    guestUserEmail: guestUserEmail.value
+  });
+  
+  // Priority 1: Authenticated users (logged in) - compare with currentUserId
   if (currentUserId.value && comment.user) {
-    return comment.user === currentUserId.value;
+    const commentUserId = typeof comment.user === 'number' ? comment.user : parseInt(comment.user);
+    const currentUserIdNum = typeof currentUserId.value === 'number' ? currentUserId.value : parseInt(currentUserId.value);
+    const isMatch = commentUserId === currentUserIdNum;
+    console.log('   ✓ User ID comparison (logged in):', { 
+      commentUserId, 
+      currentUserIdNum, 
+      isMatch,
+      commentIsSupport: comment.response === true
+    });
+    return isMatch;
   }
   
-  // Priority 2: If guest user accessing via email (not logged in), compare guest info
-  if (!currentUserId.value && guestUserName.value && guestUserEmail.value && 
+  // Priority 2: User accessing via token (not logged in) - compare with ticketUserId
+  // This handles the case where a user accesses the conversation through an email link
+  if (!currentUserId.value && ticketUserId.value && comment.user) {
+    const commentUserId = typeof comment.user === 'number' ? comment.user : parseInt(comment.user);
+    const ticketUserIdNum = typeof ticketUserId.value === 'number' ? ticketUserId.value : parseInt(ticketUserId.value);
+    const isMatch = commentUserId === ticketUserIdNum;
+    console.log('   ✓ User ID comparison (token access):', { 
+      commentUserId, 
+      ticketUserIdNum, 
+      isMatch,
+      commentIsSupport: comment.response === true
+    });
+    return isMatch;
+  }
+  
+  // Priority 3: Guest users - compare guest info
+  if (guestUserName.value && guestUserEmail.value && 
       comment.guest_name && comment.guest_email) {
-    return comment.guest_name === guestUserName.value && 
+    const isMatch = comment.guest_name === guestUserName.value && 
            comment.guest_email === guestUserEmail.value;
+    console.log('   ✓ Guest comparison:', { isMatch });
+    return isMatch;
   }
   
+  console.log('   ✗ No match - showing on LEFT');
   return false;
 };
 
@@ -1434,6 +1495,42 @@ function scrollToBottom() {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
 }
 
+.ticket-resolved-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+
+.resolved-icon {
+  font-size: 2.5rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.resolved-text {
+  flex: 1;
+}
+
+.resolved-text strong {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+  color: white;
+}
+
+.resolved-text p {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
 .comment-textarea {
   width: 100%;
   margin-bottom: 12px;
@@ -1447,6 +1544,13 @@ function scrollToBottom() {
   resize: vertical;
   min-height: 80px;
   transition: all 0.2s ease;
+}
+
+.comment-textarea:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .comment-textarea:focus {
