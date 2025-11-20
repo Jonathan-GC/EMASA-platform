@@ -297,10 +297,13 @@ class TicketViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if user and not is_support_member(user):
+            logger.debug("user is not a support member")
             return Response({"not_modified": "no need to mark as read"}, status=204)
         elif user and ticket.assigned_to.id != user.id:
+            logger.debug("user is not assigned to the ticket")
             return Response({"not_modified": "no need to mark as read"}, status=204)
         elif not user:
+            logger.debug("no user associated with the request")
             return Response({"not_modified": "no need to mark as read"}, status=204)
         ticket.is_read = True
         ticket.save()

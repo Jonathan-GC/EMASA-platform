@@ -1,4 +1,5 @@
 from .models import Notification
+from .models import SupportMembership
 
 
 def notify_user(title: str, message: str, type: str, user):
@@ -24,4 +25,4 @@ def is_support_member(user) -> bool:
     Returns:
         bool -- True if the user is a support team member, False otherwise
     """
-    return user.groups.filter(name="Support").exists()
+    return SupportMembership.objects.filter(user=user).exists()
