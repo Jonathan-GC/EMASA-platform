@@ -12,6 +12,7 @@ from .models import Role, WorkspaceMembership
 from drf_spectacular.utils import extend_schema_view, extend_schema
 from .helpers import (
     assign_new_role_base_permissions,
+    assign_created_instance_permissions,
     get_assignable_permissions,
     bulk_assign_permissions,
 )
@@ -93,6 +94,7 @@ class WorkspaceMembershipViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
 
         role = instance.role
         group = role.group

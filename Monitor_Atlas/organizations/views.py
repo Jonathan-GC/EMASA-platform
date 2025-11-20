@@ -21,6 +21,7 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
 from roles.helpers import (
     assign_new_tenant_base_permissions,
     assign_new_workspace_base_permissions,
+    assign_created_instance_permissions,
 )
 
 from rest_framework.decorators import action
@@ -61,6 +62,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
         user = self.request.user
         user_tenant = user.tenant
         workspace_tenant = instance.tenant
@@ -277,3 +279,4 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)

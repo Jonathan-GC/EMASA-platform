@@ -25,6 +25,7 @@ from chirpstack.chirpstack_api import (
 
 from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
+from roles.helpers import assign_created_instance_permissions
 
 
 # Create your views here.
@@ -60,6 +61,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
         sync_response = sync_device_profile_create(instance)
 
         if sync_response is None:
@@ -198,6 +200,7 @@ class ApiUserViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
 
         sync_response = sync_api_user_create(instance)
 

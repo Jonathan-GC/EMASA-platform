@@ -149,6 +149,7 @@ class UserViewSet(ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         instance = serializer.save()
+        assign_created_instance_permissions(instance, user)
 
         if not user.is_superuser:
             tenant = user.tenant

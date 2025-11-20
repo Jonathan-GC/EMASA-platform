@@ -53,6 +53,7 @@ from .helpers import encrypt_dev_eui
 from django.conf import settings
 
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from roles.helpers import assign_created_instance_permissions
 
 
 @extend_schema_view(
@@ -82,6 +83,7 @@ class GatewayViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
 
         sync_response = sync_gateway_create(instance)
         if sync_response is None:
@@ -216,6 +218,7 @@ class MachineViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
 
     @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def set_machine_image(self, request, pk=None):
@@ -263,6 +266,7 @@ class TypeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
 
     @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def set_type_image(self, request, pk=None):
@@ -351,6 +355,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
 
         sync_response = sync_device_create(instance)
 
@@ -741,6 +746,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
 
         sync_response = sync_application_create(instance)
         if sync_response is None:
@@ -876,3 +882,4 @@ class LocationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)

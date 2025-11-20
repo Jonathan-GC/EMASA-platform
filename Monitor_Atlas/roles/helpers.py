@@ -48,6 +48,7 @@ def assign_new_tenant_base_permissions(tenant, user):
 
     assign_perm("organizations.view_tenant", user, tenant)
     assign_perm("organizations.change_tenant", user, tenant)
+    assign_perm("users.add_user", user)
 
     # Workspace creation permission is given to tenant owners
     assign_perm("organizations.add_workspace", user)
