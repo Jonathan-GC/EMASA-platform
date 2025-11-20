@@ -16,6 +16,7 @@ declare module 'vue' {
     ChartsGrid: typeof import('./src/components/charts/ChartsGrid.vue')['default']
     ComplexSignUp: typeof import('./src/components/forms/auth/ComplexSignUp.vue')['default']
     ConnectionStatus: typeof import('./src/components/ConnectionStatus.vue')['default']
+    ConversationForm: typeof import('./src/components/forms/conversation/ConversationForm.vue')['default']
     CurrentDeviceInfo: typeof import('./src/components/cards/CurrentDeviceInfo.vue')['default']
     Default: typeof import('./src/layouts/default.vue')['default']
     DeviceInfo: typeof import('./src/components/cards/DeviceInfo.vue')['default']

@@ -52,11 +52,6 @@
               </div>
             </div>
             <div class="snippet">{{ msg.organization || msg.snippet }}</div>
-            <div v-if="!isMobile" class="item-actions">
-              <ion-button size="small" fill="clear" @click.stop="toggleUnread(msg)">
-                <ion-icon :icon="msg.unread ? icons.eyeOff : icons.eye" />
-              </ion-button>
-            </div>
           </div>
         </template>
         <div v-else class="empty-state">
@@ -78,9 +73,6 @@
             <h2 class="reading-subject">{{ selectedMessage.subject }}</h2>
             <div class="reading-actions">
               <ion-badge v-if="selectedMessage.unread" color="primary">Unread</ion-badge>
-              <ion-button size="small" fill="outline" @click="toggleUnread(selectedMessage)">
-                <ion-icon :icon="selectedMessage.unread ? icons.eyeOff : icons.eye" slot="icon-only" />
-              </ion-button>
               <ion-button v-if="isSupportManager" id="assign-trigger-mobile" size="small" fill="outline" @click="openAssignPopover($event)" :disabled="membersLoading || assigning">
                 <ion-icon :icon="icons.personAdd || icons.person" slot="icon-only" />
               </ion-button>
@@ -170,6 +162,14 @@
               </li>
             </ul>
           </div>
+          
+          <!-- Conversation button (only for assigned user) -->
+          <div v-if="isAssignedToCurrentUser" class="conversation-button-container">
+            <ion-button @click="goToConversation">
+              <ion-icon :icon="icons.chatbubbles || icons.chatbox" slot="start" />
+              View Conversation
+            </ion-button>
+          </div>
         </div>
       </div>
     </div>
@@ -193,11 +193,6 @@
               </div>
             </div>
             <div class="snippet">{{ msg.organization || msg.snippet }}</div>
-            <div class="item-actions">
-              <ion-button size="small" fill="clear" @click.stop="toggleUnread(msg)">
-                <ion-icon :icon="msg.unread ? icons.eyeOff : icons.eye" />
-              </ion-button>
-            </div>
           </div>
         </template>
         <div v-else class="empty-state">
@@ -313,6 +308,14 @@
               </li>
             </ul>
           </div>
+          
+          <!-- Conversation button (only for assigned user) -->
+          <div v-if="isAssignedToCurrentUser" class="conversation-button-container">
+            <ion-button @click="goToConversation">
+              <ion-icon :icon="icons.chatbubbles || icons.chatbox" slot="start" />
+              View Conversation
+            </ion-button>
+          </div>
         </div>
       </div>
     </div>
@@ -331,6 +334,7 @@
 // - This reorganization only adds comments/separators for readability.
 // ---------------------------------------------------------------------------
 import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotifications } from '@/composables/useNotifications';
 import { useResponsiveView } from '@/composables/useResponsiveView';
@@ -352,6 +356,9 @@ function openPriorityPopover(ev){ priorityPopoverEvent.value = ev; priorityPopov
 
 // ------------------ Injected icons ------------------
 const icons = inject('icons', {});
+
+// ------------------ Router ------------------
+const router = useRouter();
 
 // ------------------ Responsive ------------------
 const { isMobile } = useResponsiveView(768);
@@ -417,6 +424,12 @@ const isSupportManager = computed(() => {
   // Si miembros cargados tienen rol y coincide con manager
   return members.value.some(m => String(m.id) === String(currentUserId.value || '') &&
     typeof m.role === 'string' && /manager/i.test(m.role));
+});
+
+// Check if current user is assigned to the selected ticket
+const isAssignedToCurrentUser = computed(() => {
+  if (!selectedMessage.value || !currentUserId.value) return false;
+  return String(selectedMessage.value.assigned_to) === String(currentUserId.value);
 });
 
 // ------------------ User info ------------------
@@ -564,11 +577,16 @@ const selectedMessage = computed(() => messages.value.find(m => m.id === selecte
 // ------------------ Date formatting ------------------
 function formatDate(d){ if(!d) return ''; const diffMs=Date.now()-d.getTime(); const diffM=Math.floor(diffMs/60000); const diffH=Math.floor(diffMs/3600_000); if(diffM<1) return 'Just now'; if(diffH<1) return `${diffM} min ago`; if(diffH<24) return `${diffH} h ago`; if(diffH<48) return 'Yesterday'; return d.toLocaleDateString('en-US',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
 // ------------------ Selection & UI actions ------------------
-/** Select a message, mark read, load attachments */
-function selectMessage(id){
+/** Select a message, mark read via API, load attachments */
+async function selectMessage(id){
   selectedId.value = id;
   const m = messages.value.find(m => m.id === id);
-  if (m && m.unread) m.unread = false;
+  
+  // Mark as read via API if unread
+  if (m && m.unread) {
+    await markAsRead(id);
+  }
+  
   skipAssignPost.value = true;
   assigneeId.value = m?.assigned_to ?? null;
   nextTick(() => { skipAssignPost.value = false; });
@@ -583,11 +601,39 @@ function selectMessage(id){
   }
 }
 
+/** Mark ticket as read via API */
+async function markAsRead(ticketId) {
+  try {
+    console.log('📧 Marking ticket as read:', ticketId);
+    const endpoint = API.INBOX_READ(ticketId);
+    await API.post(endpoint);
+    console.log('✅ Ticket marked as read');
+    
+    // Update local state
+    const m = messages.value.find(m => m.id === ticketId);
+    if (m) m.unread = false;
+  } catch (err) {
+    console.error('❌ Error marking ticket as read:', err);
+    // Don't show error to user, it's not critical
+  }
+}
+
 // Go back to list on mobile
 function backToList() {
   showMobileReading.value = false;
   selectedId.value = null;
 }
+
+// Navigate to conversation view with ticket ID
+function goToConversation() {
+  if (selectedId.value) {
+    router.push({
+      path: '/ticket',
+      query: { id: selectedId.value }
+    });
+  }
+}
+
 // If initial ticket has an assignee and we don't yet have member data, fetch it to resolve the name
 // Unified initialization
 onMounted(async () => {
@@ -598,7 +644,6 @@ onMounted(async () => {
   await fetchTickets();
 });
 // Minor UI handlers
-function toggleUnread(m){ m.unread=!m.unread; }
 function clearSearch(){ search.value=''; }
 function refreshMock(){ fetchTickets(); }
 function priorityColor(p){ const v=(p||'').toLowerCase(); if(v==='high'||v==='urgent') return 'danger'; if(v==='medium') return 'warning'; return 'medium'; }
@@ -869,6 +914,36 @@ ion-badge.prio { --padding-start: 6px; --padding-end: 6px; --border-radius: 12px
 .attachments-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 6px; }
 .attachments-list a { color: var(--ion-color-primary,#3b82f6); text-decoration: none; }
 .attachments-list a:hover { text-decoration: underline; }
+
+/* Conversation button */
+.conversation-button-container {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.conversation-button-container ion-button {
+  --background: var(--ion-color-primary, #3b82f6);
+  --background-hover: #2563eb;
+  --color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  --padding-start: 12px;
+  --padding-end: 16px;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: fit-content;
+}
+
+.conversation-button-container ion-button ion-icon {
+  margin-right: 6px;
+}
+
 @media (max-width: 1100px){ .split-container{ grid-template-columns:320px 1fr; } }
 @media (max-width: 900px){ .split-container{ grid-template-columns:1fr; } .message-list{ max-height:none; } .reading-pane{ max-height:none; margin-top:8px; } }
 @media (max-width: 600px){ .header-actions{ flex-direction:column; align-items:stretch; } .search{ flex:1 1 auto; width:100%; } }

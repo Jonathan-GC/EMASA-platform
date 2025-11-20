@@ -125,10 +125,25 @@ class API {
 
     //----[INBOX]----
     SUPPORT_MEMBERS = 'support/ticket/get_support_members/'
+
+    INBOX_READ(ticketId) {
+        return `support/ticket/${ticketId}/mark_as_read/`
+    }
     
     DELEGATE(ticketId){
         return `support/ticket/${ticketId}/delegate/`
     }
+
+    //----[CONVERSATION]----
+
+    TICKET_CONVERSATION(ticketId) {
+        return `support/ticket/${ticketId}/conversation/`
+    }
+
+    COMMENT = 'support/comment/'
+    COMMENT_ATTACHMENT = 'support/comment-attachment/'
+    COMMENT_TOKEN_VERIFICATION = 'users/auth/verify-ticket-token/'
+
 
     static instance;
 

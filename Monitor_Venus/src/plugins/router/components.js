@@ -27,5 +27,7 @@ export const components = {
     // rute support
     SUPPORT: () => import('@views/support/index.vue'),
     INBOX: () => import('@views/inbox/index.vue'),
+    CONVERSATION: () => import('@views/conversation/index.vue'),
+    
 
 }
