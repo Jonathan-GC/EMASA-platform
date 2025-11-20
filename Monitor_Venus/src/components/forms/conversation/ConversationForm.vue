@@ -19,13 +19,19 @@
       <div class="ticket-header">
         <div class="header-top">
           <h2>{{ conversationData.title }}</h2>
-          <div class="ticket-badges">
-            <ion-badge :color="priorityColor(conversationData.priority)">
-              {{ conversationData.priority }}
-            </ion-badge>
-            <ion-badge :color="statusColor(conversationData.status)">
-              {{ conversationData.status }}
-            </ion-badge>
+          <div class="header-actions">
+            <div class="ticket-badges">
+              <ion-badge :color="priorityColor(conversationData.priority)">
+                {{ conversationData.priority }}
+              </ion-badge>
+              <ion-badge :color="statusColor(conversationData.status)">
+                {{ conversationData.status }}
+              </ion-badge>
+            </div>
+            <!-- Scroll to bottom button -->
+            <ion-button class="scroll-to-bottom-btn" fill="clear" @click="scrollToBottom">
+              <ion-icon :icon="icons.arrowDown || icons.chevronDown" />
+            </ion-button>
           </div>
         </div>
         <div class="header-subtitle">
@@ -558,6 +564,11 @@ async function loadConversation() {
       guestUserEmail.value = conversationData.value.guest_email;
       console.log('👥 Guest user info:', { name: guestUserName.value, email: guestUserEmail.value });
     }
+    
+    // Auto-scroll to bottom after conversation loads
+    setTimeout(() => {
+      scrollToBottom();
+    }, 300);
   } catch (err) {
     console.error('Error loading conversation:', err);
     error.value = err?.message || 'Failed to load conversation';
@@ -866,6 +877,21 @@ function getAttachmentName(filePath) {
     return filename;
   }
 }
+
+// Scroll to bottom (comment input section)
+function scrollToBottom() {
+  setTimeout(() => {
+    const commentSection = document.querySelector('.comment-input-section');
+    if (commentSection) {
+      commentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, 100);
+}
 </script>
 
 <style scoped>
@@ -914,6 +940,13 @@ function getAttachmentName(filePath) {
   margin-bottom: 12px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .ticket-header h2 {
   margin: 0;
   font-size: 2rem;
@@ -928,6 +961,29 @@ function getAttachmentName(filePath) {
   gap: 8px;
   align-items: center;
   flex-shrink: 0;
+}
+
+/* Scroll to bottom button */
+.scroll-to-bottom-btn {
+  --color: #f57c00;
+  --background: transparent;
+  --background-hover: rgba(245, 124, 0, 0.1);
+  --background-activated: rgba(245, 124, 0, 0.2);
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --border-radius: 8px;
+  margin: 0;
+  height: 36px;
+  min-width: 36px;
+}
+
+.scroll-to-bottom-btn ion-icon {
+  font-size: 24px;
+  color: #f57c00;
+}
+
+.scroll-to-bottom-btn:hover ion-icon {
+  color: #ef6c00;
 }
 
 .header-subtitle {
