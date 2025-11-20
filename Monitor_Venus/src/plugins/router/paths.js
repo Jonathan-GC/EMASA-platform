@@ -28,4 +28,5 @@ export const paths = {
     // Support and inbox paths
     SUPPORT: '/support',
     INBOX: '/inbox',
+    CONVERSATION: '/ticket',
 }

@@ -186,6 +186,15 @@ export const routes = [
                 beforeEnter: requireAuth
             },
 
+            {
+                path: P.CONVERSATION,
+                alias: '/tickets', // Alias for email links
+                component: C.CONVERSATION,
+                meta: { 
+                    label: 'Inbox'
+                },
+            },
+
 
             { path: P.TENANTS, component: C.TENANTS },
             { path: P.TENANT_MANAGERS, component: C.TENANT_MANAGERS, beforeEnter: requireAuth },
