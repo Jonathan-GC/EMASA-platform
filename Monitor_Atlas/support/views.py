@@ -381,11 +381,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
         commenter = self.request.user or None
 
-        if commenter and not is_support_member(commenter):
-            # Comment from user/guest
-            ticket.is_read = False
-        elif not commenter:
-            # Comment from guest (no user)
+        if not commenter or not is_support_member(commenter):
             ticket.is_read = False
 
         ticket.save()
@@ -393,9 +389,15 @@ class CommentViewSet(viewsets.ModelViewSet):
         if comment.response:
             # Comment from technician/staff
             if ticket.user_id:
-                ticket_user = User.objects.get(id=ticket.user_id)
-                ticket_user_name = ticket_user.get_full_name() or ticket_user.username
-                ticket_user_email = ticket_user.email
+                try:
+                    ticket_user = User.objects.get(id=ticket.user_id)
+                    ticket_user_name = (
+                        ticket_user.get_full_name() or ticket_user.username
+                    )
+                    ticket_user_email = ticket_user.email
+                except User.DoesNotExist:
+                    ticket_user_name = ticket.guest_name
+                    ticket_user_email = ticket.guest_email
             else:
                 ticket_user_name = ticket.guest_name
                 ticket_user_email = ticket.guest_email

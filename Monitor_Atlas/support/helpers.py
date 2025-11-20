@@ -25,4 +25,6 @@ def is_support_member(user) -> bool:
     Returns:
         bool -- True if the user is a support team member, False otherwise
     """
-    return SupportMembership.objects.filter(user=user).exists()
+    if user:
+        return SupportMembership.objects.filter(user=user).exists()
+    return False
