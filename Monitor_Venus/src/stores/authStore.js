@@ -69,8 +69,20 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Verifica si el usuario es un usuario de tenant (tenant_user)
+   * Un tenant_user es un usuario regular que:
+   * - NO es superuser
+   * - NO es global
+   * - NO es support
+   * - NO es tenant_admin
+   * - TIENE un tenant asignado (cs_tenant_id)
    */
-  const isTenantUser = computed(() => user.value.role_type === 'tenant_user');
+  const isTenantUser = computed(() => 
+    !user.value.is_superuser &&
+    !user.value.is_global &&
+    !user.value.is_support &&
+    !user.value.is_tenant_admin &&
+    user.value.cs_tenant_id !== null
+  );
 
   /**
    * Verifica si el usuario es un manager (tenant manager)

@@ -91,7 +91,7 @@ export const routes = [
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['root', 'admin', 'manager', 'tenant_admin'],
+                    roles: ['root', 'admin', 'manager', 'tenant_admin', 'tenant_user'],
                     label: 'Users'
                 }
             },
@@ -101,7 +101,7 @@ export const routes = [
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['root', 'admin', 'manager', 'tenant_admin'],
+                    roles: ['root', 'admin', 'manager', 'tenant_admin', 'tenant_user'],
                     label: 'Roles'
                 }
             },
@@ -117,7 +117,7 @@ export const routes = [
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'],
                     label: 'Gateways'
                 }
             },
@@ -139,7 +139,7 @@ export const routes = [
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'],
                     label: 'Applications'
                 }
             },
@@ -151,7 +151,7 @@ export const routes = [
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'],
                     label: 'Devices'
                 }
             },
@@ -163,7 +163,7 @@ export const routes = [
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'],
                     label: 'Device Details'
                 }
             },
@@ -175,7 +175,7 @@ export const routes = [
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
-                    roles: ['root', 'admin', 'technician', 'tenant_admin'],
+                    roles: ['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'],
                     label: 'Machines'
                 }
             },
@@ -205,14 +205,12 @@ export const routes = [
             {
                 path: P.INBOX,
                 component: C.INBOX,
-                beforeEnter: requireTenant,
+                beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    requiresTenant: true,
-                    roles: ['superuser', 'admin'],
+                    roles: ['root', 'support'],
                     label: 'Inbox'
-                },
-                beforeEnter: requireAuth
+                }
             },
 
             {
