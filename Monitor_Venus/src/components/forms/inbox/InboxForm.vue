@@ -212,10 +212,7 @@
             <h2 class="reading-subject">{{ selectedMessage.subject }}</h2>
             <div class="reading-actions">
               <ion-badge v-if="selectedMessage.unread" color="primary">Unread</ion-badge>
-              <ion-button size="small" fill="outline" @click="toggleUnread(selectedMessage)">
-                <ion-icon :icon="selectedMessage.unread ? icons.eyeOff : icons.eye" slot="start" />
-                {{ selectedMessage.unread ? 'Mark as read' : 'Mark as unread' }}
-              </ion-button>
+              <!-- Mark as read button removed - now automatic when ticket is selected -->
               <ion-button v-if="isSupportManager" id="assign-trigger" size="small" fill="outline" @click="openAssignPopover($event)" :disabled="membersLoading || assigning">
                 <ion-icon :icon="icons.personAdd || icons.person" slot="start" />
                 <span v-if="assigneeId">Change assigned</span>
