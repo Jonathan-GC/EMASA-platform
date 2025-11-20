@@ -139,13 +139,25 @@ const verifyAccount = async () => {
 
 // Navigate to login
 const goToLogin = () => {
-  router.push(paths.login)
+  router.push(paths.LOGIN)
 }
 
 // Get token from URL and verify on mount
 onMounted(async () => {
   token.value = route.query.token || ''
   console.log('Verification token:', token.value)
+  
+  // Fetch CSRF token first (required by backend)
+  try {
+    console.log('🔐 Fetching CSRF token...')
+    await API.get(API.CSRF_TOKEN)
+    console.log('✅ CSRF token obtained')
+  } catch (error) {
+    console.error('❌ Failed to fetch CSRF token:', error)
+    errorMessage.value = 'Failed to initialize security token. Please try again.'
+    isLoading.value = false
+    return
+  }
   
   // Automatically verify the account
   await verifyAccount()
@@ -171,7 +183,7 @@ onMounted(async () => {
 }
 
 .transparent-toolbar {
-  --background: rgba(180, 83, 9, 0.1); /* amber-700 with 10% opacity */
+  --background: rgba(180, 83, 9, 0); /* amber-700 with 10% opacity */
   --color: white;
 }
 

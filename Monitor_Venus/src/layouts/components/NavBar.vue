@@ -67,11 +67,13 @@
           </router-link>
         </template>
         
-        <!-- Enlaces de administración (solo superuser y admin) -->
-        <template v-if="showRootLinks">
+        <!-- Enlaces de administración -->
+        <template v-if="canAccessAnyAdminRoute">
           <hr class="divider"/>
           
+          <!-- Tenants: root, admin, manager -->
           <router-link
+              v-if="canAccessRoute(['root', 'admin'])"
               to="/tenants"
               class="nav-link"
               :class="{ active: $route.path === '/tenants' }"
@@ -83,7 +85,9 @@
             Tenants
           </router-link>
 
+          <!-- Workspaces: root, admin, manager, viewer, tenant_admin, tenant_user -->
           <router-link
+              v-if="canAccessRoute(['root', 'admin', 'manager', 'viewer', 'tenant_admin', 'tenant_user'])"
               :to=paths.TENANT_WORKSPACES
               class="nav-link"
               :class="{ active: $route.path === paths.TENANT_WORKSPACES }"
@@ -95,7 +99,9 @@
             Workspaces
           </router-link>
 
+          <!-- Managers: root, admin, manager (commented out in routes) -->
           <router-link
+              v-if="canAccessRoute(['root', 'admin', 'manager'])"
               :to="paths.TENANT_MANAGERS"
               class="nav-link"
               :class="{ active: $route.path === paths.TENANT_MANAGERS }"
@@ -107,8 +113,38 @@
             Managers
           </router-link>
 
+          <!-- Users: root, admin, manager, tenant_admin -->
           <router-link
-              :to=paths.TENANT_LOCATIONS
+              v-if="canAccessRoute(['root', 'admin', 'manager', 'tenant_admin'])"
+              :to="paths.USERS"
+              class="nav-link"
+              :class="{ active: $route.path === paths.USERS }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.person"
+            ></ion-icon>
+            Usuarios
+          </router-link>
+
+          <!-- Roles: root, admin, manager, tenant_admin -->
+          <router-link
+              v-if="canAccessRoute(['root', 'admin', 'manager', 'tenant_admin'])"
+              :to="paths.ROLES"
+              class="nav-link"
+              :class="{ active: $route.path === paths.ROLES }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.shield"
+            ></ion-icon>
+            Roles
+          </router-link>
+
+          <!-- Locations: root, admin -->
+          <router-link
+              v-if="canAccessRoute(['root', 'admin'])"
+              :to="paths.TENANT_LOCATIONS"
               class="nav-link"
               :class="{ active: $route.path === paths.TENANT_LOCATIONS }"
               @click="closeNavbar"
@@ -120,11 +156,14 @@
           </router-link>
         </template>
 
-        <!-- Enlaces de tenant (usuarios con tenant asignado) -->
-        <template v-if="!showSupportLinks && showTenantLinks || showRootLinks">
-          <hr class="divider"/>
+        <!-- Enlaces de infraestructura -->
+        <template v-if="canAccessAnyInfrastructureRoute">
 
+          <hr class="divider"/>
+          
+          <!-- Gateways: root, admin, technician, tenant_admin -->
           <router-link 
+            v-if="canAccessRoute(['root', 'admin', 'technician', 'tenant_admin'])"
             to="/infrastructure/gateways"
             class="nav-link"
             :class="{ active: $route.path === paths.GATEWAYS }"
@@ -136,7 +175,9 @@
             Gateways
           </router-link>
           
+          <!-- Device Profiles: root, admin, technician -->
           <router-link
+              v-if="canAccessRoute(['root', 'admin', 'technician'])"
               :to=paths.DEVICE_PROFILES
               class="nav-link"
               :class="{ active: $route.path === paths.DEVICE_PROFILES }"
@@ -148,7 +189,9 @@
             Device Profiles
           </router-link>
 
+          <!-- Applications: root, admin, technician, tenant_admin -->
           <router-link
+              v-if="canAccessRoute(['root', 'admin', 'technician', 'tenant_admin'])"
               :to=paths.APPLICATIONS
               class="nav-link"
               :class="{ active: $route.path === paths.APPLICATIONS }"
@@ -160,7 +203,9 @@
             Applications
           </router-link>
 
+          <!-- Machines: root, admin, technician, tenant_admin -->
           <router-link
+              v-if="canAccessRoute(['root', 'admin', 'technician', 'tenant_admin'])"
               :to=paths.MACHINES
               class="nav-link"
               :class="{ active: $route.path === paths.MACHINES }"
@@ -241,22 +286,22 @@ const closeNavbar = () => {
   isOpen.value = false
 }
 
-// Computed properties para mostrar/ocultar enlaces según roles
-const showRootLinks = computed(() => {
-  return authStore.isSuperUser
+// Helper function to check if user can access route with any of the required roles
+const canAccessRoute = (requiredRoles) => {
+  if (!authStore.isAuthenticated) return false
+  return requiredRoles.some(role => authStore.hasRole(role))
+}
+
+// Check if user can access any admin route (to show the admin section)
+const canAccessAnyAdminRoute = computed(() => {
+  return canAccessRoute(['root', 'admin', 'manager', 'viewer', 'tenant_admin', 'tenant_user'])
 })
 
-const showAdminLinks = computed(() => {
-  return authStore.isAdmin && authStore.hasTenant
+// Check if user can access any infrastructure route (to show the infrastructure section)
+const canAccessAnyInfrastructureRoute = computed(() => {
+  return canAccessRoute(['root', 'admin', 'technician', 'tenant_admin'])
 })
 
-const showTenantLinks = computed(() => {
-  return authStore.isAuthenticated && authStore.hasTenant
-})
-const showSupportLinks = computed(() => {
-  return authStore.isSupportUser && authStore.hasTenant
-})
- 
 const showAuthLinks = computed(() => {
   return !authStore.isAuthenticated
 })

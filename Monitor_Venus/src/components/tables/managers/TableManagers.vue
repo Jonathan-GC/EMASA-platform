@@ -41,7 +41,8 @@
           </div>
 
           <!-- Table using ion-grid (Desktop) -->
-          <ion-grid v-if="!isMobile" class="data-table">
+          <div v-if="!isMobile" class="table-wrapper">
+            <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
 
@@ -112,7 +113,8 @@
                 <QuickActions :toView="true" />
               </ion-col>
             </ion-row>
-          </ion-grid>
+            </ion-grid>
+          </div>
 
           <!-- Mobile Card View -->
           <div v-else class="mobile-cards">
@@ -215,8 +217,16 @@ const error = ref(null)
 const selectedUser = ref(null)
 const isMounted = ref(false)
 
+// Transform users data to include searchable status text
+const searchableUsers = computed(() => {
+  return users.value.map(user => ({
+    ...user,
+    statusText: formatActiveStatus(user.is_active)
+  }))
+})
+
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(users, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(searchableUsers, ['name', 'email', 'cs_user_id', 'statusText'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -346,10 +356,15 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.data-table {
+.table-wrapper {
+  overflow-x: auto;
   border: 1px solid var(--ion-color-light);
   border-radius: 8px;
-  overflow: hidden;
+}
+
+.data-table {
+  min-width: 1000px;
+  margin: 0;
 }
 
 

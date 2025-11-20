@@ -173,9 +173,23 @@ export const formatPercentage = (value, decimals = 1) => {
 
 // Boolean Formatters
 export const formatActiveStatus = (value) => {
-  if (value === true || value === 'true' || value === 1) return 'Activo'
-  if (value === false || value === 'false' || value === 0) return 'Inactivo'
+  // Handle various truthy values
+  if (value === true || value === 'true' || value === 1 || value === '1' || 
+      (typeof value === 'string' && value.toLowerCase() === 'activo')) {
+    return 'Activo'
+  }
+  // Handle various falsy values
+  if (value === false || value === 'false' || value === 0 || value === '0' || 
+      (typeof value === 'string' && value.toLowerCase() === 'inactivo')) {
+    return 'Inactivo'
+  }
   return 'N.A'
+}
+
+// Get searchable status variations for filtering
+export const getStatusSearchTerms = (value) => {
+  const status = formatActiveStatus(value)
+  return [status, status.toLowerCase(), value?.toString() || '']
 }
 
 

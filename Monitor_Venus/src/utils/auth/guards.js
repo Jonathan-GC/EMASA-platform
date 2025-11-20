@@ -201,3 +201,113 @@ export const requireTenant = (to, from, next) => {
     console.log('✅ Usuario tiene tenant o permisos globales');
     next();
 };
+
+// ========================================
+// ADDITIONAL ROLE-BASED GUARDS
+// ========================================
+
+/**
+ * Guard para rutas que requieren ser Manager (tenant_admin o manager)
+ */
+export const requireManager = (to, from, next) => {
+    const authStore = useAuthStore();
+    
+    if (!authStore.isAuthenticated) {
+        authStore.initializeAuth();
+    }
+    
+    if (!authStore.isAuthenticated) {
+        console.log('🚫 Acceso denegado - No autenticado');
+        clearAllAuthData();
+        next(P.LOGIN);
+        return;
+    }
+    
+    if (authStore.isManager || authStore.isSuperUser || authStore.isGlobalUser) {
+        console.log('✅ Acceso permitido - Manager o superior');
+        next();
+    } else {
+        console.log('🚫 Acceso denegado - Requiere Manager');
+        next('/unauthorized');
+    }
+};
+
+/**
+ * Guard para rutas que requieren ser Técnico
+ */
+export const requireTechnician = (to, from, next) => {
+    const authStore = useAuthStore();
+    
+    if (!authStore.isAuthenticated) {
+        authStore.initializeAuth();
+    }
+    
+    if (!authStore.isAuthenticated) {
+        console.log('🚫 Acceso denegado - No autenticado');
+        clearAllAuthData();
+        next(P.LOGIN);
+        return;
+    }
+    
+    if (authStore.isTechnician || authStore.isManager || authStore.isSuperUser || authStore.isGlobalUser) {
+        console.log('✅ Acceso permitido - Técnico o superior');
+        next();
+    } else {
+        console.log('🚫 Acceso denegado - Requiere Técnico');
+        next('/unauthorized');
+    }
+};
+
+/**
+ * Guard para rutas accesibles por Viewer (solo lectura)
+ */
+export const requireViewer = (to, from, next) => {
+    const authStore = useAuthStore();
+    
+    if (!authStore.isAuthenticated) {
+        authStore.initializeAuth();
+    }
+    
+    if (!authStore.isAuthenticated) {
+        console.log('🚫 Acceso denegado - No autenticado');
+        clearAllAuthData();
+        next(P.LOGIN);
+        return;
+    }
+    
+    // Viewers tienen acceso de lectura, pero también roles superiores
+    if (authStore.isViewer || authStore.isTenantUser || authStore.isTechnician || 
+        authStore.isManager || authStore.isSuperUser || authStore.isGlobalUser) {
+        console.log('✅ Acceso permitido - Viewer o superior');
+        next();
+    } else {
+        console.log('🚫 Acceso denegado - Requiere al menos Viewer');
+        next('/unauthorized');
+    }
+};
+
+/**
+ * Guard para tenant users
+ */
+export const requireTenantUser = (to, from, next) => {
+    const authStore = useAuthStore();
+    
+    if (!authStore.isAuthenticated) {
+        authStore.initializeAuth();
+    }
+    
+    if (!authStore.isAuthenticated) {
+        console.log('🚫 Acceso denegado - No autenticado');
+        clearAllAuthData();
+        next(P.LOGIN);
+        return;
+    }
+    
+    if (authStore.isTenantUser || authStore.isManager) {
+        console.log('✅ Acceso permitido - Tenant User o superior');
+        next();
+    } else {
+        console.log('🚫 Acceso denegado - Requiere Tenant User');
+        next('/unauthorized');
+    }
+};

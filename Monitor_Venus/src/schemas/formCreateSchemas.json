@@ -1,7 +1,7 @@
 {
   "tenant": [
+    { "key": "img", "label": "Imagen", "type": "image" },
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "img", "label": "Imagen", "type": "text" },
     { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "subscription_id", "label": "Subscripción", "type": "text" }
   ],
@@ -48,8 +48,6 @@
     { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" }
   ],
 
-  
-
   "manager": [
     { "key": "workspace_id", "label": "Workspace", "type": "text" },
     { "key": "email", "label": "Correo electrónico", "type": "text" },
@@ -88,80 +86,31 @@
     { "key": "workspace_id", "label": "Workspace", "type": "select" }
   ],
 
-
-  "period": [
+  "user": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "start_date", "label": "Fecha de inicio", "type": "date" },
-    { "key": "end_date", "label": "Fecha de fin", "type": "date" },
-    { "key": "is_current", "label": "Estado", "type": "radio-group","options": [
-        { "label": "Activo", "value": true },
-        { "label": "Inactivo", "value": false }
-      ]
-    }
-  ],
-  "group": [
-    { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "lines_of_research", "label": "Lineas de investigación", "type": "multiple-select", "options": [] }
-  ],
-  "seedbed":[
-    { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "mission", "label": "Misión", "type": "textarea" },
-    { "key": "vision", "label": "Visión", "type": "textarea" },
-    { "key": "research_proposal_description", "label": "Descripcion del proposito", "type": "textarea" },
-    { "key": "creation_date", "label": "Fecha de creación", "type": "date" },
-    { "key": "line_of_research", "label": "Linea de investigación", "type": "select", "options": [] }
-  ],
-  "user_integra":[
-    { "key": "identification", "label": "Numero de identificaion", "type": "text" },
-    { "key": "type", "label": "Tipo", "type": "select", "options": [] }
-  ],
-  "user_external": [
-    { "key": "full_name", "label": "Nombre", "type": "text" },
-    { "key": "identification_number", "label": "Numero de Identificación", "type": "text" },
+    { "key": "last_name", "label": "Apellido", "type": "text" },
+    { "key": "code", "label": "Código de empleado", "type": "text" }, 
     { "key": "email", "label": "Correo electrónico", "type": "text" },
-    { "key": "user_code", "label": "Código de usuario", "type": "text" },
-    { "key": "sex", "label": "Sexo", "type": "select", "options": [] }
+    { "key": "phone_code", "label": "Código de teléfono", "type": "select" },
+    { "key": "phone", "label": "Número de teléfono", "type": "text" },
+    { "key": "country", "label": "País", "type": "select" },
+    { "key": "address.city", "label": "Ciudad", "type": "select" },
+    { "key": "address.state", "label": "Estado", "type": "select" },
+    { "key": "address.address", "label": "Dirección", "type": "text" },
+    { "key": "address.zipcode", "label": "Código postal", "type": "text" }
   ],
-  "role":[
-    { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "description", "label": "Descripción", "type": "textarea" }
+  "measurement": [
+    { "key": "unit", "label": "Unidad de medida", "type": "text" },
+    { "key": "min", "label": "Valor mínimo", "type": "text" },
+    { "key": "max", "label": "Valor máximo", "type": "text" },
+    { "key": "threshold", "label": "Umbral", "type": "text" }
   ],
-  "internal_profile":[
-    { "key": "academic_period_id", "label": "Periodo Académico", "type": "select", "options": []  },
-    { "key": "role_ids", "label": "Roles", "type": "multiple-select", "options": [] }
-  ],
-  "external_profile": [
-    { "key": "academic_period_id", "label": "Periodo Académico", "type": "select", "options": [], "required": true },
-    { "key": "research_group_profile_id", "label": "Grupo de Investigación", "type": "select", "options": [], "required": true, "dependsOn": "academic_period_id", "disabled": true },
-    { "key": "research_seedbed_profile_id", "label": "Semillero", "type": "select", "options": [], "required": true, "dependsOn": "research_group_profile_id", "disabled": true },
-    { "key": "country", "label":  "País", "type": "select", "options":  [] },
-    { "key": "type_of_external_user", "label": "Tipo", "type": "select", "options":  [] }
-  ],
-  "external_seedbed_profile": [
-    { "key": "user_id", "label": "Aliado Externo", "type": "select", "options": []},
-    { "key": "country", "label":  "País", "type": "select", "options":  [] },
-    { "key": "type_of_external_user", "label": "Tipo", "type": "select", "options":  [] }
-  ],
-  "group_profile": [
-    { "key": "investigation_group_id", "label": "Grupo de Investigación", "type": "select" },
-    { "key": "coordinator_id", "label": "Coordinador", "type": "select" }
-  ],
-  "seedbed_profile": [
-    { "key": "research_seedbed_id", "label": "Semillero de investigación", "type": "select" },
-    { "key": "coordinator_id", "label": "Coordinador", "type": "select" },
-    { "key": "tutor_id", "label": "Tutor", "type": "select" },
-    { "key": "was_active", "label": "Periodo Académico", "type": "radio-group", "options": [
-      { "label": "Activo", "value": true},
-      { "label": "Inactivo", "value": false }
-    ]}
-  ],
-    "seedbed_member": [
-        { "key": "student_profile_id", "label": "Estudiante", "type": "select" },
-        { "key": "was_active", "label": "Estado", "type": "radio-group","options": [
-          { "label": "Activo", "value": true },
-          { "label": "Inactivo", "value": false }
-        ]
-        },
-      { "key": "is_leader", "label": "Es líder", "type": "checkbox" }
-    ]
+
+  "role": [
+    { "key": "name", "label": "Nombre del rol", "type": "text" },
+    { "key": "description", "label": "Descripción", "type": "textarea" },
+    { "key": "color", "label": "Color", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" }
+  ]
+
  }

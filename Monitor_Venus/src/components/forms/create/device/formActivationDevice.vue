@@ -98,8 +98,8 @@
               <h4>Frame Counters (Optional)</h4>
               
               <!-- Uplink Frame Counter -->
-              <div class="flex">
-              <ion-item class="custom flex-1 !mr-2">
+              <div :class="isMobile ? 'flex-column' : 'flex'">
+              <ion-item :class="isMobile ? 'custom full-width mb-4' : 'custom flex-1 !mr-2'">
                 <ion-label position="stacked" class="!mb-2">Uplink Frame Counter</ion-label>
                 <ion-input
                   fill="solid"
@@ -112,7 +112,7 @@
               </ion-item>
 
               <!-- Network Downlink Counter -->
-              <ion-item class="custom flex-1 !mr-2">
+              <ion-item :class="isMobile ? 'custom full-width mb-4' : 'custom flex-1 !mr-2'">
                 <ion-label position="stacked" class="!mb-2">Network Downlink Counter</ion-label>
                 <ion-input
                   fill="solid"
@@ -125,7 +125,7 @@
               </ion-item>
 
               <!-- Application Downlink Counter -->
-              <ion-item class="custom flex-1">
+              <ion-item :class="isMobile ? 'custom full-width' : 'custom flex-1'">
                 <ion-label position="stacked" class="!mb-2">Application Downlink Counter</ion-label>
                 <ion-input
                   fill="solid"
@@ -145,6 +145,7 @@
               type="submit"
               :disabled="keysLoading || !isKeysFormValid"
               class="set-keys-button"
+              color="primary"
             >
               <ion-spinner v-if="keysLoading" slot="start"></ion-spinner>
               <ion-icon v-else :icon="icons.key" slot="start"></ion-icon>
@@ -177,8 +178,13 @@ import {
   IonLabel,
   IonProgressBar,
   IonIcon,
+  alertController,
 } from '@ionic/vue'
 import API from '@utils/api/api'
+import { useResponsiveView } from '@/composables/useResponsiveView.js'
+
+// Responsive view
+const { isMobile } = useResponsiveView(768)
 
 // Get device ID from URL
 const route = useRoute()
@@ -365,6 +371,32 @@ async function submitActivationKeys() {
     return
   }
 
+  // Show confirmation dialog
+  const alert = await alertController.create({
+    header: 'Confirm Device Keys',
+    subHeader: `Device: ${props.device?.device_name || 'Unknown'}`,
+    message: 'Are you sure you want to set the activation keys for this device? This will configure the LoRaWAN communication parameters.',
+    buttons: [
+      {
+        text: 'Cancel',
+        role: 'cancel',
+        cssClass: 'secondary',
+      },
+      {
+        text: 'Confirm',
+        role: 'confirm',
+        handler: async () => {
+          await performSetKeys()
+        }
+      }
+    ]
+  })
+
+  await alert.present()
+}
+
+// Perform the actual key setting operation
+async function performSetKeys() {
   keysLoading.value = true
   try {
     console.log('🔑 Setting activation keys for device:', activeDeviceId.value)
@@ -413,6 +445,42 @@ async function handleActivationToggle(event) {
     return
   }
 
+  // Show confirmation dialog for deactivation only
+  if (!shouldActivate) {
+    const alert = await alertController.create({
+      header: 'Confirm Device Deactivation',
+      subHeader: `Device: ${props.device?.device_name || 'Unknown'}`,
+      message: 'Are you sure you want to disable this device? The device will stop communicating with the network until reactivated.',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'secondary',
+          handler: () => {
+            // Revert toggle
+            event.target.checked = true
+          }
+        },
+        {
+          text: 'Disable Device',
+          role: 'destructive',
+          cssClass: 'danger',
+          handler: async () => {
+            await performActivationToggle(shouldActivate, event)
+          }
+        }
+      ]
+    })
+
+    await alert.present()
+  } else {
+    // No confirmation needed for activation
+    await performActivationToggle(shouldActivate, event)
+  }
+}
+
+// Perform the actual activation/deactivation operation
+async function performActivationToggle(shouldActivate, event) {
   activationLoading.value = true
   
   try {
@@ -694,8 +762,32 @@ ion-input::part(helper-text) {
   height: 0;
 }
 
+/* Responsive utility classes */
+.flex-column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.full-width {
+  width: 100%;
+  padding: 0 !important;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  ion-card-header {
+    padding: 16px 12px;
+  }
+
+  ion-card-content {
+    padding: 12px;
+  }
+
   ion-card-title {
     font-size: 1.1rem;
   }
@@ -710,7 +802,7 @@ ion-input::part(helper-text) {
   }
 
   .set-keys-button {
-    width: auto;
+    width: 100%;
     --padding-start: 12px;
     --padding-end: 12px;
   }
@@ -723,6 +815,15 @@ ion-input::part(helper-text) {
   .status-item p,
   .toggle-item p {
     font-size: 0.75rem;
+  }
+
+  .button-group {
+    justify-content: stretch;
+  }
+
+  .frame-counters-section {
+    padding-top: 16px;
+    margin-top: 16px;
   }
 }
 

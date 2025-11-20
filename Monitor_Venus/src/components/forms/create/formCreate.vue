@@ -81,6 +81,18 @@
                 </ion-checkbox>
               </ion-item>
 
+              <div v-else-if="field.type === 'image'" class="image-field-wrapper">
+                <ImageUpload
+                  :ref="el => setImageUploadRef(field.key, el)"
+                  v-model="formValues[field.key]"
+                  :placeholder-text="field.placeholder || 'Haz clic para seleccionar una imagen'"
+                  :max-size="field.maxSize || 5 * 1024 * 1024"
+                  :alt="field.label"
+                  @change="handleImageChange(field.key, $event)"
+                  @error="handleImageError"
+                />
+              </div>
+
             </div>
           </ion-list>
           <div class="ion-text-end ion-padding-top">
@@ -121,6 +133,7 @@ import {
   IonSpinner,
 } from '@ionic/vue';
 import ModalSelector from '@/components/ui/ModalSelector.vue';
+import ImageUpload from '@/components/common/ImageUpload.vue';
 import API from "@utils/api/api";
 
 const props = defineProps({
@@ -141,10 +154,18 @@ const emit = defineEmits(['itemCreated', 'fieldChanged', 'closed']);
 const { fields, additionalData } = toRefs(props);
 
 const loading = ref(false);
-const formValues = ref({ ...fields.value, ...additionalData.value });
+const formValues = ref({ ...fields.value, ...fields.value, ...additionalData.value });
 const componentKey = ref(0);
+const imageUploadRefs = ref({});
 
 const icons = inject('icons', {});
+
+// Store refs for ImageUpload components
+const setImageUploadRef = (key, el) => {
+  if (el) {
+    imageUploadRefs.value[key] = el;
+  }
+};
 
 const closeModal = () => {
   emit('closed');
@@ -163,6 +184,16 @@ function handleFieldChange(fieldKey, value) {
   emit('fieldChanged', fieldKey, value);
 }
 
+function handleImageChange(fieldKey, fileInfo) {
+  console.log(`📸 Image changed for ${fieldKey}:`, fileInfo);
+  // Store the file info for later use
+  formValues.value[`${fieldKey}_file`] = fileInfo.file;
+}
+
+function handleImageError(errorMessage) {
+  console.error('❌ Image upload error:', errorMessage);
+}
+
 function clearField(fieldKey) {
   formValues.value[fieldKey] = null;
   componentKey.value++;
@@ -172,6 +203,10 @@ async function createItem() {
   loading.value = true;
   try {
     let response;
+    
+    // Get deviceId from additionalData if type is measurements
+    const deviceId = props.additionalData?.device_id;
+    
     // Map of types to API endpoints
     const apiEndpoints = {
       'tenant': API.TENANT,
@@ -184,22 +219,54 @@ async function createItem() {
       'application': API.APPLICATION,
       'workspace': API.WORKSPACE,
       'manager': API.API_USER,
-      'group': API.INVESTIGATION_GROUPS,
-      'seedbed': API.RESEARCH_SEEDBEDS,
-      'user_integra': API.USERS_INTEGRA,
-      'user_external': API.USERS,
+      'user': API.USERS,
       'role': API.ROLES,
-      'functionary_profile': API.FUNCTIONARY_PROFILES,
-      'student_profile': API.STUDENT_PROFILES,
-      'external_profile': API.EXTERNAL_USER_PROFILES,
-      'external_seedbed_profile': API.EXTERNAL_USER_PROFILES,
-      'group_profile': API.INVESTIGATION_GRUOPS_PROFILES,
-      'seedbed_profile': API.RESEARCH_SEEDBEDS_PROFILES,
-      'seedbed_member': API.RESEARCH_SEEDBEDS_MEMBERS,
+      'measurement': deviceId ? API.DEVICE_CREATE_MEASUREMENTS(deviceId) : null,
+
     };
     const endpoint = apiEndpoints[props.type];
     if (endpoint) {
-      response = await API.post(endpoint, { ...formValues.value });
+      // Check if any image fields have files
+      const hasImageFiles = Object.keys(imageUploadRefs.value).some(key => {
+        const fileInfo = imageUploadRefs.value[key]?.getFileInfo();
+        return fileInfo?.file;
+      });
+
+      let payload;
+      if (hasImageFiles) {
+        // Use FormData if there are image files
+        console.log('📦 Using FormData for file upload');
+        const formData = new FormData();
+        
+        // Add all form values
+        Object.keys(formValues.value).forEach(key => {
+          if (!key.endsWith('_file') && formValues.value[key] !== null && formValues.value[key] !== undefined) {
+            formData.append(key, formValues.value[key]);
+          }
+        });
+        
+        // Add image files
+        Object.keys(imageUploadRefs.value).forEach(key => {
+          const fileInfo = imageUploadRefs.value[key]?.getFileInfo();
+          if (fileInfo?.file) {
+            formData.append(key, fileInfo.file);
+          }
+        });
+        
+        payload = formData;
+      } else {
+        // Use JSON if no files
+        console.log('📄 Using JSON payload (no files)');
+        payload = { ...formValues.value };
+        // Remove file references
+        Object.keys(payload).forEach(key => {
+          if (key.endsWith('_file')) {
+            delete payload[key];
+          }
+        });
+      }
+
+      response = await API.post(endpoint, payload);
       if (!response.error) {
         emit('itemCreated', formValues.value.name);
       }
@@ -244,5 +311,19 @@ async function createItem() {
 .select-field-wrapper :deep(.modal-selector-button.disabled) {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Image field wrapper */
+.image-field-wrapper {
+  margin-bottom: 1.5rem;
+  padding: 16px;
+}
+
+.image-field-wrapper .field-label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ion-color-step-600);
 }
 </style>

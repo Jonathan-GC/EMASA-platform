@@ -50,7 +50,8 @@
           </div>
 
           <!-- Table using ion-grid (Desktop) -->
-          <ion-grid v-if="!isMobile" class="data-table">
+          <div v-if="!isMobile" class="table-wrapper">
+            <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
@@ -148,7 +149,8 @@
                 />
               </ion-col>
             </ion-row>
-          </ion-grid>
+            </ion-grid>
+          </div>
 
           <!-- Mobile Card View -->
           <div v-else class="mobile-cards">
@@ -277,7 +279,7 @@ const selectedGateway = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(gateways, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(gateways, ['name', 'cs_gateway_id', 'location.name', 'state'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -408,10 +410,15 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.data-table {
+.table-wrapper {
+  overflow-x: auto;
   border: 1px solid var(--ion-color-light);
   border-radius: 8px;
-  overflow: hidden;
+}
+
+.data-table {
+  min-width: 1000px;
+  margin: 0;
 }
 
 

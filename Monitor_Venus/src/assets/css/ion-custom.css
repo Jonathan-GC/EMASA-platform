@@ -68,11 +68,18 @@ ion-card-content.custom {
     padding-top: 0px;
 }
 
+ion-list.custom{
+    --ion-background-color: transparent;
+}
+
 /*ion-content.custom{
     --background: #f9fafb;
 }*/
 @media (max-width: 480px) {
   ion-card-content.custom {
     padding-bottom: 140px!important;
+  }
+  ion-card-content.signup-card-content{
+    padding-inline: 10px;
   }
 }

@@ -15,9 +15,13 @@ export const paths = {
     TENANT_MANAGERS: '/managers',
     TENANT_LOCATIONS: '/locations',
     TENANT_WORKSPACES: '/workspaces',
+    USERS: '/users',
+    ROLES: '/roles',
     LOGIN: '/login',
     SIGNUP: '/signup',
     TENANT_SETUP: '/tenant-setup',
+    RESET_PASSWORD_REQUEST: '/forgot-password',
+    RESET_PASSWORD_CONFIRM: '/reset-password',
 
     // Relative paths
     DEVICES: '/devices',

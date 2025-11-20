@@ -6,10 +6,7 @@
                 <div class="header-section">
                     <h1>📨 Notificaciones</h1>
                     <div class="header-actions">
-                        <span :class="['connection-status', isConnected ? 'connected' : 'disconnected']">
-                            <ion-icon :icon="isConnected ? icons.checkmarkCircle : icons.alertCircle" />
-                            {{ isConnected ? 'Conectado' : 'Desconectado' }}
-                        </span>
+                        <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
                         <ion-button 
                             v-if="apiNotifications.length > 0" 
                             @click="fetchNotifications"
@@ -99,13 +96,14 @@ import {
     IonIcon,
     IonBadge
 } from '@ionic/vue';
-import { useNotifications } from '@/composables/useNotifications';
+import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import API from '@/utils/api/api';
 
 // Inject icons from the global icons plugin
 const icons = inject('icons', {});
 
-const { notifications, isConnected, unreadCount, clearNotifications, removeNotification } = useNotifications();
+// Access the global notification system from layout
+const { notifications, isConnected, unreadCount, clearNotifications, removeNotification, reconnectAttempts } = inject('notifications');
 const apiNotifications = ref([]);
 const isLoading = ref(false);
 
@@ -206,6 +204,7 @@ onMounted(() => {
 
 .connection-status {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
@@ -227,6 +226,14 @@ onMounted(() => {
 
 .connection-status ion-icon {
   font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.connection-status span {
+  line-height: 1;
+  display: flex;
+  align-items: center;
 }
 
 /* Empty State */

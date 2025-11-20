@@ -33,6 +33,7 @@ import {
   personOutline,
   peopleOutline,
   notificationsOutline,
+  personAddOutline,
 
   // Data icons
   documentOutline,
@@ -84,6 +85,8 @@ import {
   arrowForwardOutline,
   caretUpOutline,
   caretDownOutline,
+  arrowUpCircleOutline,
+  arrowDownCircleOutline,
 
   // Status icons
   alertCircleOutline,
@@ -115,6 +118,7 @@ import {
   swapVerticalOutline,
   resizeOutline,
   close,
+  ellipseOutline,
 } from 'ionicons/icons'
 
 // Custom SVG icon
@@ -215,6 +219,8 @@ export const icons = {
   'arrowForward': arrowForwardOutline,
   'caretUp': caretUpOutline,
   'caretDown': caretDownOutline,
+  'arrowUpCircle': arrowUpCircleOutline,
+  'arrowDownCircle': arrowDownCircleOutline,
 
   // Status icons
   'alert': alertCircleOutline,
@@ -227,7 +233,7 @@ export const icons = {
   'helpBuoy': helpBuoyOutline,
   'time': timeOutline,
   'power': powerOutline,
-  'lock-closed': lockClosedOutline,
+  'lock_closed': lockClosedOutline,
   'lock-open': lockOpenOutline,
   'flash': flashOutline,
 
@@ -245,6 +251,8 @@ export const icons = {
   'swap-vertical': swapVerticalOutline,
   'resize': resizeOutline,
   'close': close,
+  'ellipse': ellipseOutline,
+  'person_add': personAddOutline,
 }
 
 // Helper function to get icon by name

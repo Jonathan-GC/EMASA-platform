@@ -4,7 +4,7 @@
       <ion-card-header>
         <ion-card-title>📟 Devices - Datos desde API</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${device.length} applications encontrados` }}
+          {{ loading ? 'Cargando...' : `${device.length} dispositivos encontrados` }}
         </ion-card-subtitle>
       </ion-card-header>
 
@@ -12,7 +12,7 @@
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
-          <p>Obteniendo datos de los Applications...</p>
+          <p>Obteniendo datos de los dispositivos...</p>
         </div>
 
         <!-- Error state -->
@@ -30,7 +30,7 @@
           <div class="table-controls">
             <ion-searchbar
                 v-model="searchText"
-                placeholder="Buscar device profile..."
+                placeholder="Buscar dispositivo..."
                 @ionInput="handleSearch"
                 show-clear-button="focus"
                 class="custom"
@@ -51,7 +51,8 @@
           
 
           <!-- Table using ion-grid (Desktop) -->
-          <ion-grid v-if="!isMobile" class="data-table">
+          <div v-if="!isMobile" class="table-wrapper">
+            <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
@@ -61,18 +62,18 @@
                     v-if="sortField === 'name'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('cs_gateway_id')" class="sortable">
+              <ion-col size="2" @click="sortBy('dev_eui')" class="sortable">
                 <strong>ID</strong>
                 <ion-icon
-                    :icon="sortOrder.cs_gateway_id === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'cs_gateway_id'"
+                    :icon="sortOrder.dev_eui === 'asc' ? icons.chevronUp : icons.chevronDown"
+                      v-if="sortField === 'dev_eui'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
+              <ion-col size="2" @click="sortBy('tenant')" class="sortable">
                 <strong>Cliente</strong>
                 <ion-icon
-                    :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'lastSeen'"
+                    :icon="sortOrder.tenant === 'asc' ? icons.chevronUp : icons.chevronDown"
+                    v-if="sortField === 'tenant'"
                 ></ion-icon>
               </ion-col>
               <ion-col size="1">
@@ -153,11 +154,18 @@
                 />
               </ion-col>
             </ion-row>
-          </ion-grid>
+            </ion-grid>
+          </div>
 
           <!-- Mobile Card View -->
           <div v-else class="mobile-cards">
-            <ion-card v-for="device in paginatedItems" :key="device.id" class="device-card">
+            <ion-card 
+              v-for="device in paginatedItems" 
+              :key="device.id" 
+              class="device-card"
+              :class="getCardClass(true)"
+              @click="(event) => getCardClickHandler(`devices/${device.id}`)(event)"
+            >
               <ion-card-content>
                 <!-- Header with name and sync status -->
                 <div class="card-header">
@@ -271,14 +279,19 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
+import { useCardNavigation } from '@composables/useCardNavigation.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 import QuickControl from '../../operators/quickControl.vue'
+import QuickActions from '../../operators/quickActions.vue'
 import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
 const router = useRouter()
 const route = useRoute()
+
+// Card navigation composable
+const { getCardClickHandler, getCardClass } = useCardNavigation()
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
@@ -291,7 +304,7 @@ const selectedApplication = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(device, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(device, ['name', 'dev_eui', 'workspace.tenant', 'sync_status'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -426,10 +439,15 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.data-table {
+.table-wrapper {
+  overflow-x: auto;
   border: 1px solid var(--ion-color-light);
   border-radius: 8px;
-  overflow: hidden;
+}
+
+.data-table {
+  min-width: 1000px;
+  margin: 0;
 }
 
 
@@ -619,5 +637,22 @@ onMounted(async () => {
   justify-content: flex-end;
   padding-top: 12px;
   border-top: 1px solid var(--ion-color-light);
+}
+
+/* Clickable Card Styles */
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.clickable-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>

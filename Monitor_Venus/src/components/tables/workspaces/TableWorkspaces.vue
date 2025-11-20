@@ -41,7 +41,8 @@
           </div>
 
           <!-- Table using ion-grid (Desktop) -->
-          <ion-grid v-if="!isMobile" class="data-table">
+          <div v-if="!isMobile" class="table-wrapper">
+            <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="3" @click="sortBy('name')" class="sortable">
@@ -59,7 +60,7 @@
                 <ion-icon :icon="sortOrder.tenant === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'lastSeen'"></ion-icon>
               </ion-col>
-              <ion-col size="1">
+              <ion-col size="2">
                 <strong>Acciones</strong>
               </ion-col>
             </ion-row>
@@ -86,7 +87,7 @@
                 </ion-chip>
               </ion-col>
 
-              <ion-col size="1">
+              <ion-col size="2">
                 <QuickActions 
                   type="workspace"
                   :index="workspace.id" 
@@ -100,11 +101,18 @@
                 />
               </ion-col>
             </ion-row>
-          </ion-grid>
+            </ion-grid>
+          </div>
 
           <!-- Mobile Card View -->
           <div v-else class="mobile-cards">
-            <ion-card v-for="workspace in paginatedItems" :key="workspace.id" class="workspace-card">
+            <ion-card 
+              v-for="workspace in paginatedItems" 
+              :key="workspace.id" 
+              class="workspace-card"
+              :class="getCardClass(true)"
+              @click="(event) => getCardClickHandler(`/tenants/${workspace.id}`)(event)"
+            >
               <ion-card-content>
                 <!-- Header with name -->
                 <div class="card-header">
@@ -191,12 +199,17 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
+import { useCardNavigation } from '@composables/useCardNavigation.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 import QuickControl from '../../operators/quickControl.vue'
 import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
+import QuickActions from '../../operators/quickActions.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
+
+// Card navigation composable
+const { getCardClickHandler, getCardClass } = useCardNavigation()
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
@@ -248,11 +261,11 @@ const fetchWorkspaces = async () => {
     const mockData = Array.isArray(response) ? response : (response?.data || []);
 
     application.value = mockData
-    console.log('✅ Gateways cargados:', mockData.length)
+    console.log('✅ Workspaces cargados:', mockData.length)
 
   } catch (err) {
-    error.value = `❌Error al cargar gateways: ${err.message}`
-    console.error('❌ Error fetching Application:', err)
+    error.value = `❌Error al cargar workspaces: ${err.message}`
+    console.error('❌ Error fetching Workspaces:', err)
   } finally {
     loading.value = false
   }
@@ -261,7 +274,6 @@ const fetchWorkspaces = async () => {
 // Component-specific methods
 const selectGateway = (gateway) => {
   selectedApplication.value = gateway
-  console.log('Gateway seleccionado:', gateway)
 }
 
 const viewGateway = (gateway) => {
@@ -340,10 +352,15 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.data-table {
+.table-wrapper {
+  overflow-x: auto;
   border: 1px solid var(--ion-color-light);
   border-radius: 8px;
-  overflow: hidden;
+}
+
+.data-table {
+  min-width: 1000px;
+  margin: 0;
 }
 
 
@@ -531,5 +548,22 @@ onMounted(async () => {
   justify-content: flex-end;
   padding-top: 12px;
   border-top: 1px solid var(--ion-color-light);
+}
+
+/* Clickable Card Styles */
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.clickable-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>
