@@ -52,8 +52,6 @@ done
 echo ""
 echo -e "${GREEN}✅ All fixtures loaded successfully.${NC}"
 
-echo ""
-echo -e "${CYAN}🔐 ---- Applying global base permissions ---- 🔐${NC}"
 
 echo ""
 echo -e "${CYAN}🔄 ---- Synchronizing data with ChirpStack ---- 🔄${NC}"
@@ -65,6 +63,10 @@ else
     echo -e "${RED}❌ sync_chirpstack failed.${NC}"
     exit 1
 fi
+
+
+echo ""
+echo -e "${CYAN}🔐 ---- Applying global base permissions ---- 🔐${NC}"
 
 if output=$(python manage.py global_permissions 2>&1); then
     echo -e "$output"

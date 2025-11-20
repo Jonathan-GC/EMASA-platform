@@ -88,7 +88,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_user_name(self, obj):
         if not obj.user:
-            return self.guest_name
+            return obj.guest_name
         return obj.user.get_full_name() or obj.user.username
 
 
