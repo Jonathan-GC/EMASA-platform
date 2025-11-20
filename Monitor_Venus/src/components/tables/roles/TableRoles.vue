@@ -6,7 +6,7 @@
         <ion-card-subtitle>
           {{ loading ? 'Cargando...' : `${roles.length} roles encontrados` }}
         </ion-card-subtitle>
-      </ion-card-header>e
+      </ion-card-header>
       
       <ion-card-content>
         <!-- Loading state -->
@@ -140,6 +140,14 @@
                   <ion-button 
                     fill="clear" 
                     size="small"
+                    @click.stop="openWorkspaceMembershipForm(role)"
+                    title="Asignar usuario a workspace"
+                  >
+                    <ion-icon :icon="icons.person_add"></ion-icon>
+                  </ion-button>
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
                     @click.stop="viewRole(role)"
                     title="Ver detalles"
                   >
@@ -211,6 +219,14 @@
                   <ion-button 
                     fill="clear" 
                     size="small"
+                    @click.stop="openWorkspaceMembershipForm(role)"
+                  >
+                    <ion-icon :icon="icons.personAdd"></ion-icon>
+                    Asignar
+                  </ion-button>
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
                     @click.stop="viewRole(role)"
                   >
                     <ion-icon :icon="icons.eye"></ion-icon>
@@ -277,6 +293,7 @@ import { useResponsiveView } from '@composables/useResponsiveView.js'
 import QuickControl from '@components/operators/QuickControl.vue'
 import FloatingActionButtons from '@components/operators/FloatingActionButtons.vue'
 import RolePermissionsManager from '@components/forms/permissions/RolePermissionsManager.vue'
+import WorkspaceMembershipForm from '@components/forms/roles/WorkspaceMembershipForm.vue'
 import { IonAvatar, modalController } from '@ionic/vue'
 
 // Inject icons
@@ -369,6 +386,27 @@ const openPermissionsManager = async (role) => {
   modal.onDidDismiss().then(() => {
     console.log('Permissions manager closed')
     fetchRoles() // Refresh roles after permissions update
+  })
+  
+  await modal.present()
+}
+
+const openWorkspaceMembershipForm = async (role) => {
+  console.log('Opening workspace membership form for role:', role.name)
+  
+  const modal = await modalController.create({
+    component: WorkspaceMembershipForm,
+    componentProps: {
+      initialData: {
+        role_id: role.id
+      }
+    },
+    cssClass: 'full-modal'
+  })
+  
+  modal.onDidDismiss().then(() => {
+    console.log('Workspace membership form closed')
+    // Optionally refresh data if needed
   })
   
   await modal.present()

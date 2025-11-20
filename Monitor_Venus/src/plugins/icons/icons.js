@@ -33,6 +33,7 @@ import {
   personOutline,
   peopleOutline,
   notificationsOutline,
+  personAddOutline,
 
   // Data icons
   documentOutline,
@@ -249,6 +250,7 @@ export const icons = {
   'resize': resizeOutline,
   'close': close,
   'ellipse': ellipseOutline,
+  'person_add': personAddOutline,
 }
 
 // Helper function to get icon by name

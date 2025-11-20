@@ -63,6 +63,7 @@ declare module 'vue' {
     IonIcon: typeof import('@ionic/vue')['IonIcon']
     IonInput: typeof import('@ionic/vue')['IonInput']
     IonItem: typeof import('@ionic/vue')['IonItem']
+    IonIteme: typeof import('@ionic/vue')['IonIteme']
     IonLabel: typeof import('@ionic/vue')['IonLabel']
     IonModal: typeof import('@ionic/vue')['IonModal']
     IonNote: typeof import('@ionic/vue')['IonNote']
@@ -101,5 +102,6 @@ declare module 'vue' {
     TenantWarning: typeof import('./src/components/common/TenantWarning.vue')['default']
     VoltageChart: typeof import('./src/components/charts/VoltageChart.vue')['default']
     VoltageDeviceInfo: typeof import('./src/components/cards/VoltageDeviceInfo.vue')['default']
+    WorkspaceMembershipForm: typeof import('./src/components/forms/roles/WorkspaceMembershipForm.vue')['default']
   }
 }
