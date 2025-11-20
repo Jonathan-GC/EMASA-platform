@@ -296,8 +296,9 @@ const handleSubmit = async () => {
   }
 }
 
-const closeModal = () => {
-  emit('closed')
+const closeModal = async () => {
+  const { modalController } = await import('@ionic/vue')
+  await modalController.dismiss()
 }
 
 // Lifecycle

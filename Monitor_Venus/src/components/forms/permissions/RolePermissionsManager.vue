@@ -240,8 +240,9 @@ const togglePermission = (categoryKey, itemId, permissionType, value) => {
   console.log('📝 Current permissions state:', permissions.value)
 }
 
-const closeModal = () => {
-  emit('closed')
+const closeModal = async () => {
+  const { modalController } = await import('@ionic/vue')
+  await modalController.dismiss()
 }
 
 const fetchPermissions = async () => {
