@@ -1,1 +1,0 @@
-[{"model": "infrastructure.type", "pk": 1, "fields": {"name": "Voltaje", "img": "img_url_placeholder", "description": "Dispositivo de medición de Voltaje"}}, {"model": "infrastructure.type", "pk": 2, "fields": {"name": "Temperatura", "img": "img_url_placeholder", "description": "Dispositivo de medición de Temperatura"}}]

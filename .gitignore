@@ -2,3 +2,5 @@
 **/__pycache__/
 **/*.py[cod]
 **/node_modules/
+Monitor_Atlas
+Monitor_Hermes

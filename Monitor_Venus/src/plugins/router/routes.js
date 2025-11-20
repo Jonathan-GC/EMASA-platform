@@ -187,8 +187,49 @@ export const routes = [
                     requiresAuth: true,
                     requiresTenant: true,
                     label: 'Notifications'
-                }
-            }
+                },
+                beforeEnter: requireAuth
+            },
+                
+
+         // ✅ New route Support and Inbox
+
+            {
+            path: P.SUPPORT,
+            component: C.SUPPORT,    
+            beforeEnter: allowAll,        
+            meta: { public: true },       
+            },
+
+
+            {
+                path: P.INBOX,
+                component: C.INBOX,
+                beforeEnter: requireTenant,
+                meta: { 
+                    requiresAuth: true,
+                    requiresTenant: true,
+                    roles: ['superuser', 'admin'],
+                    label: 'Inbox'
+                },
+                beforeEnter: requireAuth
+            },
+
+            {
+                path: P.CONVERSATION,
+                alias: '/tickets', // Alias for email links
+                component: C.CONVERSATION,
+                meta: { 
+                    label: 'Inbox'
+                },
+            },
+
+
+            { path: P.TENANTS, component: C.TENANTS },
+            { path: P.TENANT_MANAGERS, component: C.TENANT_MANAGERS, beforeEnter: requireAuth },
+            { path: P.TENANT_LOCATIONS, component: C.TENANT_LOCATIONS, beforeEnter: requireAuth },
+            { path: P.TENANT_WORKSPACES, component: C.TENANT_WORKSPACES, beforeEnter: requireAuth },
+            { path: P.NOTIFICATIONS, component: C.NOTIFICATIONS, beforeEnter: requireAuth }
 
         ]
     },

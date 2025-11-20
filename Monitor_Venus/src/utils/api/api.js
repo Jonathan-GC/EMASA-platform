@@ -136,7 +136,34 @@ class API {
 
     //----[NOTIFICATION]----
     MY_NOTIFICATIONS = 'support/notification/my_notifications/'
+    
 
+    //----[SUPPORT]----
+    SUPPORT_TICKET = 'support/ticket/'
+    ATTACMEENT_CREATE = 'support/attachment/'
+    GET_TYPES = 'support/ticket/get_all_types/'
+
+
+    //----[INBOX]----
+    SUPPORT_MEMBERS = 'support/ticket/get_support_members/'
+
+    INBOX_READ(ticketId) {
+        return `support/ticket/${ticketId}/mark_as_read/`
+    }
+    
+    DELEGATE(ticketId){
+        return `support/ticket/${ticketId}/delegate/`
+    }
+
+    //----[CONVERSATION]----
+
+    TICKET_CONVERSATION(ticketId) {
+        return `support/ticket/${ticketId}/conversation/`
+    }
+
+    COMMENT = 'support/comment/'
+    COMMENT_ATTACHMENT = 'support/comment-attachment/'
+    COMMENT_TOKEN_VERIFICATION = 'users/auth/verify-ticket-token/'
 
 
     static instance;
@@ -454,7 +481,7 @@ class API {
                 headers
             };
 
-            // Agregar body si es POST/PUT/PATCH
+            // Add body if applicable POST/PUT/PATCH
             if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
                 // Si es FormData, enviarlo tal cual; si no, convertir a JSON
                 requestConfig.body = isFormData ? data : JSON.stringify(data);

@@ -218,6 +218,34 @@
           </router-link>
         </template>
 
+        <!-- Support navbar !-->
+        <hr class="divider"/>
+        <router-link
+          :to="paths.SUPPORT"
+          class="nav-link"
+          :class="{ active: $route.path === paths.SUPPORT }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.helpBuoy"></ion-icon>
+          Support
+        </router-link>
+
+        <!-- Inbox navbar !-->
+
+        <template v-if="!showSupportLinks && showTenantLinks || showRootLinks">
+
+        <router-link
+          :to="paths.INBOX"
+          class="nav-link"
+          :class="{ active: $route.path === paths.INBOX }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.mail"></ion-icon>
+          Inbox
+        </router-link>
+
+        </template>
+
         <hr class="divider"/>
 
         <!-- Enlaces de autenticación -->
