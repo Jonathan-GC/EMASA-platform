@@ -463,6 +463,8 @@ const skipSetup = () => {
 /* Form Card */
 .form-card {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  max-width: none;
+  width: none;
 }
 
 /* Image Upload Section */
