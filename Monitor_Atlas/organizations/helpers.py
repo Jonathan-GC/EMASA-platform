@@ -4,9 +4,7 @@ from roles.helpers import (
     assign_base_tenant_admin_permissions_to_group,
     assign_base_workspace_admin_permissions_to_group,
 )
-import hashlib
-import os
-import time
+from django.contrib.auth.models import Group
 
 
 def get_or_create_default_workspace(tenant):
@@ -69,9 +67,15 @@ def get_or_create_admin_role(workspace):
     """
     role, created = Role.objects.get_or_create(
         workspace=workspace,
-        defaults={"name": "Admin", "is_admin": True, "color": "#ebcc34"},
+        name="Admin",
+        defaults={"is_admin": True, "color": "#ebcc34"},
     )
-    if created:
+    if created or not role.group:
+        if not role.group:
+            group = Group.objects.create(name=f"{role.name}_{workspace.tenant.name}")
+            role.group = group
+            role.save()
+
         assign_base_tenant_admin_permissions_to_group(workspace.tenant, role.group)
         assign_base_workspace_admin_permissions_to_group(workspace, role.group)
 
