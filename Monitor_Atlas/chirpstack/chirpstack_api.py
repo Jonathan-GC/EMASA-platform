@@ -136,6 +136,10 @@ def create_tenant_in_chirpstack(tenant):
                 response = requests.post(
                     CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS
                 )
+                if response and response.status_code == 200:
+                    tenant_data = response.json()
+                    tenant.cs_tenant_id = tenant_data.get("id")
+                    tenant.save(update_fields=["cs_tenant_id"])
                 set_status(tenant, response)
                 return response
     else:
@@ -144,6 +148,10 @@ def create_tenant_in_chirpstack(tenant):
             response = requests.post(
                 CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS
             )
+            if response and response.status_code == 200:
+                tenant_data = response.json()
+                tenant.cs_tenant_id = tenant_data.get("id")
+                tenant.save(update_fields=["cs_tenant_id"])
             set_status(tenant, response)
             return response
 
@@ -775,10 +783,14 @@ def create_device_profile_in_chirpstack(device_profile):
     response = requests.post(
         CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
     )
-    set_status(device_profile, response)
 
     if response and response.status_code == 200:
+        device_profile_data = response.json()
+        device_profile.cs_device_profile_id = device_profile_data.get("id")
+        device_profile.save(update_fields=["cs_device_profile_id"])
         logger.info(f"Created new device profile: {device_profile.name}")
+
+    set_status(device_profile, response)
 
     return response
 
@@ -1046,6 +1058,10 @@ def create_application_in_chirpstack(application):
                 response = requests.post(
                     CHIRPSTACK_APPLICATION_URL, json=payload, headers=HEADERS
                 )
+                if response and response.status_code == 200:
+                    application_data = response.json()
+                    application.cs_application_id = application_data.get("id")
+                    application.save(update_fields=["cs_application_id"])
                 set_status(application, response)
                 return response
     return None

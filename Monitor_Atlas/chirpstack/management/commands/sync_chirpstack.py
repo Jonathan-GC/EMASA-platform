@@ -41,13 +41,26 @@ class Command(BaseCommand):
             self.style.MIGRATE_HEADING("==> Synchronizing with ChirpStack...")
         )
 
-        with transaction.atomic():
-            self.sync_tenants()
-            self.sync_gateways()
-            self.sync_api_users()
-            self.sync_applications()
-            self.sync_device_profiles()
-            self.sync_devices()
+        # Run each sync step inside its own atomic block so a failure in
+        # one step doesn't leave the whole transaction broken and prevent
+        # subsequent DB queries from running (which raises
+        # TransactionManagementError).
+        sync_steps = [
+            ("Tenants", self.sync_tenants),
+            ("Gateways", self.sync_gateways),
+            ("APIUsers", self.sync_api_users),
+            ("Applications", self.sync_applications),
+            ("DeviceProfiles", self.sync_device_profiles),
+            ("Devices", self.sync_devices),
+        ]
+
+        for name, step in sync_steps:
+            try:
+                with transaction.atomic():
+                    step()
+            except Exception as e:
+                logger.exception(e)
+                self.stdout.write(self.style.ERROR(f"✘ Error syncing {name}: {e}"))
 
         self.stdout.write(
             self.style.SUCCESS("✅ Initial synchronization with ChirpStack complete.")
