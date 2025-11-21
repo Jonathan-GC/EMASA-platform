@@ -1,7 +1,7 @@
 [
   {
     "model": "infrastructure.location",
-    "pk": 1,
+    "pk": "5678901234567891",
     "fields": {
       "name": "Punto random en Ibague",
       "accuracy": 4.0,

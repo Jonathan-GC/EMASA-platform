@@ -1,12 +1,12 @@
 [
   {
     "model": "organizations.workspace",
-    "pk": 1,
+    "pk": "5f67890a1b2c3d4e",
     "fields": {
       "name": "Principal Monitor",
       "img": null,
       "description": "Workspace principal de Monitor",
-      "tenant": 1
+      "tenant": "4e5f67890a1b2c3d"
     }
   }
 ]

@@ -1,13 +1,13 @@
 [
   {
     "model": "chirpstack.deviceprofile",
-    "pk": 1,
+    "pk": "8901234567890234",
     "fields": {
       "cs_device_profile_id": null,
       "name": "POTENCIA US915",
       "description": "Voltaje, corriente y batería",
       "region": "US915",
-      "workspace": 1,
+      "workspace": "5f67890a1b2c3d4e",
       "mac_version": "LORAWAN_1_0_3",
       "reg_param_revision": "A",
       "adr_algorithm_id": "default",

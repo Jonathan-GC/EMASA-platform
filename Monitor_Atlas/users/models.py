@@ -8,6 +8,7 @@ from django.contrib.auth.models import (
     PermissionsMixin,
 )
 from organizations.models import Tenant
+from organizations.hasher import generate_id
 
 
 class Address(models.Model):
@@ -21,10 +22,15 @@ class Address(models.Model):
 
 
 class MainAddress(Address):
-    pass
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
 
 
 class BillingAddress(Address):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     user = models.OneToOneField(
         "User", on_delete=models.CASCADE, related_name="billing_address"
     )
@@ -71,6 +77,9 @@ class UserManager(BaseUserManager):
 
 
 class User(UserBase, AbstractBaseUser, PermissionsMixin):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     username = models.CharField(max_length=80, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -80,7 +89,7 @@ class User(UserBase, AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
-    
+
     def get_full_name(self):
         return f"{self.name} {self.last_name}"
 

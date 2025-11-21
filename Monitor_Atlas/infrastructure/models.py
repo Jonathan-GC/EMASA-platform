@@ -1,9 +1,13 @@
 from django.db import models
 from organizations.models import Workspace
 from chirpstack.models import DeviceProfile
+from organizations.hasher import generate_id
 
 
 class Machine(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=255)
     img = models.FileField(upload_to="machine_icons/", blank=True, null=True)
     description = models.CharField(max_length=255, blank=True)
@@ -14,6 +18,9 @@ class Machine(models.Model):
 
 
 class Type(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=255, unique=True)
     img = models.FileField(upload_to="type_icons/", blank=True, null=True)  # icon
     description = models.CharField(max_length=255)
@@ -32,6 +39,9 @@ class Application(models.Model):
         }
     """
 
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     cs_application_id = models.CharField(
         max_length=36,
         unique=True,
@@ -41,11 +51,6 @@ class Application(models.Model):
     )  # cs
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, default="")
-    device_type = models.ForeignKey(
-        Type,
-        on_delete=models.CASCADE,
-        help_text="You can classify devices by type and set a custom icon",
-    )  # icon, classification and such
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
     sync_status = models.CharField(
         default=False,
@@ -75,6 +80,9 @@ class Activation(models.Model):
         }
     """
 
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     afcntdown = models.IntegerField()
     app_s_key = models.CharField(
         max_length=32, help_text="Application session key (Chirpstack)"
@@ -108,6 +116,9 @@ class Device(models.Model):
         }
     """
 
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     dev_eui = models.CharField(
         max_length=16, help_text="Device EUI (Chirpstack)", unique=True
     )  # cs
@@ -152,6 +163,9 @@ class Device(models.Model):
 
 class Location(models.Model):
     # Chirpstack
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=255, default="Unknown", null=True, blank=True)
     accuracy = models.FloatField(default=0.0, null=True, blank=True)
     altitude = models.FloatField(default=0.0, null=True, blank=True)
@@ -195,6 +209,9 @@ class Gateway(models.Model):
         }
     """
 
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     cs_gateway_id = models.CharField(max_length=36, unique=True)  # cs
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
@@ -216,6 +233,9 @@ class Gateway(models.Model):
 
 
 class Measurements(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     min = models.FloatField()
     max = models.FloatField()

@@ -3,9 +3,13 @@ from users.models import User
 from organizations.models import Workspace
 
 from django.contrib.auth.models import Group
+from organizations.hasher import generate_id
 
 
 class Role(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, blank=True)
     color = models.CharField(max_length=20, default="#bfbfbf")
@@ -34,6 +38,9 @@ class Role(models.Model):
 
 class WorkspaceMembership(models.Model):
     # User's workspace membership
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)

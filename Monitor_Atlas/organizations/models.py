@@ -1,7 +1,11 @@
 from django.db import models
+from .hasher import generate_id
 
 
 class Subscription(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     can_have_gateways = models.BooleanField(default=False)
@@ -26,6 +30,9 @@ class Tenant(models.Model):
         }
     """
 
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     cs_tenant_id = models.CharField(max_length=36, null=True, blank=True)
     name = models.CharField(max_length=90)
     img = models.FileField(upload_to="tenant_images/", blank=True, null=True)
@@ -47,6 +54,9 @@ class Tenant(models.Model):
 
 
 class Workspace(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=80)
     img = models.FileField(upload_to="workspace_images/", blank=True, null=True)
     description = models.CharField(max_length=255)

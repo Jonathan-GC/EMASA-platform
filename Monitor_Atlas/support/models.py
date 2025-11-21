@@ -4,6 +4,7 @@ import requests
 from django.conf import settings
 from loguru import logger
 import uuid
+from organizations.hasher import generate_id
 
 HERMES_API_URL = getattr(settings, "HERMES_API_URL", "http://localhost:5000")
 
@@ -90,6 +91,9 @@ MECHANICAL_MACHINE_CHOICES = [
 
 
 class SupportMembership(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     role = models.CharField(
         max_length=20, choices=SUPPORT_MEMBERSHIP_ROLE_CHOICES, default="other"
@@ -164,6 +168,9 @@ class Ticket(models.Model):
 
 
 class Comment(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     ticket = models.ForeignKey(
         Ticket, related_name="comments", on_delete=models.CASCADE
     )
@@ -179,6 +186,9 @@ class Comment(models.Model):
 
 
 class Attachment(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     ticket = models.ForeignKey(
         Ticket, related_name="attachments", on_delete=models.CASCADE
     )
@@ -191,6 +201,9 @@ class Attachment(models.Model):
 
 
 class CommentAttachment(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     comment = models.ForeignKey(
         Comment, related_name="attachments", on_delete=models.CASCADE
     )
@@ -203,6 +216,9 @@ class CommentAttachment(models.Model):
 
 
 class Notification(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     title = models.CharField(max_length=200, default="Notification")
     message = models.TextField()
     type = models.CharField(

@@ -1,7 +1,7 @@
 [
   {
     "model": "infrastructure.type",
-    "pk": 1,
+    "pk": "2345678901234568",
     "fields": {
       "name": "Voltaje",
       "img": null,
@@ -10,7 +10,7 @@
   },
   {
     "model": "infrastructure.type",
-    "pk": 2,
+    "pk": "3456789012345690",
     "fields": {
       "name": "Temperatura",
       "img": null,

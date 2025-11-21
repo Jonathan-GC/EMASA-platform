@@ -1,7 +1,7 @@
 [
   {
     "model": "infrastructure.activation",
-    "pk": 1,
+    "pk": "9012345678902345",
     "fields": {
       "afcntdown": 0,
       "app_s_key": "8F19E73ACB50746192A4DF26B3E18C59",
