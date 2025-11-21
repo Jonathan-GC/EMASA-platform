@@ -241,7 +241,6 @@ def create_local_application(new_app, workspace):
         name=new_app.get("name", ""),
         description=new_app.get("description", ""),
         workspace=workspace,
-        device_type=default_type,
         sync_status="SYNCED",
         sync_error="",
         last_synced_at=dt.datetime.now(),
