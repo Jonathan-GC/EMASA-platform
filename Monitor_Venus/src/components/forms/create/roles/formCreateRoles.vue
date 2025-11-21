@@ -227,17 +227,14 @@ const formValues = ref({
 // Discord-like predefined colors
 const predefinedColors = [
   '#5865F2', // Blurple (Discord default)
-  '#57F287', // Green
-  '#FEE75C', // Yellow
-  '#EB459E', // Pink
+  '#3498DB', // Blue
+  '#2ECC71', // Green
+  '#F1C40F', // Yellow
+  '#E67E22', // Orange
   '#ED4245', // Red
-  '#F26522', // Orange
+  '#EB459E', // Pink
   '#99AAB5', // Grey
   '#23272A', // Dark
-  '#9B59B6', // Purple
-  '#3498DB', // Blue
-  '#E91E63', // Magenta
-  '#00BCD4', // Cyan
 ]
 
 // Permission categories
@@ -485,7 +482,7 @@ onMounted( async () => {
 
 .color-palette {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
   gap: 0.75rem;
 }
 
