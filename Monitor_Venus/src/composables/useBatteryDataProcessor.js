@@ -1,86 +1,52 @@
-import { ref, reactive, computed } from 'vue'
+import { ref } from 'vue'
 
 /**
  * Battery data processing composable for IoT battery data
+ * Handles multi-channel battery measurements with per-channel dual-axis charts
  */
 export function useBatteryDataProcessor() {
     const lastDevice = ref(null)
     const recentMessages = ref([])
     const chartKey = ref(0)
+    const chartDataFragments = ref([])
+    const maxChannelIndex = ref(0)
 
     // Battery constants (from Saul's data)
     const BATTERY_MIN_V = 10.5
     const BATTERY_MAX_V = 13.2
 
-    // Chart data for battery measurements (multi-channel)
-    const channelChartData = reactive({}); // { ch1: { data: [...] }, ch2: { data: [...] }, ... }
+    // Chart colors for battery channels
+    const chartColors = [
+        'rgb(59, 130, 246)',
+        'rgba(168, 85, 247, 1)',
+        'rgba(34, 197, 94, 1)',
+        'rgba(251, 146, 60, 1)',
+        'rgba(14, 165, 233, 1)',
+        'rgba(236, 72, 153, 1)',
+        'rgba(99, 102, 241, 1)'
+    ]
 
-    // Computed chartData for DualAxisBatteryChart component
-    const chartData = computed(() => {
-        // Get the first channel (assuming single channel for now)
-        const channels = Object.keys(channelChartData);
-        if (channels.length === 0) {
-            return {
-                datasets: [{
-                    label: 'Voltaje (V)',
-                    data: [],
-                    borderColor: 'rgb(59, 130, 246)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    yAxisID: 'y-left',
-                    tension: 0.1,
-                    pointRadius: 1,
-                    pointHoverRadius: 4,
-                    fill: false
-                }, {
-                    label: 'Porcentaje (%)',
-                    data: [],
-                    borderColor: 'rgb(34, 197, 94)',
-                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                    yAxisID: 'y-right',
-                    tension: 0.1,
-                    pointRadius: 1,
-                    pointHoverRadius: 4,
-                    fill: false
-                }]
-            };
+    const parseTime = (t) => {
+        if (t === undefined || t === null) return new Date(NaN)
+        if (typeof t === 'number') {
+            const ms = t < 1e12 ? t * 1000 : t
+            return new Date(ms)
         }
+        const d = new Date(t)
+        if (!isNaN(d)) return d
+        const n = Number(t)
+        if (!isNaN(n)) return parseTime(n)
+        return new Date(NaN)
+    }
 
-        const firstChannel = channels[0];
-        const channelData = channelChartData[firstChannel];
-
-        return {
-            datasets: [{
-                label: 'Voltaje (V)',
-                data: channelData.voltage || [],
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                yAxisID: 'y-left',
-                tension: 0.1,
-                pointRadius: 1,
-                pointHoverRadius: 4,
-                fill: false
-            }, {
-                label: 'Porcentaje (%)',
-                data: channelData.percentage || [],
-                borderColor: 'rgb(34, 197, 94)',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                yAxisID: 'y-right',
-                tension: 0.1,
-                pointRadius: 1,
-                pointHoverRadius: 4,
-                fill: false
-            }]
-        };
-    });
-
-    // Computed battery percentage
-    const batteryPercentage = computed(() => {
-        const maxV = lastDevice.value?.buffer_stats?.max_voltage || 0
-        if (maxV <= BATTERY_MIN_V) return 0
-        if (maxV >= BATTERY_MAX_V) return 100
-        const percent = ((maxV - BATTERY_MIN_V) / (BATTERY_MAX_V - BATTERY_MIN_V)) * 100
-        return Math.round(percent)
-    })
+    const getChannelIndex = (ch) => {
+        if (!ch) return Number.MAX_SAFE_INTEGER
+        const m = String(ch).toLowerCase().match(/^ch(\d+)$/i)
+        if (m && m[1]) return parseInt(m[1], 10)
+        const m2 = String(ch).match(/(\d+)$/)
+        if (m2 && m2[1]) return parseInt(m2[1], 10)
+        return Number.MAX_SAFE_INTEGER
+    }
 
     // Convert voltage to percentage
     const voltageToPercentage = (voltage) => {
@@ -88,6 +54,43 @@ export function useBatteryDataProcessor() {
         if (voltage >= BATTERY_MAX_V) return 100
         const percent = ((voltage - BATTERY_MIN_V) / (BATTERY_MAX_V - BATTERY_MIN_V)) * 100
         return Math.round(percent)
+    }
+
+    // Extract sensor channels from different payload formats
+    const extractSensorChannels = (data, sensor) => {
+        if (!data || typeof data !== 'object') return null
+        const channels = {}
+        if (Array.isArray(data.measurement_values)) {
+            data.measurement_values.forEach(s => {
+                if (s && s.sensor_type === sensor && typeof s.value === 'number') {
+                    const ch = s.channel || 'ch0'
+                    if (!channels[ch]) channels[ch] = []
+                    channels[ch].push({ time: s.time || s.time_iso || s.arrival_date, value: s.value })
+                }
+            })
+            if (Object.keys(channels).length > 0) return channels
+        }
+        if (data.measurements && data.measurements[sensor]) {
+            const groups = data.measurements[sensor]
+            Object.entries(groups).forEach(([ch, arr]) => {
+                if (!Array.isArray(arr)) return
+                channels[ch] = arr.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.arrival_date, value: s.value }))
+            })
+            if (Object.keys(channels).length > 0) return channels
+        }
+        if (data.payload && data.payload.measurements && data.payload.measurements[sensor]) {
+            const groups = data.payload.measurements[sensor]
+            Object.entries(groups).forEach(([ch, arr]) => {
+                if (!Array.isArray(arr)) return
+                channels[ch] = arr.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.payload.arrival_date || data.arrival_date, value: s.value }))
+            })
+            if (Object.keys(channels).length > 0) return channels
+        }
+        if (Array.isArray(data.payload?.values)) {
+            channels['ch0'] = data.payload.values.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.payload.arrival_date || data.arrival_date, value: s.value }))
+            if (Object.keys(channels).length > 0) return channels
+        }
+        return null
     }
 
     // Calculate buffer statistics from WebSocket measurements
@@ -125,106 +128,112 @@ export function useBatteryDataProcessor() {
         return stats
     }
 
-    // Process incoming data (multi-channel battery)
+    // Computed battery percentage from max voltage
+    const getBatteryPercentage = () => {
+        const maxV = lastDevice.value?.buffer_stats?.max_voltage || 0
+        if (maxV <= BATTERY_MIN_V) return 0
+        if (maxV >= BATTERY_MAX_V) return 100
+        const percent = ((maxV - BATTERY_MIN_V) / (BATTERY_MAX_V - BATTERY_MIN_V)) * 100
+        return Math.round(percent)
+    }
+
+    // Process incoming data (multi-channel battery with per-channel fragments)
     const processIncomingData = (data) => {
         if (data.error) {
             console.warn('⚠️ Datos con error recibidos:', data.error)
             return
         }
 
-        // Determine if payload contains battery measurements
-        const hasBattery = (
-            Array.isArray(data.measurement_values) && data.measurement_values.some(s => s.sensor_type === 'battery')
-        ) || !!(data.measurements && data.measurements.battery) || !!(data.payload && data.payload.measurements && data.payload.measurements.battery) || data.payload?.type === 'battery'
+        // Extract channels for battery
+        const channels = extractSensorChannels(data, 'battery')
+        if (!channels) return
 
-        if (!hasBattery) {
-            console.log('ℹ️ Datos ignorados - no contienen batería')
-            return
-        }
-
-        // Update device information
-        lastDevice.value = data
-        // Create enhanced device object with available WebSocket data
+        // Create enhanced device object
         const enhancedDevice = {
             ...data,
             buffer_stats: calculateBufferStats(data),
             reception_timestamp: data.payload?.arrival_date || data.arrival_date || new Date().toISOString()
         }
         lastDevice.value = enhancedDevice
-        // Add to recent messages with reception_timestamp and device_name
+
+        // Add to recent messages
         const messageWithTimestamp = {
             ...enhancedDevice,
             reception_timestamp: enhancedDevice.reception_timestamp,
             device_name: enhancedDevice.device_name
         }
         recentMessages.value.unshift(messageWithTimestamp)
-        if (recentMessages.value.length > 15) {
-            recentMessages.value.pop()
-        }
+        if (recentMessages.value.length > 15) recentMessages.value.pop()
 
-        // Extract battery data from various possible formats
-        let batteryData = null
-
-        // Format 1: measurements.battery
-        if (data.measurements?.battery) {
-            batteryData = data.measurements.battery
-        }
-        // Format 2: object.measurements.battery
-        else if (data.payload?.measurements?.battery) {
-            batteryData = data.payload.measurements.battery
-        }
-        // Format 3: measurement_values with sensor_type === 'battery'
-        else if (Array.isArray(data.measurement_values)) {
-            batteryData = {}
-            data.measurement_values.forEach(s => {
-                if (s && s.sensor_type === 'battery' && typeof s.value === 'number') {
-                    const ch = s.channel || 'ch0'
-                    if (!batteryData[ch]) batteryData[ch] = []
-                    batteryData[ch].push({
-                        time: s.time || s.time_iso || s.arrival_date || data.arrival_date,
-                        value: s.value
-                    })
-                }
-            })
-        }
-
-        if (!batteryData || Object.keys(batteryData).length === 0) {
-            console.log('ℹ️ No se encontraron datos de batería válidos')
-            return
-        }
-
-        // For each channel, create chart data
-        Object.keys(batteryData).forEach(channel => {
-            const samples = batteryData[channel]
-            if (!Array.isArray(samples)) return
-            channelChartData[channel] = {
-                voltage: samples.map(sample => ({ x: new Date(sample.time), y: sample.value })),
-                percentage: samples.map(sample => ({ x: new Date(sample.time), y: voltageToPercentage(sample.value) }))
-            }
+        // Determine numeric indices and update maxChannelIndex
+        const incomingKeys = Object.keys(channels)
+        let highest = maxChannelIndex.value
+        incomingKeys.forEach(k => {
+            const idx = getChannelIndex(k)
+            if (Number.isFinite(idx) && idx > 0 && idx < Number.MAX_SAFE_INTEGER && idx > highest) highest = idx
         })
+        if (highest > maxChannelIndex.value) maxChannelIndex.value = highest
 
+        // Build fragments for fixed positions: ch1..chN
+        // Each fragment is a dual-axis chart (voltage + percentage)
+        const fragments = []
+        for (let i = 1; i <= Math.max(1, maxChannelIndex.value); i++) {
+            const matchKey = incomingKeys.find(k => getChannelIndex(k) === i) || null
+            const samplesRaw = matchKey ? channels[matchKey] : []
+            const samples = (samplesRaw || []).map(s => ({ x: parseTime(s.time), y: s.value })).filter(p => p.x.toString() !== 'Invalid Date' && typeof p.y === 'number').sort((a, b) => a.x - b.x)
+            
+            // Create dual-axis datasets for this channel
+            const voltageDataset = {
+                label: `Voltaje ch${i} (V)`,
+                data: samples,
+                borderColor: chartColors[(i - 1) % chartColors.length],
+                backgroundColor: chartColors[(i - 1) % chartColors.length],
+                yAxisID: 'y-left',
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 1,
+                pointHoverRadius: 4,
+                fill: false
+            }
+
+            const percentageDataset = {
+                label: `Porcentaje ch${i} (%)`,
+                data: samples.map(p => ({ x: p.x, y: voltageToPercentage(p.y) })),
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                yAxisID: 'y-right',
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 1,
+                pointHoverRadius: 4,
+                fill: false
+            }
+
+            fragments.push({ datasets: [voltageDataset, percentageDataset] })
+        }
+
+        chartDataFragments.value = fragments
         chartKey.value++
-        console.log('✅ Gráfico de batería actualizado para canales:', Object.keys(channelChartData))
+
+        console.log(`✅ Procesados ${fragments.length} canales de batería`)
     }
 
     const clearData = () => {
-        Object.keys(channelChartData).forEach(channel => {
-            channelChartData[channel] = { voltage: [], percentage: [] };
-        });
-        lastDevice.value = null;
-        recentMessages.value = [];
-        chartKey.value++;
+        chartDataFragments.value = []
+        lastDevice.value = null
+        recentMessages.value = []
+        chartKey.value++
+        maxChannelIndex.value = 0
     }
 
     return {
-        channelChartData,
-        chartData,
+        chartDataFragments,
         lastDevice,
         recentMessages,
         chartKey,
-        batteryPercentage,
         processIncomingData,
         clearData,
+        getBatteryPercentage,
         voltageToPercentage,
         BATTERY_MIN_V,
         BATTERY_MAX_V

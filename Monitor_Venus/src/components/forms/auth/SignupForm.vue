@@ -191,28 +191,8 @@
                     class="custom" fill="solid"></ion-input>
                 </ion-item>
 
-                <ion-item class="custom">
-                  <ion-label position="stacked" class="!mb-2">Contraseña</ion-label>
-                  <ion-input v-model="credentials.password" :type="passwordInputType" placeholder="*****"
-                    :disabled="loading" class="custom" fill="solid">
-                    <ion-button fill="clear" slot="end" @click="togglePasswordVisibility"
-                      class="password-toggle-btn rounded-full">
-                      <ion-icon :icon="showPassword ? icons.eyeOff : icons.eye" color="medium"
-                        slot="icon-only"></ion-icon>
-                    </ion-button>
-                  </ion-input>
-                </ion-item>
-                <ion-item class="custom">
-                  <ion-label position="stacked" class="!mb-2">Confirma tu contraseña</ion-label>
-                  <ion-input v-model="credentials.confirm_password" :type="passwordInputType" placeholder="*****"
-                    :disabled="loading" class="custom" fill="solid">
-                    <ion-button fill="clear" slot="end" @click="togglePasswordVisibility"
-                      class="password-toggle-btn rounded-full">
-                      <ion-icon :icon="showPassword ? icons.eyeOff : icons.eye" color="medium"
-                        slot="icon-only"></ion-icon>
-                    </ion-button>
-                  </ion-input>
-                </ion-item>
+                <PasswordInput v-model="credentials.password" :disabled="loading" placeholder="*****" />
+                <PasswordInput v-model="credentials.confirm_password" :disabled="loading" label="Confirma tu contraseña" placeholder="*****" />
               </ion-card-content>
             </ion-card>
           </div>
@@ -277,6 +257,7 @@ import { countries } from '@/data/countries.js'
 import { cities } from '@/data/cities.js'
 import ModalSelector from '@/components/ui/ModalSelector.vue'
 import ImageUpload from '@/components/common/ImageUpload.vue'
+import PasswordInput from '@/components/common/PasswordInput.vue'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
 import { checkmarkCircle } from 'ionicons/icons'
 
@@ -307,7 +288,6 @@ const resendLoading = ref(false)
 const resendSuccess = ref(null)
 const resendError = ref(null)
 const resendCooldown = ref(0)
-const showPassword = ref(false)
 const selectedCountryCode = ref('+57')
 const profileImage = ref(null)
 const imageUploadRef = ref(null)
@@ -338,9 +318,6 @@ const address = ref({
   city: ''
 })
 
-const togglePasswordVisibility = () => {
-  showPassword.value = !showPassword.value
-}
 
 // Watcher para mantener sincronizado el countryCode
 watch(selectedCountryCode, (newCode) => {
@@ -367,7 +344,7 @@ watch(() => address.value.city, (newVal) => {
 })
 
 // Computed properties
-const passwordInputType = computed(() => showPassword.value ? 'text' : 'password')
+// Password visibility is handled inside the PasswordInput component
 
 const availableStates = computed(() => {
   const countryName = country.value

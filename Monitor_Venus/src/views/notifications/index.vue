@@ -215,7 +215,7 @@ onMounted(() => {
 }
 
 .connection-status.connected {
-  color: #10b981;
+  color: #738e80;
   background: #d1fae5;
 }
 

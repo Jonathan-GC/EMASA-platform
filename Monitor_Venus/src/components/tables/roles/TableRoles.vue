@@ -214,15 +214,14 @@
                     @click.stop="openPermissionsManager(role)"
                   >
                     <ion-icon :icon="icons.key"></ion-icon>
-                    Permisos
+          
                   </ion-button>
                   <ion-button 
                     fill="clear" 
                     size="small"
                     @click.stop="openWorkspaceMembershipForm(role)"
                   >
-                    <ion-icon :icon="icons.personAdd"></ion-icon>
-                    Asignar
+                    <ion-icon :icon="icons.person_add"></ion-icon>
                   </ion-button>
                   <ion-button 
                     fill="clear" 
@@ -230,7 +229,6 @@
                     @click.stop="viewRole(role)"
                   >
                     <ion-icon :icon="icons.eye"></ion-icon>
-                    Ver
                   </ion-button>
                 </div>
               </ion-card-content>

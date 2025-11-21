@@ -213,8 +213,11 @@ const emit = defineEmits(['itemCreated', 'fieldChanged', 'activationChanged', 'c
 // State management
 const keysLoading = ref(false)
 const activationLoading = ref(false)
-const isActivated = ref(false)
+const isActivated = ref(props.device?.is_active ?? false)
 const loadingActivationDetails = ref(false)
+// Avoid fetching activation details repeatedly for the same device
+const lastActivationFetchedId = ref(null)
+const fetchingActivationDetails = ref(false)
 
 const formData = ref({
   dev_addr: '',
@@ -266,9 +269,10 @@ watch(() => props.device, (newDevice, oldDevice) => {
   console.log('🆔 Device ID:', newDevice?.id)
   
   if (newDevice) {
-    // Update activation status from device data
-    isActivated.value = newDevice.is_activated || false
+    // Update activation status from device data - use is_active not is_activated
+    isActivated.value = newDevice.is_active || false
     console.log('🔄 Activation status set to:', isActivated.value)
+    console.log('🔍 newDevice.is_active:', newDevice.is_active)
   }
   
   // Always try to fetch activation details if we have a device ID
@@ -284,6 +288,19 @@ async function fetchActivationDetails() {
     return
   }
 
+  // If we've already fetched details for this device, skip repeated calls
+  if (lastActivationFetchedId.value === activeDeviceId.value) {
+    console.log('⏹️ Activation details already fetched for device:', activeDeviceId.value)
+    return
+  }
+
+  // Prevent concurrent fetches
+  if (fetchingActivationDetails.value) {
+    console.log('⏳ Activation details fetch already in progress for device:', activeDeviceId.value)
+    return
+  }
+
+  fetchingActivationDetails.value = true
   loadingActivationDetails.value = true
   try {
     console.log('📡 Fetching activation details for device:', activeDeviceId.value)
@@ -341,6 +358,8 @@ async function fetchActivationDetails() {
       
       // Force reactive update
       await nextTick()
+      // mark successful fetch so we don't fetch again for the same device
+      lastActivationFetchedId.value = activeDeviceId.value
       console.log('🔄 Reactive update completed')
     }
     

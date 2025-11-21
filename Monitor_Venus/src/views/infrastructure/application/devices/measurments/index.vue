@@ -12,13 +12,13 @@
           :chart-data-fragments="chartDataFragments"
           :chart-key="chartKey"
           :recent-messages="recentMessages"
-          :current-chart-data="currentChartData"
+          :current-chart-data-fragments="currentChartDataFragments"
           :current-device="currentDevice"
           :current-chart-key="currentChartKey"
-          :battery-chart-data="batteryChartData"
+          :battery-chart-data-fragments="batteryChartDataFragments"
           :battery-device="batteryDevice"
           :battery-chart-key="batteryChartKey"
-          :battery-percentage="batteryPercentage"
+          :get-battery-percentage="getBatteryPercentage"
         />
       </div>
 
@@ -63,7 +63,7 @@ const {
 
 // Use current data processor
 const {
-  chartData: currentChartData,
+  chartDataFragments: currentChartDataFragments,
   lastDevice: currentDevice,
   recentMessages: currentMessages,
   chartKey: currentChartKey,
@@ -72,11 +72,11 @@ const {
 
 // Use battery data processor
 const {
-  chartData: batteryChartData,
+  chartDataFragments: batteryChartDataFragments,
   lastDevice: batteryDevice,
   recentMessages: batteryMessages,
   chartKey: batteryChartKey,
-  batteryPercentage,
+  getBatteryPercentage,
   processIncomingData: processBatteryData
 } = useBatteryDataProcessor()
 

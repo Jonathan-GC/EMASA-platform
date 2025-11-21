@@ -28,23 +28,18 @@
             ></ion-input>
           </ion-item>
 
-          <ion-item class="custom">
-            <ion-label position="stacked" class="!mb-2">Contraseña</ion-label>
-            <ion-input 
-              v-model="credentials.password"
-              type="password"
-              placeholder="*****"
-              :disabled="loading"
-              @keyup.enter="handleLogin"
-              class="bg-zinc-300 rounded-md p-100 custom"
-              fill="solid"
-              :scroll-y="isMobile"
-            ></ion-input>
-
-            <router-link :to="paths.RESET_PASSWORD_REQUEST" class="text-sm text-primary-600 text-right mt-2 no-underline">
+          <div class="text-right">
+          <PasswordInput
+            v-model="credentials.password"
+            label="Contraseña"
+            placeholder="*****"
+            :disabled="loading"
+            class="mt-4"
+          />
+          <router-link :to="paths.RESET_PASSWORD_REQUEST" class="text-sm text-primary-600 text-right mt-2 no-underline">
               ¿Olvidaste tu contraseña?
-            </router-link>
-          </ion-item>
+          </router-link>
+          </div>
 
           <!-- Error message -->
           <ion-item v-if="error" lines="none" class="error-item">

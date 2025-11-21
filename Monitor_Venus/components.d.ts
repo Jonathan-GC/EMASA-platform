@@ -9,6 +9,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AuthFooter: typeof import('./src/components/layout/AuthFooter.vue')['default']
+    BatteryChart: typeof import('./src/components/charts/BatteryChart.vue')['default']
+    BatteryChartsGrid: typeof import('./src/components/charts/BatteryChartsGrid.vue')['default']
     BatteryDeviceInfo: typeof import('./src/components/cards/BatteryDeviceInfo.vue')['default']
     Blank: typeof import('./src/layouts/blank.vue')['default']
     BtnLogout: typeof import('./src/layouts/components/BtnLogout.vue')['default']
@@ -86,6 +88,7 @@ declare module 'vue' {
     LoginForm: typeof import('./src/components/forms/auth/LoginForm.vue')['default']
     ModalSelector: typeof import('./src/components/ui/ModalSelector.vue')['default']
     NavBar: typeof import('./src/layouts/components/NavBar.vue')['default']
+    PasswordInput: typeof import('./src/components/common/PasswordInput.vue')['default']
     QuickActions: typeof import('./src/components/operators/quickActions.vue')['default']
     QuickControl: typeof import('./src/components/operators/quickControl.vue')['default']
     RecentMessages: typeof import('./src/components/cards/RecentMessages.vue')['default']

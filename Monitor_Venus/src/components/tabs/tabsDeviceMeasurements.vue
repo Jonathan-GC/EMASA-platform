@@ -1,5 +1,5 @@
 <template>
-  <div class="tabs-device-measurements">
+  <div v-if="loaded" class="tabs-device-measurements">
     <ion-tabs>
       <ion-tab-bar slot="bottom">
         <ion-tab-button tab="voltage">
@@ -89,11 +89,9 @@
               <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
             </div>
 
-            <!-- Current chart -->
-            <div v-if="currentDevice" class="chart-container">
-              <SingleCurrentChart :chart-data="currentChartData" :chart-key="currentChartKey"
-                :device-name="currentDevice?.device_name || 'Dispositivo IoT'" />
-            </div>
+            <!-- Current charts grid (multi-channel) -->
+            <ChartsGrid v-if="currentDevice" :chart-fragments="currentChartDataFragments" :chart-key="currentChartKey"
+              :device-name="currentDevice?.device_name || 'Dispositivo IoT'" />
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
@@ -117,7 +115,7 @@
             </div>
 
             <!-- Device information section -->
-            <BatteryDeviceInfo :device="batteryDevice" :battery-percentage="batteryPercentage" />
+            <BatteryDeviceInfo :device="batteryDevice" :battery-percentage="getBatteryPercentage?.() || 0" />
 
             <!-- No data placeholder -->
             <div v-if="!batteryDevice" class="no-data">
@@ -126,11 +124,9 @@
               <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
             </div>
 
-            <!-- Battery chart -->
-            <div class="chart-container">
-              <DualAxisBatteryChart :chart-data="batteryChartData" :chart-key="batteryChartKey"
-                :device-name="batteryDevice?.device_name || 'Dispositivo IoT'" />
-            </div>
+            <!-- Battery charts grid (multi-channel dual-axis) -->
+            <BatteryChartsGrid v-if="batteryDevice" :chart-fragments="batteryChartDataFragments" :chart-key="batteryChartKey"
+              :device-name="batteryDevice?.device_name || 'Dispositivo IoT'" />
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
@@ -161,7 +157,10 @@
 
             <!-- Activation form -->
             <div class="form-container">
-              <FormActivationDevice type="device_activation" label="device activation" :device="device"
+              <!-- prefer the richer deviceDetails fetched from the API, fallback to device prop -->
+              <!-- prefer the richer deviceDetails fetched from the API, fallback to device prop -->
+              <!-- spread deviceDetails into a plain object to ensure child receives an object (not a ref) -->
+              <FormActivationDevice type="device_activation" label="device activation" :device="deviceDetails ? { ...deviceDetails } : device"
                 @item-created="handleActivationCreated" @field-changed="handleActivationFieldChanged" />
             </div>
 
@@ -201,8 +200,8 @@
             <!-- Error state -->
             <div v-else-if="measurementsError" class="error-container">
               <ion-icon :icon="icons.alertCircle" color="danger" size="large"></ion-icon>
-              <p class="error-message">{{ measurementsError }}</p>
-              <ion-button @click="fetchMeasurements" size="small">
+              <p class="text-red-600">{{ measurementsError }}</p>
+              <ion-button @click="fetchMeasurements" shape="round">
                 <ion-icon :icon="icons.refresh" slot="start"></ion-icon>
                 Retry
               </ion-button>
@@ -368,6 +367,7 @@ import RecentMessages from '@/components/cards/RecentMessages.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import DeviceInfo from '@/components/cards/DeviceInfo.vue'
 import ChartsGrid from '@/components/charts/ChartsGrid.vue'
+import BatteryChartsGrid from '@/components/charts/BatteryChartsGrid.vue'
 import SingleCurrentChart from '@/components/charts/SingleCurrentChart.vue'
 import DualAxisBatteryChart from '@/components/charts/DualAxisBatteryChart.vue'
 import FormActivationDevice from '@/components/forms/create/device/formActivationDevice.vue'
@@ -409,9 +409,9 @@ const props = defineProps({
     default: 'Dispositivo IoT'
   },
   // Current tab props
-  currentChartData: {
-    type: Object,
-    default: () => ({ datasets: [] })
+  currentChartDataFragments: {
+    type: Array,
+    default: () => []
   },
   currentDevice: {
     type: Object,
@@ -422,9 +422,9 @@ const props = defineProps({
     default: 0
   },
   // Battery tab props
-  batteryChartData: {
-    type: Object,
-    default: () => ({ datasets: [] })
+  batteryChartDataFragments: {
+    type: Array,
+    default: () => []
   },
   batteryDevice: {
     type: Object,
@@ -442,7 +442,7 @@ const props = defineProps({
 
 // Inject icons
 const icons = inject('icons', {})
-
+const loaded = ref(false)
 // Router
 const route = useRoute()
 
@@ -454,6 +454,10 @@ const isMounted = ref(false)
 const measurements = ref(null)
 const measurementsLoading = ref(false)
 const measurementsError = ref(null)
+// Device fetch state (used by fetchDevice)
+const loading = ref(false)
+const error = ref(null)
+const deviceDetails = ref(null) // store fetched device details (used by activation form)
 
 // Fetch measurements from API
 const fetchMeasurements = async () => {
@@ -481,6 +485,37 @@ const fetchMeasurements = async () => {
     measurementsError.value = error.message || 'Failed to load measurements'
   } finally {
     measurementsLoading.value = false
+  }
+}
+
+const fetchDevice = async () => {
+  if (!isMounted.value) {
+    console.log('⏳ Component not ready, waiting...')
+    return
+  }
+  
+  loading.value = true
+  error.value = null
+  
+  try {
+    console.log('🔄 Fetching roles data...')
+    
+    const response = await API.get(API.DEVICE + route.params.device_id)
+    // Normalize response shapes. Prefer object -> use as deviceDetails
+    let result = null
+    if (Array.isArray(response)) result = response[0] || null
+    else if (response?.data) result = response.data
+    else result = response
+
+    deviceDetails.value = result
+    console.log('✅ Device Retrieved (deviceDetails):', result)
+    console.log('   is_active:', result?.is_active)
+    
+  } catch (err) {
+    error.value = `Error al cargar roles: ${err.message}`
+    console.error('❌ Error fetching roles:', err)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -581,12 +616,17 @@ const formatValue = (value, unit) => {
 }
 
 onMounted(() => {
+  // mark component as mounted first so helper methods can run immediately
   isMounted.value = true
+
+  // then fetch device / measurements
+  fetchDevice()
   fetchMeasurements()
+  loaded.value = true
 })
 
 // Watch for device ID changes and refetch
-watch(() => route.params.deviceId, (newId, oldId) => {
+watch(() => route.params.device_id, (newId, oldId) => {
   if (newId && newId !== oldId) {
     fetchMeasurements()
   }
@@ -833,9 +873,7 @@ function handleMeasurementCreated() {
   margin-bottom: 1rem;
 }
 
-.error-container ion-icon {
-  margin-bottom: 1rem;
-}
+
 
 .error-message {
   color: var(--ion-color-danger);

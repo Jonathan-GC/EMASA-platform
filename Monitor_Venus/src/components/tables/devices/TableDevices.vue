@@ -332,7 +332,7 @@ const fetchApplications = async () => {
     console.log('🔄 Fetching Application data...')
 
     // Real API call using await
-    const response = await API.get(API.APPLICATION_DEVICES(route.params.application_id), headers);
+    const response = await API.get(API.APPLICATION_DEVICES(route.params.application_id));
     // Ensure response is an array, if not, wrap it or use a default
     const mockData = Array.isArray(response) ? response : (response?.data || []);
 

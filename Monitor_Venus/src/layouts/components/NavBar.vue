@@ -219,10 +219,9 @@
         </template>
 
         <!-- Support navbar !-->
-        <template v-if="authStore.isAuthenticated">
+        
           <hr class="divider"/>
           <router-link
-            v-if="!authStore.isSupportUser"
             :to="paths.SUPPORT"
             class="nav-link"
             :class="{ active: $route.path === paths.SUPPORT }"
@@ -231,6 +230,7 @@
             <ion-icon :icon="icons.helpBuoy"></ion-icon>
             Support
           </router-link>
+          <template v-if="authStore.isAuthenticated">
           <router-link
             v-if="showSupportLinks"
             :to="paths.INBOX"

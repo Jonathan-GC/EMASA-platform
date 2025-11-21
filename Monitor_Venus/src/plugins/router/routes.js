@@ -229,6 +229,9 @@ export const routes = [
             { path: P.TENANT_WORKSPACES, component: C.TENANT_WORKSPACES, beforeEnter: requireAuth },
             { path: P.NOTIFICATIONS, component: C.NOTIFICATIONS, beforeEnter: requireAuth }
 
+            // Catch-all 404 route (Not Found)
+            
+
         ]
     },
     {
@@ -281,6 +284,12 @@ export const routes = [
                     requiresAuth: true,
                     label: 'Configurar Organización'
                 }
+            }
+            ,{
+                path: P.NOT_FOUND,
+                component: C.NOT_FOUND,
+                beforeEnter: allowAll,
+                meta: { public: true, label: 'Not Found' }
             }
         ]
     }

@@ -52,7 +52,7 @@ defineProps({
 
 .connection-status.connected {
   background: #d1fae5;
-  color: #10b981;
+  color:#738e80;
 }
 
 .reconnect-info {
