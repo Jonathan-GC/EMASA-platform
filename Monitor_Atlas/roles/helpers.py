@@ -28,7 +28,7 @@ def assign_new_user_base_permissions(user):
         user.save()
         return
 
-    assign_perm("add_tenant", user)
+    assign_perm("organizations.add_tenant", user)
     logger.debug(f"Assigned base permissions to user {user.username}")
 
     user.save()
@@ -48,13 +48,13 @@ def assign_new_tenant_base_permissions(tenant, user):
 
     assign_perm("view_tenant", user, tenant)
     assign_perm("change_tenant", user, tenant)
-    assign_perm("add_user", user)
+    assign_perm("users.add_user", user)
 
     # Workspace creation permission is given to tenant owners
-    assign_perm("add_workspace", user)
+    assign_perm("organizations.add_workspace", user)
 
     # Tenant creation is just one time usage
-    remove_perm("add_tenant", user)
+    remove_perm("organizations.add_tenant", user)
 
     user.save()
 
@@ -155,7 +155,7 @@ def assign_base_tenant_admin_permissions_to_group(tenant, group):
     assign_perm("change_tenant", group, tenant)
 
     # Workspace creation permission is given to tenant admins
-    assign_perm("add_workspace", group)
+    assign_perm("organizations.add_workspace", group)
     logger.debug(f"Assigned base tenant admin permissions to group {group.name}")
 
     group.save()
