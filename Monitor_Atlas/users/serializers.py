@@ -3,7 +3,10 @@ from rest_framework import serializers
 from django.core.validators import validate_email
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
 from roles.models import WorkspaceMembership
 from .models import User, MainAddress, BillingAddress
 from support.models import SupportMembership
@@ -66,6 +69,87 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["is_tenant_admin"] = is_tenant_admin
 
         return token
+
+
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    """
+    Custom Token Refresh Serializer that ensures the new access token
+    includes all custom claims (cs_tenant_id, is_global, etc.)
+    """
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        # Get the refresh token and extract user_id from it
+        refresh = self.token_class(attrs["refresh"])
+        user_id = refresh.get("user_id")
+
+        # Get the user from database
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            from rest_framework.exceptions import AuthenticationFailed
+
+            raise AuthenticationFailed("User not found")
+
+        # Create a new access token with custom claims using the same logic
+        access = refresh.access_token
+
+        # Add custom claims to the new access token
+        membership = (
+            WorkspaceMembership.objects.filter(user=user)
+            .select_related("workspace__tenant")
+            .first()
+        )
+        is_superuser = user.is_superuser
+        is_tenant_admin = False
+
+        if membership:
+            if membership.role and membership.role.is_admin:
+                is_tenant_admin = True
+            tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
+            cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+            if tenant.is_global:
+                is_global = True
+            else:
+                is_global = False
+        else:
+            if user.tenant:
+                tenant = user.tenant
+                cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+                if cs_tenant_id is None:
+                    logger.warning(
+                        f"Tenant {tenant.id} for user {user.id} has no ChirpStack tenant ID."
+                    )
+                    cs_tenant_id = tenant.id
+                if tenant.is_global or user.is_superuser:
+                    is_global = True
+                else:
+                    is_global = False
+            else:
+                logger.warning(
+                    f"User {user.id} has no tenant or workspace membership; setting is_global to False."
+                )
+                is_global = False
+                cs_tenant_id = None
+
+        support_membership = SupportMembership.objects.filter(user=user).first()
+        if support_membership:
+            is_support = True
+        else:
+            is_support = False
+
+        access["user_id"] = user.id
+        access["username"] = user.username
+        access["is_global"] = is_global
+        access["cs_tenant_id"] = cs_tenant_id
+        access["is_superuser"] = is_superuser
+        access["is_support"] = is_support
+        access["is_tenant_admin"] = is_tenant_admin
+
+        data["access"] = str(access)
+
+        return data
 
     def validate(self, attrs):
         data = super().validate(attrs)
