@@ -97,13 +97,9 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
     """
 
     def validate(self, attrs):
-        data = super().validate(attrs)
-
-        # Get the refresh token and extract user_id from it
         refresh = self.token_class(attrs["refresh"])
         user_id = refresh.get("user_id")
 
-        # Get the user from database
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
@@ -111,10 +107,12 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
 
             raise AuthenticationFailed("User not found")
 
-        # Create a new access token with custom claims using the same logic
-        access = refresh.access_token
+        data = super().validate(attrs)
 
-        # Add custom claims to the new access token
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        access_token = AccessToken(data["access"])
+
         membership = (
             WorkspaceMembership.objects.filter(user=user)
             .select_related("workspace__tenant")
@@ -158,15 +156,15 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         else:
             is_support = False
 
-        access["user_id"] = user.id
-        access["username"] = user.username
-        access["is_global"] = is_global
-        access["cs_tenant_id"] = cs_tenant_id
-        access["is_superuser"] = is_superuser
-        access["is_support"] = is_support
-        access["is_tenant_admin"] = is_tenant_admin
+        access_token["user_id"] = user.id
+        access_token["username"] = user.username
+        access_token["is_global"] = is_global
+        access_token["cs_tenant_id"] = cs_tenant_id
+        access_token["is_superuser"] = is_superuser
+        access_token["is_support"] = is_support
+        access_token["is_tenant_admin"] = is_tenant_admin
 
-        data["access"] = str(access)
+        data["access"] = str(access_token)
 
         return data
 
