@@ -22,7 +22,7 @@ class Role(models.Model):
     def save(self, *args, **kwargs):
         if not self.pk and not self.group:
             group = Group.objects.create(
-                name=f"{self.name}_{self.workspace.tenant.name}"
+                name=f"{self.id}_{self.name}_{self.workspace.tenant.name}"
             )
             self.group = group
         super().save(*args, **kwargs)
@@ -46,10 +46,19 @@ class WorkspaceMembership(models.Model):
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
-        # Ensure the user's groups are updated based on their role
+        if self.pk:
+            try:
+                old_membership = WorkspaceMembership.objects.get(pk=self.pk)
+                old_group = old_membership.role.group if old_membership.role else None
+
+                if old_group and old_group != (self.role.group if self.role else None):
+                    self.user.groups.remove(old_group)
+            except WorkspaceMembership.DoesNotExist:
+                pass
+
         if self.role and self.role.group:
-            self.user.groups.clear()
             self.user.groups.add(self.role.group)
+
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

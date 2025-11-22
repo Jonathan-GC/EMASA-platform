@@ -30,7 +30,6 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from .helpers import (
     get_or_create_default_workspace,
-    get_or_create_default_subscription,
     get_no_role,
     get_or_create_admin_role,
 )
@@ -76,7 +75,6 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                 "User does not have permission to create workspace for this tenant"
             )
 
-        assign_created_instance_permissions(instance, self.request.user)
         workspace_membership, created = WorkspaceMembership.objects.get_or_create(
             workspace=instance, user=user, role=get_or_create_admin_role(instance)
         )
@@ -84,9 +82,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             logger.debug(
                 f"Created workspace membership for user {user.username} in workspace {instance.name}"
             )
-        admin_role = get_or_create_admin_role(instance)
-        admin_role.group.user_set.add(user)
-        get_no_role(instance)  # Ensure "No Role" exists
+        get_no_role(instance)
         assign_new_workspace_base_permissions(instance, user)
         logger.debug(
             f"Assigned base workspace permissions to user {user.username} for workspace {instance.name}"
@@ -145,7 +141,6 @@ class TenantViewSet(viewsets.ModelViewSet):
                 workspace=workspace, user=user, role=admin_role
             )
             if created:
-                admin_role.group.user_set.add(user)
                 logger.debug(
                     f"Created workspace membership for user {user.username} in workspace {workspace.name} with role {admin_role.name}"
                 )
@@ -153,7 +148,7 @@ class TenantViewSet(viewsets.ModelViewSet):
                 logger.debug(
                     f"Coudn't find workspace membership for user {user.username} in workspace {workspace.name}, creating new one"
                 )
-            get_no_role(workspace)  # Ensure "No Role" exists
+            get_no_role(workspace)
             user.save()
 
         else:

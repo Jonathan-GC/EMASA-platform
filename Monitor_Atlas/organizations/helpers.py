@@ -5,6 +5,7 @@ from roles.helpers import (
     assign_base_workspace_admin_permissions_to_group,
 )
 from django.contrib.auth.models import Group
+from loguru import logger
 
 
 def get_or_create_default_workspace(tenant):
@@ -72,7 +73,11 @@ def get_or_create_admin_role(workspace):
     )
     if created or not role.group:
         if not role.group:
-            group = Group.objects.create(name=f"{role.name}_{workspace.tenant.name}")
+            group, _ = Group.objects.get_or_create(
+                name=f"{role.id}_{role.name}_{workspace.tenant.name}"
+            )
+            if _:
+                logger.debug(f"Created group {group.name} for admin role")
             role.group = group
             role.save()
 

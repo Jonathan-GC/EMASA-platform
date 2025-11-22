@@ -63,8 +63,7 @@ def assign_new_workspace_base_permissions(workspace, user):
     """
     Assign base permissions to a new workspace owner.
     Permissions includes:
-    - Permission to modify/view itself
-    - Permission to delete itself
+    - Permission to modify/view/delete itself
     - Deleting must be requested through support
 
     Args:
@@ -72,13 +71,11 @@ def assign_new_workspace_base_permissions(workspace, user):
         user (User): The user object to assign permissions to.
     """
 
-    assign_perm(f"view_workspace", user, workspace)
-    assign_perm(f"change_workspace", user, workspace)
+    assign_perm("view_workspace", user, workspace)
+    assign_perm("change_workspace", user, workspace)
+    assign_perm("delete_workspace", user, workspace)
 
-    # Role creation permission is given to workspace owners
     assign_perm("roles.add_role", user)
-
-    # Machine creation permission is given to workspace owners
     assign_perm("infrastructure.add_machine", user)
 
     user.save()

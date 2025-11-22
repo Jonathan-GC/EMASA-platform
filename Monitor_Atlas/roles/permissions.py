@@ -61,18 +61,16 @@ class HasPermission(BasePermission):
         user = request.user
 
         if not user.is_authenticated:
-            logger.warning("User is not authenticated")
+            logger.debug("User not authenticated")
             return False
 
         if user.is_superuser:
-            logger.warning("User is a superuser")
+            logger.debug("Superuser access granted")
             return True
 
         scope = getattr(view, "scope", None)
         if not scope:
-            logger.warning(
-                f"View {view.__class__.__name__} does not have a scope defined"
-            )
+            logger.warning(f"View {view.__class__.__name__} missing scope")
             return False
 
         action = request.method.lower()
@@ -89,22 +87,38 @@ class HasPermission(BasePermission):
 
         perm_name = perm_map.get(action)
         if not perm_name:
-            logger.warning(f"No permission mapping found for action: {action}")
+            logger.warning(f"No permission mapping for action: {action}")
             return False
 
         if action == "get" and view.action == "list":
+            logger.debug("List action allowed")
             return True
 
-        full_perm = f"{view.__class__.__module__.split('.')[0]}.{perm_name}"
-        return user.has_perm(full_perm)
+        if action == "post":
+            app_label = view.__class__.__module__.split(".")[0]
+            full_perm = f"{app_label}.{perm_name}"
+            has_perm = user.has_perm(full_perm)
+            logger.debug(f"Global permission check for {full_perm}: {has_perm}")
+            return has_perm
+
+        if view.action in ["retrieve", "update", "partial_update", "destroy"]:
+            logger.debug(
+                f"Object-level action {view.action}, delegating to has_object_permission"
+            )
+            return True
+
+        logger.warning(f"Unhandled action: {view.action}")
+        return False
 
     def has_object_permission(self, request, view, obj):
         user = request.user
         if user.is_superuser:
+            logger.debug("Superuser object access granted")
             return True
 
         scope = getattr(view, "scope", None)
         if not scope:
+            logger.warning(f"View {view.__class__.__name__} missing scope")
             return False
 
         action = request.method.lower()
@@ -112,7 +126,6 @@ class HasPermission(BasePermission):
             "get": f"view_{scope}",
             "head": f"view_{scope}",
             "options": f"view_{scope}",
-            "post": f"add_{scope}",
             "put": f"change_{scope}",
             "patch": f"change_{scope}",
             "delete": f"delete_{scope}",
@@ -120,10 +133,12 @@ class HasPermission(BasePermission):
 
         perm_name = perm_map.get(action)
         if not perm_name:
+            logger.warning(f"No permission mapping for action: {action}")
             return False
 
-        full_perm = f"{obj._meta.app_label}.{perm_name}"
-        return user.has_perm(full_perm, obj)
+        has_perm = user.has_perm(perm_name, obj)
+        logger.debug(f"Object permission check for {perm_name}: {has_perm}")
+        return has_perm
 
 
 class IsAdminOrIsAuthenticatedReadOnly(BasePermission):

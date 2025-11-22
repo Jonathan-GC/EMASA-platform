@@ -163,8 +163,6 @@ class UserViewSet(ModelViewSet):
             instance.tenant = None
             logger.debug("Please, manually add the tenant for this user")
 
-        assign_created_instance_permissions(instance, user)
-
         token = generate_token(instance.id, scope="set_password", expires_minutes=60)
 
         send_password_reset_email(instance, token)
