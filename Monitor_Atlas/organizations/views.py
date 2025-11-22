@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django.contrib.auth.models import Group
 
 from .models import Workspace, Tenant, Subscription
+from roles.models import WorkspaceMembership
 from .serializers import WorkspaceSerializer, TenantSerializer, SubscriptionSerializer
 
 from roles.permissions import HasPermission
@@ -62,10 +63,11 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        assign_created_instance_permissions(instance, self.request.user)
         user = self.request.user
         user_tenant = user.tenant
         workspace_tenant = instance.tenant
+
+        # Validate tenant membership before assigning any permissions
         if user_tenant != workspace_tenant and not user.is_superuser:
             logger.warning(
                 f"User tenant {user_tenant} does not match workspace tenant {workspace_tenant}"
@@ -73,6 +75,18 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             raise PermissionError(
                 "User does not have permission to create workspace for this tenant"
             )
+
+        assign_created_instance_permissions(instance, self.request.user)
+        workspace_membership, created = WorkspaceMembership.objects.get_or_create(
+            workspace=instance, user=user, role=get_or_create_admin_role(instance)
+        )
+        if created:
+            logger.debug(
+                f"Created workspace membership for user {user.username} in workspace {instance.name}"
+            )
+        admin_role = get_or_create_admin_role(instance)
+        admin_role.group.user_set.add(user)
+        get_no_role(instance)  # Ensure "No Role" exists
         assign_new_workspace_base_permissions(instance, user)
         logger.debug(
             f"Assigned base workspace permissions to user {user.username} for workspace {instance.name}"
@@ -127,14 +141,19 @@ class TenantViewSet(viewsets.ModelViewSet):
             )
             workspace = get_or_create_default_workspace(instance)
             admin_role = get_or_create_admin_role(workspace)
-            workspace_membership = workspace.workspacemembership_set.create(
-                user=user, role=admin_role
+            workspace_membership, created = WorkspaceMembership.objects.get_or_create(
+                workspace=workspace, user=user, role=admin_role
             )
-            logger.debug(
-                f"Created workspace membership for user {user.username} in workspace {workspace.name} with role {admin_role.name}"
-            )
+            if created:
+                admin_role.group.user_set.add(user)
+                logger.debug(
+                    f"Created workspace membership for user {user.username} in workspace {workspace.name} with role {admin_role.name}"
+                )
+            elif not workspace_membership:
+                logger.debug(
+                    f"Coudn't find workspace membership for user {user.username} in workspace {workspace.name}, creating new one"
+                )
             get_no_role(workspace)  # Ensure "No Role" exists
-            workspace_membership.save()
             user.save()
 
         else:
