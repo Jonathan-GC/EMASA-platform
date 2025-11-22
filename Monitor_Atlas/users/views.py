@@ -259,27 +259,52 @@ class CookieTokenRefreshView(TokenRefreshView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
+        # Validate the refresh using the existing serializer to keep standard
+        # rotation/validation behavior.
         serializer = self.get_serializer(data={"refresh": refresh_token})
         serializer.is_valid(raise_exception=True)
 
-        data = serializer.validated_data
-        response = Response(data, status=status.HTTP_200_OK)
+        # Build an access token that includes our custom claims by using the
+        # CustomTokenObtainPairSerializer.get_token for the user referenced
+        # in the refresh token.
+        try:
+            rt = RefreshToken(refresh_token)
+            user_id = rt.get("user_id") or rt["user_id"]
+            user = User.objects.get(id=user_id)
 
-        new_refresh = response.data.get("refresh")
+            token = CustomTokenObtainPairSerializer.get_token(user)
+            access = token.access_token
 
-        if new_refresh:
-            max_age = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
-            response.set_cookie(
-                key=REFRESH_COOKIE_NAME,
-                value=new_refresh,
-                max_age=max_age,
-                httponly=True,
-                secure=getattr(settings, "COOKIE_SECURE", False),
-                samesite="Lax",
-                path=REFRESH_COOKIE_PATH,
-            )
+            data = {"access": str(access)}
 
-        return response
+            # If rotation provided a new refresh, include it as well (preserve
+            # default TokenRefreshView behavior)
+            if "refresh" in serializer.validated_data:
+                data["refresh"] = serializer.validated_data["refresh"]
+
+            response = Response(data, status=status.HTTP_200_OK)
+
+            new_refresh = data.get("refresh")
+            if new_refresh:
+                refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
+                if not isinstance(refresh_lifetime, timedelta):
+                    refresh_lifetime = timedelta(days=1)
+                max_age = int(refresh_lifetime.total_seconds())
+                response.set_cookie(
+                    key=REFRESH_COOKIE_NAME,
+                    value=new_refresh,
+                    max_age=max_age,
+                    httponly=True,
+                    secure=getattr(settings, "COOKIE_SECURE", False),
+                    samesite="Lax",
+                    path=REFRESH_COOKIE_PATH,
+                )
+
+            return response
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=400)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=400)
 
 
 class LogoutView(APIView):
