@@ -260,8 +260,14 @@ export const useAuthStore = defineStore('auth', () => {
     console.log('🔄 Intentando refresh token desde cookie httpOnly...');
     
     try {
+      // Get API base URL
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
+      const refreshUrl = `${apiBaseUrl}v1/token/refresh/`;
+      
+      console.log('🔗 Refresh URL:', refreshUrl);
+      
       // NO enviamos refresh_token en el body, el backend lo lee de la cookie
-      const response = await fetch('/api/v1/token/refresh/', {
+      const response = await fetch(refreshUrl, {
         method: 'POST',
         credentials: 'include', // ← Crucial: Envía la cookie httpOnly
         headers: { 
@@ -298,8 +304,8 @@ export const useAuthStore = defineStore('auth', () => {
       
     } catch (error) {
       console.error('❌ Error refrescando token:', error.message);
-      // Limpiar todo y forzar re-login
-      logout();
+      // No llamar logout aquí - dejar que el caller decida qué hacer
+      // El API class tiene mejor lógica para manejar fallos de refresh
       throw error;
     }
   };
