@@ -29,7 +29,7 @@ class API {
 
     //----[AUTH]----
     TOKEN = 'token/'
-    REFRESH_TOKEN = 'token/refresh'
+    REFRESH_TOKEN = 'token/refresh/'
     CSRF_TOKEN = 'csrf/'
     LOGOUT = 'logout/';
     REGISTER = 'users/auth/register/';

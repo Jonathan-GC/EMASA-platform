@@ -310,20 +310,32 @@ const handleCreateTenant = async () => {
 
 /**
  * Refresh user data to get updated tenant_id
- * This might require re-login or token refresh
+ * Refreshes the token to get the updated JWT with tenant_id
  */
 const refreshUserData = async () => {
   try {
-    // Option 1: Refresh token to get updated JWT with tenant_id
-    // Depends on your backend implementation
-    console.log('🔄 Refrescando datos del usuario...');
+    console.log('🔄 Refrescando token para obtener tenant_id actualizado...');
     
-    // You might need to implement a refresh endpoint or re-login
-    // For now, we'll just log
-    console.log('⚠️ Nota: Puede requerir re-login para obtener tenant_id actualizado');
+    // Call refresh token endpoint - no body needed, reads from httpOnly cookie
+    const response = await API.post(API.REFRESH_TOKEN, {});
+    
+    // The API returns an array, get first element
+    const data = Array.isArray(response) ? response[0] : response;
+    
+    if (!data || !data.access) {
+      throw new Error('No se recibió access token en la respuesta');
+    }
+    
+    console.log('✅ Token refrescado exitosamente');
+    
+    // Update token in authStore (which also updates sessionStorage)
+    authStore.refreshToken(data.access);
+    
+    console.log('✅ Usuario actualizado con nuevo tenant_id:', authStore.tenantId);
     
   } catch (err) {
-    console.error('❌ Error refrescando datos:', err);
+    console.error('❌ Error refrescando token:', err);
+    throw err;
   }
 };
 
