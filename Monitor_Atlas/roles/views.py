@@ -21,6 +21,7 @@ from django.contrib.auth.models import Group
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from loguru import logger
+from guardian.shortcuts import get_objects_for_user
 
 
 @extend_schema_view(
@@ -40,6 +41,17 @@ class RoleViewSet(viewsets.ModelViewSet):
     serializer_class = RoleSerializer
     permission_classes = [HasPermission]
     scope = "role"
+
+    def get_queryset(self):
+        user = self.request.user
+        user_tenant = user.tenant
+
+        if user.is_superuser:
+            return Role.objects.all()
+        else:
+            return get_objects_for_user(user, "roles.view_role", Role).filter(
+                workspace__tenant=user_tenant
+            )
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -91,6 +103,17 @@ class WorkspaceMembershipViewSet(viewsets.ModelViewSet):
     serializer_class = WorkspaceMembershipSerializer
     permission_classes = [HasPermission]
     scope = "workspace"
+
+    def get_queryset(self):
+        user = self.request.user
+        user_tenant = user.tenant
+
+        if user.is_superuser:
+            return WorkspaceMembership.objects.all()
+        else:
+            return get_objects_for_user(
+                user, "roles.view_workspacemembership", WorkspaceMembership
+            ).filter(workspace__tenant=user_tenant)
 
     def perform_create(self, serializer):
         instance = serializer.save()

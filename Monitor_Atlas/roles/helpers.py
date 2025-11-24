@@ -237,7 +237,7 @@ def get_assignable_permissions(user, workspace, role):
     if not is_admin and user.is_superuser:
         is_admin = True
 
-    if not is_admin:
+    if not is_admin or role.name == "Sin rol":
         return assignable_permissions
 
     group = role.group
@@ -305,6 +305,11 @@ def get_assignable_permissions(user, workspace, role):
 
 def bulk_assign_permissions(permissions, role):
     group = role.group
+    if role.name == "Sin rol":
+        logger.warning(
+            f"Attempted to bulk assign permissions to 'Sin rol' role. Operation aborted. Change user's role first."
+        )
+        return
     logger.info(f"Bulk permission assign for group={group.name}")
     valid_keys = {"assign", "revoke"}
     permissions = {k: v for k, v in permissions.items() if k in valid_keys}
