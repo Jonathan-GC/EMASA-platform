@@ -32,6 +32,7 @@ from .helpers import (
     get_or_create_default_workspace,
     get_no_role,
     get_or_create_admin_role,
+    get_global_tenant,
 )
 
 
@@ -65,9 +66,14 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         user = self.request.user
         user_tenant = user.tenant
         workspace_tenant = instance.tenant
+        global_tenant = get_global_tenant()
 
         # Validate tenant membership before assigning any permissions
-        if user_tenant != workspace_tenant and not user.is_superuser:
+        if (
+            user_tenant != workspace_tenant
+            and not user.is_superuser
+            and user_tenant != global_tenant
+        ):
             logger.warning(
                 f"User tenant {user_tenant} does not match workspace tenant {workspace_tenant}"
             )

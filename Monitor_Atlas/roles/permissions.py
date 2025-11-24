@@ -75,6 +75,8 @@ class HasPermission(BasePermission):
 
         action = request.method.lower()
 
+        logger.debug(f"Checking permission for action: {action} on scope: {scope}")
+
         perm_map = {
             "get": f"view_{scope}",
             "head": f"view_{scope}",
@@ -90,7 +92,7 @@ class HasPermission(BasePermission):
             logger.warning(f"No permission mapping for action: {action}")
             return False
 
-        if action == "get" and view.action == "list":
+        if action == "get" and (view.action == "list" or view.action != "retrieve"):
             logger.debug("List action allowed")
             return True
 
