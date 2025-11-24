@@ -69,6 +69,14 @@ class RoleViewSet(viewsets.ModelViewSet):
 
         instance = serializer.save()
         assign_new_role_base_permissions(instance, user)
+
+        if not instance.group:
+            group = Group.objects.create(
+                name=f"{instance.id}_{instance.name}_{instance.workspace.tenant.name}"
+            )
+            instance.group = group
+            instance.save()
+
         logger.debug(
             f"Assigned base role permissions to user {user.username} for role {instance.name}"
         )
