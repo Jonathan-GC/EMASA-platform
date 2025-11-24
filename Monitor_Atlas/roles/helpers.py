@@ -7,7 +7,20 @@ from .global_helpers import GLOBAL_PERMISSIONS_PRESET, get_monitor_tenant
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import Group
 
-GLOBAL_ADMIN_ROLE_GROUP = Group.objects.get(name="global_admin")
+GLOBAL_ADMIN_ROLE_GROUP_NAME = "global_admin"
+GLOBAL_ADMIN_ROLE_GROUP = None
+
+
+def get_global_admin_role_group():
+    """Return the global admin Group, or None if it cannot be loaded.
+
+    This avoids querying the database at import time (which can fail during
+    migrations/startup). Callers should handle a None return value.
+    """
+    try:
+        return Group.objects.get(name=GLOBAL_ADMIN_ROLE_GROUP_NAME)
+    except Exception:
+        return None
 
 
 def assign_new_user_base_permissions(user):
@@ -125,10 +138,11 @@ def assign_created_instance_permissions(instance, user):
     assign_perm(change_perm, user, instance)
     assign_perm(delete_perm, user, instance)
 
-    if GLOBAL_ADMIN_ROLE_GROUP:
-        assign_perm(view_perm, GLOBAL_ADMIN_ROLE_GROUP, instance)
-        assign_perm(change_perm, GLOBAL_ADMIN_ROLE_GROUP, instance)
-        assign_perm(delete_perm, GLOBAL_ADMIN_ROLE_GROUP, instance)
+    global_group = get_global_admin_role_group()
+    if global_group:
+        assign_perm(view_perm, global_group, instance)
+        assign_perm(change_perm, global_group, instance)
+        assign_perm(delete_perm, global_group, instance)
 
     user.save()
 
@@ -229,7 +243,7 @@ def get_assignable_permissions(user, workspace, role):
     group = role.group
 
     if user and user.is_superuser:
-        group = GLOBAL_ADMIN_ROLE_GROUP
+        group = get_global_admin_role_group() or group
 
     is_global_tenant = workspace.tenant == get_monitor_tenant()
 
