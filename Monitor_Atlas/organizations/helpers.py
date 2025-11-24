@@ -55,9 +55,20 @@ def get_no_role(workspace):
     """
     role, created = Role.objects.get_or_create(
         workspace=workspace,
-        name="Sin Rol",
+        name="Sin rol",
         defaults={"description": "Usuario sin rol ni permisos", "color": "#cccccc"},
     )
+
+    if created or not role.group:
+        if not role.group:
+            group, _ = Group.objects.get_or_create(
+                name=f"{role.id}_{role.name}_{workspace.tenant.name}"
+            )
+            if _:
+                logger.debug(f"Created group {group.name} for No Role")
+            role.group = group
+            role.save()
+
     return role
 
 
