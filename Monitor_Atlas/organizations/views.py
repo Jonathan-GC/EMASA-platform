@@ -116,7 +116,7 @@ class TenantViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return Tenant.objects.all()
 
-        if user.is_staff:
+        if user.tenant.name == "Monitor":
             return get_objects_for_user(
                 user,
                 "organizations.view_tenant",
@@ -135,7 +135,7 @@ class TenantViewSet(viewsets.ModelViewSet):
 
         instance = serializer.save()
 
-        if not user.is_superuser:
+        if not user.is_superuser and user.tenant.name != "Monitor":
             logger.debug(f"Assigning tenant {instance.name} to user {user.username}")
             user.tenant = instance
             logger.debug(

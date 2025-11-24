@@ -45,7 +45,7 @@ class DeviceProfileViewSet(viewsets.ModelViewSet):
     queryset = DeviceProfile.objects.all()
     serializer_class = DeviceProfileSerializer
     permission_classes = [HasPermission]
-    scope = "device_profile"
+    scope = "deviceprofile"
 
     def get_queryset(self):
         user = self.request.user

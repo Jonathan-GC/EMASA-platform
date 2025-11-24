@@ -68,6 +68,7 @@ class RoleViewSet(viewsets.ModelViewSet):
             )
 
         instance = serializer.save()
+
         assign_new_role_base_permissions(instance, user)
 
         if not instance.group:
@@ -89,7 +90,7 @@ class RoleViewSet(viewsets.ModelViewSet):
         permissions = get_assignable_permissions(user, workspace, role)
         return Response({"assignable_permissions": permissions})
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["patch"])
     def bulk_assign_permissions(self, request, pk=None):
         role = self.get_object()
         permissions = request.data.get("permissions", {})
@@ -110,7 +111,7 @@ class WorkspaceMembershipViewSet(viewsets.ModelViewSet):
     queryset = WorkspaceMembership.objects.all()
     serializer_class = WorkspaceMembershipSerializer
     permission_classes = [HasPermission]
-    scope = "workspace"
+    scope = "workspacemembership"
 
     def get_queryset(self):
         user = self.request.user

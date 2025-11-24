@@ -96,6 +96,12 @@ class HasPermission(BasePermission):
             logger.debug("List action allowed")
             return True
 
+        if action in ["patch", "put"]:
+            logger.debug(
+                f"Object-level action {view.action}, delegating to has_object_permission"
+            )
+            return True
+
         if action == "post":
             app_label = view.__class__.__module__.split(".")[0]
             full_perm = f"{app_label}.{perm_name}"
