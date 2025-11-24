@@ -5,6 +5,9 @@ from users.models import User
 from roles.models import Role
 from .global_helpers import GLOBAL_PERMISSIONS_PRESET, get_monitor_tenant
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import Group
+
+GLOBAL_ADMIN_ROLE_GROUP = Group.objects.get(name="global_admin")
 
 
 def assign_new_user_base_permissions(user):
@@ -122,6 +125,11 @@ def assign_created_instance_permissions(instance, user):
     assign_perm(change_perm, user, instance)
     assign_perm(delete_perm, user, instance)
 
+    if GLOBAL_ADMIN_ROLE_GROUP:
+        assign_perm(view_perm, GLOBAL_ADMIN_ROLE_GROUP, instance)
+        assign_perm(change_perm, GLOBAL_ADMIN_ROLE_GROUP, instance)
+        assign_perm(delete_perm, GLOBAL_ADMIN_ROLE_GROUP, instance)
+
     user.save()
 
 
@@ -219,6 +227,10 @@ def get_assignable_permissions(user, workspace, role):
         return assignable_permissions
 
     group = role.group
+
+    if user and user.is_superuser:
+        group = GLOBAL_ADMIN_ROLE_GROUP
+
     is_global_tenant = workspace.tenant == get_monitor_tenant()
 
     # --- Object models related to workspace ---
