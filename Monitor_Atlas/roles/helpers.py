@@ -267,7 +267,7 @@ def get_assignable_permissions(user, workspace, role):
 
     # --- Permissions allowed per tenant type ---
     full_actions = ["view", "change", "delete"]
-    safe_actions = ["view"]
+    safe_actions = ["view", "change"]
     allowed_actions = full_actions if is_global_tenant else safe_actions
 
     # --- Object-level permissions ---
