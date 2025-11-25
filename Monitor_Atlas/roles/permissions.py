@@ -5,6 +5,15 @@ from guardian.shortcuts import get_objects_for_user
 from platform_backend import settings
 
 
+CUSTOM_ACTION_DECORATORS = [
+    "set_activation",
+    "create_measurement",
+    "activate",
+    "deactivate",
+    "get_ws_link",
+]
+
+
 def has_permission(user, perm, obj=None):
     """
     Checks if a user has the given permission.
@@ -102,6 +111,12 @@ class HasPermission(BasePermission):
             )
             return True
 
+        if action == "post" and view.action in CUSTOM_ACTION_DECORATORS:
+            logger.debug(
+                f"Custom action {view.action}, delegating to has_object_permission"
+            )
+            return True
+
         if action == "post":
             app_label = view.__class__.__module__.split(".")[0]
             full_perm = f"{app_label}.{perm_name}"
@@ -135,6 +150,7 @@ class HasPermission(BasePermission):
             "head": f"view_{scope}",
             "options": f"view_{scope}",
             "put": f"change_{scope}",
+            "post": f"change_{scope}",  # For custom actions that modify the object
             "patch": f"change_{scope}",
             "delete": f"delete_{scope}",
         }

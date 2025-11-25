@@ -436,7 +436,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["patch"],
+        methods=["post"],
         permission_classes=[HasPermission],
         scope="device",
     )
@@ -494,7 +494,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["patch"],
+        methods=["post"],
         permission_classes=[HasPermission],
         scope="device",
     )
@@ -564,7 +564,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["patch"],
+        methods=["post"],
         permission_classes=[HasPermission],
         scope="device",
     )
@@ -601,7 +601,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["get"],
+        methods=["post"],
         permission_classes=[HasPermission],
         scope="device",
     )
@@ -671,7 +671,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["patch"],
+        methods=["post"],
         permission_classes=[HasPermission],
         scope="device",
     )
