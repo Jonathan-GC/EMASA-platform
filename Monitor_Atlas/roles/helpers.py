@@ -195,6 +195,7 @@ def assign_base_workspace_admin_permissions_to_group(workspace, group):
 
     # Role creation permission is given to workspace admins
     assign_perm("roles.add_role", group)
+    assign_perm("roles.add_workspacemembership", group)
     # Machine creation permission is given to workspace admins
     assign_perm("infrastructure.add_machine", group)
 
