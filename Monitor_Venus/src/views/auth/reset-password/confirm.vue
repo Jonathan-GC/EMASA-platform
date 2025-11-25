@@ -51,6 +51,7 @@
                     :disabled="isLoading"
                   ></ion-input>
                   <ion-button
+                    tabindex="-1"
                     slot="end"
                     fill="clear"
                     @click="showPassword = !showPassword"
@@ -71,6 +72,7 @@
                     :disabled="isLoading"
                   ></ion-input>
                   <ion-button
+                    tabindex="-1"
                     slot="end"
                     fill="clear"
                     @click="showConfirmPassword = !showConfirmPassword"

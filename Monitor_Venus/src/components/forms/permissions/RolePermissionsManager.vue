@@ -375,7 +375,7 @@ const savePermissions = async () => {
 
     console.log('📤 Saving permissions:', JSON.stringify(payload, null, 2))
     
-    const response = await API.post(API.BULK_ASSIGN_PERMISSIONS(props.role.id), payload)
+    const response = await API.patch(API.BULK_ASSIGN_PERMISSIONS(props.role.id), payload)
     
     if (!response.error) {
       console.log('✅ Permissions saved successfully')

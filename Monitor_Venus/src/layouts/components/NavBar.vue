@@ -222,6 +222,7 @@
         
           <hr class="divider"/>
           <router-link
+            v-if="!showSupportLinks"
             :to="paths.SUPPORT"
             class="nav-link"
             :class="{ active: $route.path === paths.SUPPORT }"
@@ -312,7 +313,7 @@ const showAuthLinks = computed(() => {
 })
 
 const showSupportLinks = computed(() => {
-  return authStore.isSupportUser || authStore.isSuperUser
+  return authStore.isSupportUser 
 })
 
 </script>

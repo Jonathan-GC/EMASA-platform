@@ -210,7 +210,7 @@ const isFormValid = computed(() => {
 // Methods
 const getUserDisplay = (user) => {
   if (!user) return ''
-  const firstName = user.first_name || ''
+  const firstName = user.name || ''
   const lastName = user.last_name || ''
   return `${firstName} ${lastName}`.trim() || user.email || 'Usuario sin nombre'
 }

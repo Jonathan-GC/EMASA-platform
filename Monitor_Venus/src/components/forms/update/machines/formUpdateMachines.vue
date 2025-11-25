@@ -4,11 +4,12 @@
       <FormUpdate
         v-if="loaded"
         :type="type"
+        :index="index"
         :fields="formFields"
         :label="label"
         :additionalData="additionalData"
         :initialData="initialData"
-        @itemCreated="handleItemCreated"
+        @itemEdited="handleItemEdited "
         @closed="emit('closed')"
       />
     </ion-content>
@@ -29,6 +30,9 @@ import API from '@utils/api/api';
 // Assuming the previous component is named this.
 
 const props = defineProps({
+  index: {
+    type: Number,
+  },
   label: {
     type: String,
     required: true,
@@ -55,8 +59,8 @@ const additionalData = ref({});
 const formFields = ref([...props.fields]); // Use a ref to make a copy of the fields prop
 
 // Method to handle item creation success
-const handleItemCreated = () => {
-  emit('itemCreated');
+const handleItemEdited = () => {
+  emit('itemEdited');
 };
 
 // Method to fetch user types from the API
