@@ -21,11 +21,20 @@ const CreateTenants = defineAsyncComponent(() => import("@components/forms/creat
 const CreateGateways = defineAsyncComponent(() => import("@components/forms/create/gateways/formCreateGateways.vue"));
 const CreateLocations = defineAsyncComponent(() => import("@components/forms/create/locations/formCreateLocations.vue"));
 const CreateDeviceProfiles = defineAsyncComponent(() => import("@components/forms/create/device_profiles/formCreateDeviceProfiles.vue"));
-
+const CreateDevices = defineAsyncComponent(() => import("@components/forms/create/device/formCreateDevices.vue"));
+const CreateDeviceActivation = defineAsyncComponent(() => import("@components/forms/create/device/formActivationDevice.vue"));
+const CreateMachines = defineAsyncComponent(() => import("@components/forms/create/machines/formCreateMachines.vue"));
+const CreateApplications = defineAsyncComponent(() => import("@components/forms/create/applications/formCreateApplications.vue"));
+const CreateWorkspaces = defineAsyncComponent(() => import("@components/forms/create/workspaces/formCreateWorkspaces.vue"));
+const CreateManagers = defineAsyncComponent(() => import("@components/forms/create/managers/formCreateManagers.vue"));
+const CreateUsers = defineAsyncComponent(() => import("@components/forms/create/users/formCreateUsers.vue"));
+const CreateMeasurements = defineAsyncComponent(() => import("@components/forms/create/measurements/formCreateMeasurements.vue"));
+const CreateRoles = defineAsyncComponent(() => import("@components/forms/create/roles/formCreateRoles.vue"));
 
 
 export class CreateFormFactory extends AbstractFormFactory {
-    getComponentConfig(type) {
+    // allow forwarding extraProps (initialData/additionalData) from QuickControl
+    getComponentConfig(type, extraProps = {}) {
         const componentMap = {
             tenant: {
                 component: CreateTenants,
@@ -58,7 +67,79 @@ export class CreateFormFactory extends AbstractFormFactory {
                     label: 'device profile',
                     fields: schema.device_profile,
                 }
-            }
+            },
+            device: {
+                component: CreateDevices,
+                props: {
+                    type: type,
+                    label: 'device',
+                    fields: schema.device,
+                }
+            },
+            device_activation: {
+                component: CreateDeviceActivation,
+                props: {
+                    type: type,
+                    label: 'device activation',
+                    fields: schema.device_activation,
+                }
+            },
+            machine: {
+                component: CreateMachines,
+                props: {
+                    type: type,
+                    label: 'machine',
+                    fields: schema.machine,
+                }
+            },
+            application: {
+                component: CreateApplications,
+                props: {
+                    type: type,
+                    label: 'application',
+                    fields: schema.application,
+                }
+            },
+            workspace: {
+                component: CreateWorkspaces,
+                props: {
+                    type: type,
+                    label: 'workspace',
+                    fields: schema.workspace,
+                }
+            },
+            manager: {
+                component: CreateManagers,
+                props: {
+                    type: type,
+                    label: 'manager',
+                    fields: schema.manager,
+                }
+            },
+            user: {
+                component: CreateUsers,
+                props: {
+                    type: type,
+                    label: 'usuario',
+                    fields: schema.user,
+                }
+            },
+            measurement: {
+                component: CreateMeasurements,
+                props: {
+                    type: type,
+                    label: 'measurement',
+                    fields: schema.measurement,
+                }
+            },
+            role: {
+                component: CreateRoles,
+                props: {
+                    type: type,
+                    label: 'role',
+                    fields: schema.role,
+                }
+            },   
         }
 
         if (!(type in componentMap) || !EntityTypes.includes(type)) {

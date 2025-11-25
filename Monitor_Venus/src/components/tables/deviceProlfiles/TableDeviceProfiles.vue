@@ -2,17 +2,17 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🌐 Gateways - Datos desde API</ion-card-title>
+        <ion-card-title>🌐 Device Profiles - Datos desde API</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${gateways.length} gateways encontrados` }}
+          {{ loading ? 'Cargando...' : `${deviceProfile.length} device profiles encontrados` }}
         </ion-card-subtitle>
       </ion-card-header>
 
-      <ion-card-content>
+      <ion-card-content class="custom">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
-          <p>Obteniendo datos de gateways...</p>
+          <p>Obteniendo datos de device profiles...</p>
         </div>
 
         <!-- Error state -->
@@ -25,64 +25,51 @@
         </div>
 
         <!-- Data table -->
-        <div v-else-if="gateways.length > 0">
+        <div v-else-if="deviceProfile.length > 0">
           <!-- Controls -->
           <div class="table-controls">
-            <ion-searchbar
-                v-model="searchText"
-                placeholder="Buscar gateway..."
-                @ionInput="handleSearch"
-                show-clear-button="focus"
-            ></ion-searchbar>
+            <ion-searchbar v-model="searchText" placeholder="Buscar device profile..." @ionInput="handleSearch"
+              show-clear-button="focus" class="custom"></ion-searchbar>
 
-            <ion-button @click="GetDeviceProfiles" fill="clear">
-              <ion-icon :icon="icons.refresh"></ion-icon>
-            </ion-button>
-
-            <QuickControl
-                :toCreate="true"
-                type="device_profile"
-                @itemCreated="handleItemRefresh"
-            />
+            <!-- Desktop buttons -->
+            <div v-if="!isMobile" class="desktop-controls">
+              <ion-button @click="GetDeviceProfiles" fill="clear">
+                <ion-icon :icon="icons.refresh"></ion-icon>
+              </ion-button>
+              <QuickControl :toCreate="true" type="device_profile" @itemCreated="handleItemRefresh" />
+            </div>
           </div>
 
-          <!-- Table using ion-grid -->
-          <ion-grid class="data-table">
+          <!-- Table using ion-grid (Desktop) -->
+          <div v-if="!isMobile" class="table-wrapper">
+            <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
               <ion-col size="2" @click="sortBy('name')" class="sortable">
                 <strong>Nombre</strong>
-                <ion-icon
-                    :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'name'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'name'"></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('cs_gateway_id')" class="sortable">
+              <ion-col size="3" @click="sortBy('cs_device_profile_id')" class="sortable">
                 <strong>ID</strong>
-                <ion-icon
-                    :icon="sortOrder.cs_gateway_id === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'cs_gateway_id'"
-                ></ion-icon>
+                <ion-icon :icon="sortOrder.cs_deviceProfile_id === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'cs_device_profile_id'"></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('status')" class="sortable">
-                <strong>Estado</strong>
-                <ion-icon
-                    :icon="sortOrder.status === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'status'"
-                ></ion-icon>
+              <ion-col size="2" @click="sortBy('region')" class="sortable">
+                <strong>Region</strong>
+                <ion-icon :icon="sortOrder.region === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'region'"></ion-icon>
               </ion-col>
-              <ion-col size="2">
-                <strong>Ubicación</strong>
+
+              <ion-col size="2" @click="sortBy('mac_version')" class="sortable">
+                <strong>Version MAC</strong>
+                <ion-icon :icon="sortOrder.mac_version === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'mac_version'"></ion-icon>
               </ion-col>
-              <ion-col size="2" @click="sortBy('lastSeen')" class="sortable">
-                <strong>Última conexión</strong>
-                <ion-icon
-                    :icon="sortOrder.lastSeen === 'asc' ? icons.chevronUp : icons.chevronDown"
-                    v-if="sortField === 'lastSeen'"
-                ></ion-icon>
-              </ion-col>
-              <ion-col size="1">
-                <strong>Dispositivos</strong>
+              <ion-col size="1" @click="sortBy('reg_param_revision')" class="sortable">
+                <strong>Revision</strong>
+                <ion-icon :icon="sortOrder.reg_param_revision === 'asc' ? icons.chevronUp : icons.chevronDown"
+                  v-if="sortField === 'reg_param_revision'"></ion-icon>
               </ion-col>
               <ion-col size="1">
                 <strong>Acciones</strong>
@@ -90,75 +77,103 @@
             </ion-row>
 
             <!-- Data rows -->
-            <ion-row
-                v-for="gateway in paginatedItems"
-                :key="gateway.id"
-                class="table-row-stylized"
-
-                :class="{ 'row-selected': selectedGateway?.id === gateway.id }"
-            >
+            <ion-row v-for="deviceProfile in paginatedItems" :key="deviceProfile.id" class="table-row-stylized"
+              :class="{ 'row-selected': selecteddeviceProfile?.id === deviceProfile.id }">
               <ion-col size="2">
-                <div class="gateway-info">
-                  <ion-icon
-                      :icon="icons.hardwareChip"
-                      :color="getStatusColor(gateway.state)"
-                  ></ion-icon>
-                  <div>
-                    <div class="gateway-name">{{ gateway.name }}</div>
-                  </div>
+                <div class="deviceProfile-info">
+                  {{ deviceProfile.name }}
                 </div>
               </ion-col>
-              <ion-col size="2">
-                <div class="gateway-id">{{ gateway.cs_gateway_id }}</div>
+              <ion-col size="3">
+                <div class="deviceProfile-id">{{ deviceProfile.cs_device_profile_id }}</div>
               </ion-col>
 
               <ion-col size="2">
-                <ion-chip
-                    :color="getStatusColor(gateway.state)"
-                >
-                  {{ gateway.state }}
+                <ion-chip :color="getStatusColor(deviceProfile.state)">
+                  <ion-icon :icon="icons.globe" size="small mr-1"></ion-icon>
+                  {{ deviceProfile.region }}
                 </ion-chip>
               </ion-col>
 
               <ion-col size="2">
                 <div class="location-info">
-                  <ion-icon :icon="icons.location" size="small"></ion-icon>
-                  {{ gateway.location }}
+                  {{ formatUnderscoreToSpace(deviceProfile.mac_version) }}
                 </div>
               </ion-col>
 
-              <ion-col size="2">
+              <ion-col size="1">
                 <div class="time-info">
-                  {{ formatTime(gateway.last_seen_at) }}
+                  {{ deviceProfile.reg_param_revision }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
-                <div class="devices-info">
-                  <ion-icon :icon="icons.phonePortrait" size="small"></ion-icon>
-                  {{ gateway.connectedDevices || 0 }}
-                </div>
-              </ion-col>
-
-              <ion-col size="1">
-                <ion-button
-                    fill="clear"
-                    size="small"
-                    @click.stop="viewGateway(gateway)"
-                >
-                  <ion-icon :icon="icons.eye"></ion-icon>
-                </ion-button>
+                <quick-actions 
+                  type="device_profile"
+                  :index="deviceProfile.id" 
+                  :name="deviceProfile.name"
+                  :to-view="`/tenants/${deviceProfile.id}`"
+                  to-edit
+                  to-delete
+                  :initial-data="setInitialData(deviceProfile)"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
+                />
               </ion-col>
             </ion-row>
-          </ion-grid>
+            </ion-grid>
+          </div>
+
+          <!-- Mobile Card View -->
+          <div v-else class="mobile-cards">
+            <ion-card v-for="deviceProfile in paginatedItems" :key="deviceProfile.id" class="device-profile-card">
+              <ion-card-content>
+                <!-- Header with name and region -->
+                <div class="card-header">
+                  <div class="card-title-section">
+                    <h3 class="card-title">{{ deviceProfile.name }}</h3>
+                    <p class="card-subtitle">{{ deviceProfile.cs_device_profile_id }}</p>
+                  </div>
+                  <ion-chip :color="getStatusColor(deviceProfile.state)" class="card-chip-status">
+                    <ion-icon :icon="icons.globe" size="small"></ion-icon>
+                    {{ deviceProfile.region }}
+                  </ion-chip>
+                </div>
+
+                <!-- Card details -->
+                <div class="card-details">
+                  <div class="card-detail-row">
+                    <span class="detail-label">Versión MAC:</span>
+                    <span class="detail-value">{{ formatUnderscoreToSpace(deviceProfile.mac_version) }}</span>
+                  </div>
+                  
+                  <div class="card-detail-row">
+                    <span class="detail-label">Revisión:</span>
+                    <span class="detail-value">{{ deviceProfile.reg_param_revision }}</span>
+                  </div>
+                </div>
+
+                <!-- Card actions -->
+                <div class="card-actions">
+                  <quick-actions 
+                    type="device_profile"
+                    :index="deviceProfile.id" 
+                    :name="deviceProfile.name"
+                    :to-view="`/tenants/${deviceProfile.id}`"
+                    to-edit
+                    to-delete
+                    :initial-data="setInitialData(deviceProfile)"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
+                  />
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
 
           <!-- Pagination -->
           <div class="pagination" v-if="totalPages > 1">
-            <ion-button
-                fill="clear"
-                :disabled="currentPage === 1"
-                @click="changePage(currentPage - 1)"
-            >
+            <ion-button fill="clear" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
               <ion-icon :icon="icons.chevronBack"></ion-icon>
             </ion-button>
 
@@ -166,11 +181,7 @@
               Página {{ currentPage }} de {{ totalPages }}
             </span>
 
-            <ion-button
-                fill="clear"
-                :disabled="currentPage === totalPages"
-                @click="changePage(currentPage + 1)"
-            >
+            <ion-button fill="clear" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
               <ion-icon :icon="icons.chevronForward"></ion-icon>
             </ion-button>
           </div>
@@ -179,14 +190,22 @@
         <!-- Empty state -->
         <div v-else class="empty-state">
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
-          <h3>No hay gateways</h3>
-          <p>No se encontraron gateways en el sistema</p>
+          <h3>No hay device profiles</h3>
+          <p>No se encontraron device profiles en el sistema</p>
           <ion-button @click="GetDeviceProfiles" fill="outline">
-            Buscar gateways
+            Buscar device profiles
           </ion-button>
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons 
+      v-if="isMobile"
+      entity-type="device_profile"
+      @refresh="GetDeviceProfiles"
+      @itemCreated="handleItemRefresh"
+    />
   </div>
 </template>
 
@@ -196,20 +215,26 @@ import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
-import { formatTime, getStatusColor } from '@utils/formatters/formatters'
+import { useResponsiveView } from '@composables/useResponsiveView.js'
+import { formatTime, getStatusColor, formatUnderscoreToSpace } from '@utils/formatters/formatters'
+import QuickControl from '../../operators/quickControl.vue'
+import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
 
 // Acceso a los iconos desde el plugin registrado en Vue usando inject
 const icons = inject('icons', {})
 
+// Responsive view detection
+const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
+
 // Component-specific state
-const gateways = ref([])
+const deviceProfile = ref([])
 const loading = ref(false)
 const error = ref(null)
-const selectedGateway = ref(null)
+const selecteddeviceProfile = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(gateways, ['name', 'cs_gateway_id', 'location'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(deviceProfile, ['name', 'cs_device_profile_id', 'region', 'mac_version', 'reg_param_revision'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -229,7 +254,7 @@ const GetDeviceProfiles = async () => {
 
   loading.value = true
   error.value = null
-  const headers={
+  const headers = {
     //Authorization: `Bearer ${localStorage.getItem('token')}`
   }
 
@@ -241,32 +266,49 @@ const GetDeviceProfiles = async () => {
     // Ensure response is an array, if not, wrap it or use a default
     const mockData = Array.isArray(response) ? response : (response?.data || []);
 
-    gateways.value = mockData
-    console.log('✅ Gateways cargados:', mockData.length)
+    deviceProfile.value = mockData
+    console.log('✅ deviceProfile cargados:', mockData.length)
 
   } catch (err) {
-    error.value = `❌Error al cargar gateways: ${err.message}`
-    console.error('❌ Error fetching gateways:', err)
+    error.value = `❌Error al cargar deviceProfile: ${err.message}`
+    console.error('❌ Error fetching deviceProfile:', err)
   } finally {
     loading.value = false
   }
 }
 
-// Component-specific methods
-const selectGateway = (gateway) => {
-  selectedGateway.value = gateway
-  console.log('Gateway seleccionado:', gateway)
+const setInitialData = (workspace) => {
+  return {
+    name: workspace.name,
+    description: workspace.description,
+    region: workspace.region,
+    workspace_id: workspace.workspace?.id,
+    abp_rx1_delay: workspace.abp_rx1_delay,
+    abp_rx1_dr_offset: workspace.abp_rx1_dr_offset,
+    abp_rx2_freq: workspace.abp_rx2_freq,
+    abp_rx2_dr: workspace.abp_rx2_dr,
+  }
 }
 
-const viewGateway = (gateway) => {
-  console.log('Ver detalles del gateway:', gateway)
+const handleItemRefresh = () => {
+  GetDeviceProfiles()
+}
+
+// Component-specific methods
+const selectdeviceProfile = (deviceProfile) => {
+  selecteddeviceProfile.value = deviceProfile
+  console.log('deviceProfile seleccionado:', deviceProfile)
+}
+
+const viewdeviceProfile = (deviceProfile) => {
+  console.log('Ver detalles del deviceProfile:', deviceProfile)
   // Aquí podrías navegar a una página de detalles
-  // router.push(`/gateways/${gateway.id}`)
+  // router.push(`/deviceProfile/${deviceProfile.id}`)
 }
 
 // Lifecycle
 onMounted(async () => {
-  console.log('🔧 TableGateways component mounted')
+  console.log('🔧 TabledeviceProfile component mounted')
 
   // Wait for next tick to ensure DOM is ready
   await nextTick()
@@ -298,13 +340,9 @@ onMounted(async () => {
 
 
 <style scoped>
-
-.table-card{
-  width: 100%;
-  margin: 0 auto;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-.loading-container, .error-container, .empty-state {
+.loading-container,
+.error-container,
+.empty-state {
   text-align: center;
   padding: 40px 20px;
 }
@@ -326,17 +364,23 @@ onMounted(async () => {
   gap: 16px;
 }
 
-.data-table {
-  border: 1px solid var(--ion-color-light);
-  border-radius: 8px;
-  overflow: hidden;
+.desktop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.table-header {
-  background-color: var(--ion-color-light);
-  border-bottom: 2px solid var(--ion-color-medium);
-  font-weight: 600;
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--ion-color-light);
+  border-radius: 8px;
 }
+
+.data-table {
+  min-width: 1000px;
+  margin: 0;
+}
+
 
 .table-header ion-col {
   padding: 16px 12px;
@@ -374,23 +418,25 @@ onMounted(async () => {
   align-items: center;
 }
 
-.gateway-info {
+.deviceProfile-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.gateway-name {
+.deviceProfile-name {
   font-weight: 500;
   font-size: 0.9rem;
 }
 
-.gateway-id {
+.deviceProfile-id {
   font-size: 0.8rem;
   color: var(--ion-color-medium);
 }
 
-.location-info, .time-info, .devices-info {
+.location-info,
+.time-info,
+.devices-info {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -427,10 +473,94 @@ onMounted(async () => {
     padding: 8px 6px;
   }
 
-  .gateway-info {
+  .deviceProfile-info {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
+}
+
+/* Mobile Cards Styles */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.device-profile-card {
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.device-profile-card ion-card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.card-chip-status {
+  flex-shrink: 0;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  text-align: right;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
 }
 </style>
