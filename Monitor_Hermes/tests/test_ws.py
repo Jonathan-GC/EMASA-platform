@@ -7,11 +7,11 @@ URL = f"ws://localhost:5000/ws?token={ACCESS_TOKEN}"
 async def test():
     """Test WebSocket connection and message exchange."""
     async with websockets.connect(URL) as websocket:
-        loguru.logger.info("WebSocket connected")
+        loguru.logger.debug("WebSocket connected")
         while True:
             msg = await websocket.recv()
             data = json.loads(msg)
-            loguru.logger.info(f"Received message: {data}")
+            loguru.logger.debug(f"Received message: {data}")
 
 
 asyncio.run(test())

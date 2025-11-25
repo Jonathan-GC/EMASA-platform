@@ -1,10 +1,16 @@
+from loguru import logger
 from rest_framework import serializers
 from django.core.validators import validate_email
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
 from roles.models import WorkspaceMembership
-from .models import User
+from .models import User, MainAddress, BillingAddress
+from support.models import SupportMembership
+from organizations.models import Tenant
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -17,32 +23,197 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             .first()
         )
         is_superuser = user.is_superuser
+        is_tenant_admin = False
 
-        if membership and membership.workspace and membership.workspace.tenant:
-            tenant = membership.workspace.tenant
+        if membership:
+            if membership.role and membership.role.is_admin:
+                is_tenant_admin = True
+            tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
-            if tenant.name == "EMASA":
+            if tenant.is_global:
                 is_global = True
             else:
                 is_global = False
         else:
-            is_global = False
-            cs_tenant_id = None
+            if user.tenant:
+                tenant = user.tenant
+                cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+                if cs_tenant_id is None:
+                    logger.warning(
+                        f"Tenant {tenant.id} for user {user.id} has no ChirpStack tenant ID."
+                    )
+                    cs_tenant_id = tenant.id
+                if tenant.is_global or user.is_superuser:
+                    is_global = True
+                else:
+                    is_global = False
+            else:
+                logger.warning(
+                    f"User {user.id} has no tenant or workspace membership; setting is_global to False."
+                )
+                is_global = False
+                cs_tenant_id = None
+
+        support_membership = SupportMembership.objects.filter(user=user).first()
+        if support_membership:
+            is_support = True
+        else:
+            is_support = False
 
         token["user_id"] = user.id
         token["username"] = user.username
         token["is_global"] = is_global
         token["cs_tenant_id"] = cs_tenant_id
         token["is_superuser"] = is_superuser
+        token["is_support"] = is_support
+        token["is_tenant_admin"] = is_tenant_admin
 
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
+        user = self.user
+
+        # Check if the user account is active
+        if not user.is_active:
+            from rest_framework import exceptions
+
+            # Include the email in the error so frontend can use it for resend
+            raise exceptions.AuthenticationFailed(
+                {
+                    "detail": "Account is not active. Please verify your email.",
+                    "code": "account_not_active",
+                    "email": user.email,  # Frontend needs this for resend
+                }
+            )
+
         return data
 
 
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    """
+    Custom Token Refresh Serializer that ensures the new access token
+    includes all custom claims (cs_tenant_id, is_global, etc.)
+    """
+
+    def validate(self, attrs):
+        refresh = self.token_class(attrs["refresh"])
+        user_id = refresh.get("user_id")
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            from rest_framework.exceptions import AuthenticationFailed
+
+            raise AuthenticationFailed("User not found")
+
+        data = super().validate(attrs)
+
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        access_token = AccessToken(data["access"])
+
+        membership = (
+            WorkspaceMembership.objects.filter(user=user)
+            .select_related("workspace__tenant")
+            .first()
+        )
+        is_superuser = user.is_superuser
+        is_tenant_admin = False
+
+        if membership:
+            if membership.role and membership.role.is_admin:
+                is_tenant_admin = True
+            tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
+            cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+            if tenant.is_global:
+                is_global = True
+            else:
+                is_global = False
+        else:
+            if user.tenant:
+                tenant = user.tenant
+                cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
+                if cs_tenant_id is None:
+                    logger.warning(
+                        f"Tenant {tenant.id} for user {user.id} has no ChirpStack tenant ID."
+                    )
+                    cs_tenant_id = tenant.id
+                if tenant.is_global or user.is_superuser:
+                    is_global = True
+                else:
+                    is_global = False
+            else:
+                logger.warning(
+                    f"User {user.id} has no tenant or workspace membership; setting is_global to False."
+                )
+                is_global = False
+                cs_tenant_id = None
+
+        support_membership = SupportMembership.objects.filter(user=user).first()
+        if support_membership:
+            is_support = True
+        else:
+            is_support = False
+
+        access_token["user_id"] = user.id
+        access_token["username"] = user.username
+        access_token["is_global"] = is_global
+        access_token["cs_tenant_id"] = cs_tenant_id
+        access_token["is_superuser"] = is_superuser
+        access_token["is_support"] = is_support
+        access_token["is_tenant_admin"] = is_tenant_admin
+
+        data["access"] = str(access_token)
+
+        return data
+
+
+class MainAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MainAddress
+        fields = [
+            "id",
+            "address",
+            "city",
+            "state",
+            "zip_code",
+        ]
+
+
+class BillingAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BillingAddress
+        fields = [
+            "id",
+            "address",
+            "city",
+            "state",
+            "zip_code",
+            "country",
+        ]
+
+
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    address = MainAddressSerializer(required=False, allow_null=True)
+    confirm_password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+
+    address_address = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+    address_city = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+    address_state = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+    address_zip_code = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
+
     class Meta:
         model = User
         fields = [
@@ -50,14 +221,40 @@ class UserSerializer(serializers.ModelSerializer):
             "code",
             "username",
             "email",
+            "password",
+            "confirm_password",
+            "img",
             "name",
+            "tenant",
             "last_name",
             "is_active",
-            "is_staff",
-            "is_superuser",
             "phone",
+            "phone_code",
             "address",
+            "address_address",
+            "address_city",
+            "address_state",
+            "address_zip_code",
         ]
+
+    def validate_password(self, value):
+        """
+        Validates the password field to ensure that it meets the required
+        complexity and strength criteria. Raises a ValidationError if the
+        password does not comply with the defined password validators.
+
+        Default validation standards:
+        - Minimum length of 8 characters
+        - Cannot be entirely numeric
+        - Cannot be too common
+        - Cannot be too similar to the user's personal information
+        """
+        if value:
+            try:
+                validate_password(value)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError(e.messages)
+        return value
 
     def validate_username(self, value):
         """
@@ -98,3 +295,107 @@ class UserSerializer(serializers.ModelSerializer):
                 "Phone number must be at least 10 digits long and contain only numbers."
             )
         return value
+
+    def create(self, validated_data):
+        # Extraer campos de dirección aplanados
+        address_data = validated_data.pop("address", None)
+        address_address = validated_data.pop("address_address", None)
+        address_city = validated_data.pop("address_city", None)
+        address_state = validated_data.pop("address_state", None)
+        address_zip_code = validated_data.pop("address_zip_code", None)
+
+        password = validated_data.pop("password", None)
+        confirm_password = validated_data.pop("confirm_password", None)
+
+        if password and password != confirm_password:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+
+        user = User(**validated_data)
+
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+
+        user.save()
+
+        # Si se enviaron campos aplanados de dirección, construir address_data
+        if not address_data and any(
+            [address_address, address_city, address_state, address_zip_code]
+        ):
+            address_data = {}
+            if address_address:
+                address_data["address"] = address_address
+            if address_city:
+                address_data["city"] = address_city
+            if address_state:
+                address_data["state"] = address_state
+            if address_zip_code:
+                address_data["zip_code"] = address_zip_code
+
+        if address_data:
+            # MainAddress has no 'user' field — create address and assign to user.address
+            address = MainAddress.objects.create(**address_data)
+            user.address = address
+            user.save()
+
+        return user
+
+    def update(self, instance, validated_data):
+        # Extraer campos de dirección aplanados
+        address_data = validated_data.pop("address", None)
+        address_address = validated_data.pop("address_address", None)
+        address_city = validated_data.pop("address_city", None)
+        address_state = validated_data.pop("address_state", None)
+        address_zip_code = validated_data.pop("address_zip_code", None)
+
+        password = validated_data.pop("password", None)
+        confirm_password = validated_data.pop("confirm_password", None)
+
+        if password and password != confirm_password:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+
+        # Si se enviaron campos aplanados de dirección, construir address_data
+        if not address_data and any(
+            [address_address, address_city, address_state, address_zip_code]
+        ):
+            address_data = {}
+            if address_address:
+                address_data["address"] = address_address
+            if address_city:
+                address_data["city"] = address_city
+            if address_state:
+                address_data["state"] = address_state
+            if address_zip_code:
+                address_data["zip_code"] = address_zip_code
+
+        if address_data:
+            if instance.address:
+                for attr, value in address_data.items():
+                    setattr(instance.address, attr, value)
+                instance.address.save()
+            else:
+                # Create a MainAddress (no 'user' FK) and assign it to the user
+                address = MainAddress.objects.create(**address_data)
+                instance.address = address
+                instance.save()
+
+        return instance
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Use the User.address FK (not .main_address)
+        if instance.address:
+            representation["address"] = MainAddressSerializer(instance.address).data
+        else:
+            representation["address"] = None
+
+        return representation

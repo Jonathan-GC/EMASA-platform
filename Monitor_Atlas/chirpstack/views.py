@@ -9,10 +9,8 @@ from .serializers import (
     ApiUserSerializer,
 )
 
-from roles.permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
-from roles.mixins import PermissionKeyMixin
-from roles.models import PermissionKey
-from roles.serializers import PermissionKeySerializer
+from roles.permissions import HasPermission
+from guardian.shortcuts import get_objects_for_user
 
 from chirpstack.chirpstack_api import (
     sync_api_user_create,
@@ -25,8 +23,9 @@ from chirpstack.chirpstack_api import (
     sync_device_profile_update,
 )
 
-import logging
+from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
+from roles.helpers import assign_created_instance_permissions
 
 
 # Create your views here.
@@ -42,25 +41,42 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
     ),
     destroy=extend_schema(description="Device Profile Destroy (ChirpStack)"),
 )
-class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class DeviceProfileViewSet(viewsets.ModelViewSet):
     queryset = DeviceProfile.objects.all()
     serializer_class = DeviceProfileSerializer
-    permission_classes = [HasPermissionKey]
-    scope = "device_profile"
+    permission_classes = [HasPermission]
+    scope = "deviceprofile"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return DeviceProfile.objects.all()
+        else:
+            return get_objects_for_user(
+                user,
+                "chirpstack.view_deviceprofile",
+                klass=DeviceProfile,
+                accept_global_perms=True,
+            )
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="device_profile")
-
+        assign_created_instance_permissions(instance, self.request.user)
         sync_response = sync_device_profile_create(instance)
 
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device_profile {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
-                f"Error al sincronizar el device_profile {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            logger.error(
+                f"Error syncing device_profile {instance.name} with Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
-                f"Se ha sincronizado el device_profile {instance.cs_device_profile_id} - {instance.name} con Chirpstack"
+            logger.debug(
+                f"Synchronized device_profile {instance.cs_device_profile_id} - {instance.name} with Chirpstack"
             )
 
     def perform_update(self, serializer):
@@ -68,25 +84,37 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_device_profile_update(instance)
 
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device_profile {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
-                f"Error al sincronizar el device_profile {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            logger.error(
+                f"Error syncing device_profile {instance.name} with Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
-                f"Se ha sincronizado el device_profile {instance.cs_device_profile_id} - {instance.name} con Chirpstack"
+            logger.debug(
+                f"Synchronized device_profile {instance.cs_device_profile_id} - {instance.name} with Chirpstack"
             )
 
     def perform_destroy(self, instance):
         sync_response = sync_device_profile_destroy(instance)
 
-        if sync_response.status_code != 200:
-            logging.error(
-                f"Error al eliminar el device_profile {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device_profile {instance.name}, if this is not expected please check manually or try again"
+            )
+            # proceed to delete locally
+
+        elif sync_response.status_code != 200:
+            logger.error(
+                f"Error deleting device_profile {instance.name} from Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
-                f"Se ha sincronizado el device_profile {instance.cs_device_profile_id} - {instance.name} con Chirpstack"
+            logger.debug(
+                f"Synchronized deletion of device_profile {instance.cs_device_profile_id} - {instance.name} with Chirpstack"
             )
 
         instance.delete()
@@ -125,15 +153,26 @@ class DeviceProfileViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     ),
     destroy=extend_schema(description="(Unused) Device Profile Template Destroy"),
 )
-class DeviceProfileTemplateViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class DeviceProfileTemplateViewSet(viewsets.ModelViewSet):
     queryset = DeviceProfileTemplate.objects.all()
     serializer_class = DeviceProfileTemplateSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "device_profile_template"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return DeviceProfileTemplate.objects.all()
+        else:
+            return get_objects_for_user(
+                user,
+                "chirpstack.view_deviceprofiletemplate",
+                klass=DeviceProfileTemplate,
+                accept_global_perms=True,
+            )
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="device_profile_template")
 
 
 @extend_schema_view(
@@ -144,25 +183,40 @@ class DeviceProfileTemplateViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Api User Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Api User Destroy (ChirpStack)"),
 )
-class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class ApiUserViewSet(viewsets.ModelViewSet):
     queryset = ApiUser.objects.all()
     serializer_class = ApiUserSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "api_user"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return ApiUser.objects.all()
+        else:
+            return get_objects_for_user(
+                user, "chirpstack.view_apiuser", klass=ApiUser, accept_global_perms=True
+            )
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="api_user")
+        assign_created_instance_permissions(instance, self.request.user)
 
         sync_response = sync_api_user_create(instance)
 
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in chirpstack for api_user {instance.email}, if this is not expected please check the sync_error field"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
-                f"Error al sincronizar el api_user {instance.email} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            logger.error(
+                f"Error syncing api_user {instance.email} with Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
-                f"Se ha sincronizado el api_user {instance.cs_user_id} - {instance.email} con Chirpstack"
+            logger.debug(
+                f"Synchronized api_user {instance.cs_user_id} - {instance.email} with Chirpstack"
             )
 
     def perform_update(self, serializer):
@@ -170,25 +224,37 @@ class ApiUserViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         sync_response = sync_api_user_update(instance)
 
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in chirpstack for api_user {instance.email}, if this is not expected please check the sync_error field"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
-                f"Error al sincronizar el api_user {instance.email} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            logger.error(
+                f"Error syncing api_user {instance.email} with Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
-                f"Se ha sincronizado el api_user {instance.cs_user_id} - {instance.email} con Chirpstack"
+            logger.debug(
+                f"Synchronized api_user {instance.cs_user_id} - {instance.email} with Chirpstack"
             )
 
     def perform_destroy(self, instance):
         sync_response = sync_api_user_destroy(instance)
 
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in chirpstack for api_user {instance.email}, if this is not expected please check the sync_error field"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
-                f"Error al eliminar el api_user {instance.email} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            logger.error(
+                f"Error deleting api_user {instance.email} from Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
-                f"Se ha sincronizado el api_user {instance.cs_user_id} - {instance.email} con Chirpstack"
+            logger.debug(
+                f"Synchronized deletion of api_user {instance.cs_user_id} - {instance.email} with Chirpstack"
             )
 
         instance.delete()
