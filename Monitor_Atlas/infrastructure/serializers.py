@@ -143,4 +143,4 @@ class ActivationSerializer(serializers.ModelSerializer):
 class MeasurementsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Measurements
-        fields = "__all__"
+        fields = ["id", "min", "max", "threshold", "ref", "unit", "icon"]

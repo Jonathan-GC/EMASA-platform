@@ -4,6 +4,7 @@ from organizations.models import Workspace
 
 from django.contrib.auth.models import Group
 from organizations.hasher import generate_id
+from guardian.shortcuts import assign_perm
 
 
 class Role(models.Model):
@@ -26,6 +27,12 @@ class Role(models.Model):
             )
             self.group = group
         super().save(*args, **kwargs)
+
+        try:
+            if self.group:
+                assign_perm("view_role", self.group, self)
+        except Exception:
+            pass
 
     def delete(self, *args, **kwargs):
         if self.group:
