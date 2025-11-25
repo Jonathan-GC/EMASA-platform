@@ -39,8 +39,7 @@
   "application": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "descripción", "type": "text" },
-    { "key": "workspace_id", "label":  "Workspace", "type": "select" },
-    { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" }
+    { "key": "workspace_id", "label":  "Workspace", "type": "select" }
   ],
   "device": [
     { "key": "dev_eui", "label": "Dev eui", "type": "text" },
@@ -56,6 +55,12 @@
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "workspace_id", "label": "Workspace", "type": "select" }
+  ],
+  "measurement": [
+    { "key": "unit", "label": "Unidad de medida", "type": "text" },
+    { "key": "min", "label": "Valor mínimo", "type": "text" },
+    { "key": "max", "label": "Valor máximo", "type": "text" },
+    { "key": "threshold", "label": "Umbral", "type": "text" }
   ]
   
 }

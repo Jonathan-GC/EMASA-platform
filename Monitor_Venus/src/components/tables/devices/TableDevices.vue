@@ -352,7 +352,7 @@ const setInitialData = (workspace) => {
     dev_eui: workspace.dev_eui,
     name: workspace.name,
     description: workspace.description,
-    workspace_id: workspace?.id,
+    workspace_id: workspace.workspace.id,
     application: workspace.application,
     device_type: workspace.device_type,
     device_profile: workspace.device_profile,

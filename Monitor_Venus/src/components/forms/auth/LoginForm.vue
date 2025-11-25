@@ -15,12 +15,14 @@
 
         <!-- Login form -->
         <div v-else>
+          <!-- Wrap inputs in a native form so Enter submits the form -->
+          <form @submit.prevent="handleLogin" @keydown.enter.prevent="onFormEnter">
           <ion-item class="custom">
-            <ion-label position="stacked" class="!mb-2">Email</ion-label>
+            <ion-label position="stacked" class="!mb-2">Usuario</ion-label>
             <ion-input 
               v-model="credentials.username"
               type="text"
-              placeholder="example@mail.com"
+              placeholder="tu.usuario"
               :disabled="loading"
               class="bg-zinc-300 rounded-md p-100 form-field custom"
               fill="solid"
@@ -68,9 +70,9 @@
 
 
             <ion-button 
+              type="submit"
               expand="block"
               color="dark"
-              @click="handleLogin"
               :disabled="loading || !credentials.username || !credentials.password"
             >
               <ion-icon :icon="icons.key" slot="start"></ion-icon>
@@ -90,6 +92,7 @@
             
             <p class="text-center">¿No tienes cuenta? <router-link :to="paths.SIGNUP">Regístrate</router-link></p>
           </div>
+          </form>
         </div>
       </ion-card-content>
     </ion-card>
@@ -306,6 +309,15 @@ const handleLogin = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Handler for Enter key inside the form: ignore textareas, otherwise submit
+const onFormEnter = (e) => {
+  const tag = e?.target?.tagName?.toLowerCase?.() || ''
+  if (tag === 'textarea') return // don't submit when typing in multiline fields
+  // prevent submitting when button disabled
+  if (loading.value || !credentials.value.username || !credentials.value.password) return
+  handleLogin()
 }
 
 // Función para refresh token

@@ -112,13 +112,8 @@
               </ion-col>
               <ion-col size="1.5">
                 <ion-chip 
-                  :style="{ 
-                    backgroundColor: role.color || '#5865F2',
-                    color: getContrastColor(role.color || '#5865F2')
-                  }"
-                  class="role-color-chip"
                 >
-                  {{ role.color || '#5865F2' }}
+                  {{ role.workspace.tenant }}
                 </ion-chip>
               </ion-col>
               <ion-col size="1.5">
@@ -185,13 +180,9 @@
                     <p class="card-subtitle">{{ role.description || 'Sin descripción' }}</p>
                   </div>
                   <ion-chip 
-                    :style="{ 
-                      backgroundColor: role.color || '#5865F2',
-                      color: getContrastColor(role.color || '#5865F2')
-                    }"
                     class="card-chip"
                   >
-                    {{ role.color || '#5865F2' }}
+                    {{ role.workspace.tenant }}
                   </ion-chip>
                 </div>
 

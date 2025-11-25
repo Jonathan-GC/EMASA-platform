@@ -44,8 +44,7 @@
   "application": [
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "Descripción", "type": "textarea" },
-    { "key": "workspace_id", "label":  "Workspace", "type": "select" },
-    { "key": "device_type", "label": "Tipo de dispositivo", "type": "select" }
+    { "key": "workspace_id", "label":  "Workspace", "type": "select" }
   ],
 
   "manager": [
