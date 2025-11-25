@@ -1,12 +1,13 @@
 <template>
   <ion-page>
     <ion-content class="ion-padding">
-      <FormCreate
+      <FormUpdate
           :type="type"
+          :index="index"
           :fields="formFields"
           :label="label"
           :additionalData="additionalData"
-          @itemCreated="handleItemCreated"
+          @itemEdited="handleItemEdited"
           @closed="emit('closed')"
       />
     </ion-content>
@@ -40,6 +41,9 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  index: {
+    type: Number,
+  },  
 });
 
 const emit = defineEmits(['itemCreated', 'loaded', 'closed']);
@@ -52,12 +56,22 @@ const additionalData = ref({});
 const formFields = ref([...props.fields]); // Use a ref to make a copy of the fields prop
 
 // Get deviceId from route params and set as additional data
-const deviceId = computed(() => route.params.device_id);
+const deviceId = computed(() => route.params.deviceId || route.params.device_id);
 
+// Set device_id in additionalData for the form endpoint
+onMounted(() => {
+  if (deviceId.value) {
+    additionalData.value = {
+      ...additionalData.value,
+      device_id: deviceId.value
+    };
+    console.log('Device ID set for measurements:', deviceId.value);
+  }
+});
 
 // Method to handle item creation success
-const handleItemCreated = () => {
-  emit('itemCreated');
+const handleItemEdited = () => {
+  emit('itemEdited');
 };
 
 // Method to fetch user types from the API
@@ -82,7 +96,7 @@ const fetchDevices = async () => {
 const setDevice = () => {
   additionalData.value = {
     ...additionalData.value,
-    device_id: deviceId.value
+    device: route.params.device_id
   };
   console.log("Additional Data Set:", additionalData.value);
 };

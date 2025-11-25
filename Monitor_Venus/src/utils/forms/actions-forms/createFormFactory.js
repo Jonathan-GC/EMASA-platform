@@ -33,7 +33,8 @@ const CreateRoles = defineAsyncComponent(() => import("@components/forms/create/
 
 
 export class CreateFormFactory extends AbstractFormFactory {
-    getComponentConfig(type) {
+    // allow forwarding extraProps (initialData/additionalData) from QuickControl
+    getComponentConfig(type, extraProps = {}) {
         const componentMap = {
             tenant: {
                 component: CreateTenants,
