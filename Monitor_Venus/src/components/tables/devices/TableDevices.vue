@@ -245,8 +245,8 @@
         <!-- Empty state -->
         <div v-else class="empty-state">
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
-          <h3>No hay gateways</h3>
-          <p>No se encontraron gateways en el sistema</p>
+          <h3>No hay dispositivos</h3>
+          <p>No se encontraron dispositivos en el sistema</p>
           <QuickControl
             :toCreate="true"
             type="device"
