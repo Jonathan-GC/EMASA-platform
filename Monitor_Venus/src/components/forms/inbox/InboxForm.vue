@@ -479,7 +479,7 @@ function mapTicketToMessage(t) {
     snippet: t.organization || '',
     body: t.description || '',
     date: created,
-    unread: true, // local state placeholder
+    unread: !t.is_read, // Based on backend is_read field (false means unread)
     priority: t.priority || 'low',
     category: t.category || '',
     organization: t.organization || '',
