@@ -883,3 +883,4 @@ class LocationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         instance = serializer.save()
         assign_created_instance_permissions(instance, self.request.user)
+        logger.debug(f"Created location {instance.name} with ID {instance.id}")

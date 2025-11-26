@@ -175,6 +175,9 @@ def assign_created_instance_permissions(instance, user):
         assign_perm(view_perm, user_group, instance)
         assign_perm(change_perm, user_group, instance)
         assign_perm(delete_perm, user_group, instance)
+        logger.debug(
+            f"Assigned {user_group} permissions to {instance} for user {user.username}"
+        )
     else:
         logger.debug(
             f"The user: {user.username} has no group assigned, skipping group permissions."
@@ -185,6 +188,7 @@ def assign_created_instance_permissions(instance, user):
         assign_perm(view_perm, global_group, instance)
         assign_perm(change_perm, global_group, instance)
         assign_perm(delete_perm, global_group, instance)
+        logger.debug(f"Assigned global admin permissions to {global_group}")
 
     if instance_workspace:
         admin_role = Role.objects.filter(
@@ -194,6 +198,7 @@ def assign_created_instance_permissions(instance, user):
             assign_perm(view_perm, admin_role.group, instance)
             assign_perm(change_perm, admin_role.group, instance)
             assign_perm(delete_perm, admin_role.group, instance)
+            logger.debug(f"Assigned admin permissions to {admin_role.group}")
 
     if app_label in ["organizations", "roles", "users"]:
         manager_group = Group.objects.filter(name="global_manager").first()
@@ -201,12 +206,14 @@ def assign_created_instance_permissions(instance, user):
             assign_perm(view_perm, manager_group, instance)
             assign_perm(change_perm, manager_group, instance)
             assign_perm(delete_perm, manager_group, instance)
+            logger.debug(f"Assigned global manager permissions to {manager_group}")
     elif app_label in ["infrastructure", "chirpstack"]:
         support_group = Group.objects.filter(name="global_technician").first()
         if support_group:
             assign_perm(view_perm, support_group, instance)
             assign_perm(change_perm, support_group, instance)
             assign_perm(delete_perm, support_group, instance)
+            logger.debug(f"Assigned global technician permissions to {support_group}")
 
     user.save()
 
