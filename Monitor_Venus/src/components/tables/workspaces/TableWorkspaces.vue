@@ -177,7 +177,7 @@
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
           <h3>No hay workspaces</h3>
           <p>No se encontraron workspaces en el sistema</p>
-          <quick-control to-initial type="workspace" @item-created="handleItemRefresh" text="Agregar Workspace" />
+          <QuickControl :toInitial="true" type="workspace" @itemCreated="handleItemRefresh" text="Agregar Workspace" />
         </div>
       </ion-card-content>
     </ion-card>
