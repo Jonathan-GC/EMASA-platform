@@ -6,6 +6,23 @@ from roles.helpers import (
 )
 from django.contrib.auth.models import Group
 from loguru import logger
+from guardian.shortcuts import assign_perm, remove_perm, get_perms
+
+
+GLOBAL_ADMIN_ROLE_GROUP_NAME = "global_admin"
+GLOBAL_ADMIN_ROLE_GROUP = None
+
+
+def get_global_admin_role_group():
+    """Return the global admin Group, or None if it cannot be loaded.
+
+    This avoids querying the database at import time (which can fail during
+    migrations/startup). Callers should handle a None return value.
+    """
+    try:
+        return Group.objects.get(name=GLOBAL_ADMIN_ROLE_GROUP_NAME)
+    except Exception:
+        return None
 
 
 def get_or_create_default_workspace(tenant):
@@ -21,6 +38,11 @@ def get_or_create_default_workspace(tenant):
             name="Default",
             description="Default workspace",
         )
+        global_group = get_global_admin_role_group()
+        if global_group:
+            assign_perm("view_workspace", global_group, workspace)
+            assign_perm("change_workspace", global_group, workspace)
+            assign_perm("delete_workspace", global_group, workspace)
 
     return workspace
 
@@ -68,6 +90,11 @@ def get_no_role(workspace):
                 logger.debug(f"Created group {group.name} for No Role")
             role.group = group
             role.save()
+        global_group = get_global_admin_role_group()
+        if global_group:
+            assign_perm("view_role", global_group, role)
+            assign_perm("change_role", global_group, role)
+            assign_perm("delete_role", global_group, role)
 
     return role
 
@@ -94,6 +121,11 @@ def get_or_create_admin_role(workspace):
 
         assign_base_tenant_admin_permissions_to_group(workspace.tenant, role.group)
         assign_base_workspace_admin_permissions_to_group(workspace, role.group)
+        global_group = get_global_admin_role_group()
+        if global_group:
+            assign_perm("view_role", global_group, role)
+            assign_perm("change_role", global_group, role)
+            assign_perm("delete_role", global_group, role)
 
     return role
 
