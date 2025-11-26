@@ -72,6 +72,12 @@ def assign_new_tenant_base_permissions(tenant, user):
     # Tenant creation is just one time usage
     remove_perm("organizations.add_tenant", user)
 
+    global_group = get_global_admin_role_group()
+    if global_group:
+        assign_perm("view_tenant", global_group, tenant)
+        assign_perm("change_tenant", global_group, tenant)
+        assign_perm("delete_tenant", global_group, tenant)
+
     user.save()
 
 
@@ -94,6 +100,12 @@ def assign_new_workspace_base_permissions(workspace, user):
     assign_perm("roles.add_role", user)
     assign_perm("infrastructure.add_machine", user)
 
+    global_group = get_global_admin_role_group()
+    if global_group:
+        assign_perm("view_workspace", global_group, workspace)
+        assign_perm("change_workspace", global_group, workspace)
+        assign_perm("delete_workspace", global_group, workspace)
+
     user.save()
 
 
@@ -113,6 +125,12 @@ def assign_new_role_base_permissions(role, user):
     assign_perm("change_role", user, role)
     assign_perm("delete_role", user, role)
 
+    global_group = get_global_admin_role_group()
+    if global_group:
+        assign_perm("view_role", global_group, role)
+        assign_perm("change_role", global_group, role)
+        assign_perm("delete_role", global_group, role)
+
     user.save()
 
 
@@ -129,20 +147,44 @@ def assign_created_instance_permissions(instance, user):
     """
 
     model_name = instance._meta.model_name
+    app_label = instance._meta.app_label
+    instance_workspace = getattr(instance, "workspace", None)
 
     view_perm = f"view_{model_name}"
     change_perm = f"change_{model_name}"
     delete_perm = f"delete_{model_name}"
 
-    assign_perm(view_perm, user, instance)
-    assign_perm(change_perm, user, instance)
-    assign_perm(delete_perm, user, instance)
+    assign_perm(view_perm, user.group, instance)
+    assign_perm(change_perm, user.group, instance)
+    assign_perm(delete_perm, user.group, instance)
 
     global_group = get_global_admin_role_group()
     if global_group:
         assign_perm(view_perm, global_group, instance)
         assign_perm(change_perm, global_group, instance)
         assign_perm(delete_perm, global_group, instance)
+
+    if instance_workspace:
+        admin_role = Role.objects.filter(
+            workspace=instance_workspace, is_admin=True
+        ).first()
+        if admin_role and admin_role.group:
+            assign_perm(view_perm, admin_role.group, instance)
+            assign_perm(change_perm, admin_role.group, instance)
+            assign_perm(delete_perm, admin_role.group, instance)
+
+    if app_label in ["organizations", "roles", "users"]:
+        manager_group = Group.objects.filter(name="global_manager").first()
+        if manager_group:
+            assign_perm(view_perm, manager_group, instance)
+            assign_perm(change_perm, manager_group, instance)
+            assign_perm(delete_perm, manager_group, instance)
+    elif app_label in ["infrastructure", "chirpstack"]:
+        support_group = Group.objects.filter(name="global_technician").first()
+        if support_group:
+            assign_perm(view_perm, support_group, instance)
+            assign_perm(change_perm, support_group, instance)
+            assign_perm(delete_perm, support_group, instance)
 
     user.save()
 
