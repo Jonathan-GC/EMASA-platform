@@ -172,9 +172,9 @@ def assign_created_instance_permissions(instance, user):
 
     user_group = get_user_group(user)
     if user_group:
-        assign_perm(view_perm, user.group, instance)
-        assign_perm(change_perm, user.group, instance)
-        assign_perm(delete_perm, user.group, instance)
+        assign_perm(view_perm, user_group, instance)
+        assign_perm(change_perm, user_group, instance)
+        assign_perm(delete_perm, user_group, instance)
     else:
         logger.debug(
             f"The user: {user.username} has no group assigned, skipping group permissions."
