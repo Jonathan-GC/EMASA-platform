@@ -23,6 +23,22 @@ def get_global_admin_role_group():
         return None
 
 
+def get_user_group(user):
+    try:
+        user = User.objects.get(id=user.id)
+        if user.is_superuser:
+            return get_global_admin_role_group()
+
+        role = Role.objects.filter(
+            workspacemembership__user=user,
+            workspacemembership__workspace__tenant=user.tenant,
+        ).first()
+        if role and role.group:
+            return role.group
+    except Exception:
+        pass
+
+
 def assign_new_user_base_permissions(user):
     """
     Assign base permissions to a new user.
@@ -154,9 +170,15 @@ def assign_created_instance_permissions(instance, user):
     change_perm = f"change_{model_name}"
     delete_perm = f"delete_{model_name}"
 
-    assign_perm(view_perm, user.group, instance)
-    assign_perm(change_perm, user.group, instance)
-    assign_perm(delete_perm, user.group, instance)
+    user_group = get_user_group(user)
+    if user_group:
+        assign_perm(view_perm, user.group, instance)
+        assign_perm(change_perm, user.group, instance)
+        assign_perm(delete_perm, user.group, instance)
+    else:
+        logger.debug(
+            f"The user: {user.username} has no group assigned, skipping group permissions."
+        )
 
     global_group = get_global_admin_role_group()
     if global_group:
