@@ -192,9 +192,7 @@
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
           <h3>No hay device profiles</h3>
           <p>No se encontraron device profiles en el sistema</p>
-          <ion-button @click="GetDeviceProfiles" fill="outline">
-            Buscar device profiles
-          </ion-button>
+          <QuickControl :toCreate="true" type="device_profile" @itemCreated="handleItemRefresh" />
         </div>
       </ion-card-content>
     </ion-card>

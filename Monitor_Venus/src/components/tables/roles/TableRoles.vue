@@ -255,9 +255,7 @@
           <ion-icon :icon="icons.shield" size="large" color="medium"></ion-icon>
           <h3>No hay roles</h3>
           <p>No se encontraron roles en el sistema</p>
-          <ion-button @click="fetchRoles" fill="outline">
-            Buscar roles
-          </ion-button>
+          <QuickControl :toCreate="true" type="role" @itemCreated="handleItemRefresh" />
         </div>
       </ion-card-content>
     </ion-card>

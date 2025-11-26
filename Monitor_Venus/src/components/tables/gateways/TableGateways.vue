@@ -237,9 +237,7 @@
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
           <h3>No hay gateways</h3>
           <p>No se encontraron gateways en el sistema</p>
-          <ion-button @click="fetchGateways" fill="outline">
-            Buscar gateways
-          </ion-button>
+          <QuickControl :toCreate="true" type="gateway" @itemCreated="handleItemRefresh" />
         </div>
       </ion-card-content>
     </ion-card>

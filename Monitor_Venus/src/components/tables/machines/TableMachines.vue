@@ -222,9 +222,7 @@
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
           <h3>No hay máquinas</h3>
           <p>No se encontraron máquinas en el sistema</p>
-          <ion-button @click="fetchmáquinas" fill="outline">
-            Buscar máquinas
-          </ion-button>
+          <QuickControl :toCreate="true" type="machine" @itemCreated="handleItemRefresh" />
         </div>
       </ion-card-content>
     </ion-card>

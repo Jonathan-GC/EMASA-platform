@@ -241,9 +241,7 @@
           <ion-icon :icon="icons.server" size="large" color="medium"></ion-icon>
           <h3>No hay aplicaciones</h3>
           <p>No se encontraron aplicaciones en el sistema</p>
-          <ion-button @click="fetchApplications" fill="outline">
-            Buscar aplicaciones
-          </ion-button>
+          <QuickControl :toCreate="true" type="application" @itemCreated="handleItemRefresh" />
         </div>
       </ion-card-content>
     </ion-card>
