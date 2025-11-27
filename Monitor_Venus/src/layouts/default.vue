@@ -17,7 +17,16 @@
 </template>
 
 <script setup>
-// NavBar se auto-importa
+import { provide } from 'vue'
+import { useNotifications } from '@/composables/useNotifications'
+
+/**
+ * Initialize global notification system
+ * - WebSocket connection persists across all routes
+ * - Available to all child components via inject('notifications')
+ */
+const notificationSystem = useNotifications()
+provide('notifications', notificationSystem)
 </script>
 
 <style scoped>
@@ -31,7 +40,7 @@
   width: 250px; /* Ancho fijo del sidebar */
   min-width: 250px;
   height: 100%; /* Altura completa de la pantalla */
-  background-color: transparent; /* Sin fondo azul */
+  background-color: var(--ion-color-light, #f4f5f8); /* Sin fondo azul */
   border-right: 1px solid var(--ion-color-light, #f4f5f8);
   overflow-y: auto;
 }

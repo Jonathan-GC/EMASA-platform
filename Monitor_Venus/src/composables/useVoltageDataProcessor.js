@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-// Minimal, safe voltage processor (alternate module to avoid Vite import issues)
+// Minimal, safe voltage processor (alternate module to import issues)
 export function useVoltageDataProcessor() {
   const chartDataFragments = ref([])
   const lastDevice = ref(null)
@@ -41,6 +41,45 @@ export function useVoltageDataProcessor() {
     return Number.MAX_SAFE_INTEGER
   }
 
+  // Calculate buffer statistics from WebSocket measurements
+  const calculateBufferStats = (data) => {
+    const stats = {
+      total_samples: 0,
+      avg_voltage: 0,
+      min_voltage: 0,
+      max_voltage: 0
+    }
+
+    if (!data.payload?.measurements?.voltage) return stats
+
+    const voltageData = data.payload.measurements.voltage
+    let totalSamples = 0
+    let sumVoltage = 0
+    let minVoltage = Infinity
+    let maxVoltage = -Infinity
+
+    // Count samples and calculate voltage stats from all channels
+    Object.values(voltageData).forEach(channelSamples => {
+      if (Array.isArray(channelSamples)) {
+        channelSamples.forEach(sample => {
+          if (sample && typeof sample.value === 'number') {
+            totalSamples++
+            sumVoltage += sample.value
+            minVoltage = Math.min(minVoltage, sample.value)
+            maxVoltage = Math.max(maxVoltage, sample.value)
+          }
+        })
+      }
+    })
+
+    stats.total_samples = totalSamples
+    stats.avg_voltage = totalSamples > 0 ? sumVoltage / totalSamples : 0
+    stats.min_voltage = minVoltage === Infinity ? 0 : minVoltage
+    stats.max_voltage = maxVoltage === -Infinity ? 0 : maxVoltage
+
+    return stats
+  }
+
   const extractSensorChannels = (data, sensor) => {
     if (!data || typeof data !== 'object') return null
     const channels = {}
@@ -62,16 +101,16 @@ export function useVoltageDataProcessor() {
       })
       if (Object.keys(channels).length > 0) return channels
     }
-    if (data.object && data.object.measurements && data.object.measurements[sensor]) {
-      const groups = data.object.measurements[sensor]
+    if (data.payload && data.payload.measurements && data.payload.measurements[sensor]) {
+      const groups = data.payload.measurements[sensor]
       Object.entries(groups).forEach(([ch, arr]) => {
         if (!Array.isArray(arr)) return
-        channels[ch] = arr.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.object.arrival_date || data.arrival_date, value: s.value }))
+        channels[ch] = arr.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.payload.arrival_date || data.arrival_date, value: s.value }))
       })
       if (Object.keys(channels).length > 0) return channels
     }
-    if (Array.isArray(data.object?.values)) {
-      channels['ch0'] = data.object.values.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.object.arrival_date || data.arrival_date, value: s.value }))
+    if (Array.isArray(data.payload?.values)) {
+      channels['ch0'] = data.payload.values.filter(s => s && typeof s.value === 'number').map(s => ({ time: s.time || s.time_iso || data.payload.arrival_date || data.arrival_date, value: s.value }))
       if (Object.keys(channels).length > 0) return channels
     }
     return null
@@ -83,10 +122,22 @@ export function useVoltageDataProcessor() {
     const channels = extractSensorChannels(data, 'voltage')
     if (!channels) return
 
-    // update seen device/messages
-    lastDevice.value = data
-    recentMessages.value.unshift(data)
-    if (recentMessages.value.length > 50) recentMessages.value.pop()
+    // Create enhanced device object with available WebSocket data
+    const enhancedDevice = {
+      ...data,
+      buffer_stats: calculateBufferStats(data),
+      reception_timestamp: data.payload?.arrival_date || data.arrival_date || new Date().toISOString()
+    }
+    lastDevice.value = enhancedDevice
+
+    // Add to recent messages with reception_timestamp and device_name
+    const messageWithTimestamp = {
+      ...enhancedDevice,
+      reception_timestamp: enhancedDevice.reception_timestamp,
+      device_name: enhancedDevice.device_name
+    }
+    recentMessages.value.unshift(messageWithTimestamp)
+    if (recentMessages.value.length > 15) recentMessages.value.pop()
 
     // determine numeric indices present in incoming payload and update maxChannelIndex
     const incomingKeys = Object.keys(channels)

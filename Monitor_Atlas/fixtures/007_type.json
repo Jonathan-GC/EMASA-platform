@@ -1,1 +1,20 @@
-[{"model": "infrastructure.type", "pk": 1, "fields": {"name": "Voltaje", "img": "img_url_placeholder", "description": "Dispositivo de medición de Voltaje"}}, {"model": "infrastructure.type", "pk": 2, "fields": {"name": "Temperatura", "img": "img_url_placeholder", "description": "Dispositivo de medición de Temperatura"}}]
+[
+  {
+    "model": "infrastructure.type",
+    "pk": "2345678901234568",
+    "fields": {
+      "name": "Voltaje",
+      "img": null,
+      "description": "Dispositivo de medición de Voltaje"
+    }
+  },
+  {
+    "model": "infrastructure.type",
+    "pk": "3456789012345690",
+    "fields": {
+      "name": "Temperatura",
+      "img": null,
+      "description": "Dispositivo de medición de Temperatura"
+    }
+  }
+]

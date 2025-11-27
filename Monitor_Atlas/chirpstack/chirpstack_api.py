@@ -2,11 +2,32 @@ import requests
 from django.conf import settings
 import datetime as dt
 
-from organizations.models import Tenant, Subscription, Workspace
+from organizations.models import Tenant, Workspace
 from infrastructure.models import Gateway, Location, Device, Application, Type, Machine
 from chirpstack.models import ApiUser, DeviceProfile
 
-import logging
+from organizations.helpers import (
+    get_or_create_default_workspace,
+    get_or_create_default_subscription,
+)
+
+from .helpers import (
+    fetch_chirpstack_users,
+    fetch_tenant_user_mapping,
+    update_existing_user,
+    create_new_user,
+    fetch_device_profiles,
+    update_local_device_profile,
+    create_local_device_profile,
+    fetch_applications,
+    update_local_application,
+    create_local_application,
+    fetch_devices,
+    update_local_device,
+    create_local_device,
+)
+
+from loguru import logger
 
 CHIRPSTACK_BASE_URL = settings.CHIRPSTACK_BASE_URL
 CHIRPSTACK_JWT_TOKEN = settings.CHIRPSTACK_JWT_TOKEN
@@ -24,7 +45,117 @@ HEADERS = {
 }
 
 
+# Local actions
+def error_syncing(instance, response):
+    instance.sync_status = "ERROR"
+    instance.sync_error = response.text
+    instance.last_synced_at = dt.datetime.now()
+    instance.save(update_fields=["sync_status", "sync_error", "last_synced_at"])
+    logger.error(f"Error syncing {instance}: {response.text}")
+
+
+def set_status(instance, response):
+    if response is None:
+        logger.debug(f"No changes made to {instance} in chirpstack")
+        return
+    if response and response.status_code == 200:
+        instance.sync_status = "SYNCED"
+        instance.sync_error = ""
+        instance.last_synced_at = dt.datetime.now()
+        instance.save(update_fields=["sync_status", "sync_error", "last_synced_at"])
+        logger.debug(f"{instance} synced successfully")
+    else:
+        error_syncing(instance, response)
+
+
+# Helpers
+def test_connection():
+    try:
+        response = requests.get(CHIRPSTACK_API_URL, headers=HEADERS, timeout=10)
+        if response and response.status_code == 200:
+            logger.debug("Connection to ChirpStack successful.")
+            return True
+        else:
+            logger.error(
+                f"Failed to connect to ChirpStack. Status code: {response.status_code}, Response: {response.text}"
+            )
+            return False
+    except requests.exceptions.Timeout:
+        logger.error(
+            f"Timeout connecting to ChirpStack. The server took too long to respond."
+        )
+        return False
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error connecting to ChirpStack: {e}")
+        return False
+
+
 # Tenants
+def has_tenant_id(tenant):
+    return tenant.cs_tenant_id is not None and tenant.cs_tenant_id != ""
+
+
+def get_tenant_by_id(tenant):
+    found = False
+    if has_tenant_id(tenant):
+        response = requests.get(
+            f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}",
+            headers=HEADERS,
+        )
+        if response and response.status_code == 200:
+            found = True
+    return found
+
+
+def create_tenant_in_chirpstack(tenant):
+    payload = {
+        "tenant": {
+            "name": tenant.name,
+            "description": tenant.description,
+            "canHaveGateways": tenant.subscription.can_have_gateways,
+            "maxDeviceCount": tenant.subscription.max_device_count,
+            "maxGatewayCount": tenant.subscription.max_gateway_count,
+        }
+    }
+
+    if not has_tenant_id(tenant):
+        search_instance = requests.get(
+            CHIRPSTACK_TENANT_URL,
+            headers=HEADERS,
+            params={"limit": 100},
+        )
+        if search_instance.status_code == 200:
+            results = search_instance.json().get("result", [])
+            match = next((t for t in results if t["name"] == tenant.name), None)
+            if match:
+                tenant.cs_tenant_id = match["id"]
+                tenant.save(update_fields=["cs_tenant_id"])
+                set_status(tenant, search_instance)
+                return search_instance
+            else:
+                response = requests.post(
+                    CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS
+                )
+                if response and response.status_code == 200:
+                    tenant_data = response.json()
+                    tenant.cs_tenant_id = tenant_data.get("id")
+                    tenant.save(update_fields=["cs_tenant_id"])
+                set_status(tenant, response)
+                return response
+    else:
+        found = get_tenant_by_id(tenant)
+        if not found:
+            response = requests.post(
+                CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS
+            )
+            if response and response.status_code == 200:
+                tenant_data = response.json()
+                tenant.cs_tenant_id = tenant_data.get("id")
+                tenant.save(update_fields=["cs_tenant_id"])
+            set_status(tenant, response)
+            return response
+
+
 def sync_tenant_get(tenant):
     """
     Syncs a tenant with Chirpstack.
@@ -41,64 +172,20 @@ def sync_tenant_get(tenant):
     Raises:
         May set tenant.sync_status to "ERROR" and tenant.sync_error if the API call fails.
     """
-    payload = {
-        "tenant": {
-            "name": tenant.name,
-            "description": tenant.description,
-            "canHaveGateways": tenant.subscription.can_have_gateways,
-            "maxDeviceCount": tenant.subscription.max_device_count,
-            "maxGatewayCount": tenant.subscription.max_gateway_count,
-        }
-    }
-    tenant_id = tenant.cs_tenant_id
+    tenant_id = has_tenant_id(tenant)
 
     response = None
 
-    url = f"{CHIRPSTACK_TENANT_URL}/{tenant_id}"
-    response = requests.get(url, headers=HEADERS)
-
-    if response.status_code == 200:
-        logging.info(f"Tenant found in Chirpstack: {tenant.name}")
-        tenant.sync_status = "SYNCED"
-        if tenant.sync_error != "":
-            tenant.sync_error = ""
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
-    elif tenant.cs_tenant_id == "" or tenant.cs_tenant_id is None:
-        list_response = requests.get(
-            CHIRPSTACK_TENANT_URL,
-            headers=HEADERS,
-            params={"limit": 100},
-        )
-
-        if list_response.status_code == 200:
-            results = list_response.json().get("result", [])
-            match = next((t for t in results if t["name"] == tenant.name), None)
-            if match:
-                tenant.cs_tenant_id = match["id"]
-                tenant.sync_status = "SYNCED"
-                tenant.sync_error = ""
-                tenant.last_synced_at = dt.datetime.now()
-                tenant.save()
-                return list_response
-            else:
-                response = requests.post(
-                    CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS
-                )
-                tenant.cs_tenant_id = response.json()["id"]
-                tenant.sync_status = "SYNCED"
-                tenant.sync_error = ""
-                tenant.last_synced_at = dt.datetime.now()
-                tenant.save()
-                return list_response
+    if tenant_id:
+        cs_tenant_id = tenant.cs_tenant_id
+        url = f"{CHIRPSTACK_TENANT_URL}/{cs_tenant_id}"
+        response = requests.get(url, headers=HEADERS)
     else:
-        logging.error(f"Error getting tenant: {tenant.name} \n {response.text}")
-        tenant.sync_status = "ERROR"
-        tenant.sync_error = response.text
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
+        response = create_tenant_in_chirpstack(tenant)
+
+    set_status(tenant, response)
+
+    return response
 
 
 def sync_tenant_create(tenant):
@@ -111,33 +198,8 @@ def sync_tenant_create(tenant):
     Returns:
         requests.Response: the response from the API
     """
-    payload = {
-        "tenant": {
-            "name": tenant.name,
-            "description": tenant.description,
-            "canHaveGateways": tenant.subscription.can_have_gateways,
-            "maxDeviceCount": tenant.subscription.max_device_count,
-            "maxGatewayCount": tenant.subscription.max_gateway_count,
-        }
-    }
-
-    response = requests.post(CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS)
-
-    if response.status_code == 200:
-        logging.info(f"Tenant created in Chirpstack: {tenant.name}")
-        tenant.cs_tenant_id = response.json()["id"]
-        tenant.sync_status = "SYNCED"
-        tenant.sync_error = ""
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
-    else:
-        logging.error(f"Error creating tenant: {tenant.name} \n {response.text}")
-        tenant.sync_status = "ERROR"
-        tenant.sync_error = response.text
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
+    response = create_tenant_in_chirpstack(tenant)
+    return response
 
 
 def sync_tenant_update(tenant):
@@ -168,25 +230,12 @@ def sync_tenant_update(tenant):
 
     response = sync_tenant_get(tenant)
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
-    elif tenant.cs_tenant_id == "" or tenant.cs_tenant_id is None:
-        response = requests.post(CHIRPSTACK_TENANT_URL, json=payload, headers=HEADERS)
 
-    if response.status_code == 200:
-        logging.info(f"Tenant updated in Chirpstack: {tenant.name}")
-        tenant.sync_status = "SYNCED"
-        tenant.sync_error = ""
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
-    else:
-        logging.error(f"Error updating tenant: {tenant.name} \n {response.text}")
-        tenant.sync_status = "ERROR"
-        tenant.sync_error = response.text
-        tenant.last_synced_at = dt.datetime.now()
-        tenant.save()
-        return response
+    set_status(tenant, response)
+
+    return response
 
 
 def sync_tenant_destroy(tenant):
@@ -199,15 +248,20 @@ def sync_tenant_destroy(tenant):
     Returns:
         requests.Response: the response from the API
     """
-    url = f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}"
-    response = requests.delete(url, headers=HEADERS)
+    response = None
+    if has_tenant_id(tenant) and get_tenant_by_id(tenant):
+        response = requests.delete(
+            f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}",
+            headers=HEADERS,
+        )
 
-    if response.status_code == 200:
-        logging.info(f"Tenant deleted in Chirpstack")
-        return response
-    else:
-        logging.error(f"Error deleting tenant try to delete it manually.")
-        return response
+        if response and response.status_code == 200:
+            logger.debug(f"Tenant deleted in Chirpstack")
+            return response
+
+        logger.error(f"Error deleting tenant try to delete it manually.")
+
+    return response
 
 
 def get_tenant_from_chirpstack():
@@ -221,59 +275,59 @@ def get_tenant_from_chirpstack():
     else:
         cs_instance_list = []
 
-    to_remove = []
+    to_remove_ids = []
     for instance in local_instances:
         match = next((t for t in cs_instance_list if t["name"] == instance.name), None)
         if match:
-            to_remove.append(match)
+            to_remove_ids.append(match["id"])
             if instance.cs_tenant_id != match["id"]:
                 instance.cs_tenant_id = match["id"]
             instance.sync_status = "SYNCED"
             instance.sync_error = ""
             instance.last_synced_at = dt.datetime.now()
             instance.save()
-            logging.info(
+            logger.debug(
                 f"Tenant {instance.cs_tenant_id} - {instance.name} has been synced with Chirpstack"
             )
-    for match in to_remove:
-        cs_instance_list.remove(match)
 
+    # remover los que ya están sincronizados, por id
+    cs_instance_list = [t for t in cs_instance_list if t["id"] not in to_remove_ids]
+
+    # crear los que faltan en local
     for new_instance in cs_instance_list:
-
-        subscription, _ = Subscription.objects.get_or_create(
-            max_gateway_count=int(new_instance.get("maxGatewayCount", 10)),
-            defaults={
-                "name": "Base",
-                "description": "Base placeholder Subscription, please modify it",
-                "can_have_gateways": new_instance.get("canHaveGateways", True),
-                "max_device_count": new_instance.get("maxDeviceCount", 100),
-            },
-        )
-
+        subscription = get_or_create_default_subscription()
         new_tenant = Tenant(
             cs_tenant_id=new_instance["id"],
             name=new_instance["name"],
-            description=new_instance.get("description", ""),
+            description=new_instance.get(
+                "description", f"{new_instance['name']}: synced tenant"
+            ),
             subscription=subscription,
             sync_status="SYNCED",
             sync_error="",
             last_synced_at=dt.datetime.now(),
         )
         new_tenant.save()
-        workspace = Workspace.objects.create(
-            name=f"{new_instance['name']} WS",
-            description=f"{new_instance['name']}'s default Workspace",
-            tenant=new_tenant,
-        )
-        workspace.save()
-        logging.info(
-            f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} with it's default workspace {workspace.id} has been created from Chirpstack"
+        workspace = get_or_create_default_workspace(new_tenant)
+        logger.debug(
+            f"Tenant {new_tenant.cs_tenant_id} - {new_tenant.name} with its default workspace {workspace.id} has been created from Chirpstack"
         )
     return list_response
 
 
 # Gateways
-def sync_gateway_get(gateway):
+def get_gateway_by_id(gateway):
+    found = False
+    response = requests.get(
+        f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
+        headers=HEADERS,
+    )
+    if response and response.status_code == 200:
+        found = True
+    return found
+
+
+def create_gateway_in_chirpstack(gateway):
     payload = {
         "gateway": {
             "gatewayId": gateway.cs_gateway_id,
@@ -290,75 +344,53 @@ def sync_gateway_get(gateway):
             },
         }
     }
+
+    found = get_gateway_by_id(gateway)
+    if not found:
+        response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
+        set_status(gateway, response)
+        return response
+    return None
+
+
+def sync_gateway_status(gateway):
     response = requests.get(
         CHIRPSTACK_GATEWAYS_URL,
         headers=HEADERS,
-        params={"tenant_id": gateway.workspace.tenant.cs_tenant_id, "limit": 100},
+        params={"tenantId": gateway.workspace.tenant.cs_tenant_id, "limit": 100},
     )
-
-    if response.status_code == 200:
-        data = response.json().get("result", [])
-        gw_data = next(
-            (g for g in data if g["gatewayId"] == gateway.cs_gateway_id), None
+    if response and response.status_code == 200:
+        results = response.json().get("result", [])
+        match = next(
+            (g for g in results if g["gatewayId"] == gateway.cs_gateway_id), None
         )
-
-        if gw_data:
-            gateway.state = gw_data.get("state", gateway.state)
-            gateway.last_seen_at = gw_data.get("lastSeenAt", gateway.last_seen_at)
-            if gateway.sync_error != "":
-                gateway.sync_error = ""
-            gateway.sync_status = "SYNCED"
-            gateway.last_synced_at = dt.datetime.now()
-            gateway.save()
+        if match:
+            gateway.state = match.get("state", gateway.state)
+            gateway.last_seen_at = match.get("lastSeenAt", gateway.last_seen_at)
         else:
-            response = requests.post(
-                CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS
-            )
-            if response.status_code == 200:
-                gateway.sync_status = "SYNCED"
-                if gateway.sync_error != "":
-                    gateway.sync_error = ""
-                gateway.last_synced_at = dt.datetime.now()
-                gateway.save()
-    else:
-        gateway.sync_status = "ERROR"
-        gateway.sync_error = response.text
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
+            logger.warning(f"Gateway {gateway.cs_gateway_id} not found in Chirpstack.")
+        gateway.save(update_fields=["state", "last_seen_at"])
+        set_status(gateway, response)
+    return response
 
+
+def sync_gateway_get(gateway):
+    response = create_gateway_in_chirpstack(gateway)
+
+    status_response = sync_gateway_status(gateway)
+
+    if status_response is not None:
+        response = status_response
+
+    set_status(gateway, response)
     return response
 
 
 def sync_gateway_create(gateway):
-    payload = {
-        "gateway": {
-            "gatewayId": gateway.cs_gateway_id,
-            "name": gateway.name,
-            "description": gateway.description,
-            "statsInterval": gateway.stats_interval,
-            "tenantId": gateway.workspace.tenant.cs_tenant_id,
-            "location": {
-                "accuracy": gateway.location.accuracy,
-                "altitude": gateway.location.altitude,
-                "latitude": gateway.location.latitude,
-                "longitude": gateway.location.longitude,
-                "source": gateway.location.source,
-            },
-        }
-    }
-    response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
+    response = create_gateway_in_chirpstack(gateway)
 
-    if response.status_code == 200:
-        gateway.sync_status = "SYNCED"
-        if gateway.sync_error != "":
-            gateway.sync_error = ""
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
-    else:
-        gateway.sync_status = "ERROR"
-        gateway.sync_error = response.text
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
+    if response is not None and response.status_code == 200:
+        response = sync_gateway_status(gateway)
 
     return response
 
@@ -381,43 +413,32 @@ def sync_gateway_update(gateway):
         }
     }
 
-    response = sync_gateway_get(gateway)
+    response = create_gateway_in_chirpstack(gateway)
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         response = requests.put(
             f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
             json=payload,
             headers=HEADERS,
         )
-    else:
-        response = requests.post(CHIRPSTACK_GATEWAYS_URL, json=payload, headers=HEADERS)
-
-    if response.status_code == 200:
-        gateway.sync_status = "SYNCED"
-        if gateway.sync_error != "":
-            gateway.sync_error = ""
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
-    else:
-        gateway.sync_status = "ERROR"
-        gateway.sync_error = response.text
-        gateway.last_synced_at = dt.datetime.now()
-        gateway.save()
-
+    set_status(gateway, response)
     return response
 
 
 def sync_gateway_destroy(gateway):
-    response = requests.delete(
-        f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
-        headers=HEADERS,
-    )
-    if response.status_code == 200:
-        logging.info(f"Gateway deleted in Chirpstack")
+    found = get_gateway_by_id(gateway)
+    if found:
+        response = requests.delete(
+            f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
+            headers=HEADERS,
+        )
+        if response and response.status_code == 200:
+            logger.debug(f"Gateway deleted in Chirpstack")
+            return response
+
+        logger.error(f"Error deleting gateway try to delete it manually.")
         return response
-    else:
-        logging.error(f"Error deleting gateway try to delete it manually.")
-        return response
+    return None
 
 
 def get_gateway_from_chirpstack():
@@ -443,7 +464,7 @@ def get_gateway_from_chirpstack():
                 match.sync_error = ""
                 match.last_synced_at = dt.datetime.now()
                 match.save()
-                logging.info(
+                logger.debug(
                     f"Gateway {match.cs_gateway_id} - {match.name} has been synced with Chirpstack"
                 )
         for match in to_remove:
@@ -454,14 +475,7 @@ def get_gateway_from_chirpstack():
                 cs_tenant_id=new_instance.get("tenantId")
             ).first()
             if tenant:
-                workspace = tenant.workspace_set.first()
-                if not workspace:
-                    workspace = Workspace.objects.create(
-                        name=f"{tenant.name} WS",
-                        tenant=tenant,
-                        description=f"{tenant.name}'s default workspace",
-                    )
-                    workspace.save()
+                workspace = get_or_create_default_workspace(tenant)
                 cs_location = new_instance.get("location", {})
 
                 location = Location(
@@ -487,35 +501,39 @@ def get_gateway_from_chirpstack():
                     last_synced_at=dt.datetime.now(),
                 )
                 new_gw.save()
-                logging.info(
+                logger.debug(
                     f"Gateway {new_gw.cs_gateway_id} - {new_gw.name} has been created from Chirpstack"
                 )
 
             else:
-                logging.warning(
+                logger.warning(
                     f"No tenant found with cs_tenant_id {new_instance.get('tenantId')}. Gateway {new_instance['gatewayId']} was not created."
                 )
 
     else:
-        logging.error(f"Error fetching gateways from Chirpstack.")
+        logger.error(f"Error fetching gateways from Chirpstack.")
 
     return list_response
 
 
 # Chirpstack user
-def sync_api_user_get(api_user):
-    """
-    Syncs an API user with Chirpstack by searching for a user with the same email.
+def has_user_id(api_user):
+    return api_user.cs_user_id is not None and api_user.cs_user_id != ""
 
-    If a match is found, it updates the user in the database with the Chirpstack user id and sync status.
-    If a match is not found, it creates a new user in Chirpstack and updates the user in the database with the Chirpstack user id and sync status.
 
-    Args:
-        api_user (APIUser): an APIUser object
+def get_api_user_by_id(api_user):
+    found = False
+    if has_user_id(api_user):
+        response = requests.get(
+            f"{CHIRPSTACK_API_URL}/{api_user.cs_user_id}",
+            headers=HEADERS,
+        )
+        if response and response.status_code == 200:
+            found = True
+    return found
 
-    Returns:
-        requests.Response: the response from the API
-    """
+
+def create_api_user_in_chirpstack(api_user):
     payload = {
         "password": api_user.password,
         "tenants": [
@@ -534,52 +552,55 @@ def sync_api_user_get(api_user):
         },
     }
 
-    response = requests.get(
-        CHIRPSTACK_API_URL,
-        headers=HEADERS,
-        params={"limit": 100},
-    )
-
-    if response.status_code == 200:
-        results = response.json().get("result", [])
-        match = next((u for u in results if u["email"] == api_user.email), None)
-
-        if match:
-            logging.info(f"User found in Chirpstack")
-            api_user.cs_user_id = match["id"]
-            api_user.is_active = match.get("isActive", api_user.is_active)
-            api_user.is_admin = match.get("isAdmin", api_user.is_admin)
-            api_user.sync_status = "SYNCED"
-            api_user.sync_error = ""
-            api_user.last_synced_at = dt.datetime.now()
-            api_user.save()
-        elif api_user.cs_user_id or api_user.cs_user_id.strip() == "":
-            logging.info(f"User not found in Chirpstack")
-            response = requests.post(CHIRPSTACK_API_URL, json=payload, headers=HEADERS)
-            if response.status_code == 200:
-                api_id = response.json()["id"]
-                api_user.cs_user_id = api_id
-                api_user.sync_status = "SYNCED"
-                api_user.sync_error = (
-                    "User not found in Chirpstack but is created and synced now"
-                )
-                api_user.last_synced_at = dt.datetime.now()
-                api_user.save()
+    if not has_user_id(api_user):
+        search_instance = requests.get(
+            CHIRPSTACK_API_URL,
+            headers=HEADERS,
+            params={"limit": 100},
+        )
+        if search_instance.status_code == 200:
+            results = search_instance.json().get("result", [])
+            match = next((u for u in results if u["email"] == api_user.email), None)
+            if match:
+                api_user.cs_user_id = match["id"]
+                api_user.save(update_fields=["cs_user_id"])
+                set_status(api_user, search_instance)
+                return search_instance
             else:
-                api_user.sync_status = "PENDING"
-                api_user.sync_error = (
-                    "User not found in Chirpstack and cs_user_id is not empty"
+                response = requests.post(
+                    CHIRPSTACK_API_URL, json=payload, headers=HEADERS
                 )
-                api_user.last_synced_at = dt.datetime.now()
-                api_user.save()
-        else:
-            logging.info(f"User not found in Chirpstack and cs_user_id is not empty")
-            api_user.sync_status = "PENDING"
-            api_user.sync_error = (
-                "User not found in Chirpstack and cs_user_id is not empty"
-            )
-            api_user.last_synced_at = dt.datetime.now()
-            api_user.save()
+                set_status(api_user, response)
+                return response
+
+
+def sync_api_user_get(api_user):
+    """
+    Syncs an API user with Chirpstack by searching for a user with the same email.
+
+    If a match is found, it updates the user in the database with the Chirpstack user id and sync status.
+    If a match is not found, it creates a new user in Chirpstack and updates the user in the database with the Chirpstack user id and sync status.
+
+    Args:
+        api_user (APIUser): an APIUser object
+
+    Returns:
+        requests.Response: the response from the API
+    """
+    user_id = has_user_id(api_user)
+
+    response = None
+
+    if user_id:
+        cs_user_id = api_user.cs_user_id
+        response = requests.get(
+            f"{CHIRPSTACK_API_URL}/{cs_user_id}",
+            headers=HEADERS,
+        )
+    else:
+        response = create_api_user_in_chirpstack(api_user)
+
+    set_status(api_user, response)
 
     return response
 
@@ -597,39 +618,8 @@ def sync_api_user_create(api_user):
     Side Effects:
         Updates API user fields such as cs_user_id, sync_status, sync_error, and last_synced_at.
     """
-    payload = {
-        "password": api_user.password,
-        "tenants": [
-            {
-                "isAdmin": api_user.is_tenant_admin,
-                "isDeviceAdmin": api_user.is_tenant_device_admin,
-                "isGatewayAdmin": api_user.is_tenant_gateway_admin,
-                "tenantId": api_user.workspace.tenant.cs_tenant_id,
-            }
-        ],
-        "user": {
-            "email": api_user.email,
-            "isActive": api_user.is_active,
-            "isAdmin": api_user.is_admin,
-            "note": api_user.note,
-        },
-    }
 
-    response = requests.post(CHIRPSTACK_API_URL, json=payload, headers=HEADERS)
-
-    if response.status_code == 200:
-        api_id = response.json()["id"]
-        api_user.cs_user_id = api_id
-        api_user.sync_status = "SYNCED"
-        api_user.sync_error = ""
-        api_user.last_synced_at = dt.datetime.now()
-        api_user.save()
-    else:
-        api_user.sync_status = "ERROR"
-        api_user.sync_error = response.text
-        api_user.last_synced_at = dt.datetime.now()
-        api_user.save()
-
+    response = create_api_user_in_chirpstack(api_user)
     return response
 
 
@@ -666,47 +656,15 @@ def sync_api_user_update(api_user):
             "note": api_user.note,
         },
     }
-    if not api_user.cs_user_id or api_user.cs_user_id.strip() == "":
-        search_resp = requests.get(
-            CHIRPSTACK_API_URL,
-            headers=HEADERS,
-            params={"limit": 100},
-        )
-        if search_resp.status_code == 200:
-            results = search_resp.json().get("result", [])
-            match = next((u for u in results if u["email"] == api_user.email), None)
-            if match:
-                api_user.cs_user_id = match["id"]
-                api_user.save()
 
-    if api_user.cs_user_id or api_user.cs_user_id.strip() != "":
-        url = f"{CHIRPSTACK_API_URL}/{api_user.cs_user_id}"
+    response = sync_api_user_get(api_user)
+
+    url = f"{CHIRPSTACK_API_URL}/{api_user.cs_user_id}"
+
+    if response and response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
-        if response.status_code == 200:
-            api_user.sync_status = "SYNCED"
-            api_user.sync_error = ""
-            api_user.last_synced_at = dt.datetime.now()
-            api_user.save()
-        else:
-            api_user.sync_status = "ERROR"
-            api_user.sync_error = response.text
-            api_user.last_synced_at = dt.datetime.now()
-            api_user.save()
-    else:
-        response = requests.post(CHIRPSTACK_API_URL, json=payload, headers=HEADERS)
 
-        if response.status_code == 200:
-            api_id = response.json()["id"]
-            api_user.cs_user_id = api_id
-            api_user.sync_status = "SYNCED"
-            api_user.sync_error = ""
-            api_user.last_synced_at = dt.datetime.now()
-            api_user.save()
-        else:
-            api_user.sync_status = "ERROR"
-            api_user.sync_error = response.text
-            api_user.last_synced_at = dt.datetime.now()
-            api_user.save()
+    set_status(api_user, response)
 
     return response
 
@@ -721,184 +679,82 @@ def sync_api_user_destroy(api_user):
     Returns:
         requests.Response: the response from the API
     """
-    if api_user.cs_user_id:
-        url = f"{CHIRPSTACK_API_URL}/{api_user.cs_user_id}"
-        response = requests.delete(url, headers=HEADERS)
-        if response.status_code == 200:
-            logging.info(f"User deleted in Chirpstack")
+    response = None
+
+    if has_user_id(api_user) and get_api_user_by_id(api_user):
+        response = requests.delete(
+            f"{CHIRPSTACK_API_URL}/{api_user.cs_user_id}",
+            headers=HEADERS,
+        )
+
+        if response and response.status_code == 200:
+            logger.debug(f"API User deleted in Chirpstack")
             return response
-        else:
-            logging.error(
-                f"Error deleting user, user not found or try to delete it manually."
-            )
+
+        logger.error(f"Error deleting API User try to delete it manually.")
+
     return response
 
 
 def get_api_user_from_chirpstack():
     """
     Syncs API users from Chirpstack to the local database.
-
-    Side Effects:
-        Updates existing users and creates new users in the local database.
-        For new users, the sync_error field is set to "Please set a new password".
-
-    Returns:
-        requests.Response: the response from the Chirpstack API
+    Updates existing users and creates new users when necessary.
     """
     local_instances = ApiUser.objects.all()
 
-    list_response = requests.get(
-        CHIRPSTACK_API_URL,
-        headers=HEADERS,
-        params={"limit": 100},
-    )
-    if list_response.status_code == 200:
-        users = list_response.json().get("result", [])
-    else:
-        users = []
+    users, list_response = fetch_chirpstack_users(CHIRPSTACK_API_URL, HEADERS)
 
-    user_tenant_mapping = {}
-    for tenant in Tenant.objects.exclude(cs_tenant_id__isnull=True):
-        resp = requests.get(
-            f"{CHIRPSTACK_TENANT_URL}/{tenant.cs_tenant_id}/users",
-            headers=HEADERS,
-            params={"limit": 100},
-        )
-        if resp.status_code != 200:
-            continue
-        tenant_users = resp.json().get("result", [])
-        for tu in tenant_users:
-            uid = tu["userId"]
-            if uid not in user_tenant_mapping:
-                user_tenant_mapping[uid] = []
-            user_tenant_mapping[uid].append(
-                {
-                    "tenant": tenant,
-                    "isAdmin": tu.get("isAdmin", False),
-                    "isDeviceAdmin": tu.get("isDeviceAdmin", False),
-                    "isGatewayAdmin": tu.get("isGatewayAdmin", False),
-                }
-            )
+    user_tenant_mapping = fetch_tenant_user_mapping(
+        Tenant.objects.exclude(cs_tenant_id__isnull=True),
+        CHIRPSTACK_TENANT_URL,
+        HEADERS,
+    )
 
     users_by_email = {u["email"]: u for u in users}
 
-    to_remove = []
     for instance in local_instances:
         match = users_by_email.get(instance.email)
         if match:
-            to_remove.append(match)
-            instance.cs_user_id = match["id"]
-            instance.is_active = match.get("isActive", instance.is_active)
-            instance.is_admin = match.get("isAdmin", instance.is_admin)
-            instance.note = match.get("note", instance.note)
-            instance.sync_status = "SYNCED"
-            instance.sync_error = ""
-            instance.last_synced_at = dt.datetime.now()
-
-            tenant_info_list = user_tenant_mapping.get(instance.cs_user_id, [])
-            if tenant_info_list:
-                tenant = tenant_info_list[0]["tenant"]
-                workspace = tenant.workspace_set.first()
-                # if the tenant has no workspace, create one for that tenant
-                if not workspace:
-                    workspace = Workspace.objects.create(
-                        tenant=tenant,
-                        name=f"{tenant.name} Default WS",
-                        description="Default workspace for orphan users",
-                    )
-                instance.workspace = workspace
-                instance.is_tenant_admin = tenant_info_list[0]["isAdmin"]
-            else:
-                # no tenant info from Chirpstack -> associate to a default tenant workspace if available
-                default_tenant = Tenant.objects.first()
-                if default_tenant:
-                    workspaces = default_tenant.workspace_set.all()
-                    if workspaces.exists():
-                        workspace = workspaces.first()
-                    else:
-                        workspace = Workspace.objects.create(
-                            tenant=default_tenant,
-                            name=f"{default_tenant.name} Default WS",
-                            description="Default workspace for orphan users",
-                        )
-                    instance.workspace = workspace
-
-                    payload = {
-                        "tenantUser": {
-                            "email": instance.email,
-                            "isAdmin": True,
-                            "isDeviceAdmin": True,
-                            "isGatewayAdmin": True,
-                            "userId": instance.cs_user_id,
-                        }
-                    }
-                    try:
-                        requests.post(
-                            f"{CHIRPSTACK_TENANT_URL}/{default_tenant.cs_tenant_id}/users",
-                            json=payload,
-                            headers=HEADERS,
-                        )
-                    except Exception as e:
-                        logging.warning(
-                            f"No se pudo asociar el usuario {instance.email} al tenant {default_tenant.name}: {e}"
-                        )
-                else:
-                    logging.warning(
-                        f"No tenants exist in the database. Cannot associate user {instance.email} to any tenant."
-                    )
-
-            instance.save()
+            update_existing_user(instance, match, user_tenant_mapping)
 
     for new_instance in users:
-        if ApiUser.objects.filter(email=new_instance["email"]).exists():
-            continue
-
-        tenant_info_list = user_tenant_mapping.get(new_instance["id"], [])
-        workspace = (
-            tenant_info_list[0]["tenant"].workspace_set.first()
-            if tenant_info_list
-            else None
-        )
-
-        if not workspace:
-            default_tenant = Tenant.objects.first()
-            if default_tenant:
-                workspaces = default_tenant.workspace_set.all()
-                if workspaces.exists():
-                    workspace = workspaces.first()
-                else:
-                    workspace = Workspace.objects.create(
-                        tenant=default_tenant,
-                        name=f"{default_tenant.name} Default WS",
-                        description="Default workspace for orphan users",
-                    )
-                instance.workspace = workspace
-
-        api_user = ApiUser(
-            email=new_instance["email"],
-            cs_user_id=new_instance["id"],
-            is_active=new_instance["isActive"],
-            is_admin=new_instance["isAdmin"],
-            note=new_instance.get("note", ""),
-            workspace=workspace,
-            password="",
-            sync_error="Please set a new password and assign this user to a desired workspace",
-            sync_status="SYNCED",
-            last_synced_at=dt.datetime.now(),
-        )
-
-        if tenant_info_list:
-            api_user.is_tenant_admin = tenant_info_list[0]["isAdmin"]
-            api_user.is_tenant_device_admin = tenant_info_list[0]["isDeviceAdmin"]
-            api_user.is_tenant_gateway_admin = tenant_info_list[0]["isGatewayAdmin"]
-
-        api_user.save()
+        create_new_user(new_instance, user_tenant_mapping)
 
     return list_response
 
 
 # DeviceProfile
-def sync_device_profile_get(device_profile):
+def has_device_profile_id(device_profile):
+    return (
+        device_profile.cs_device_profile_id is not None
+        and device_profile.cs_device_profile_id != ""
+    )
+
+
+def get_device_profile_by_id(device_profile):
+    found = False
+    if has_device_profile_id(device_profile):
+        response = requests.get(
+            f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}",
+            headers=HEADERS,
+        )
+        if response and response.status_code == 200:
+            found = True
+    return found
+
+
+def create_device_profile_in_chirpstack(device_profile):
+    """
+    Creates a device profile in Chirpstack, ensuring no duplicates by name.
+    """
+    exists = check_existing_device_profile(device_profile)
+    if exists:
+        logger.info(
+            f"Device profile with name '{device_profile.name}' already exists in Chirpstack. Skipping creation."
+        )
+        return None
+
     payload = {
         "deviceProfile": {
             "name": device_profile.name,
@@ -924,106 +780,116 @@ def sync_device_profile_get(device_profile):
         }
     }
 
-    dp_id = device_profile.cs_device_profile_id
+    response = requests.post(
+        CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
+    )
 
-    if not dp_id or dp_id.strip() == "":
-        search_response = requests.get(
-            CHIRPSTACK_DEVICE_PROFILE_URL,
-            headers=HEADERS,
-            params={"limit": 100},
-        )
-        if search_response.status_code == 200:
-            results = search_response.json().get("result", [])
-            match = next(
-                (dp for dp in results if dp["name"] == device_profile.name), None
+    if response and response.status_code == 200:
+        device_profile_data = response.json()
+        device_profile.cs_device_profile_id = device_profile_data.get("id")
+        device_profile.save(update_fields=["cs_device_profile_id"])
+        logger.info(f"Created new device profile: {device_profile.name}")
+
+    set_status(device_profile, response)
+
+    return response
+
+
+def check_existing_device_profile(new_dp):
+    """
+    Check if a device profile with the same name exists in Chirpstack and update new_dp.cs_device_profile_id in place.
+
+    This function mutates the new_dp object by setting its cs_device_profile_id if a match is found.
+    Returns True if an existing device profile is found, otherwise False.
+    """
+
+    # Reset cs_device_profile_id to avoid using a stale value from previous runs
+    new_dp.cs_device_profile_id = None
+
+    search_response = requests.get(
+        CHIRPSTACK_DEVICE_PROFILE_URL,
+        headers=HEADERS,
+        params={
+            "limit": 100,
+            "tenantId": new_dp.workspace.tenant.cs_tenant_id,
+        },
+    )
+    if search_response.status_code == 200:
+        results = search_response.json().get("result", [])
+        match = next((dp for dp in results if dp["name"] == new_dp.name), None)
+
+        if match:
+            new_dp.cs_device_profile_id = match["id"]
+            new_dp.save(update_fields=["cs_device_profile_id"])
+            set_status(new_dp, search_response)
+            logger.info(
+                f"Using existing device profile: {match['name']} (ID: {match['id']})"
             )
-            if match:
-                device_profile.cs_device_profile_id = match["id"]
-                device_profile.sync_status = "SYNCED"
-                device_profile.sync_error = ""
-                device_profile.last_synced_at = dt.datetime.now()
-                device_profile.save()
-                return search_response
-
-    url = f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{dp_id}"
-
-    response = requests.get(url, headers=HEADERS)
-
-    if response.status_code == 200:
-        device_profile.sync_status = "SYNCED"
-        device_profile.sync_error = ""
-        device_profile.last_synced_at = dt.datetime.now()
-        device_profile.save()
-    elif (
-        device_profile.cs_device_profile_id is None
-        or device_profile.cs_device_profile_id == ""
-    ):
-        response = requests.post(
-            CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
-        )
-        if response.status_code == 200:
-            device_profile.cs_device_profile_id = response.json()["id"]
-            device_profile.save()
-            device_profile.sync_status = "SYNCED"
-            device_profile.sync_error = ""
-            device_profile.last_synced_at = dt.datetime.now()
-            device_profile.save()
+            if new_dp.cs_device_profile_id:
+                found = get_device_profile_by_id(new_dp)
+                if not found:
+                    logger.warning(
+                        f"Device profile {new_dp.name} has ID {new_dp.cs_device_profile_id} "
+                        f"but doesn't exist in Chirpstack. Clearing ID."
+                    )
+                    new_dp.cs_device_profile_id = None
+                    new_dp.save(update_fields=["cs_device_profile_id"])
+                    return False
+            return True
         else:
-            device_profile.sync_status = "ERROR"
-            device_profile.sync_error = response.text
-            device_profile.last_synced_at = dt.datetime.now()
-            device_profile.save()
+            logger.info(f"No existing device profile found for: {new_dp.name}")
+    return False
+
+
+def sync_device_profile_get(device_profile):
+    """
+    Syncs a DeviceProfile with Chirpstack.
+
+    Args:
+        device_profile (DeviceProfile): a DeviceProfile object
+
+    Returns:
+        requests.Response: the response from the API
+
+    Side Effects:
+        Updates device_profile fields such as cs_device_profile_id, sync_status, sync_error, and last_synced_at.
+
+    Raises:
+        May set device_profile.sync_status to "ERROR" and device_profile.sync_error if the API call fails.
+    """
+    device_profile_id = has_device_profile_id(device_profile)
+
+    response = None
+
+    if device_profile_id:
+        cs_device_profile_id = device_profile.cs_device_profile_id
+        response = requests.get(
+            f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{cs_device_profile_id}",
+            headers=HEADERS,
+        )
     else:
-        device_profile.sync_status = "ERROR"
-        device_profile.sync_error = response.text
-        device_profile.last_synced_at = dt.datetime.now()
-        device_profile.save()
+        response = create_device_profile_in_chirpstack(device_profile)
+
+    set_status(device_profile, response)
 
     return response
 
 
 def sync_device_profile_create(device_profile):
-    payload = {
-        "deviceProfile": {
-            "name": device_profile.name,
-            "description": device_profile.description,
-            "region": device_profile.region,
-            "macVersion": device_profile.mac_version,
-            "regParamsRevision": device_profile.reg_param_revision,
-            "supportsOtaa": device_profile.supports_otaa,
-            "adrAlgorithmId": device_profile.adr_algorithm_id,
-            "abpRx1Delay": device_profile.abp_rx1_delay,
-            "abpRx1DrOffset": device_profile.abp_rx1_dr_offset,
-            "abpRx2Dr": device_profile.abp_rx2_dr,
-            "abpRx2Freq": device_profile.abp_rx2_freq,
-            "supportsClassB": device_profile.supports_class_b,
-            "supportsClassC": device_profile.supports_class_c,
-            "payloadCodecRuntime": device_profile.payload_codec_runtime,
-            "payloadCodecScript": device_profile.payload_codec_script,
-            "isRelay": device_profile.is_rlay,
-            "isRelayEd": device_profile.is_rlay_ed,
-            "tenantId": device_profile.workspace.tenant.cs_tenant_id,
-            "flushQueueOnActivate": device_profile.flush_queue_on_activate,
-            "uplinkInterval": device_profile.uplink_interval,
-        }
-    }
-    response = requests.post(
-        CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
-    )
+    """
+    Syncs a DeviceProfile with Chirpstack.
 
-    if response.status_code == 200:
-        device_profile.cs_device_profile_id = response.json()["id"]
-        device_profile.save()
-        device_profile.sync_status = "SYNCED"
-        device_profile.sync_error = ""
-        device_profile.last_synced_at = dt.datetime.now()
-        device_profile.save()
-    else:
-        device_profile.sync_status = "ERROR"
-        device_profile.sync_error = response.text
-        device_profile.last_synced_at = dt.datetime.now()
-        device_profile.save()
+    Args:
+        device_profile (DeviceProfile): a DeviceProfile object
 
+    Returns:
+        requests.Response: the response from the API
+
+    Side Effects:
+        Updates device_profile fields such as cs_device_profile_id, sync_status, sync_error, and last_synced_at.
+    """
+
+    response = create_device_profile_in_chirpstack(device_profile)
     return response
 
 
@@ -1068,77 +934,58 @@ def sync_device_profile_update(device_profile):
         }
     }
 
-    response = sync_device_profile_get(device_profile)
-
     url = f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}"
 
-    if response.status_code == 200:
-        response = requests.put(url, json=payload, headers=HEADERS)
-    elif (
-        device_profile.cs_device_profile_id is None
-        or device_profile.cs_device_profile_id == ""
-    ):
-        response = requests.post(
-            CHIRPSTACK_DEVICE_PROFILE_URL, json=payload, headers=HEADERS
-        )
+    response = sync_device_profile_get(device_profile)
 
-    if response.status_code == 200:
-        device_profile.sync_status = "SYNCED"
-        device_profile.sync_error = ""
-        device_profile.last_synced_at = dt.datetime.now()
-        device_profile.save()
-        logging.info(f"Updated device profile in Chirpstack: {device_profile.name}")
-    else:
-        device_profile.sync_status = "ERROR"
-        device_profile.sync_error = response.text
-        device_profile.last_synced_at = dt.datetime.now()
-        device_profile.save()
-        logging.error(
-            f"Error updating device profile: {device_profile.name} \n {response.text}"
-        )
+    if response and response.status_code == 200:
+        response = requests.put(url, json=payload, headers=HEADERS)
+
+    set_status(device_profile, response)
 
     return response
 
 
 def sync_device_profile_destroy(device_profile):
-    url = f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}"
-    response = requests.delete(url, headers=HEADERS)
-    if response.status_code == 200:
-        logging.info(f"Deleted device profile in Chirpstack")
-    else:
-        logging.error(
-            f"Error deleting device profile: Device Profile does not exist in Chirpstack or try to delete it manually."
+    response = None
+    if has_device_profile_id(device_profile) and get_device_profile_by_id(
+        device_profile
+    ):
+        response = requests.delete(
+            f"{CHIRPSTACK_DEVICE_PROFILE_URL}/{device_profile.cs_device_profile_id}",
+            headers=HEADERS,
         )
+
+        if response and response.status_code == 200:
+            logger.debug(f"DeviceProfile deleted in Chirpstack")
+            return response
+
+        logger.error(f"Error deleting DeviceProfile try to delete it manually.")
 
     return response
 
 
 def get_device_profiles_from_chirpstack():
+    """Sync device profiles from Chirpstack to local DB per tenant."""
     local_tenants = Tenant.objects.exclude(cs_tenant_id__isnull=True)
+    last_response = None
+
     for tenant in local_tenants:
-        workspace = tenant.workspace_set.first()
+        workspace = get_or_create_default_workspace(tenant)
         if not workspace:
-            logging.warning(
+            logger.warning(
                 f"Tenant {tenant.name} does not have an associated workspace. Skipping..."
             )
             continue
 
-        list_response = requests.get(
-            CHIRPSTACK_DEVICE_PROFILE_URL,
-            headers=HEADERS,
-            params={"limit": 100, "tenantId": tenant.cs_tenant_id},
+        cs_profiles, response = fetch_device_profiles(
+            tenant, CHIRPSTACK_DEVICE_PROFILE_URL, HEADERS
         )
+        last_response = response
 
-        if list_response.status_code != 200:
-            logging.error(
-                f"Error fetching device profiles for tenant {tenant.cs_tenant_id}"
-            )
-            continue
-
-        cs_profiles = list_response.json().get("result", [])
         local_profiles = DeviceProfile.objects.filter(workspace=workspace)
-
         to_remove = []
+
         for local_dp in local_profiles:
             match = next(
                 (dp for dp in cs_profiles if dp["id"] == local_dp.cs_device_profile_id),
@@ -1146,87 +993,38 @@ def get_device_profiles_from_chirpstack():
             )
             if match:
                 to_remove.append(match)
-                local_dp.name = match.get("name", local_dp.name)
-                local_dp.description = match.get("description", local_dp.description)
-                local_dp.region = match.get("region", local_dp.region)
-                local_dp.adr_algorithm_id = match.get(
-                    "adrAlgorithmId", local_dp.adr_algorithm_id
-                )
-                local_dp.mac_version = match.get("macVersion", local_dp.mac_version)
-                local_dp.reg_param_revision = match.get(
-                    "regParamsRevision", local_dp.reg_param_revision
-                )
-                local_dp.supports_otaa = match.get(
-                    "supportsOtaa", local_dp.supports_otaa
-                )
-                local_dp.supports_class_b = match.get(
-                    "supportsClassB", local_dp.supports_class_b
-                )
-                local_dp.supports_class_c = match.get(
-                    "supportsClassC", local_dp.supports_class_c
-                )
-                local_dp.abp_rx1_delay = match.get(
-                    "abpRx1Delay", local_dp.abp_rx1_delay
-                )
-                local_dp.abp_rx1_dr_offset = match.get(
-                    "abpRx1DrOffset", local_dp.abp_rx1_dr_offset
-                )
-                local_dp.abp_rx2_dr = match.get("abpRx2Dr", local_dp.abp_rx2_dr)
-                local_dp.abp_rx2_freq = match.get("abpRx2Freq", local_dp.abp_rx2_freq)
-                local_dp.is_rlay = match.get("isRelay", local_dp.is_rlay)
-                local_dp.is_rlay_ed = match.get("isRelayEd", local_dp.is_rlay_ed)
-                local_dp.flush_queue_on_activate = match.get(
-                    "flushQueueOnActivate", local_dp.flush_queue_on_activate
-                )
-                local_dp.uplink_interval = match.get(
-                    "uplinkInterval", local_dp.uplink_interval
-                )
-                local_dp.workspace = workspace
-                local_dp.sync_status = "SYNCED"
-                local_dp.sync_error = ""
-                local_dp.last_synced_at = dt.datetime.now()
-                local_dp.save()
-                logging.info(
-                    f"DeviceProfile {local_dp.cs_device_profile_id} - {local_dp.name} updated"
-                )
+                update_local_device_profile(local_dp, match, workspace)
+
         for match in to_remove:
             cs_profiles.remove(match)
 
-        # crear los nuevos
         for new_dp in cs_profiles:
-            dp = DeviceProfile(
-                cs_device_profile_id=new_dp["id"],
-                name=new_dp["name"],
-                description="Imported from Chirpstack",
-                region=new_dp.get("region", ""),
-                workspace=workspace,
-                mac_version=new_dp.get("macVersion", "LORAWAN_1_0_3"),
-                reg_param_revision=new_dp.get("regParamsRevision", "A"),
-                adr_algorithm_id=new_dp.get("adrAlgorithmId", "default"),
-                payload_codec_runtime=new_dp.get("payloadCodecRuntime", ""),
-                payload_codec_script=new_dp.get("payloadCodecScript", ""),
-                is_rlay=new_dp.get("isRelay", False),
-                is_rlay_ed=new_dp.get("isRelayEd", False),
-                abp_rx1_delay=1,
-                abp_rx1_dr_offset=0,
-                abp_rx2_dr=0,
-                abp_rx2_freq=0,
-                supports_otaa=new_dp.get("supportsOtaa", False),
-                supports_class_b=new_dp.get("supportsClassB", False),
-                supports_class_c=new_dp.get("supportsClassC", False),
-                sync_status="SYNCED",
-                sync_error="",
-                last_synced_at=dt.datetime.now(),
-            )
-            dp.save()
-            logging.info(
-                f"DeviceProfile {dp.cs_device_profile_id} - {dp.name} created from Chirpstack"
-            )
-    return list_response
+            create_local_device_profile(new_dp, workspace)
+
+    return last_response
 
 
 # Application
-def sync_application_create(application):
+def has_application_id(application):
+    return (
+        application.cs_application_id is not None
+        and application.cs_application_id != ""
+    )
+
+
+def get_application_by_id(application):
+    found = False
+    if has_application_id(application):
+        response = requests.get(
+            f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}",
+            headers=HEADERS,
+        )
+        if response and response.status_code == 200:
+            found = True
+    return found
+
+
+def create_application_in_chirpstack(application):
     payload = {
         "application": {
             "name": application.name,
@@ -1235,47 +1033,9 @@ def sync_application_create(application):
         }
     }
 
-    response = requests.post(CHIRPSTACK_APPLICATION_URL, json=payload, headers=HEADERS)
-
-    if response.status_code == 200:
-        application.cs_application_id = response.json()["id"]
-        application.save()
-        application.sync_status = "SYNCED"
-        application.sync_error = ""
-        application.last_synced_at = dt.datetime.now()
-        application.save()
-    else:
-        application.sync_status = "ERROR"
-        application.sync_error = response.text
-        application.last_synced_at = dt.datetime.now()
-        application.save()
-    return response
-
-
-def sync_application_get(application):
-    payload = {
-        "application": {
-            "name": application.name,
-            "description": application.description,
-            "tenantId": application.workspace.tenant.cs_tenant_id,
-        }
-    }
-
-    url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
-    response = requests.get(url, headers=HEADERS)
-
-    logging.info(f"Get response: {response.status_code}, {response.json()}")
-
-    if response.status_code == 200:
-        logging.info(f"Found application in chirpstack: {application.name}")
-        application.cs_application_id = response.json()["application"]["id"]
-        application.sync_status = "SYNCED"
-        if application.sync_error != "":
-            application.sync_error = ""
-        application.last_synced_at = dt.datetime.now()
-        application.save()
-    elif application.cs_application_id == "" or application.cs_application_id is None:
-        list_response = requests.get(
+    found = get_application_by_id(application)
+    if not found:
+        search_instance = requests.get(
             CHIRPSTACK_APPLICATION_URL,
             headers=HEADERS,
             params={
@@ -1283,27 +1043,56 @@ def sync_application_get(application):
                 "tenantId": application.workspace.tenant.cs_tenant_id,
             },
         )
-        logging.info(
-            f"List response: {list_response.status_code}, {list_response.json()}"
-        )
-        if list_response.status_code == 200:
-            results = list_response.json().get("result", [])
+        if search_instance.status_code == 200:
+            results = search_instance.json().get("result", [])
             match = next((a for a in results if a["name"] == application.name), None)
             if match:
                 application.cs_application_id = match["id"]
-                application.sync_status = "SYNCED"
-                if application.sync_error != "":
-                    application.sync_error = ""
-                application.last_synced_at = dt.datetime.now()
-                application.save()
-                return list_response
+                application.save(update_fields=["cs_application_id"])
+                set_status(application, search_instance)
+                return search_instance
             else:
-                response = sync_application_create(application)
+                logger.debug(
+                    f"Application not found. Creating application {application.name} in Chirpstack."
+                )
+                response = requests.post(
+                    CHIRPSTACK_APPLICATION_URL, json=payload, headers=HEADERS
+                )
+                if response and response.status_code == 200:
+                    application_data = response.json()
+                    application.cs_application_id = application_data.get("id")
+                    application.save(update_fields=["cs_application_id"])
+                set_status(application, response)
+                return response
+    return None
+
+
+def sync_application_create(application):
+    response = create_application_in_chirpstack(application)
+    return response
+
+
+def sync_application_get(application):
+
+    application_id = has_application_id(application)
+
+    response = None
+
+    if application_id:
+        cs_application_id = application.cs_application_id
+        response = requests.get(
+            f"{CHIRPSTACK_APPLICATION_URL}/{cs_application_id}",
+            headers=HEADERS,
+        )
+        if response.status_code != 200:
+            logger.debug(
+                f"Application ID {cs_application_id} not found in Chirpstack. Attempting to create. Response: {response.text}"
+            )
+            response = create_application_in_chirpstack(application)
     else:
-        application.sync_status = "ERROR"
-        application.sync_error = response.text
-        application.last_synced_at = dt.datetime.now()
-        application.save()
+        response = create_application_in_chirpstack(application)
+
+    set_status(application, response)
 
     return response
 
@@ -1320,112 +1109,87 @@ def sync_application_update(application):
     url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
 
     response = sync_application_get(application)
+    if response is None:
+        logger.debug(
+            f"Application not found. Creating application {application.name} in Chirpstack."
+        )
+        response = create_application_in_chirpstack(application)
 
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         response = requests.put(url, json=payload, headers=HEADERS)
-    elif application.cs_application_id is None or application.cs_application_id == "":
-        response = sync_application_create(application)
 
-    if response.status_code == 200:
-        application.sync_status = "SYNCED"
-        application.sync_error = ""
-        application.last_synced_at = dt.datetime.now()
-        application.save()
-    else:
-        application.sync_status = "ERROR"
-        application.sync_error = response.text
-        application.last_synced_at = dt.datetime.now()
-        application.save()
+    set_status(application, response)
 
     return response
 
 
 def sync_application_destroy(application):
-    url = f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}"
-    response = requests.delete(url, headers=HEADERS)
-    if response.status_code == 200:
-        logging.info(f"Deleted application in Chirpstack")
-    else:
-        logging.error(
-            f"Error deleting application: Application does not exist in Chirpstack or try to delete it manually."
+    response = None
+    if has_application_id(application) and get_application_by_id(application):
+        response = requests.delete(
+            f"{CHIRPSTACK_APPLICATION_URL}/{application.cs_application_id}",
+            headers=HEADERS,
         )
+
+        if response and response.status_code == 200:
+            logger.debug(f"Application deleted in Chirpstack")
+            return response
+
+        logger.error(f"Error deleting Application try to delete it manually.")
 
     return response
 
 
 def get_applications_from_chirpstack():
+    """Sync applications from Chirpstack to local DB per tenant."""
     local_tenants = Tenant.objects.exclude(cs_tenant_id__isnull=True)
+    last_response = None
 
     for tenant in local_tenants:
-        workspace = tenant.workspace_set.first()
-        if not workspace:
-            logging.warning(
-                f"Tenant {tenant.name} does not have an associated workspace. Skipping..."
-            )
-            continue
+        workspace = get_or_create_default_workspace(tenant)
 
-        list_response = requests.get(
-            CHIRPSTACK_APPLICATION_URL,
-            headers=HEADERS,
-            params={"limit": 100, "tenantId": tenant.cs_tenant_id},
+        cs_apps, response = fetch_applications(
+            tenant, CHIRPSTACK_APPLICATION_URL, HEADERS
         )
+        last_response = response
 
-        if list_response.status_code != 200:
-            logging.error(
-                f"Error fetching applications for tenant {tenant.cs_tenant_id}"
-            )
-            continue
-
-        cs_apps = list_response.json().get("result", [])
         local_apps = Application.objects.filter(workspace=workspace)
-
         to_remove = []
+
         for local_app in local_apps:
             match = next(
                 (a for a in cs_apps if a["id"] == local_app.cs_application_id), None
             )
             if match:
                 to_remove.append(match)
-                # actualizar campos
-                local_app.name = match.get("name", local_app.name)
-                local_app.description = match.get("description", local_app.description)
-                local_app.sync_status = "SYNCED"
-                local_app.sync_error = ""
-                local_app.last_synced_at = dt.datetime.now()
-                local_app.save()
-                logging.info(
-                    f"Application {local_app.cs_application_id} - {local_app.name} updated"
-                )
+                update_local_application(local_app, match)
 
         for match in to_remove:
             cs_apps.remove(match)
 
-        # obtener un Type genérico si no existe relación explícita
-        default_type, _ = Type.objects.get_or_create(
-            name="Generic", defaults={"description": "Generic device type"}
-        )
-
-        # crear los nuevos
         for new_app in cs_apps:
-            app = Application(
-                cs_application_id=new_app["id"],
-                name=new_app.get("name", ""),
-                description=new_app.get("description", ""),
-                workspace=workspace,
-                device_type=default_type,
-                sync_status="SYNCED",
-                sync_error="",
-                last_synced_at=dt.datetime.now(),
-            )
-            app.save()
-            logging.info(
-                f"Application {app.cs_application_id} - {app.name} created from Chirpstack"
-            )
-    return list_response
+            create_local_application(new_app, workspace)
+
+    return last_response
 
 
 # Device
-def sync_device_create(device):
+def get_device_by_id(device):
+    found = False
+    if device.dev_eui:
+        response = requests.get(
+            f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}",
+            headers=HEADERS,
+        )
+        if response and response.status_code == 200:
+            set_status(device, response)
+            found = True
+        else:
+            logger.debug(f"Device {device.dev_eui} not found in Chirpstack.")
+    return found
+
+
+def create_device_in_chirpstack(device):
     payload = {
         "device": {
             "devEui": device.dev_eui,
@@ -1437,53 +1201,32 @@ def sync_device_create(device):
         }
     }
 
-    response = requests.post(CHIRPSTACK_DEVICE_URL, json=payload, headers=HEADERS)
+    found = get_device_by_id(device)
+    if not found:
+        logger.debug(
+            f"Device not found. Creating device {device.dev_eui} in Chirpstack."
+        )
+        response = requests.post(CHIRPSTACK_DEVICE_URL, json=payload, headers=HEADERS)
+        if response and response.status_code == 200:
+            logger.debug(f"Device {device.dev_eui} created in Chirpstack.")
+            set_status(device, response)
+        else:
+            logger.error(
+                f"Error creating device {device.dev_eui} in Chirpstack: {response.text}"
+            )
+            set_status(device, response)
+        return response
+    return None
 
-    if response.status_code == 200:
-        device.sync_status = "SYNCED"
-        if device.sync_error != "":
-            device.sync_error = ""
-        device.last_synced_at = dt.datetime.now()
-        device.save()
-    else:
-        device.sync_status = "ERROR"
-        device.sync_error = response.text
-        device.last_synced_at = dt.datetime.now()
-        device.save()
 
+def sync_device_create(device):
+    response = create_device_in_chirpstack(device)
     return response
 
 
 def sync_device_get(device):
-    payload = {
-        "device": {
-            "devEui": device.dev_eui,
-            "name": device.name,
-            "applicationId": device.application.cs_application_id,
-            "description": device.description,
-            "deviceProfileId": device.device_profile.cs_device_profile_id,
-            "isDisabled": device.is_disabled,
-        }
-    }
-
-    url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
-    response = requests.get(url, headers=HEADERS)
-
-    if response.status_code == 200:
-        logging.info(f"Found device in chirpstack: {device.name}")
-        device.sync_status = "SYNCED"
-        if device.sync_error != "":
-            device.sync_error = ""
-        device.last_synced_at = dt.datetime.now()
-        device.save()
-    elif device.dev_eui:
-        response = sync_device_create(device)
-    else:
-        device.sync_status = "ERROR"
-        device.sync_error = response.text
-        device.last_synced_at = dt.datetime.now()
-        device.save()
-
+    response = create_device_in_chirpstack(device)
+    set_status(device, response)
     return response
 
 
@@ -1501,36 +1244,29 @@ def sync_device_update(device):
 
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
 
-    response = sync_device_get(device)
+    response = create_device_in_chirpstack(device)
 
-    if response.status_code == 200:
+    if response is None or response.status_code == 200:
+        logger.debug(f"Updating device {device.dev_eui} in Chirpstack.")
         response = requests.put(url, json=payload, headers=HEADERS)
-    elif device.dev_eui:
-        response = sync_device_create(device)
 
-    if response.status_code == 200:
-        device.sync_status = "SYNCED"
-        device.sync_error = ""
-        device.last_synced_at = dt.datetime.now()
-        device.save()
-    else:
-        device.sync_status = "ERROR"
-        device.sync_error = response.text
-        device.last_synced_at = dt.datetime.now()
-        device.save()
-
+    set_status(device, response)
     return response
 
 
 def sync_device_destroy(device):
-    url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
-    response = requests.delete(url, headers=HEADERS)
-    if response.status_code == 200:
-        logging.info(f"Deleted device in Chirpstack")
-    else:
-        logging.error(
-            f"Error deleting device: Device does not exist in Chirpstack or try to delete it manually."
+    response = None
+    if device.dev_eui and get_device_by_id(device):
+        response = requests.delete(
+            f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}",
+            headers=HEADERS,
         )
+
+        if response and response.status_code == 200:
+            logger.debug(f"Device deleted in Chirpstack")
+            return response
+
+        logger.error(f"Error deleting Device try to delete it manually.")
 
     return response
 
@@ -1566,18 +1302,18 @@ def device_activation_status(device):
     status = False
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
     response = requests.get(url, headers=HEADERS)
-    print(response.status_code, response.text)
-    if response.status_code == 200:
+    if response and response.status_code == 200:
         activation = response.json().get("device", {}).get("isDisabled", True)
 
         if not activation:
             last_seen = response.json().get("device", {}).get("lastSeenAt", None)
             if last_seen or last_seen != None:
                 status = True
+
         return status
 
     else:
-        logging.error(
+        logger.error(
             f"Error fetching device activation status: Device does not exist in Chirpstack or try to check it manually. {response.text} {response.request.url}"
         )
 
@@ -1585,88 +1321,30 @@ def device_activation_status(device):
 
 
 def get_devices_from_chirpstack():
+    """Sync devices from Chirpstack to local DB per application."""
     local_apps = Application.objects.exclude(cs_application_id__isnull=True)
+    last_response = None
 
     for app in local_apps:
         workspace = app.workspace
-        list_response = requests.get(
-            CHIRPSTACK_DEVICE_URL,
-            headers=HEADERS,
-            params={"limit": 100, "applicationId": app.cs_application_id},
-        )
+        cs_devices, response = fetch_devices(app, CHIRPSTACK_DEVICE_URL, HEADERS)
+        last_response = response
 
-        if list_response.status_code != 200:
-            logging.error(
-                f"Error fetching devices for application {app.cs_application_id}"
-            )
-            continue
-
-        cs_devices = list_response.json().get("result", [])
         local_devices = Device.objects.filter(application=app)
-
         to_remove = []
+
         for local_dev in local_devices:
             match = next(
                 (d for d in cs_devices if d["devEui"] == local_dev.dev_eui), None
             )
             if match:
                 to_remove.append(match)
-
-                try:
-                    dp = DeviceProfile.objects.get(
-                        cs_device_profile_id=match["deviceProfileId"]
-                    )
-                except DeviceProfile.DoesNotExist:
-                    logging.warning(
-                        f"DeviceProfile {match['deviceProfileId']} not found for device {match['devEui']}"
-                    )
-                    dp = None
-
-                local_dev.name = match.get("name", local_dev.name)
-                local_dev.description = match.get("description", local_dev.description)
-                local_dev.device_profile = dp if dp else local_dev.device_profile
-                local_dev.last_seen_at = match.get("lastSeenAt")
-                local_dev.sync_status = "SYNCED"
-                local_dev.sync_error = ""
-                local_dev.last_synced_at = dt.datetime.now()
-                local_dev.save()
-                logging.info(f"Device {local_dev.dev_eui} updated")
+                update_local_device(local_dev, match)
 
         for match in to_remove:
             cs_devices.remove(match)
 
-        default_type, _ = Type.objects.get_or_create(
-            name="Generic", defaults={"description": "Generic type"}
-        )
-        default_machine, _ = Machine.objects.get_or_create(
-            name="Generic Machine",
-            workspace=workspace,
-            defaults={"description": "Default machine"},
-        )
-
         for new_dev in cs_devices:
-            try:
-                dp = DeviceProfile.objects.get(
-                    cs_device_profile_id=new_dev["deviceProfileId"]
-                )
-            except DeviceProfile.DoesNotExist:
-                dp = None
+            create_local_device(new_dev, app, workspace)
 
-            dev = Device(
-                dev_eui=new_dev["devEui"],
-                name=new_dev.get("name", ""),
-                description=new_dev.get("description", ""),
-                application=app,
-                workspace=workspace,
-                machine=default_machine,
-                device_type=default_type,
-                device_profile=dp,
-                is_disabled=False,
-                last_seen_at=new_dev.get("lastSeenAt"),
-                sync_status="SYNCED",
-                sync_error="",
-                last_synced_at=dt.datetime.now(),
-            )
-            dev.save()
-            logging.info(f"Device {dev.dev_eui} - {dev.name} created from Chirpstack")
-    return list_response
+    return last_response

@@ -6,12 +6,10 @@ from . import views
 
 routers = routers.DefaultRouter()
 
-routers.register(r'permission-key', views.PermissionKeyViewSet)
-routers.register(r'role', views.RoleViewSet)
-routers.register(r'workspace-membership', views.WorkspaceMembershipViewSet)
-routers.register(r'role-permission', views.RolePermissionViewSet)
+routers.register(r"role", views.RoleViewSet)
+routers.register(r"workspace-membership", views.WorkspaceMembershipViewSet)
 
 
 urlpatterns = [
-    path('', include(routers.urls)),
+    path("", include(routers.urls)),
 ]

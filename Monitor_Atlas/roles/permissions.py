@@ -1,13 +1,20 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
-from .models import PermissionKey
-import logging
+from loguru import logger
+from guardian.shortcuts import get_objects_for_user
 
-TENANT_ADMIN_SCOPES = ["role", "workspace", "role_permission"]
-
-logger = logging.getLogger(__name__)
+from platform_backend import settings
 
 
-def has_permission(user, scope, action, obj=None):
+CUSTOM_ACTION_DECORATORS = [
+    "set_activation",
+    "create_measurement",
+    "activate",
+    "deactivate",
+    "get_ws_link",
+]
+
+
+def has_permission(user, perm, obj=None):
     """
     Checks if a user has the given permission.
 
@@ -20,190 +27,177 @@ def has_permission(user, scope, action, obj=None):
     Returns:
         bool: True if the user has permission, False otherwise.
     """
-    logger.warning(
-        f"Checking perm: user={user}, scope={scope}, action={action}, obj={obj}"
-    )
+    logger.warning(f"Checking perm: user={user}, perm={perm}, obj={obj}")
+
+    if not user.is_authenticated:
+        logger.warning("User is not authenticated")
+        return False
 
     if user.is_superuser:
         # Superuser allways has permission
         logger.warning("User is superuser, granting permission")
         return True
 
-    if not user.is_authenticated:
-        logger.warning("User is not authenticated")
-        return False
+    has_perm = user.has_perm(perm, obj)
+    logger.warning(f"Global permission check result: {has_perm}")
 
-    membership = user.workspacemembership_set.first()
+    return has_perm
 
-    
 
-    if not membership:
-        # User must have a workspace membership
-        logger.warning("User has no workspace memberships")
-        return False
-    
-    role = membership.role
-
-    if isinstance(action, list):
-        keys = PermissionKey.objects.filter(
-            rolepermissions__role=role, scope=scope, key_type__in=action
-        )
+def get_objects_for_user_and_workspace(user, perm, model_class, workspace=None):
+    if user.is_superuser:
+        return model_class.objects.all()
     else:
-        keys = PermissionKey.objects.filter(
-            rolepermissions__role=role, scope=scope, key_type=action
+        queryset = get_objects_for_user(
+            user, perm, klass=model_class, accept_global_perms=True
         )
 
-    logger.warning(f"Found keys: {list(keys)}")
-    # Get the first group of the user, or None if the user has no groups
-    group = user.groups.first()
-
-    is_internal = getattr(group, "name", None) == "EMASA"
-    admin_status = membership.role.is_admin
-
-    if not is_internal and obj:
-        # Check if the object is in the same organization as the user, if not from EMASA
-        try:
-            obj_org = getattr(getattr(obj, "workspace", None), "organization", None)
-        except Exception as e:
-            logger.exception(f"Exception occurred while getting organization: {e}")
-            obj_org = None
-        if obj_org and obj_org != membership.workspace.organization:
-            logger.warning("Organization mismatch")
-            return False
-
-    if admin_status and scope in TENANT_ADMIN_SCOPES:
-        # Tenant (EMASA included) admin has permissions, see TENANT_ADMIN_SCOPES for details
-        logger.warning("User is a tenant admin, granting permission")
-        return True
-
-    valid_actions = action if isinstance(action, list) else [action]
-
-    for key in keys:
-        # Check each found key
-        if key.scope == scope and key.key_type in valid_actions:
-            # Check if the key is valid
-            logger.warning(f"Checking key: {key.code}")
-            parts = key.code.split(":")
-            if obj:
-                # Check if the object matches the key
-                if any(
-                    [
-                        key.device_id == getattr(obj, "id", None),
-                        key.gateway_id == getattr(obj, "id", None),
-                        key.machine_id == getattr(obj, "id", None),
-                        key.application_id == getattr(obj, "id", None),
-                        key.user_id == getattr(obj, "id", None),
-                        key.role_id == getattr(obj, "id", None),
-                        (
-                            key.workspace_id == getattr(obj, "id", None)
-                            if admin_status
-                            else False
-                        ),
-                        (
-                            key.tenant_id == getattr(obj, "id", None)
-                            if is_internal
-                            else False
-                        ),
-                        (
-                            key.location_id == getattr(obj, "id", None)
-                            if is_internal
-                            else False
-                        ),
-                        (
-                            key.device_profile_id == getattr(obj, "id", None)
-                            if is_internal
-                            else False
-                        ),
-                        (
-                            key.device_profile_template_id == getattr(obj, "id", None)
-                            if is_internal
-                            else False
-                        ),
-                        (
-                            key.api_user_id == getattr(obj, "id", None)
-                            if is_internal
-                            else False
-                        ),
-                        (
-                            key.tenant_user_id == getattr(obj, "id", None)
-                            if is_internal
-                            else False
-                        ),
-                        (
-                            key.type_id == getattr(obj, "id", None)
-                            if is_internal
-                            else False
-                        ),
-                    ]
-                ):
-                    logger.warning("User has permission based on object")
-                    # At this point the user has permission based on the object
-                    return True
-            # If the permission key code is in the format 'scope:*:action', it grants permission for all objects in that scope and action. (rarely used)
-            elif len(parts) == 3 and parts[1] == "*":
-                logger.warning("User has global permission based on scope and action")
-                return True
-    logger.warning("User does not have permission")
-    return False
+    if workspace and hasattr(model_class, "workspace"):
+        queryset = queryset.filter(workspace=workspace)
+    return queryset
 
 
-class HasPermissionKey(BasePermission):
+class HasPermission(BasePermission):
     """
-    Custom permission class that checks if a user has the required permission key
-    for a given scope and action, optionally considering a specific object.
-    """
-
-    def has_permission(self, request, view):
-        action_value = getattr(view, "action", None)
-        action = PermissionKey.from_view_action(action_value)
-        if not action:
-            logger.warning(f"Invalid action: {action_value}")
-            return False
-
-        scope = getattr(view, "scope", None)
-        user = request.user
-        # Only call get_object if the action is a detail action.
-        # The 'detail' attribute may not be present on all views; default to False if missing.
-        obj = None
-        if hasattr(view, "get_object") and getattr(view, "detail", False):
-            try:
-                obj = view.get_object()
-            except Exception as e:
-                logger.exception(
-                    f"Exception occurred while getting object in view: {e}"
-                )
-                obj = None
-
-        return has_permission(user, scope, action, obj)
-
-
-class IsAdminOrIsAuthenticatedReadOnly(BasePermission):
-    """
-    Permission class that allows access to authenticated users for safe (read-only) methods,
-    and grants full access to superusers for all methods.
-    This permission is intended for automatic models such as permission keys or super-admin purposes.
+    Permission class that checks if a user has the given permission.
     """
 
     def has_permission(self, request, view):
         """
         Returns True if the user has permission to access the view based on the
-        request method and the user's authentication status. The permission rules
-        are as follows:
-        - GET, HEAD, OPTIONS requests are allowed if the user is authenticated.
-        - POST, PUT, PATCH, DELETE requests are allowed if the user is a superuser.
-        Otherwise, the method returns False.
+        provided scope and action. Otherwise, returns False.
         """
         user = request.user
 
         if not user.is_authenticated:
-            logger.warning("User is not authenticated")
+            logger.debug("User not authenticated")
             return False
 
         if user.is_superuser:
-            logger.warning("User is a superuser")
+            logger.debug("Superuser access granted")
             return True
 
-        if request.method in SAFE_METHODS:
+        scope = getattr(view, "scope", None)
+        if not scope:
+            logger.warning(f"View {view.__class__.__name__} missing scope")
+            return False
+
+        action = request.method.lower()
+
+        logger.debug(f"Checking permission for action: {action} on scope: {scope}")
+
+        perm_map = {
+            "get": f"view_{scope}",
+            "head": f"view_{scope}",
+            "options": f"view_{scope}",
+            "post": f"add_{scope}",
+            "put": f"change_{scope}",
+            "patch": f"change_{scope}",
+            "delete": f"delete_{scope}",
+        }
+
+        perm_name = perm_map.get(action)
+        if not perm_name:
+            logger.warning(f"No permission mapping for action: {action}")
+            return False
+
+        if action == "get" and (view.action == "list" or view.action != "retrieve"):
+            logger.debug("List action allowed")
             return True
 
+        if action in ["patch", "put"]:
+            logger.debug(
+                f"Object-level action {view.action}, delegating to has_object_permission"
+            )
+            return True
+
+        if action == "post" and view.action in CUSTOM_ACTION_DECORATORS:
+            logger.debug(
+                f"Custom action {view.action}, delegating to has_object_permission"
+            )
+            return True
+
+        if action == "post":
+            app_label = view.__class__.__module__.split(".")[0]
+            full_perm = f"{app_label}.{perm_name}"
+            has_perm = user.has_perm(full_perm)
+            logger.debug(f"Global permission check for {full_perm}: {has_perm}")
+            return has_perm
+
+        if view.action in ["retrieve", "update", "partial_update", "destroy"]:
+            logger.debug(
+                f"Object-level action {view.action}, delegating to has_object_permission"
+            )
+            return True
+
+        logger.warning(f"Unhandled action: {view.action}")
         return False
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if user.is_superuser:
+            logger.debug("Superuser object access granted")
+            return True
+
+        scope = getattr(view, "scope", None)
+        if not scope:
+            logger.warning(f"View {view.__class__.__name__} missing scope")
+            return False
+
+        action = request.method.lower()
+        perm_map = {
+            "get": f"view_{scope}",
+            "head": f"view_{scope}",
+            "options": f"view_{scope}",
+            "put": f"change_{scope}",
+            "post": f"change_{scope}",  # For custom actions that modify the object
+            "patch": f"change_{scope}",
+            "delete": f"delete_{scope}",
+        }
+
+        perm_name = perm_map.get(action)
+        if not perm_name:
+            logger.warning(f"No permission mapping for action: {action}")
+            return False
+
+        has_perm = user.has_perm(perm_name, obj)
+        logger.debug(f"Object permission check for {perm_name}: {has_perm}")
+        return has_perm
+
+
+class IsAdminOrIsAuthenticatedReadOnly(BasePermission):
+    """
+    Permission for administrative endpoints.
+    - Read: any authenticated user
+    - Write: only superuser
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        if not user.is_authenticated:
+            return False
+
+        if user.is_superuser:
+            return True
+
+        return request.method in SAFE_METHODS
+
+
+# Support permissions can be added here in the future
+
+
+class IsServiceOrHasPermission(BasePermission):
+    def has_permission(self, request, view):
+        api_key = request.headers.get("X-API-Key")
+        if api_key and api_key == settings.SERVICE_API_KEY:
+            return True
+        has_perm_checker = HasPermission()
+        return has_perm_checker.has_permission(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        api_key = request.headers.get("X-Service-API-Key")
+        if api_key and api_key == settings.SERVICE_API_KEY:
+            return True
+        has_perm_checker = HasPermission()
+        return has_perm_checker.has_object_permission(request, view, obj)

@@ -3,21 +3,22 @@
     View button (toView):
     Displays an icon that redirects to the 'toView' route when clicked.
   -->
-  <ion-button v-if="toView" fill="clear" size="small" class="action view" :router-link="toView">
+ <ion-buttons>
+   <ion-button v-if="toView" fill="clear" size="small" :router-link="toView">
     <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
-    <ion-tooltip>
+    <!--<ion-tooltip>
       Ingresar
-    </ion-tooltip>
+    </ion-tooltip>-->
   </ion-button>
 
-  <ion-button v-if="toCreate" fill="outline" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
-    <ion-icon :icon="addOutline" slot="start"></ion-icon>
+  <ion-button v-if="toCreate" fill="clear" class="mx-2 rounded-full" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
+    <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
     Agregar
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true"/>
+          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
         </div>
       </ion-content>
     </ion-modal>
@@ -33,13 +34,13 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true"/>
+          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true" @closed="overlayEdit = false"/>
         </div>
       </ion-content>
     </ion-modal>
-    <ion-tooltip>
+    <!--<ion-tooltip>
       Editar
-    </ion-tooltip>
+    </ion-tooltip>-->
   </ion-button>
 
   <!--
@@ -48,23 +49,24 @@
   -->
   <ion-button v-if="toDelete" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'delete'">
     <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
-    <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false">
+    <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" >
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemDeleted="handleItemDeleted" @loaded="componentLoaded = true"/>
+          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemDeleted="handleItemDeleted" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
         </div>
       </ion-content>
     </ion-modal>
-    <ion-tooltip>
+    <!--<ion-tooltip>
       Eliminar
-    </ion-tooltip>
+    </ion-tooltip>-->
   </ion-button>
+  </ion-buttons>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { IonButton, IonIcon, IonModal, IonContent, IonSpinner, IonTooltip } from '@ionic/vue';
+import { IonButton, IonIcon, IonModal, IonContent, IonSpinner, IonButtons } from '@ionic/vue';
 import { eyeOutline, addOutline, createOutline, trashOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from '@utils/forms/form-types/formsTypes';
@@ -79,7 +81,8 @@ export default defineComponent({
     IonModal,
     IonContent,
     IonSpinner,
-    IonTooltip
+    //IonTooltip,
+    IonButtons
   },
   emits: ['itemCreated', 'itemDeleted', 'itemEdited'],
   props: {

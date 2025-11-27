@@ -1,82 +1,24 @@
 [
   {
     "model": "infrastructure.device",
-    "pk": 1,
+    "pk": "0123456789023456",
     "fields": {
-      "name": "Voltage Intake",
-      "description": "Voltage Intake generador principal",
-      "dev_eui": "095160bcd3430011",
-      "machine": 1,
-      "workspace": 3,
-      "device_type": 1,
-      "device_profile": 2,
-      "application": 1,
+      "dev_eui": "095160bcd3430002",
+      "name": "Arduino",
+      "description": "Arduino Test Device: Voltaje, Corriente, Bateria",
+      "machine": "7890123456789023",
+      "workspace": "5f67890a1b2c3d4e",
+      "device_type": "2345678901234568",
+      "device_profile": "8901234567890234",
+      "application": "4567890123456781",
+      "is_disabled": true,
+      "last_seen_at": "2025-10-24T18:18:42.309Z",
       "sync_status": "PENDING",
       "sync_error": "",
-      "last_synced_at": "2023-01-01T00:00:00+00:00",
-      "enabled_activation": false,
+      "last_synced_at": "2025-10-27T15:31:18.459Z",
+      "enabled_activation": true,
       "is_active": false,
-      "activation": 1
-    }
-  },
-  {
-    "model": "infrastructure.device",
-    "pk": 2,
-    "fields": {
-      "name": "Voltage Intake",
-      "description": "Voltage Intake bomba estanque 1",
-      "dev_eui": "084160bcd3440012",
-      "machine": 2,
-      "workspace": 3,
-      "device_type": 1,
-      "device_profile": 2,
-      "application": 1,
-      "sync_status": "PENDING",
-      "sync_error": "",
-      "last_synced_at": "2023-01-01T00:00:00+00:00",
-      "enabled_activation": false,
-      "is_active": false,
-      "activation": 1
-    }
-  },
-  {
-    "model": "infrastructure.device",
-    "pk": 3,
-    "fields": {
-      "name": "Core temperature",
-      "description": "Core temperature generador principal",
-      "dev_eui": "195160acd3430013",
-      "machine": 1,
-      "workspace": 3,
-      "device_type": 2,
-      "device_profile": 1,
-      "application": 2,
-      "sync_status": "PENDING",
-      "sync_error": "",
-      "last_synced_at": "2023-01-01T00:00:00+00:00",
-      "enabled_activation": false,
-      "is_active": false,
-      "activation": 1
-    }
-  },
-  {
-    "model": "infrastructure.device",
-    "pk": 4,
-    "fields": {
-      "name": "Water Temperature",
-      "description": "Water temperature estanque 1",
-      "dev_eui": "096160bca3430014",
-      "machine": 2,
-      "workspace": 3,
-      "device_type": 2,
-      "device_profile": 1,
-      "application": 2,
-      "sync_status": "PENDING",
-      "sync_error": "",
-      "last_synced_at": "2023-01-01T00:00:00+00:00",
-      "enabled_activation": false,
-      "activation": 1,
-      "is_active": false
+      "activation": "9012345678902345"
     }
   }
 ]

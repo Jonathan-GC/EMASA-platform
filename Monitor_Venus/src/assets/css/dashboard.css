@@ -51,7 +51,7 @@
 
 .connection-status.connected {
   background-color: #dcfce7;
-  color: #16a34a;
+  color: #738e80;
   border-color: #bbf7d0;
 }
 
@@ -229,6 +229,7 @@
 }
 
 @media (max-width: 480px) {
+  
   .info-card {
     padding: 16px;
   }
@@ -240,4 +241,11 @@
   .chart-container {
     min-height: 300px;
   }
+
+  .current-dashboard {
+    padding: 15px 0px 0px 0px;
+    background-color: #f8f9fa;
+  }
+
+  
 }

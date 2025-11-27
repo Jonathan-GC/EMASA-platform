@@ -1,19 +1,14 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/home"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Monitor Devices</ion-title>
-      </ion-toolbar>
-    </ion-header>
 
     <ion-content :fullscreen="true">
       <div v-if="pageReady" class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>📜 Plantillas de Nodos</h1>
+          <div class="header-title">
+            <ion-back-button default-href="/home"></ion-back-button>
+            <h1>📜 Plantillas de Nodos</h1>
+          </div>
         </div>
         <!-- Main gateways table with fetch data -->
         <TableDeviceProfiles />
@@ -57,23 +52,6 @@ onMounted(() => {
 
 <style scoped>
 @import '@assets/css/dashboard.css';
-
-.current-dashboard {
-  padding: 20px;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.header h1 {
-  margin: 0 0 15px 0;
-  color: #374151;
-  font-size: 2rem;
-  font-weight: 600;
-}
-
 .header-subtitle {
   display: flex;
   justify-content: center;
@@ -102,9 +80,6 @@ onMounted(() => {
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-  .current-dashboard {
-    padding: 15px;
-  }
 
   .header h1 {
     font-size: 1.5rem;
