@@ -171,6 +171,7 @@ def assign_created_instance_permissions(instance, user):
     delete_perm = f"delete_{model_name}"
 
     user_group = get_user_group(user)
+
     if user_group:
         assign_perm(view_perm, user_group, instance)
         assign_perm(change_perm, user_group, instance)

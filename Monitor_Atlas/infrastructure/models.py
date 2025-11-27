@@ -124,7 +124,9 @@ class Device(models.Model):
     )  # cs
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
-    machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    machine = models.ForeignKey(
+        Machine, on_delete=models.PROTECT, null=True, blank=True
+    )
     workspace = models.ForeignKey(
         Workspace, on_delete=models.CASCADE
     )  # cs Workspace.Tenant
@@ -149,7 +151,7 @@ class Device(models.Model):
     enabled_activation = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
     activation = models.ForeignKey(
-        Activation, on_delete=models.CASCADE, null=True, blank=True
+        Activation, on_delete=models.PROTECT, null=True, blank=True
     )
 
     def save(self, *args, **kwargs):
