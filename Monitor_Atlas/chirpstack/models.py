@@ -1,32 +1,36 @@
 from django.db import models
 from organizations.models import Workspace
+from organizations.hasher import generate_id
 
 # Create your models here.
 
 
 class ApiUser(models.Model):
     """
-        Chirpstack API User payload:
-        {
-            "password": "123",
-            "tenants": [
-                    {
-                            "isAdmin": true,
-                            "isDeviceAdmin": true,
-                            "isGatewayAdmin": true,
-                            "tenantId": "b5adddf6-8ad0-46ca-923c-9a8b13b14304"
-                    }
-            ],
-            "user": {
+    Chirpstack API User payload:
+    {
+        "password": "123",
+        "tenants": [
+                {
+                    "isAdmin": true,
+                    "isDeviceAdmin": true,
+                    "isGatewayAdmin": true,
+                    "tenantId": "b5adddf6-8ad0-46ca-923c-9a8b13b14304"
+                }
+        ],
+        "user": {
                     "email": "user2@tenant.com",
                     "isActive": true,
                     "isAdmin": false,
                     "note": "this a user of the chiprstack default tenant"
-            }
-    }
+                }
+        }
     """
 
-    cs_user_id = models.CharField(max_length=36, null=True, blank=True)
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
+    cs_user_id = models.CharField(max_length=36, unique=True, null=True, blank=True)
     email = models.EmailField()
     password = models.CharField(max_length=30, blank=True, null=True)
     is_admin = models.BooleanField(default=False)
@@ -47,7 +51,7 @@ class ApiUser(models.Model):
     last_synced_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.cs_user_id} - {self.email}"
+        return self.email
 
 
 class DeviceProfileTemplate(models.Model):
@@ -55,6 +59,9 @@ class DeviceProfileTemplate(models.Model):
     This model is not necesary for chirpstack, but we left it to help make device profile creation easier
     """
 
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)
@@ -75,11 +82,16 @@ class DeviceProfileTemplate(models.Model):
     is_rlay_ed = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.name} - {self.region}"
+        return self.name
 
 
 class DeviceProfile(models.Model):
-    cs_device_profile_id = models.CharField(max_length=36, null=True, blank=True)
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
+    cs_device_profile_id = models.CharField(
+        max_length=36, unique=True, null=True, blank=True
+    )
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     region = models.CharField(max_length=30)
@@ -111,4 +123,4 @@ class DeviceProfile(models.Model):
     last_synced_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.cs_device_profile_id} - {self.name}"
+        return self.name

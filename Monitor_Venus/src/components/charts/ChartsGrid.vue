@@ -45,34 +45,4 @@ const gridColumns = computed(() => {
 })
 </script>
 
-<style scoped>
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--grid-columns, 1), 1fr);
-  gap: 30px;
-  margin-top: 20px;
-}
-
-/* Responsive design for multiple charts */
-/* Mobile: Always 1 column */
-@media (max-width: 768px) {
-  .charts-grid {
-    grid-template-columns: 1fr !important;
-    gap: 20px;
-  }
-}
-
-/* Tablet: Maximum 2 columns */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .charts-grid {
-    grid-template-columns: repeat(min(var(--grid-columns, 1), 2), 1fr) !important;
-  }
-}
-
-/* Desktop: Maximum 3 columns as requested */
-@media (min-width: 1025px) {
-  .charts-grid {
-    grid-template-columns: repeat(min(var(--grid-columns, 1), 3), 1fr);
-  }
-}
-</style>
+<!-- Styles moved to @/assets/css/chart-styles.css -->

@@ -1,0 +1,364 @@
+/**
+ * Auth Styles - Consolidated styles for authentication forms
+ * Components included:
+ * - LoginForm.vue
+ * - SignupForm.vue
+ *
+ * Centralized for consistency and easier maintenance
+ */
+
+/* ===========================
+   COMMON AUTH FORM STYLES
+   Shared across login and signup
+   =========================== */
+
+.form-card{
+  width: 100%;
+  max-width: 500px;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.step-content .form-card{
+  width: 100%;
+  max-width: 800px;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-inline: 0;
+}
+/*.login-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}*/
+
+.loading-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.loading-container ion-spinner {
+  margin-bottom: 16px;
+}
+
+.error-item {
+  margin: 10px 0;
+}
+
+.success-item {
+  margin: 10px 0;
+}
+
+.success-card
+{
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  z-index: 999999!important;
+}
+
+.button-container {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+
+.csrf-status, .token-status {
+  margin: 10px 0;
+  background-color: var(--ion-color-light-tint);
+  border-radius: 8px;
+}
+
+.csrf-available, .token-valid {
+  color: var(--ion-color-success);
+  font-weight: 500;
+}
+
+.csrf-missing, .token-missing {
+  color: var(--ion-color-danger);
+  font-weight: 500;
+}
+
+.token-expired {
+  color: var(--ion-color-warning);
+  font-weight: 500;
+}
+
+.csrf-token, .access-token {
+  margin-top: 5px;
+  word-break: break-all;
+}
+
+.csrf-token code, .access-token code {
+  background-color: var(--ion-color-dark);
+  color: var(--ion-color-light);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.cookie-info {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: var(--ion-color-light);
+  border-radius: 8px;
+  border: 1px solid var(--ion-color-medium);
+}
+
+.cookie-info h4 {
+  margin: 0 0 10px 0;
+  color: var(--ion-color-primary);
+}
+
+.cookie-info pre {
+  background-color: var(--ion-color-dark);
+  color: var(--ion-color-light);
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+  margin: 0;
+}
+
+ion-item {
+  margin-bottom: 10px;
+}
+
+ion-input {
+  margin-top: 5px;
+}
+
+/* ===========================
+   SIGNUP FORM SPECIFIC STYLES
+   Component: SignupForm.vue
+   =========================== */
+
+.next-button {
+  margin-left: auto;
+}
+
+
+.form-container{
+  padding: 0 40px;
+  border-radius: 12px;
+}
+
+.signup-container {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+.progress-container {
+  margin: 20px 0;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.step-number {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--ion-color-light);
+  color: var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 5px;
+  transition: all 0.3s ease;
+}
+
+.step-indicator.active .step-number {
+  background-color: var(--color-amber-600);
+  color: white;
+}
+
+.step-indicator.completed .step-number {
+  background-color: var(--ion-color-success);
+  color: white;
+}
+
+.step-label {
+  font-size: 12px;
+  color: var(--ion-color-light);
+  text-align: center;
+}
+
+.step-indicator.active .step-label {
+  color: var(--color-amber-600);
+  font-weight: 500;
+}
+
+.progress-bar {
+  height: 4px;
+  background-color: var(--ion-color-light);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--color-amber-600);
+  transition: width 0.3s ease;
+}
+
+.step-content {
+  padding: 20px 0;
+}
+
+.step-title {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Profile picture styles */
+.profile-picture-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.image-upload-container {
+  margin-bottom: 20px;
+}
+
+.image-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px dashed var(--color-zinc-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.image-preview:hover {
+  border-color: var(--color-amber-600);
+}
+
+.profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-placeholder {
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.image-placeholder ion-icon {
+  margin-bottom: 8px;
+}
+
+.image-placeholder p {
+  font-size: 12px;
+  margin: 0;
+}
+
+.image-actions {
+  margin-top: 10px;
+}
+
+.navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  gap: 10px;
+}
+
+.error-message, .success-message {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-message ion-icon, .success-message ion-icon {
+  --color:white;
+}
+.error-message {
+  background-color: var(--ion-color-danger-tint);
+  color: var(--color-zinc-100);
+}
+
+.success-message {
+  background-color: var(--ion-color-success-tint);
+  color: var(--ion-color-success);
+}
+
+ion-button.custom {
+  --background: var(--color-amber-600);
+  --color: white;
+}
+
+/* ===========================
+   MOBILE RESPONSIVENESS
+   =========================== */
+
+@media (max-width: 768px) {
+  .login-container {
+    padding: 10px;
+  }
+  
+  .cookie-info pre {
+    font-size: 10px;
+  }
+
+  ion-card-title {
+    font-size: 1.1rem;
+  }
+
+  .activation-control-section h3,
+  .keys-configuration-section h3 {
+    font-size: 1rem;
+  }
+
+  ion-item {
+    margin-bottom: 12px;
+  }
+
+  .set-keys-button {
+    width: auto;
+    --padding-start: 12px;
+    --padding-end: 12px;
+  }
+
+  .status-item h4,
+  .toggle-item h4 {
+    font-size: 0.9rem;
+  }
+
+  .status-item p,
+  .toggle-item p {
+    font-size: 0.75rem;
+  }
+}
+@media (max-width: 480px) {
+  .form-container{
+    padding: 0;
+    margin: 0;
+  }
+}

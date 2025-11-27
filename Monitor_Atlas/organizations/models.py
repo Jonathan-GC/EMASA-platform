@@ -1,7 +1,11 @@
 from django.db import models
+from .hasher import generate_id
 
 
 class Subscription(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     can_have_gateways = models.BooleanField(default=False)
@@ -26,11 +30,13 @@ class Tenant(models.Model):
         }
     """
 
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     cs_tenant_id = models.CharField(max_length=36, null=True, blank=True)
     name = models.CharField(max_length=90)
-    img = models.CharField(max_length=255, blank=True, null=True)
+    img = models.FileField(upload_to="tenant_images/", blank=True, null=True)
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
-    group = models.CharField(max_length=30, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     sync_status = models.CharField(
         default=False,
@@ -40,15 +46,21 @@ class Tenant(models.Model):
     sync_error = models.CharField(max_length=255, blank=True, null=True)
     last_synced_at = models.DateTimeField(auto_now=True)
 
+    # Monitor
+    is_global = models.BooleanField(default=False)
+
     def __str__(self):
         return self.name
 
 
 class Workspace(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
     name = models.CharField(max_length=80)
-    img = models.CharField(max_length=255, blank=True, null=True)
+    img = models.FileField(upload_to="workspace_images/", blank=True, null=True)
     description = models.CharField(max_length=255)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.name} - {self.tenant}"
+        return self.name

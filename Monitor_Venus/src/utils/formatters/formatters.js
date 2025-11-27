@@ -2,7 +2,7 @@ import { format } from 'date-fns'
 
 // Date and Time Formatters
 export const formatTime = (date) => {
-  if (!date) return 'N/A'
+  if (!date) return 'N.A'
   
   try {
     let parsedDate
@@ -20,15 +20,15 @@ export const formatTime = (date) => {
       return 'Fecha inválida'
     }
     
-    return format(parsedDate, 'dd/MM HH:mm')
+    return format(parsedDate, 'dd.MM.yyyy | HH:mm')
   } catch (error) {
     console.error('Error formatting date:', error, 'Date value:', date)
     return 'Error fecha'
   }
 }
 
-export const formatDate = (date, pattern = 'dd/MM/yyyy') => {
-  if (!date) return 'N/A'
+export const formatDate = (date, pattern = 'dd.MM.yyyy') => {
+  if (!date) return 'N.A'
   
   try {
     const parsedDate = new Date(date)
@@ -42,7 +42,7 @@ export const formatDate = (date, pattern = 'dd/MM/yyyy') => {
 }
 
 export const formatRelativeTime = (date) => {
-  if (!date) return 'N/A'
+  if (!date) return 'N.A'
   
   try {
     const parsedDate = new Date(date)
@@ -69,11 +69,12 @@ export const formatRelativeTime = (date) => {
 export const getStatusColor = (status) => {
   const statusMap = {
     'online': 'success',
-    'synced': 'primary',
+    'synced': 'info',
     'offline': 'danger',
     'warning': 'warning',
     'pending': 'warning',
     'active': 'success',
+    'activo': 'success',
     'inactive': 'danger',
     'connected': 'success',
     'disconnected': 'danger',
@@ -102,7 +103,7 @@ export const getStatusIcon = (status) => {
 }
 
 export const formatStatus = (status) => {
-  if (!status) return 'N/A'
+  if (!status) return 'N.A'
   
   const statusTranslations = {
     'online': 'En línea',
@@ -122,7 +123,7 @@ export const formatStatus = (status) => {
 
 // Number Formatters
 export const formatCurrency = (amount, currency = 'EUR') => {
-  if (amount == null) return 'N/A'
+  if (amount == null) return 'N.A'
   
   try {
     return new Intl.NumberFormat('es-ES', {
@@ -136,7 +137,7 @@ export const formatCurrency = (amount, currency = 'EUR') => {
 }
 
 export const formatNumber = (number, decimals = 0) => {
-  if (number == null) return 'N/A'
+  if (number == null) return 'N.A'
   
   try {
     return new Intl.NumberFormat('es-ES', {
@@ -160,12 +161,46 @@ export const formatFileSize = (bytes) => {
 }
 
 export const formatPercentage = (value, decimals = 1) => {
-  if (value == null) return 'N/A'
+  if (value == null) return 'N.A'
   
   try {
     return `${(value * 100).toFixed(decimals)}%`
   } catch (error) {
     console.error('Error formatting percentage:', error)
     return `${value}%`
+  }
+}
+
+// Boolean Formatters
+export const formatActiveStatus = (value) => {
+  // Handle various truthy values
+  if (value === true || value === 'true' || value === 1 || value === '1' || 
+      (typeof value === 'string' && value.toLowerCase() === 'activo')) {
+    return 'Activo'
+  }
+  // Handle various falsy values
+  if (value === false || value === 'false' || value === 0 || value === '0' || 
+      (typeof value === 'string' && value.toLowerCase() === 'inactivo')) {
+    return 'Inactivo'
+  }
+  return 'N.A'
+}
+
+// Get searchable status variations for filtering
+export const getStatusSearchTerms = (value) => {
+  const status = formatActiveStatus(value)
+  return [status, status.toLowerCase(), value?.toString() || '']
+}
+
+
+// String Formatters
+export const formatUnderscoreToSpace = (str) => {
+  if (!str) return 'N.A'
+  
+  try {
+    return str.toString().replace(/_/g, ' ')
+  } catch (error) {
+    console.error('Error formatting string:', error)
+    return str
   }
 }

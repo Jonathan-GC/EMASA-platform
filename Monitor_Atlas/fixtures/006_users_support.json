@@ -1,0 +1,222 @@
+[
+  {
+    "model": "users.mainaddress",
+    "pk": "6d7e8f9012345678",
+    "fields": {
+      "address": "Cll. 12 #34-56",
+      "city": "Ibagué",
+      "state": "Tolima",
+      "zip_code": "70021"
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": "7e8f901234567890",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T15:58:34Z",
+      "code": "support_manager",
+      "img": null,
+      "name": "Cosme Fulanito",
+      "last_name": "Grisales Pancero",
+      "email": "cosme.grisales@email.com",
+      "country": "Colombia",
+      "phone_code": "+57",
+      "phone": "3002021222",
+      "tenant": "4e5f67890a1b2c3d",
+      "address": "c4e5f60718293a4b",
+      "username": "support.manager",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [6],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": "8f90123456789012",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T16:01:12Z",
+      "code": "support_agent_1",
+      "img": null,
+      "name": "Gumball Giancarlo",
+      "last_name": "Waterson Gutierrez",
+      "email": "gumball.waterson@email.com",
+      "country": "Colombia",
+      "phone_code": "+57",
+      "phone": "3002324252",
+      "tenant": "4e5f67890a1b2c3d",
+      "address": "c4e5f60718293a4b",
+      "username": "support_agent_1",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [6],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": "9012345678901234",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T16:05:02Z",
+      "code": "support_agent_2",
+      "img": null,
+      "name": "Darwin Steven",
+      "last_name": "Waterson Gutierrez",
+      "email": "darwin.waterson@email.com",
+      "country": "Colombia",
+      "phone_code": "+57",
+      "phone": "3002627282",
+      "tenant": "4e5f67890a1b2c3d",
+      "address": "c4e5f60718293a4b",
+      "username": "support_agent_2",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [6],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": "0123456789012345",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T16:06:54Z",
+      "code": "support_technician_1",
+      "img": null,
+      "name": "Max Power",
+      "last_name": "Simpson Jimenez",
+      "email": "max.power@email.com",
+      "country": "Colombia",
+      "phone_code": "+57",
+      "phone": "3002930313",
+      "tenant": "4e5f67890a1b2c3d",
+      "address": "c4e5f60718293a4b",
+      "username": "support_technician_1",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [6],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": "1234567890123456",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": "2025-08-13T16:06:54Z",
+      "code": "support_technician_2",
+      "img": null,
+      "name": "Manolo Egghead",
+      "last_name": "Davinci Cáceres",
+      "email": "manolo.egghead@email.com",
+      "country": "Colombia",
+      "phone_code": "+57",
+      "phone": "3003233343",
+      "tenant": "4e5f67890a1b2c3d",
+      "address": "c4e5f60718293a4b",
+      "username": "support_technician_2",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "groups": [6],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": "2345678901234567",
+    "fields": {
+      "workspace": "5f67890a1b2c3d4e",
+      "user": "8f90123456789012",
+      "role": "b3d4e5f60718293a"
+    }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": "3456789012345678",
+    "fields": {
+      "workspace": "5f67890a1b2c3d4e",
+      "user": "9012345678901234",
+      "role": "b3d4e5f60718293a"
+    }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": "4567890123456789",
+    "fields": {
+      "workspace": "5f67890a1b2c3d4e",
+      "user": "0123456789012345",
+      "role": "b3d4e5f60718293a"
+    }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": "5678901234567890",
+    "fields": {
+      "workspace": "5f67890a1b2c3d4e",
+      "user": "1234567890123456",
+      "role": "b3d4e5f60718293a"
+    }
+  },
+  {
+    "model": "roles.workspacemembership",
+    "pk": "6789012345678901",
+    "fields": {
+      "workspace": "5f67890a1b2c3d4e",
+      "user": "7e8f901234567890",
+      "role": "b3d4e5f60718293a"
+    }
+  },
+  {
+    "model": "support.supportmembership",
+    "pk": "7890123456789012",
+    "fields": {
+      "user": "7e8f901234567890",
+      "role": "support_manager",
+      "joined_at": "2025-08-13T16:10:00Z"
+    }
+  },
+  {
+    "model": "support.supportmembership",
+    "pk": "8901234567890123",
+    "fields": {
+      "user": "8f90123456789012",
+      "role": "support_agent",
+      "joined_at": "2025-08-13T16:11:00Z"
+    }
+  },
+  {
+    "model": "support.supportmembership",
+    "pk": "9012345678901235",
+    "fields": {
+      "user": "9012345678901234",
+      "role": "support_agent",
+      "joined_at": "2025-08-13T16:12:00Z"
+    }
+  },
+  {
+    "model": "support.supportmembership",
+    "pk": "0123456789012346",
+    "fields": {
+      "user": "0123456789012345",
+      "role": "support_technician",
+      "joined_at": "2025-08-13T16:13:00Z"
+    }
+  },
+  {
+    "model": "support.supportmembership",
+    "pk": "1234567890123457",
+    "fields": {
+      "user": "1234567890123456",
+      "role": "support_technician",
+      "joined_at": "2025-08-13T16:14:00Z"
+    }
+  }
+]

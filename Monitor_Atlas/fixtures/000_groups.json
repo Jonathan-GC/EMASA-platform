@@ -1,12 +1,32 @@
 [
-    {
+  {
     "model": "auth.group",
     "pk": 1,
-    "fields": { "name": "EMASA", "permissions": [] }
+    "fields": { "name": "global_admin", "permissions": [] }
   },
   {
     "model": "auth.group",
     "pk": 2,
-    "fields": { "name": "Tecnobot", "permissions": [] }
+    "fields": { "name": "global_manager", "permissions": [] }
+  },
+  {
+    "model": "auth.group",
+    "pk": 3,
+    "fields": { "name": "global_technician", "permissions": [] }
+  },
+  {
+    "model": "auth.group",
+    "pk": 4,
+    "fields": { "name": "global_viewer", "permissions": [] }
+  },
+  {
+    "model": "auth.group",
+    "pk": 5,
+    "fields": { "name": "no_role", "permissions": [] }
+  },
+  {
+    "model": "auth.group",
+    "pk": 6,
+    "fields": { "name": "global_support", "permissions": [] }
   }
 ]

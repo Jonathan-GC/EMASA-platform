@@ -11,35 +11,35 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+import os
 
 import environ
-import os
 from decouple import config
-from datetime import timedelta
 
 
-# Replace BASE_DIR and env loading with Path based implementation
+# ============================================================================
+# BASE CONFIGURATION
+# ============================================================================
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DJANGO_DEBUG=(bool, False))
-
-# Load .env from repo root (where manage.py is)
 environ.Env.read_env(BASE_DIR / ".env")
+
+
+# ============================================================================
+# SECURITY SETTINGS
+# ============================================================================
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="dev")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
+SERVICE_API_KEY = env("SERVICE_API_KEY", default="default_service_api_key")
 
-# Use env for tokens / durations (avoid mixing decouple)
-ACCESS_TOKEN_DURATION = env.int("ACCESS_TOKEN_DURATION", default=5)
-REFRESH_TOKEN_DURATION = env.int("REFRESH_TOKEN_DURATION", default=30)
-
-# Environment variables
-CHIRPSTACK_BASE_URL = env("CHIRPSTACK_BASE_URL", default=None)
-CHIRPSTACK_JWT_TOKEN = env("CHIRPSTACK_JWT_TOKEN", default=None)
-
-
-# Application definition
+# ============================================================================
+# APPLICATION DEFINITION
+# ============================================================================
 
 INSTALLED_APPS = [
     "django_db_prefix",
@@ -54,11 +54,13 @@ INSTALLED_APPS = [
     "organizations",
     "infrastructure",
     "chirpstack",
+    "support",
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "corsheaders",
+    "guardian",
 ]
 
 MIDDLEWARE = [
@@ -73,6 +75,13 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "platform_backend.urls"
+
+WSGI_APPLICATION = "platform_backend.wsgi.application"
+
+
+# ============================================================================
+# TEMPLATES CONFIGURATION
+# ============================================================================
 
 TEMPLATES = [
     {
@@ -89,11 +98,10 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "platform_backend.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
 
 DATABASES = {
     "default": {
@@ -106,10 +114,15 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = "users.User"
+DB_PREFIX = env("DB_PREFIX")
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+
+# ============================================================================
+# AUTHENTICATION AND AUTHORIZATION
+# ============================================================================
+
+AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -126,30 +139,36 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    "guardian.backends.ObjectPermissionBackend",
+)
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
+GUARDIAN_RAISE_403 = True
+
+# ============================================================================
+# INTERNATIONALIZATION
+# ============================================================================
 
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+# ============================================================================
+# STATIC AND MEDIA FILES
+# ============================================================================
 
 STATIC_URL = "static/"
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = "/media/"
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-DB_PREFIX = env("DB_PREFIX")
+# ============================================================================
+# CORS AND CSRF SETTINGS
+# ============================================================================
 
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
@@ -157,15 +176,22 @@ CORS_ALLOWED_ORIGINS = config(
     cast=lambda v: [s.strip() for s in v.split(",")],
 )
 CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default=True, cast=bool)
+
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
     default="http://localhost:3000",
     cast=lambda v: [s.strip() for s in v.split(",")],
 )
-SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
 CSRF_COOKIE_SAMESITE = config("CSRF_COOKIE_SAMESITE", default="Lax", cast=str)
+
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
 COOKIE_SECURE = config("COOKIE_SECURE", default=False, cast=bool)
+
+
+# ============================================================================
+# REST FRAMEWORK CONFIGURATION
+# ============================================================================
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -174,9 +200,17 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
+
+# ============================================================================
+# JWT AUTHENTICATION SETTINGS
+# ============================================================================
+
+ACCESS_TOKEN_DURATION = env.int("ACCESS_TOKEN_DURATION", default=5)
+REFRESH_TOKEN_DURATION = env.int("REFRESH_TOKEN_DURATION", default=30)
+
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=ACCESS_TOKEN_DURATION),  # Minutes
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=REFRESH_TOKEN_DURATION),  # Days
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=ACCESS_TOKEN_DURATION),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=REFRESH_TOKEN_DURATION),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
@@ -200,17 +234,63 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
-    "TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainPairSerializer",
-    "TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSerializer",
+    "TOKEN_OBTAIN_SERIALIZER": "users.serializers.CustomTokenObtainPairSerializer",
+    "TOKEN_REFRESH_SERIALIZER": "users.serializers.CustomTokenRefreshSerializer",
     "TOKEN_VERIFY_SERIALIZER": "rest_framework_simplejwt.serializers.TokenVerifySerializer",
     "TOKEN_BLACKLIST_SERIALIZER": "rest_framework_simplejwt.serializers.TokenBlacklistSerializer",
     "SLIDING_TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer",
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
+REFRESH_COOKIE_NAME = env("REFRESH_COOKIE_NAME", default="refresh_token")
+REFRESH_COOKIE_PATH = env("REFRESH_COOKIE_PATH", default="/")
+
+
+# ============================================================================
+# API DOCUMENTATION SETTINGS
+# ============================================================================
+
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Monitor Atlas API",
+    "TITLE": "Monitor Atlas API V1.1",
     "DESCRIPTION": "API para la plataforma de monitorización Monitor Atlas - Powered by Weedo",
-    "VERSION": "1.0.0",
+    "VERSION": "1.1.0",
     "SCHEMA_PATH_PREFIX": "/api/v1/",
 }
+
+
+# ============================================================================
+# GOOGLE OAUTH CONFIGURATION
+# ============================================================================
+
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default=None)
+GOOGLE_SECRET = env("GOOGLE_SECRET", default=None)
+GOOGLE_ISS = env("GOOGLE_ISS", default=None)
+
+
+# ============================================================================
+# EMAIL CONFIGURATION
+# ============================================================================
+
+MAILGUN_API_KEY = env("MAILGUN_API_KEY", default=None)
+MAILGUN_DOMAIN = env("MAILGUN_DOMAIN", default=None)
+MAILGUN_FROM = env("MAILGUN_FROM", default="no-reply@yourdomain.com")
+
+
+# ============================================================================
+# CHIRPSTACK INTEGRATION
+# ============================================================================
+
+CHIRPSTACK_BASE_URL = env("CHIRPSTACK_BASE_URL", default=None)
+CHIRPSTACK_JWT_TOKEN = env("CHIRPSTACK_JWT_TOKEN", default=None)
+
+
+# ============================================================================
+# EXTERNAL SERVICES CONFIGURATION
+# ============================================================================
+
+APP_URL = env("APP_URL", default="http://localhost:5173")
+MTR_LOGO_URL = env("MTR_LOGO_URL", default="https://placehold.co/500x200")
+
+HERMES_WS_URL = env("HERMES_WS_URL", default="ws://localhost:5000")
+HERMES_API_URL = env("HERMES_API_URL", default="http://localhost:5000")
+WS_SECRET = env("WS_SECRET", default="dummy32characterslong!!")

@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     REDIS_PORT: int
     REDIS_PASSWORD: str
 
+    WS_SECRET: str
+
+    # API Key para comunicación entre servicios
+    SERVICE_API_KEY: str
+    ATLAS_HOST_URL: str = "http://localhost:8000"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

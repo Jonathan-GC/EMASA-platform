@@ -1,7 +1,7 @@
 [
   {
     "model": "organizations.subscription",
-    "pk": 1,
+    "pk": "2c3d4e5f67890a1b",
     "fields": {
       "name": "Pro",
       "description": "Suscripción Pro",
@@ -12,7 +12,7 @@
   },
   {
     "model": "organizations.subscription",
-    "pk": 2,
+    "pk": "3d4e5f67890a1b2c",
     "fields": {
       "name": "Free",
       "description": "Suscripción Free",

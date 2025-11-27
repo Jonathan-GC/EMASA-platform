@@ -171,7 +171,7 @@ const platformInfo = ref({
 const canVibrate = ref(false)
 const selectedChart = ref('line')
 
-onMounted(() => {
+onMounted(async () => {
   // Get platform information
   platformInfo.value = {
     platform: Capacitor.getPlatform(),
@@ -181,6 +181,25 @@ onMounted(() => {
   
   // Check if device can vibrate
   canVibrate.value = Capacitor.isNativePlatform()
+
+  // Create notification channel for Android with heads-up capability
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+    try {
+      await LocalNotifications.createChannel({
+        id: 'alerts',
+        name: 'Important Alerts',
+        description: 'High priority notifications that appear as heads-up',
+        importance: 4, // Max importance
+        visibility: 1,
+        sound: 'default',
+        vibration: true,
+        lights: true,
+        lightColor: '#FF0000'
+      })
+    } catch (error) {
+      console.error('Error creating notification channel:', error)
+    }
+  }
 })
 
 const showAlert = async () => {
@@ -214,55 +233,94 @@ const vibrate = async () => {
 }
 
 const sendNotification = async () => {
+  if (Capacitor.isNativePlatform()) {
+    await sendNativeNotification()
+  } else {
+    await sendBrowserNotification()
+  }
+}
+
+const sendNativeNotification = async () => {
   try {
-    // Request permission first
     const permission = await LocalNotifications.requestPermissions()
     
     if (permission.display === 'granted') {
-      // Schedule a notification
+      const notifId = Math.floor(Math.random() * 1000000)
+      
       await LocalNotifications.schedule({
         notifications: [{
           title: 'Vue + Capacitor App',
           body: 'This is a native notification from your cross-platform app! 🚀',
-          id: Math.floor(Math.random() * 1000000),
-          schedule: { at: new Date(Date.now() + 1000) }, // 1 second from now
-          sound: undefined,
-          attachments: undefined,
-          actionTypeId: '',
-          extra: null
+          id: notifId,
+          schedule: { at: new Date(Date.now() + 500) }, // Half second delay
+          channelId: 'alerts',
+          sound: 'default',
+          smallIcon: 'ic_stat_icon_config_sample',
+          largeBody: 'This is a native notification from your cross-platform app! 🚀',
+          autoCancel: true,
+          ongoing: false,
+          silent: false // Ensure it makes sound
         }]
       })
       
-      // Show a toast to confirm
-      const toast = await toastController.create({
-        message: 'Notification scheduled! Check your notification panel.',
-        duration: 3000,
-        position: 'bottom',
-        color: 'success'
-      })
-      await toast.present()
+      await showMessage('Notification scheduled!', 'success')
     } else {
-      // Permission denied
-      const toast = await toastController.create({
-        message: 'Notification permission denied. Please enable in settings.',
-        duration: 3000,
-        position: 'bottom',
-        color: 'warning'
-      })
-      await toast.present()
+      await showMessage('Notification permission denied.', 'warning')
     }
   } catch (error) {
-    console.log('Notification error:', error)
-    
-    // Fallback for web or if notifications aren't available
-    const toast = await toastController.create({
-      message: 'Native notifications not available on this platform.',
-      duration: 3000,
-      position: 'bottom',
-      color: 'medium'
-    })
-    await toast.present()
+    console.error('Native notification error:', error)
+    await showMessage(`Error: ${error.message}`, 'danger')
   }
+}
+
+const sendBrowserNotification = async () => {
+  try {
+    if (!('Notification' in window)) {
+      throw new Error('Browser does not support notifications')
+    }
+    
+    const permission = await Notification.requestPermission()
+    
+    if (permission === 'granted') {
+      // Use Service Worker for mobile browsers (required)
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready
+        await registration.showNotification('Vue + Capacitor App', {
+          body: 'This is a browser notification from your cross-platform app! 🚀',
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: 'demo-notification',
+          vibrate: [200, 100, 200]
+        })
+      } else {
+        // Fallback for desktop browsers
+        new Notification('Vue + Capacitor App', {
+          body: 'This is a browser notification from your cross-platform app! 🚀',
+          icon: '/favicon.ico',
+          tag: 'demo-notification'
+        })
+      }
+      
+      await showMessage('Notification sent!', 'success')
+    } else if (permission === 'denied') {
+      await showMessage('Notification permission denied.', 'warning')
+    } else {
+      await showMessage('Notification permission not granted.', 'medium')
+    }
+  } catch (error) {
+    console.error('Browser notification error:', error)
+    await showMessage(`Error: ${error.message}`, 'danger')
+  }
+}
+
+const showMessage = async (message, color = 'primary') => {
+  const toast = await toastController.create({
+    message,
+    duration: 3000,
+    position: 'bottom',
+    color
+  })
+  await toast.present()
 }
 
 const handleChartChange = (event) => {

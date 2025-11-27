@@ -1,15 +1,13 @@
 from rest_framework import viewsets
-from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth.models import Group
 
 from .models import Workspace, Tenant, Subscription
+from roles.models import WorkspaceMembership
 from .serializers import WorkspaceSerializer, TenantSerializer, SubscriptionSerializer
 
-from roles.permissions import IsAdminOrIsAuthenticatedReadOnly, HasPermissionKey
-from roles.mixins import PermissionKeyMixin
-from roles.models import PermissionKey
-from roles.serializers import PermissionKeySerializer
+from roles.permissions import HasPermission
+from guardian.shortcuts import get_objects_for_user
 
 from chirpstack.chirpstack_api import (
     sync_tenant_get,
@@ -18,8 +16,24 @@ from chirpstack.chirpstack_api import (
     sync_tenant_update,
 )
 
-import logging
+from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema
+
+from roles.helpers import (
+    assign_new_tenant_base_permissions,
+    assign_new_workspace_base_permissions,
+    assign_created_instance_permissions,
+)
+
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
+
+from .helpers import (
+    get_or_create_default_workspace,
+    get_no_role,
+    get_or_create_admin_role,
+    get_global_tenant,
+)
 
 
 @extend_schema_view(
@@ -30,15 +44,55 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
     partial_update=extend_schema(description="Workspace Partial Update"),
     destroy=extend_schema(description="Workspace Destroy"),
 )
-class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class WorkspaceViewSet(viewsets.ModelViewSet):
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "workspace"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Workspace.objects.all()
+        return get_objects_for_user(
+            user,
+            "organizations.view_workspace",
+            klass=Workspace,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="workspace")
+        user = self.request.user
+        user_tenant = user.tenant
+        workspace_tenant = instance.tenant
+        global_tenant = get_global_tenant()
+
+        # Validate tenant membership before assigning any permissions
+        if (
+            user_tenant != workspace_tenant
+            and not user.is_superuser
+            and user_tenant != global_tenant
+        ):
+            logger.warning(
+                f"User tenant {user_tenant} does not match workspace tenant {workspace_tenant}"
+            )
+            raise PermissionError(
+                "User does not have permission to create workspace for this tenant"
+            )
+
+        workspace_membership, created = WorkspaceMembership.objects.get_or_create(
+            workspace=instance, user=user, role=get_or_create_admin_role(instance)
+        )
+        if created:
+            logger.debug(
+                f"Created workspace membership for user {user.username} in workspace {instance.name}"
+            )
+        get_no_role(instance)
+        assign_new_workspace_base_permissions(instance, user)
+        logger.debug(
+            f"Assigned base workspace permissions to user {user.username} for workspace {instance.name}"
+        )
 
 
 @extend_schema_view(
@@ -48,43 +102,104 @@ class WorkspaceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Tenant Update"),
     partial_update=extend_schema(description="Tenant Partial Update"),
     destroy=extend_schema(description="Tenant Destroy"),
+    get_tenant_by_cs_id=extend_schema(description="Get Tenant by CS ID"),
 )
-class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class TenantViewSet(viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "tenant"
 
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return Tenant.objects.all()
+
+        if user.tenant.name == "Monitor":
+            return get_objects_for_user(
+                user,
+                "organizations.view_tenant",
+                klass=Tenant,
+                accept_global_perms=False,
+            )
+
+        if user.tenant:
+            return Tenant.objects.filter(id=user.tenant.id)
+
+        return Tenant.objects.none()
+
     def perform_create(self, serializer):
+        user = self.request.user
+        logger.debug(f"Creating tenant by user {user.username}")
+
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="tenant")
 
-        group_name = instance.group
-        group, created = Group.objects.get_or_create(name=group_name)
+        if not user.is_superuser and not user.tenant:
+            logger.debug(f"Assigning tenant {instance.name} to user {user.username}")
+            user.tenant = instance
+            logger.debug(
+                f"Assigned tenant {instance.name} to user {user.username}: {user.tenant}"
+            )
+            workspace = get_or_create_default_workspace(instance)
+            admin_role = get_or_create_admin_role(workspace)
+            workspace_membership, created = WorkspaceMembership.objects.get_or_create(
+                workspace=workspace, user=user, role=admin_role
+            )
+            if created:
+                logger.debug(
+                    f"Created workspace membership for user {user.username} in workspace {workspace.name} with role {admin_role.name}"
+                )
+            elif not workspace_membership:
+                logger.debug(
+                    f"Coudn't find workspace membership for user {user.username} in workspace {workspace.name}, creating new one"
+                )
+            get_no_role(workspace)
+            user.save()
 
-        if created:
-            logging.info(f"Grupo {group_name} creado exitosamente")
+        else:
+            logger.debug(
+                f"User {user.username} is superuser, not assigning tenant automatically"
+            )
+            # Creating workspace and admin role defaults anyways
+            workspace = get_or_create_default_workspace(instance)
+            get_or_create_admin_role(workspace)
+            get_no_role(workspace)  # Ensure "No Role" exists
+
+        assign_new_tenant_base_permissions(instance, user)
 
         sync_response = sync_tenant_create(instance)
 
+        if sync_response is None:
+            logger.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}"
             )
         else:
-            logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+            logger.debug(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
 
     def perform_update(self, serializer):
         instance = serializer.save()
 
         sync_response = sync_tenant_update(instance)
 
+        if sync_response is None:
+            logger.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}"
             )
         else:
-            logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+            logger.debug(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -99,12 +214,18 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
         for tenant in queryset:
             sync_response = sync_tenant_get(tenant)
+            if sync_response is None:
+                logger.error(
+                    f"No se han realizado cambios en Chirpstack, verifique en los logs"
+                )
+                continue
+
             if sync_response.status_code != 200:
-                logging.error(
+                logger.error(
                     f"Error al sincronizar el tenant {tenant.name} con Chirpstack: {sync_response.status_code}"
                 )
             else:
-                logging.info(
+                logger.debug(
                     f"Se ha sincronizado el tenant {tenant.name} con Chirpstack"
                 )
             tenant.refresh_from_db()
@@ -120,12 +241,38 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     def perform_destroy(self, instance):
         sync_response = sync_tenant_destroy(instance)
 
+        if sync_response is None:
+            logger.error(
+                f"No se han realizado cambios en Chirpstack, verifique en los logs"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar el tenant {instance.name} con Chirpstack: {sync_response.status_code}"
             )
         else:
-            logging.info(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+            logger.debug(f"Se ha sincronizado el tenant {instance.name} con Chirpstack")
+
+        instance.delete()
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="by-cs-id/(?P<cs_tenant_id>[^/.]+)",
+        permission_classes=[HasPermission],
+        scope="tenant",
+    )
+    def get_tenant_by_cs_id(self, request, cs_tenant_id=None):
+        """
+        Custom action to get tenant details by CS tenant ID.
+        """
+        try:
+            tenant = Tenant.objects.filter(cs_tenant_id=cs_tenant_id).first()
+            serializer = self.get_serializer(tenant)
+            return Response(serializer.data)
+        except Tenant.DoesNotExist:
+            return Response({"detail": "Tenant not found."}, status=404)
 
 
 @extend_schema_view(
@@ -136,12 +283,20 @@ class TenantViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Subscription Partial Update"),
     destroy=extend_schema(description="Subscription Destroy"),
 )
-class SubscriptionViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class SubscriptionViewSet(viewsets.ModelViewSet):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "subscription"
+
+    def get_queryset(self):
+        return Subscription.objects.all()
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="subscription")
+        assign_created_instance_permissions(instance, self.request.user)

@@ -122,23 +122,4 @@ const chartOptions = computed(() => ({
 }))
 </script>
 
-<style scoped>
-.chart-container {
-  margin-top: 30px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #4ade80;
-}
-
-.chart-wrapper {
-  height: 400px;
-  position: relative;
-}
-
-@media (max-width: 768px) {
-  .chart-wrapper {
-    height: 300px;
-  }
-}
-</style>
+<!-- Styles moved to @/assets/css/chart-styles.css -->

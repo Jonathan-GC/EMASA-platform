@@ -9,13 +9,22 @@ from .serializers import (
     DeviceSerializer,
     ApplicationSerializer,
     LocationSerializer,
+    ActivationSerializer,
+    MeasurementsSerializer,
 )
-from .models import Gateway, Machine, Type, Device, Application, Location, Activation
+from .models import (
+    Gateway,
+    Machine,
+    Type,
+    Device,
+    Application,
+    Location,
+    Activation,
+    Measurements,
+)
 
-from roles.permissions import HasPermissionKey, IsAdminOrIsAuthenticatedReadOnly
-from roles.mixins import PermissionKeyMixin
-from roles.models import PermissionKey
-from roles.serializers import PermissionKeySerializer
+from roles.permissions import HasPermission, IsServiceOrHasPermission
+from guardian.shortcuts import get_objects_for_user
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -36,9 +45,15 @@ from chirpstack.chirpstack_api import (
 )
 from rest_framework import status
 
-import logging
+from loguru import logger
 
-from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
+
+from .helpers import encrypt_dev_eui
+from django.conf import settings
+
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from roles.helpers import assign_created_instance_permissions
 
 
 @extend_schema_view(
@@ -49,24 +64,40 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
     partial_update=extend_schema(description="Gateway Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Gateway Destroy (ChirpStack)"),
 )
-class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class GatewayViewSet(viewsets.ModelViewSet):
     queryset = Gateway.objects.all()
     serializer_class = GatewaySerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "gateway"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Gateway.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_gateway",
+            klass=Gateway,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="gateway")
+        assign_created_instance_permissions(instance, self.request.user)
 
         sync_response = sync_gateway_create(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al crear el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
             )
 
@@ -114,25 +145,35 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
 
         sync_response = sync_gateway_update(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al actualizar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
             )
 
     def perform_destroy(self, instance):
         sync_response = sync_gateway_destroy(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
+            )
+            # proceed to delete locally
 
-        if sync_response.status_code != 200:
-            logging.error(
+        elif sync_response.status_code != 200:
+            logger.error(
                 f"Error al eliminar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
             )
 
@@ -146,19 +187,40 @@ class GatewayViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Machine Update"),
     partial_update=extend_schema(description="Machine Partial Update"),
     destroy=extend_schema(description="Machine Destroy"),
-    set_machine_image=extend_schema(description="Set Machine Image"),
+    set_machine_image=extend_schema(
+        description="Set Machine Image",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set machine image",
+                value={"image": "image_url"},
+            )
+        ],
+    ),
 )
-class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class MachineViewSet(viewsets.ModelViewSet):
     queryset = Machine.objects.all()
     serializer_class = MachineSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "machine"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Machine.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_machine",
+            klass=Machine,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="machine")
+        assign_created_instance_permissions(instance, self.request.user)
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def set_machine_image(self, request, pk=None):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -174,19 +236,39 @@ class MachineViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Type Update"),
     partial_update=extend_schema(description="Type Partial Update"),
     destroy=extend_schema(description="Type Destroy"),
-    set_type_image=extend_schema(description="Set Type Image (icon)"),
+    set_type_image=extend_schema(
+        description="Set Type Image (icon)",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set type image",
+                value={"image": "image_url"},
+            )
+        ],
+    ),
 )
-class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class TypeViewSet(viewsets.ModelViewSet):
     queryset = Type.objects.all()
     serializer_class = TypeSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "type"
+
+    def get_queryset(self):
+        # Everyone can see types
+        return Type.objects.all()
+
+    def get_permissions(self):
+        # Only superuser or global Tenant staff can manage types
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="type")
+        assign_created_instance_permissions(instance, self.request.user)
 
-    @action(detail=True, methods=["patch"], permission_classes=[HasPermissionKey])
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
     def set_type_image(self, request, pk=None):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -202,28 +284,93 @@ class TypeViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Device Update (ChirpStack)"),
     partial_update=extend_schema(description="Device Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Device Destroy (ChirpStack)"),
-    set_activation=extend_schema(description="Set Device Activation Data"),
+    set_activation=extend_schema(
+        description="Set Device Activation Data",
+        request=ActivationSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set device activation data",
+                value={
+                    "afcntdown": 0,
+                    "app_s_key": "E81B6C49A0F57D92C3FE21B4D6A98F3C",
+                    "dev_addr": "260CA2F1",
+                    "f_cnt_up": 0,
+                    "f_nwk_s_int_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                    "n_f_cnt_down": 0,
+                    "nwk_s_enc_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                    "s_nwk_s_int_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                },
+            )
+        ],
+    ),
     activate=extend_schema(description="Activate Device"),
     deactivate=extend_schema(description="Deactivate Device"),
+    get_ws_link=extend_schema(
+        description="Get Device WebSocket Link",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to get device WebSocket link",
+                value={"access_token": "your_access_token_here"},
+            ),
+        ],
+    ),
+    activation_details=extend_schema(description="Get Device Activation Details"),
+    create_measurement=extend_schema(
+        description="Create Measurement for Device",
+        request=MeasurementsSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to create a measurement for device",
+                value={"min": 10.5, "max": 25.3, "threshold": 20.0, "unit": "Volts"},
+                request_only=True,
+                response_only=False,
+            ),
+        ],
+    ),
+    measurements=extend_schema(description="Get Measurements config for Device"),
+    measurements_by_dev_eui=extend_schema(description="Get Measurements by DevEUI"),
 )
-class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "device"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Device.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_device",
+            klass=Device,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="device")
+        assign_created_instance_permissions(instance, self.request.user)
 
         sync_response = sync_device_create(instance)
 
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al crear el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
@@ -231,25 +378,35 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
 
         sync_response = sync_device_update(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
     def perform_destroy(self, instance):
         sync_response = sync_device_destroy(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
+            )
+            # proceed to delete locally
 
-        if sync_response.status_code != 200:
-            logging.error(
+        elif sync_response.status_code != 200:
+            logger.error(
                 f"Error al eliminar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
             )
 
@@ -280,7 +437,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def set_activation(self, request, pk=None):
@@ -329,9 +486,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             serializer = self.get_serializer(device)
             return Response(serializer.data)
         except Exception as e:
-            logging.error(
-                f"Error setting activation for device {device.name}: {str(e)}"
-            )
+            logger.error(f"Error setting activation for device {device.name}: {str(e)}")
             return Response(
                 {"message": f"Error setting activation: {str(e)}"},
                 status=500,
@@ -340,7 +495,7 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def activate(self, request, pk=None):
@@ -353,19 +508,36 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
             )
 
         if device_activation_status(device):
+            logger.debug(f"Device {device.dev_eui} - {device.name} is already active")
+            device.is_active = True
+            device.save(update_fields=["is_active"])
             return Response(
                 {"message": "Device is already active"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_304_NOT_MODIFIED,
             )
 
         try:
             sync_response = activate_device(device)
 
+            if sync_response is None:
+                device.is_active = False
+                device.sync_error = "No response from Chirpstack (no-op)"
+                device.save(update_fields=["is_active", "sync_error"])
+                logger.debug(
+                    f"No changes made in Chirpstack for activation of {device.name}, if this is not expected please check manually or try again"
+                )
+                return Response(
+                    {
+                        "message": "No changes made in Chirpstack for activation",
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
             if sync_response.status_code != 200:
                 device.is_active = False
                 device.sync_error = sync_response.text
                 device.save(update_fields=["is_active", "sync_error"])
-                logging.error(
+                logger.error(
                     f"Activation failed for {device.name}: {sync_response.status_code} {sync_response.text}"
                 )
                 return Response(
@@ -378,13 +550,13 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
 
             device.is_active = True
             device.save(update_fields=["is_active"])
-            logging.info(f"Device {device.dev_eui} - {device.name} activated")
+            logger.debug(f"Device {device.dev_eui} - {device.name} activated")
 
             serializer = self.get_serializer(device)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logging.exception(f"Unexpected error activating device {device.name}")
+            logger.exception(f"Unexpected error activating device {device.name}")
             return Response(
                 {"message": "Unexpected error activating device", "error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -393,15 +565,23 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[HasPermissionKey],
+        permission_classes=[HasPermission],
         scope="device",
     )
     def deactivate(self, request, pk=None):
         instance = self.get_object()
         sync_response = deactivate_device(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for deactivation of {instance.name}, if this is not expected please check manually or try again"
+            )
+            return Response(
+                {"message": "Device deactivated (no-op in Chirpstack)"},
+                status=status.HTTP_304_NOT_MODIFIED,
+            )
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al desactivar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
             return Response(
@@ -411,28 +591,130 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha desactivado el dispositivo {instance.dev_eui} - {instance.name}"
             )
+            instance.is_active = False
+            instance.save(update_fields=["is_active"])
 
         return Response({"message": "Device deactivated"})
 
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[IsAdminOrIsAuthenticatedReadOnly],
+        permission_classes=[HasPermission],
+        scope="device",
     )
-    def regenerate_permission_keys(self, request, pk=None):
-        instance = self.get_object()
-        scope = "device"
+    def get_ws_link(self, request, pk=None):
+        dev_eui = self.get_object().dev_eui
+        access_token = request.data.get("access_token", None)
 
-        self.create_permission_keys(instance, scope)
+        if not access_token:
+            return Response(
+                {"message": "No access token found in request"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        permission_keys = PermissionKey.objects.filter(
-            **{self.scope_field_map[scope]: instance}
-        )
-        serializer = PermissionKeySerializer(permission_keys, many=True)
+        try:
+            encrypted_dev_eui = encrypt_dev_eui(dev_eui)
+        except ValueError as e:
+            logger.error(f"Error encrypting DevEUI for device {dev_eui}: {str(e)}")
+            return Response(
+                {"message": f"Error generating WebSocket link: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        ws_url = f"{settings.HERMES_WS_URL}/ws/device/{encrypted_dev_eui}?token={access_token}"
 
+        return Response({"ws_url": ws_url})
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def activation_details(self, request, pk=None):
+        device = self.get_object()
+        if not device.activation:
+            return Response(
+                {"message": "Device has no activation data"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = ActivationSerializer(device.activation)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def measurements(self, request, pk=None):
+        device = self.get_object()
+
+        if not device:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        measurements = Measurements.objects.filter(device=device)
+
+        if not measurements.exists():
+            return Response(
+                {"message": "No measurements found for this device"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(measurements, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def create_measurement(self, request, pk=None):
+        device = self.get_object()
+        serializer = MeasurementsSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(device=device)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsServiceOrHasPermission],
+        scope="device",
+    )
+    def measurements_by_dev_eui(self, request):
+        dev_eui = request.query_params.get("dev_eui", None)
+
+        if not dev_eui:
+            return Response(
+                {"message": "No DevEUI provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            device = Device.objects.get(dev_eui=dev_eui)
+        except Device.DoesNotExist:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        measurements = Measurements.objects.filter(device=device)
+
+        if not measurements.exists():
+            return Response(
+                {"message": "No measurements found for this device"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(measurements, many=True)
         return Response(serializer.data)
 
 
@@ -443,37 +725,59 @@ class DeviceViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     update=extend_schema(description="Application Update (ChirpStack)"),
     partial_update=extend_schema(description="Application Partial Update (ChirpStack)"),
     destroy=extend_schema(description="Application Destroy (ChirpStack)"),
+    devices=extend_schema(description="List Devices in Application (ChirpStack)"),
 )
-class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class ApplicationViewSet(viewsets.ModelViewSet):
     queryset = Application.objects.all()
     serializer_class = ApplicationSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "application"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Application.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_application",
+            klass=Application,
+            accept_global_perms=False,
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="application")
+        assign_created_instance_permissions(instance, self.request.user)
 
         sync_response = sync_application_create(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al crear la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
             )
 
     def perform_destroy(self, instance):
         sync_response = sync_application_destroy(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            # proceed to delete locally
 
-        if sync_response.status_code != 200:
-            logging.error(
+        elif sync_response.status_code != 200:
+            logger.error(
                 f"Error al eliminar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
             )
 
@@ -483,13 +787,18 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         instance = serializer.save()
 
         sync_response = sync_application_update(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
 
         if sync_response.status_code != 200:
-            logging.error(
+            logger.error(
                 f"Error al sincronizar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
             )
         else:
-            logging.info(
+            logger.debug(
                 f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
             )
 
@@ -497,7 +806,7 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         queryset = self.filter_queryset(self.get_queryset())
 
         for application in queryset:
-            logging.info(f"Syncing application {application.name}")
+            logger.debug(f"Syncing application {application.name}")
             sync_application_get(application)
 
             application.refresh_from_db()
@@ -518,6 +827,31 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="application",
+    )
+    def devices(self, request, pk=None):
+        application = self.get_object()
+        devices = Device.objects.filter(application=application)
+
+        for device in devices:
+            logger.debug(
+                f"Syncing device {device.name} in application {application.name}"
+            )
+            sync_device_get(device)
+            device.refresh_from_db()
+
+        page = self.paginate_queryset(devices)
+        if page is not None:
+            serializer = DeviceSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = DeviceSerializer(devices, many=True)
+        return Response(serializer.data)
+
 
 @extend_schema_view(
     list=extend_schema(description="Location List"),
@@ -527,12 +861,26 @@ class ApplicationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
     partial_update=extend_schema(description="Location Partial Update"),
     destroy=extend_schema(description="Location Destroy"),
 )
-class LocationViewSet(viewsets.ModelViewSet, PermissionKeyMixin):
+class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
-    permission_classes = [HasPermissionKey]
+    permission_classes = [HasPermission]
     scope = "location"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Location.objects.all()
+
+        accessible_gateways = get_objects_for_user(
+            user,
+            "infrastructure.view_gateway",
+            klass=Gateway,
+            accept_global_perms=False,
+        )
+        return Location.objects.filter(gateway__in=accessible_gateways)
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        self.create_permission_keys(instance, scope="location")
+        assign_created_instance_permissions(instance, self.request.user)
+        logger.debug(f"Created location {instance.name} with ID {instance.id}")

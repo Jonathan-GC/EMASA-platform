@@ -14,9 +14,9 @@ client = mqtt.Client()
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        loguru.logger.info("Connected to MQTT Broker!")
+        loguru.logger.debug("Connected to MQTT Broker!")
         client.subscribe(TOPIC)
-        loguru.logger.info(f"Subscribed to topic: {TOPIC}")
+        loguru.logger.debug(f"Subscribed to topic: {TOPIC}")
     else:
         loguru.logger.error(f"Failed to connect, return code {rc}")
 
@@ -37,4 +37,4 @@ def start_mqtt(db, loop):
     client.on_message = on_message
     client.connect(BROKER_HOST, BROKER_PORT, 60)
     client.loop_start()
-    loguru.logger.info("MQTT client started and running in background")
+    loguru.logger.debug("MQTT client started and running in background")

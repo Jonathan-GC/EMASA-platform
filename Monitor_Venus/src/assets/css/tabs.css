@@ -1,0 +1,89 @@
+.tabs-device-measurements {
+  width: 100%;
+}
+
+.tab-content {
+  padding: 16px 0;
+}
+
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tab-content {
+    padding: 8px 0;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .no-data {
+    margin: 20px 0;
+  }
+}
+
+/* Voltage tab specific styles */
+
+.header-subtitle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.no-data {
+  margin: 40px 0;
+  text-align: center;
+}
+
+.no-data ion-card {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.no-data h2 {
+  color: #6b7280;
+  margin: 0 0 10px 0;
+}
+
+.no-data p {
+  color: #9ca3af;
+  margin: 8px 0;
+}
+
+.chart-container {
+  margin: 20px 0;
+  padding: 0px 10px;
+  border-radius: 8px;
+
+}
+
+/* Activation tab specific styles */
+.device-info-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.device-info-section h3 {
+  margin: 0 0 8px 0;
+  color: #374151;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.device-info-section p {
+  margin: 4px 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.form-container {
+  margin: 20px 0;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

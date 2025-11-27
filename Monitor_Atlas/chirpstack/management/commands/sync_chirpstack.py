@@ -1,4 +1,5 @@
 from chirpstack.chirpstack_api import (
+    test_connection,
     sync_device_get,
     sync_tenant_get,
     sync_gateway_get,
@@ -19,33 +20,54 @@ from organizations.models import Workspace, Tenant
 from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.db import transaction
-import logging
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class Command(BaseCommand):
     help = "Sync ChirpStack entities with the database"
 
     def handle(self, *args, **options):
+        self.stdout.write(self.style.MIGRATE_LABEL("Testing ChirpStack connection..."))
+
+        if not test_connection():
+            self.stdout.write(
+                self.style.ERROR(
+                    "❌ Unable to connect to ChirpStack. Please check your settings."
+                )
+            )
+            return
+
         self.stdout.write(
             self.style.MIGRATE_HEADING("==> Synchronizing with ChirpStack...")
         )
 
-        with transaction.atomic():
-            self.sync_tenants()
-            self.sync_gateways()
-            self.sync_api_users()
-            self.sync_applications()
-            self.sync_device_profiles()
-            self.sync_devices()
+        # Run each sync step inside its own atomic block so a failure in
+        # one step doesn't leave the whole transaction broken and prevent
+        # subsequent DB queries from running (which raises
+        # TransactionManagementError).
+        sync_steps = [
+            ("Tenants", self.sync_tenants),
+            ("Gateways", self.sync_gateways),
+            ("APIUsers", self.sync_api_users),
+            ("Applications", self.sync_applications),
+            ("DeviceProfiles", self.sync_device_profiles),
+            ("Devices", self.sync_devices),
+        ]
+
+        for name, step in sync_steps:
+            try:
+                with transaction.atomic():
+                    step()
+            except Exception as e:
+                logger.exception(e)
+                self.stdout.write(self.style.ERROR(f"✘ Error syncing {name}: {e}"))
 
         self.stdout.write(
             self.style.SUCCESS("✅ Initial synchronization with ChirpStack complete.")
         )
 
     def sync_tenants(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing Tenants..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing Tenants..."))
         for tenant in Tenant.objects.all():
             try:
                 sync_tenant_get(tenant)
@@ -59,7 +81,11 @@ class Command(BaseCommand):
                 )
         self.stdout.write(self.style.NOTICE("Fetching Tenants from ChirpStack..."))
         response = get_tenant_from_chirpstack()
-        if response.status_code == 200:
+        if response is None:
+            self.stdout.write(
+                self.style.NOTICE("ℹ No tenant changes returned from ChirpStack.")
+            )
+        elif response and response.status_code == 200:
             self.stdout.write(self.style.SUCCESS("✔ Tenants fetched successfully."))
         else:
             self.stdout.write(
@@ -67,7 +93,7 @@ class Command(BaseCommand):
             )
 
     def sync_gateways(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing Gateways..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing Gateways..."))
         for gw in Gateway.objects.all():
             try:
                 sync_gateway_get(gw)
@@ -81,7 +107,11 @@ class Command(BaseCommand):
                 )
         self.stdout.write(self.style.NOTICE("Fetching Gateways from ChirpStack..."))
         response = get_gateway_from_chirpstack()
-        if response.status_code == 200:
+        if response is None:
+            self.stdout.write(
+                self.style.NOTICE("ℹ No gateway changes returned from ChirpStack.")
+            )
+        elif response and response.status_code == 200:
             self.stdout.write(self.style.SUCCESS("✔ Gateways fetched successfully."))
         else:
             self.stdout.write(
@@ -89,7 +119,7 @@ class Command(BaseCommand):
             )
 
     def sync_api_users(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing APIUsers..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing APIUsers..."))
         for u in ApiUser.objects.all():
             try:
                 sync_api_user_get(u)
@@ -103,7 +133,11 @@ class Command(BaseCommand):
                 )
         self.stdout.write(self.style.NOTICE("Fetching APIUsers from ChirpStack..."))
         response = get_api_user_from_chirpstack()
-        if response.status_code == 200:
+        if response is None:
+            self.stdout.write(
+                self.style.NOTICE("ℹ No APIUser changes returned from ChirpStack.")
+            )
+        elif response and response.status_code == 200:
             self.stdout.write(self.style.SUCCESS("✔ APIUsers fetched successfully."))
         else:
             self.stdout.write(
@@ -111,7 +145,7 @@ class Command(BaseCommand):
             )
 
     def sync_applications(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing Applications..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing Applications..."))
         for app in Application.objects.all():
             try:
                 sync_application_get(app)
@@ -127,7 +161,11 @@ class Command(BaseCommand):
                 )
         self.stdout.write(self.style.NOTICE("Fetching Applications from ChirpStack..."))
         response = get_applications_from_chirpstack()
-        if response.status_code == 200:
+        if response is None:
+            self.stdout.write(
+                self.style.NOTICE("ℹ No application changes returned from ChirpStack.")
+            )
+        elif response and response.status_code == 200:
             self.stdout.write(
                 self.style.SUCCESS("✔ Applications fetched successfully.")
             )
@@ -137,7 +175,7 @@ class Command(BaseCommand):
             )
 
     def sync_device_profiles(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing DeviceProfiles..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing DeviceProfiles..."))
         for dp in DeviceProfile.objects.all():
             try:
                 sync_device_profile_get(dp)
@@ -152,7 +190,13 @@ class Command(BaseCommand):
                     )
                 )
         response = get_device_profiles_from_chirpstack()
-        if response.status_code == 200:
+        if response is None:
+            self.stdout.write(
+                self.style.NOTICE(
+                    "ℹ No device profile changes returned from ChirpStack."
+                )
+            )
+        elif response and response.status_code == 200:
             self.stdout.write(
                 self.style.SUCCESS("✔ DeviceProfiles fetched successfully.")
             )
@@ -162,7 +206,7 @@ class Command(BaseCommand):
             )
 
     def sync_devices(self):
-        self.stdout.write(self.style.NOTICE("Synchronizing Devices..."))
+        self.stdout.write(self.style.HTTP_INFO("Synchronizing Devices..."))
         for device in Device.objects.all():
             try:
                 sync_device_get(device)
@@ -176,7 +220,11 @@ class Command(BaseCommand):
                 )
         self.stdout.write(self.style.NOTICE("Fetching Devices from ChirpStack..."))
         response = get_devices_from_chirpstack()
-        if response.status_code == 200:
+        if response is None:
+            self.stdout.write(
+                self.style.NOTICE("ℹ No device changes returned from ChirpStack.")
+            )
+        elif response and response.status_code == 200:
             self.stdout.write(self.style.SUCCESS("✔ Devices fetched successfully."))
         else:
             self.stdout.write(

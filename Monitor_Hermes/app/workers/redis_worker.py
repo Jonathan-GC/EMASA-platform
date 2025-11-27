@@ -4,51 +4,20 @@ import loguru
 import importlib
 from app.persistence.models import MessageIn
 from app.persistence.mongo import save_message
+from app.validation.orchestrator import validate_and_alert_if_needed
 
 
-def _normalize_payload(payload: dict) -> dict:
-    """Normalize incoming payload to a consistent shape used by the worker."""
-    if not isinstance(payload, dict):
-        return payload
-
-    # Already normalized by handlers.format_payload
-    if "tenant_id" in payload and "dev_eui" in payload:
-        return {
-            "tenantId": payload.get("tenant_id"),
-            "devEui": payload.get("dev_eui"),
-            "devAddr": payload.get("dev_addr") or payload.get("devAddr"),
-            "object": payload.get("payload") or payload.get("object") or {},
-            "deviceProfileId": payload.get("device_profile_id")
-            or payload.get("deviceProfileId"),
-        }
-
-    # legacy shape with nested deviceInfo
-    device_info = payload.get("deviceInfo") or payload.get("device_info")
-    if isinstance(device_info, dict):
-        return {
-            "deviceInfo": device_info,
-            "devAddr": payload.get("devAddr") or payload.get("dev_addr"),
-            "object": payload.get("object") or payload.get("payload") or {},
-        }
-
-    # try to normalize top-level keys if present
-    if any(k in payload for k in ("devEui", "dev_eui", "devAddr", "dev_addr")):
-        return {
-            "tenantId": payload.get("tenantId") or payload.get("tenant_id"),
-            "devEui": payload.get("devEui") or payload.get("dev_eui"),
-            "devAddr": payload.get("devAddr") or payload.get("dev_addr"),
-            "object": payload.get("object") or payload.get("payload") or {},
-            "deviceProfileId": payload.get("deviceProfileId")
-            or payload.get("device_profile_id"),
-        }
-
-    return payload
+async def save_mapping(dev_eui: str, tenant_id: str, redis_client):
+    try:
+        await redis_client.hset("device_tenant_mapping", dev_eui, tenant_id)
+    except Exception:
+        loguru.logger.exception("Failed to save device_tenant_mapping")
 
 
 async def process_messages(db):
+    """Process messages from Redis queue."""
     while True:
         try:
-            # get redis client at runtime (may be set by connect_to_redis)
             redis_mod = importlib.import_module("app.redis.redis")
             client = getattr(redis_mod, "redis_client", None)
             if client is None:
@@ -58,45 +27,95 @@ async def process_messages(db):
 
             _, raw = await client.brpop("messages")
             payload = json.loads(raw)
-            payload = _normalize_payload(payload)
 
-            # extract identifiers from normalized payload
-            dev_eui = None
-            tenant_id = None
-            dev_addr = None
-            metadata = {}
+            # Expected structure (snake_case):
+            # {
+            #   "tenant_id": str,
+            #   "tenant_name": str | None,
+            #   "dev_eui": str,
+            #   "dev_addr": str | None,
+            #   "device_name": str | None,
+            #   "frequency": int | None,
+            #   "f_cnt": int | None,
+            #   "region": str | None,
+            #   "payload": dict,
+            #   "metadata": dict | None
+            # }
 
-            if "deviceInfo" in payload and isinstance(payload["deviceInfo"], dict):
-                device_info = payload["deviceInfo"]
-                dev_eui = device_info.get("devEui") or device_info.get("dev_eui")
-                tenant_id = device_info.get("tenantId") or device_info.get("tenant_id")
-                if "deviceProfileId" in device_info:
-                    metadata = {"deviceProfileId": device_info.get("deviceProfileId")}
-            else:
-                dev_eui = payload.get("devEui") or payload.get("dev_eui")
-                tenant_id = payload.get("tenantId") or payload.get("tenant_id")
-                if "deviceProfileId" in payload:
-                    metadata = {"deviceProfileId": payload.get("deviceProfileId")}
+            dev_eui = payload.get("dev_eui")
+            tenant_id = payload.get("tenant_id")
+            tenant_name = payload.get("tenant_name")
+            dev_addr = payload.get("dev_addr")
+            device_name = payload.get("device_name")
+            frequency = payload.get("frequency")
+            f_cnt = payload.get("f_cnt")
+            region = payload.get("region")
+            object_payload = payload.get("payload", {})
+            metadata = payload.get("metadata")
 
-            dev_addr = payload.get("devAddr") or payload.get("dev_addr")
-            object_payload = payload.get("object") or payload.get("payload") or {}
+            if not dev_eui or not tenant_id:
+                loguru.logger.warning(
+                    f"Skipping message without dev_eui or tenant_id: {payload}"
+                )
+                await asyncio.sleep(1)
+                continue
 
-            loguru.logger.info(f"Processing message from Redis: {dev_eui}")
+            if dev_eui and tenant_id:
+                await save_mapping(dev_eui, tenant_id, client)
+
+            loguru.logger.debug(f"Processing message from Redis: {dev_eui}")
 
             message = MessageIn(
                 tenant_id=tenant_id,
-                device_id=dev_eui,
+                tenant_name=tenant_name,
+                dev_eui=dev_eui,
                 dev_addr=dev_addr,
+                device_name=device_name,
+                frequency=frequency,
+                f_cnt=f_cnt,
+                region=region,
                 payload=object_payload,
                 metadata=metadata,
             )
-            loguru.logger.info(
-                f"Message created for device {message.device_id} in tenant {message.tenant_id}"
+
+            loguru.logger.debug(
+                f"Message created for device {message.dev_eui} in tenant {message.tenant_id}"
             )
+
             await save_message(db, message)
-            loguru.logger.info(
-                f"Message saved to database for device {message.device_id} in tenant {message.tenant_id}"
+            loguru.logger.debug(
+                f"Message saved to database for device {message.dev_eui} in tenant {message.tenant_id}"
             )
+
+            try:
+                await validate_and_alert_if_needed(payload, db)
+            except Exception:
+                loguru.logger.exception(
+                    f"Validation failed for {dev_eui} but continuing"
+                )
+
+            try:
+                ws_mod = importlib.import_module("app.ws.manager")
+                ws_manager = getattr(ws_mod, "manager", None)
+                if ws_manager is not None and dev_eui:
+                    ws_payload = {
+                        "type": "uplink",
+                        "tenant_id": tenant_id,
+                        "tenant_name": tenant_name,
+                        "dev_eui": dev_eui,
+                        "dev_addr": dev_addr,
+                        "device_name": device_name,
+                        "frequency": frequency,
+                        "f_cnt": f_cnt,
+                        "region": region,
+                        "payload": object_payload,
+                    }
+                    await ws_manager.broadcast_to_device(ws_payload, dev_eui)
+                    loguru.logger.debug(f"Notified device subscribers for {dev_eui}")
+            except Exception:
+                loguru.logger.exception("Failed to notify WS subscribers for device")
+
         except Exception as e:
             loguru.logger.error(f"Failed to process message: {e}")
+
         await asyncio.sleep(1)

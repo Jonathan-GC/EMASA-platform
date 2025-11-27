@@ -10,9 +10,29 @@ export const components = {
     DEVICE_PROFILES: () => import('@views/infrastructure/deviceProfiles/index.vue'),
     APPLICATIONS: () => import('@views/infrastructure/application/index.vue'),
     TENANTS: () => import('@views/tenants/index.vue'),
-    TENANT_USERS: () => import('@views/users/index.vue'),
+    TENANT_MANAGERS: () => import('@views/managers/index.vue'),
     TENANT_LOCATIONS: () => import('@views/locations/index.vue' ),
     TENANT_WORKSPACES: () => import('@views/workspaces/index.vue' ),
+    USERS: () => import('@views/users/index.vue'),
+    ROLES: () => import('@views/roles/index.vue'),
     LOGIN: () => import('@views/auth/login/index.vue'),
     REGISTER: () => import('@views/auth/signup/index.vue'),
+    RESET_PASSWORD_REQUEST: () => import('@views/auth/reset-password/request.vue'),
+    RESET_PASSWORD_CONFIRM: () => import('@views/auth/reset-password/confirm.vue'),
+    DEVICES: () => import('@views/infrastructure/application/devices/index.vue'),
+    MACHINES: () => import('@views/infrastructure/machines/index.vue'),
+    DEVICE_MEASUREMENTS: () => import('@views/infrastructure/application/devices/measurments/index.vue'),
+    NOTIFICATIONS: () => import('@views/notifications/index.vue'),
+    EMAIL_VERIFICATION: () => import('@views/auth/verification/index.vue'),
+    UNAUTHORIZED: () => import('@views/UnauthorizedView.vue'),
+    TENANT_SETUP: () => import('@views/auth/tenant-setup/index.vue'),
+    NOT_FOUND: () => import('@views/NotFound.vue'),
+
+    
+    // rute support
+    SUPPORT: () => import('@views/support/index.vue'),
+    INBOX: () => import('@views/inbox/index.vue'),
+    CONVERSATION: () => import('@views/conversation/index.vue'),
+    
+
 }
