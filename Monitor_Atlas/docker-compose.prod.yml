@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16
-    container_name: postgres_backend
+    container_name: postgres-backend
     restart: unless-stopped
     env_file: .env.db.prod
     ports:
@@ -19,7 +19,7 @@ services:
 
   web:
     build: .
-    container_name: django_backend
+    container_name: django-backend
     restart: unless-stopped
     env_file: .env.prod
     depends_on:
