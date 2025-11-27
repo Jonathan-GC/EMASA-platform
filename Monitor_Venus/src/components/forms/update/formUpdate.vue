@@ -255,7 +255,11 @@ async function createItem() {
         // Add all form values
         Object.keys(formValues.value).forEach(key => {
           if (!key.endsWith('_file') && formValues.value[key] !== null && formValues.value[key] !== undefined) {
-            formData.append(key, formValues.value[key]);
+            // Convert dev_eui to lowercase
+            const value = key === 'dev_eui' && typeof formValues.value[key] === 'string' 
+              ? formValues.value[key].toLowerCase() 
+              : formValues.value[key];
+            formData.append(key, value);
           }
         });
         
@@ -271,7 +275,11 @@ async function createItem() {
       } else {
         // Use JSON if no files
         console.log('📄 Using JSON payload (no files)');
-        payload = { ...formValues.value };
+        payload = { ...formValues.value } as any;
+        // Convert dev_eui to lowercase
+        if (payload.dev_eui && typeof payload.dev_eui === 'string') {
+          payload.dev_eui = payload.dev_eui.toLowerCase();
+        }
         // Remove file references
         Object.keys(payload).forEach(key => {
           if (key.endsWith('_file')) {
