@@ -1,15 +1,14 @@
-from app.redis.redis import redis_client
+from app.redis.redis import get_redis_client
 from loguru import logger
-import importlib
 
 
 async def get_devEui_mapping(dev_eui: str) -> str:
     """
     Given a dev_eui, return the associated tenant_id if exists.
     """
-    redis_mod = importlib.import_module("app.redis.redis")
-    client = getattr(redis_mod, "redis_client", None)
-    if client is None:
+    try:
+        client = get_redis_client()
+    except RuntimeError:
         logger.error("Redis client not initialized")
         return None
 
