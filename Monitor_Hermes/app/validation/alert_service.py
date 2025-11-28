@@ -72,7 +72,7 @@ async def send_alert_with_fallback(
     dev_eui: str,
     device_name: str,
     violations: List[MeasurementViolation],
-    user_id: Optional[int],
+    user_id: Optional[str],
     db,
 ) -> Dict[str, Any]:
     """
@@ -128,7 +128,7 @@ async def send_alert_with_fallback(
 
         pending_alert = PendingAlert(
             dev_eui=dev_eui,
-            user_id=user_id or 0,
+            user_id=user_id or "",
             alert_data=atlas_payload,
             created_at=datetime.now(timezone.utc),
             sent_via_websocket=ws_success,

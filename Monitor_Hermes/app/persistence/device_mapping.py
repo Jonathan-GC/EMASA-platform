@@ -7,7 +7,7 @@ from app.persistence.mongo import get_users_for_device
 import loguru
 
 
-async def get_user_ids_for_alert(db, dev_eui: str, tenant_id: str) -> List[int]:
+async def get_user_ids_for_alert(db, dev_eui: str, tenant_id: str) -> List[str]:
     """
     Get user IDs to notify for a device alert.
 
@@ -27,7 +27,7 @@ async def get_user_ids_for_alert(db, dev_eui: str, tenant_id: str) -> List[int]:
     return []
 
 
-async def get_primary_user_for_alert(db, dev_eui: str, tenant_id: str) -> Optional[int]:
+async def get_primary_user_for_alert(db, dev_eui: str, tenant_id: str) -> Optional[str]:
     """
     Get primary user ID for device alerts.
     """
