@@ -20,14 +20,14 @@ Query Parameters:
 Response (200 OK):
     [
         {
-            "id": 1,
+            "id": "401806290ced96c0",
             "min": 10.5,
             "max": 25.3,
             "threshold": 20.0,
             "unit": "voltage"
         },
         {
-            "id": 2,
+            "id": "5f8a7b3c2e1d9a4f",
             "min": 0.0,
             "max": 5.0,
             "threshold": 1.0,
@@ -92,7 +92,7 @@ Request Body:
 
 Response (200 OK):
     {
-        "id": 123,
+        "id": "7a2f9c8e1b5d3a6f",
         "status": "sent",
         "created_at": "2025-11-11T15:30:00Z"
     }
@@ -104,7 +104,7 @@ Usage Example:
         "title": "Voltage Alert",
         "message": "Voltage exceeded maximum limit",
         "type": "warning",
-        "user": 1,
+        "user": "5a8b9c7d2e3f1a4b",
         "metadata": {...}
     }
     
