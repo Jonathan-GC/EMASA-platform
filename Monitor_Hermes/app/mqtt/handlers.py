@@ -1,11 +1,10 @@
 from app.persistence.models import MessageIn
 from app.persistence.mongo import save_message
 from app.ws.manager import manager
-from app.redis.redis import redis_client
+from app.redis.redis import get_redis_client
 import asyncio
 import loguru
 import json
-import importlib
 
 
 def format_payload(payload: dict) -> dict | None:
@@ -130,14 +129,13 @@ def handle_message(payload: dict, db, loop):
             )
             return
 
-        redis_mod = importlib.import_module("app.redis.redis")
-        client = getattr(redis_mod, "redis_client", None)
-        if client is None:
-            loguru.logger.error("Redis client not initialized, skipping redis push")
-        else:
+        try:
+            client = get_redis_client()
             asyncio.run_coroutine_threadsafe(
                 client.lpush("messages", json.dumps(formatted)), loop
             )
+        except RuntimeError:
+            loguru.logger.error("Redis client not initialized, skipping redis push")
 
         tenant_id = formatted.get("tenant_id") or formatted.get("tenantId")
         if not tenant_id:
@@ -156,8 +154,11 @@ def handle_message(payload: dict, db, loop):
 def handle_uplink(payload):
     dev_eui = payload.get("devEui") or payload.get("dev_eui")
     tenant_id = payload.get("tenantId") or payload.get("tenant_id")
-    if dev_eui and tenant_id and redis_client:
+    if dev_eui and tenant_id:
         try:
-            redis_client.hset("device_tenant_mapping", dev_eui, tenant_id)
+            client = get_redis_client()
+            client.hset("device_tenant_mapping", dev_eui, tenant_id)
+        except RuntimeError:
+            loguru.logger.error("Redis client not initialized")
         except Exception:
             loguru.logger.exception("Failed to update device-tenant mapping in Redis")
