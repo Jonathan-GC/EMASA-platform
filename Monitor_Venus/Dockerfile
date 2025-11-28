@@ -6,10 +6,12 @@ WORKDIR /app
 # Accept build arguments
 ARG VITE_WEBSOCKET_URL
 ARG VITE_API_URL
+ARG VITE_WS_NOTIFY_URL
 
 # Set environment variables for build
 ENV VITE_WEBSOCKET_URL=$VITE_WEBSOCKET_URL
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_WS_NOTIFY_URL=$VITE_API_URL
 
 # Copy package files
 COPY package*.json ./
