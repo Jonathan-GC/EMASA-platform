@@ -22,7 +22,7 @@ class MessageDB(MessageIn):
 
 
 class MeasurementConfig(BaseModel):
-    id: int
+    id: str
     min: float
     max: float
     threshold: float
@@ -42,7 +42,7 @@ class DeviceMeasurementConfigsDB(DeviceMeasurementConfigs):
 
 class PendingAlert(BaseModel):
     dev_eui: str
-    user_id: int
+    user_id: str
     alert_data: Dict[str, Any]
     created_at: datetime
     retry_count: int = 0
@@ -60,8 +60,8 @@ class PendingAlertDB(PendingAlert):
 class DeviceUserMapping(BaseModel):
     dev_eui: str
     tenant_id: str
-    primary_user: int
-    assigned_users: List[int]
+    primary_user: str
+    assigned_users: List[str]
     created_at: datetime
     updated_at: datetime
 
