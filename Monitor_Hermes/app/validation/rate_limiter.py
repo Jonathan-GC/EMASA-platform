@@ -4,7 +4,7 @@ Prevents alert spam from repeated violations.
 """
 
 import loguru
-from app.redis.redis import redis_client
+from app.redis.redis import get_redis_client
 
 
 async def should_send_alert(dev_eui: str, unit: str) -> bool:
@@ -16,6 +16,7 @@ async def should_send_alert(dev_eui: str, unit: str) -> bool:
     key = f"alert_cooldown:{dev_eui}:{unit}"
 
     try:
+        redis_client = get_redis_client()
         exists = await redis_client.exists(key)
 
         if exists:
