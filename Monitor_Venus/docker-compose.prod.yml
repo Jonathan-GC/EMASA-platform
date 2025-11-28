@@ -30,6 +30,7 @@ services:
       args:
         VITE_WEBSOCKET_URL: ${VITE_WEBSOCKET_URL}
         VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_NOTIFY_URL: ${VITE_WS_NOTIFY_URL}
     restart: unless-stopped
     env_file:
       - .env.prod
