@@ -184,6 +184,7 @@ CSRF_TRUSTED_ORIGINS = config(
 )
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
 CSRF_COOKIE_SAMESITE = config("CSRF_COOKIE_SAMESITE", default="Lax", cast=str)
+CSRF_COOKIE_HTTPONLY = False  # Allow JS to read CSRF token if needed
 
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
 COOKIE_SECURE = config("COOKIE_SECURE", default=False, cast=bool)
