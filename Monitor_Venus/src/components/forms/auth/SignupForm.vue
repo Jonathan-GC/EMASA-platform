@@ -656,6 +656,7 @@ const handleResendVerification = async () => {
 </script>
 
 <style scoped>
+  
 .success-icon {
   display: flex;
   justify-content: center;
