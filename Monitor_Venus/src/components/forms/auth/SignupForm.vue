@@ -87,12 +87,12 @@
                     <div :class="isMobile ? 'full-width mb-4' : 'flex-2 mr-2 !pl-0 !pr-0'">
                       <ion-label position="stacked" class="!mb-2">Nombre</ion-label>
                       <ion-input v-model="credentials.name" type="text" placeholder="Fulano" :disabled="loading"
-                        class="custom" fill="solid"></ion-input>
+                        class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur"></ion-input>
                     </div>
                     <div :class="isMobile ? 'full-width' : 'flex-2 ml-2'">
                       <ion-label position="stacked" class="!mb-2">Apellido</ion-label>
                       <ion-input v-model="credentials.last_name" type="text" placeholder="Detal" :disabled="loading"
-                        class="custom" fill="solid"></ion-input>
+                        class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur"></ion-input>
                     </div>
                   </div>
                 </ion-item>
@@ -101,7 +101,7 @@
                 <ion-item class="custom">
                   <ion-label position="stacked" class="!mb-2">Correo</ion-label>
                   <ion-input v-model="credentials.email" type="email" placeholder="ejemplo@mail.com" :disabled="loading"
-                    class="custom" fill="solid"></ion-input>
+                    class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur"></ion-input>
                 </ion-item>
 
                 <!-- Phone -->
@@ -127,7 +127,7 @@
                     <div :class="isMobile ? 'full-width' : 'flex-2 ml-2'">
                       <ion-label position="stacked" class="!mb-2">Teléfono</ion-label>
                       <ion-input v-model="credentials.phone" type="tel" placeholder="000000000" :disabled="loading"
-                        class="custom" fill="solid"></ion-input>
+                        class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur"></ion-input>
                     </div>
                   </div>
                 </ion-item>
@@ -188,11 +188,11 @@
                 <ion-item class="custom">
                   <ion-label position="stacked" class="!mb-2">Usuario</ion-label>
                   <ion-input v-model="credentials.username" type="text" placeholder="nombre.usuario" :disabled="loading"
-                    class="custom" fill="solid"></ion-input>
+                    class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur"></ion-input>
                 </ion-item>
 
-                <PasswordInput v-model="credentials.password" :disabled="loading" placeholder="*****" />
-                <PasswordInput v-model="credentials.confirm_password" :disabled="loading" label="Confirma tu contraseña" placeholder="*****" />
+                <PasswordInput v-model="credentials.password" :disabled="loading" placeholder="*****" @focus="handleInputFocus" @blur="handleInputBlur" />
+                <PasswordInput v-model="credentials.confirm_password" :disabled="loading" label="Confirma tu contraseña" placeholder="*****" @focus="handleInputFocus" @blur="handleInputBlur" />
               </ion-card-content>
             </ion-card>
           </div>
@@ -249,7 +249,7 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, onMounted, watch } from 'vue'
+import { ref, inject, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import API from '@/utils/api/api.js'
 import { paths } from '@/plugins/router/paths.js'
@@ -269,6 +269,30 @@ const { isMobile } = useResponsiveView(480)
 
 // Iconos desde el plugin
 const icons = inject('icons', {})
+
+// Emit events for input focus/blur to handle scrolling
+const emit = defineEmits(['input-focus', 'input-blur'])
+
+// Debounced validation to reduce performance impact
+let validationTimeout = null
+const debouncedValidate = () => {
+  if (validationTimeout) clearTimeout(validationTimeout)
+  validationTimeout = setTimeout(() => {
+    // Force reactivity update for validation
+    currentStep.value = currentStep.value
+  }, 150)
+}
+
+// Optimized input handlers
+const handleInputFocus = () => {
+  emit('input-focus')
+}
+
+const handleInputBlur = () => {
+  // Only validate on blur for current step to reduce performance impact
+  debouncedValidate()
+  emit('input-blur')
+}
 
 // Multi-step state
 const currentStep = ref(1)
@@ -319,34 +343,42 @@ const address = ref({
 })
 
 
-// Watcher para mantener sincronizado el countryCode
+// Optimized watchers - Only run when on relevant step
 watch(selectedCountryCode, (newCode) => {
-  credentials.value.phone_code = newCode
+  if (currentStep.value === 1) { // Only sync on personal data step
+    credentials.value.phone_code = newCode
+  }
 })
 
-// Watchers to sync country/state/city with credentials
+// Watchers to sync country/state/city with credentials - only when on step 1
 watch(country, (newVal) => {
-  credentials.value.country = newVal
-  address.value.state = ''
-  address.value.city = ''
-  credentials.value.address.state = ''
-  credentials.value.address.city = ''
+  if (currentStep.value === 1) {
+    credentials.value.country = newVal
+    address.value.state = ''
+    address.value.city = ''
+    credentials.value.address.state = ''
+    credentials.value.address.city = ''
+  }
 })
 
 watch(() => address.value.state, (newVal) => {
-  credentials.value.address.state = newVal
-  address.value.city = ''
-  credentials.value.address.city = ''
+  if (currentStep.value === 1) {
+    credentials.value.address.state = newVal
+    address.value.city = ''
+    credentials.value.address.city = ''
+  }
 })
 
 watch(() => address.value.city, (newVal) => {
-  credentials.value.address.city = newVal
+  if (currentStep.value === 1) {
+    credentials.value.address.city = newVal
+  }
 })
 
-// Computed properties
-// Password visibility is handled inside the PasswordInput component
-
+// Computed properties - Only run when needed for current step
 const availableStates = computed(() => {
+  // Only compute if we're on step 1 (personal data)
+  if (currentStep.value !== 1) return []
   const countryName = country.value
   if (!countryName) return []
   const selectedCountry = countries.find(c => c.name === countryName)
@@ -358,6 +390,8 @@ const availableStates = computed(() => {
 })
 
 const availableCities = computed(() => {
+  // Only compute if we're on step 1 (personal data)
+  if (currentStep.value !== 1) return []
   const countryName = country.value
   const stateName = address.value.state
   if (!countryName || !stateName) return []
@@ -372,10 +406,13 @@ const availableCities = computed(() => {
 
 const canProceedToNextStep = computed(() => {
   const currentStepData = steps[currentStep.value - 1]
+  if (!currentStepData) return false
+
   return currentStepData.required.every(field => {
     const keys = field.split('.')
     let value = credentials.value
     for (const key of keys) {
+      if (value === undefined || value === null) return false
       value = value[key]
     }
     return value && value.toString().trim() !== ''
@@ -383,7 +420,8 @@ const canProceedToNextStep = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return canProceedToNextStep.value
+  // Only check on final step
+  return currentStep.value === steps.length && canProceedToNextStep.value
 })
 
 // Fetch CSRF token on component mount
@@ -397,6 +435,13 @@ onMounted(async () => {
     console.error('❌ Failed to fetch CSRF token:', error)
     // Don't set error.value here to avoid blocking the form UI
     // The CSRF will be fetched again when needed in handleRegistration
+  }
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (validationTimeout) {
+    clearTimeout(validationTimeout)
   }
 })
 
