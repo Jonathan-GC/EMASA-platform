@@ -383,6 +383,7 @@ ion-button.custom {
 .modal-selector-button:focus:not(:focus-visible) {
   box-shadow: none;
 }
+
 .modal-selector-button.disabled {
   opacity: 0.5;
   cursor: not-allowed;
