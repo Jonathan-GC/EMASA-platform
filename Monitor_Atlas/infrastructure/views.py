@@ -1,3 +1,4 @@
+import requests
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -23,8 +24,9 @@ from .models import (
     Measurements,
 )
 
+from organizations.models import Tenant
 from roles.permissions import HasPermission, IsServiceOrHasPermission
-from guardian.shortcuts import get_objects_for_user
+from guardian.shortcuts import get_objects_for_user, get_users_with_perms
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -716,6 +718,89 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
         serializer = MeasurementsSerializer(measurements, many=True)
         return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsServiceOrHasPermission],
+        scope="device",
+    )
+    def get_users_for_device(self, request):
+        dev_eui = request.query_params.get("dev_eui", None)
+
+        if not dev_eui:
+            return Response(
+                {"message": "No DevEUI provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            device = Device.objects.get(dev_eui=dev_eui)
+        except Device.DoesNotExist:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        tenant = Tenant.objects.get(workspace=device.workspace)
+
+        payload = {
+            "dev_eui": device.dev_eui,
+            "tenant_id": tenant.cs_tenant_id,
+            "assigned_users": [],
+        }
+
+        users_queryset = get_users_with_perms(device)
+        for user in users_queryset:
+            payload["assigned_users"].append(
+                {"user_id": user[0].id, "username": user[0].username}
+            )
+
+        return Response(payload)
+
+    @action(
+        detail=False,
+        methods=["put"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def update_measurement(self, request):
+        measurement_id = request.data.get("measurement_id", None)
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        url = f"{hermes_url}/internal/measurements/refresh"
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        if not measurement_id:
+            return Response(
+                {"message": "No measurement_id provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            measurement = Measurements.objects.get(id=measurement_id)
+        except Measurements.DoesNotExist:
+            return Response(
+                {"message": "Measurement not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(
+            measurement, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            response = requests.post(url, headers=headers, timeout=5)
+            if response.status_code != 200:
+                logger.error(
+                    f"Error notifying Hermes about measurement update: {response.status_code} {response.text}"
+                )
+            else:
+                logger.debug(
+                    f"Hermes notified about measurement update: {response.status_code} {response.text}"
+                )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema_view(

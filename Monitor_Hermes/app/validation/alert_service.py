@@ -72,13 +72,13 @@ async def send_alert_with_fallback(
     dev_eui: str,
     device_name: str,
     violations: List[MeasurementViolation],
-    user_id: Optional[str],
+    user_ids: List[str],
     db,
 ) -> Dict[str, Any]:
     """
     Send alert with fallback mechanism.
     PRIMARY: Atlas API (routes by dev_eui, no user_id needed)
-    FALLBACK: WebSocket (requires user_id from device_user_mapping)
+    FALLBACK: WebSocket (requires user_ids from device_user_mapping)
     """
     atlas_payload = build_atlas_payload(dev_eui, device_name, violations)
 
@@ -95,40 +95,60 @@ async def send_alert_with_fallback(
     except (httpx.HTTPError, httpx.TimeoutException) as e:
         loguru.logger.warning(f"⚠️ Atlas unreachable: {e}. Activating PLAN B...")
 
+        # If user_ids list is empty, try to fetch it now using our new hybrid cache logic
+        if not user_ids:
+            from app.persistence.device_mapping import get_user_ids_for_alert
+
+            # tenant_id is not strictly needed for the cache lookup but kept for signature compatibility
+            user_ids = await get_user_ids_for_alert(db, dev_eui, "")
+
         alert_msg = build_alert_message(dev_eui, device_name, violations)
 
         ws_success = False
 
-        if user_id:
+        if user_ids:
             try:
-                ws_success = await notify_warning(
-                    user_id=user_id,
+                # Notify all assigned users
+                from app.ws.helpers import notify_users
+
+                results = await notify_users(
+                    user_ids=user_ids,
                     title=alert_msg["title"],
                     message=alert_msg["message"],
-                    device_name=device_name,
-                    dev_eui=dev_eui,
-                    alert_type="measurement_violation",
+                    type="warning",
+                    extra_data={
+                        "device_name": device_name,
+                        "dev_eui": dev_eui,
+                        "alert_type": "measurement_violation",
+                    },
                 )
+
+                # Consider success if at least one user received it
+                ws_success = any(results.values())
 
                 if ws_success:
                     loguru.logger.info(
-                        f"✅ Alert sent via WebSocket (PLAN B) for user {user_id}"
+                        f"✅ Alert sent via WebSocket (PLAN B) to {sum(results.values())}/{len(user_ids)} users"
                     )
                 else:
                     loguru.logger.warning(
-                        f"⚠️ WebSocket delivery failed. User {user_id} not connected."
+                        f"⚠️ WebSocket delivery failed. None of {len(user_ids)} users connected."
                     )
 
             except Exception as fallback_error:
                 loguru.logger.exception(f"❌ PLAN B WebSocket failed: {fallback_error}")
         else:
             loguru.logger.warning(
-                f"⚠️ No user_id mapping for {dev_eui}. Cannot send WebSocket fallback."
+                f"⚠️ No user mapping for {dev_eui}. Cannot send WebSocket fallback."
             )
+
+        # For pending alert, we just store the first user_id or a placeholder if multiple
+        # This is mainly for retry logic which uses Atlas API anyway (not user_id dependent)
+        stored_user_id = user_ids[0] if user_ids else ""
 
         pending_alert = PendingAlert(
             dev_eui=dev_eui,
-            user_id=user_id or "",
+            user_id=stored_user_id,
             alert_data=atlas_payload,
             created_at=datetime.now(timezone.utc),
             sent_via_websocket=ws_success,

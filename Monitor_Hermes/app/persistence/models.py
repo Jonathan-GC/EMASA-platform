@@ -60,7 +60,6 @@ class PendingAlertDB(PendingAlert):
 class DeviceUserMapping(BaseModel):
     dev_eui: str
     tenant_id: str
-    primary_user: str
     assigned_users: List[str]
     created_at: datetime
     updated_at: datetime

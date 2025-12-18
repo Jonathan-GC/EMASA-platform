@@ -57,6 +57,42 @@ Used by:
 
 
 # =============================================================================
+# DEVICE USERS ENDPOINT
+# =============================================================================
+
+"""
+GET /api/v1/infrastructure/device/get_users_for_device
+
+Fetches users assigned to a specific device.
+
+Query Parameters:
+    dev_eui (str): Device EUI identifier
+
+Response (200 OK):
+    {
+        "dev_eui": "70b3d57ed006e15b",
+        "tenant_id": "5a8b9c7d2e3f1a4b",
+        "assigned_users": [
+            {"user_id": "1", "username": "admin"},
+            {"user_id": "2", "username": "operator"}
+        ]
+    }
+
+Usage Example:
+    from app.clients.atlas import atlas_client
+    
+    response = await atlas_client.get(
+        "/api/v1/infrastructure/device/get_users_for_device",
+        params={"dev_eui": "70b3d57ed006e15b"}
+    )
+    data = response.json()
+
+Used by:
+    - app.persistence.device_mapping.get_device_user_mapping()
+"""
+
+
+# =============================================================================
 # NOTIFICATION ALERT ENDPOINT
 # =============================================================================
 
