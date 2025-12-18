@@ -1,8 +1,14 @@
 <template>
   <div>
-    <!-- Clickable Button -->
+    <!-- Clickable Button with keyboard support -->
     <div 
       @click="openModal"
+      @keydown.enter="openModal"
+      @keydown.space.prevent="openModal"
+      tabindex="0"
+      role="button"
+      :aria-label="title || 'Open selector'"
+      :aria-disabled="disabled"
       class="modal-selector-button bg-zinc-300 rounded-md custom country-selector-button"
       :class="{ 'disabled': disabled }"
     >
