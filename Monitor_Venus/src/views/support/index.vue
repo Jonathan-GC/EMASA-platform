@@ -17,7 +17,7 @@ const icons = inject('icons', {})
               <ion-icon
                 :icon="icons.helpBuoy"
             ></ion-icon>
-              Support
+              Soporte
             </h1>
           </div>
         </div>

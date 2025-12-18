@@ -20,6 +20,7 @@ import {
   keyOutline,
   logOutOutline,
   shieldOutline,
+  syncOutline,
 
   // Communication icons
   mailOutline,
@@ -119,6 +120,7 @@ import {
   resizeOutline,
   close,
   ellipseOutline,
+  paperPlaneOutline,
 } from 'ionicons/icons'
 
 // Custom SVG icon
@@ -148,6 +150,7 @@ export const icons = {
   'logOut': logOutOutline,
   'shield': shieldOutline,
   'cube': cube,
+  'sync': syncOutline,
 
   // Communication icons
   'mail': mailOutline,
@@ -253,6 +256,7 @@ export const icons = {
   'close': close,
   'ellipse': ellipseOutline,
   'person_add': personAddOutline,
+  'paper_plane': paperPlaneOutline,
 }
 
 // Helper function to get icon by name
