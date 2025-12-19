@@ -7,7 +7,10 @@
         <div class="header">
           <div class="header-title">
             <ion-back-button default-href="/home"></ion-back-button>
-          <h1>🛜 Panel de Gateways</h1>
+          <h1>
+            <ion-icon :icon="icons.wifi"></ion-icon>
+            Gateways
+          </h1>
           </div>
         </div>
         <!-- Main gateways table with fetch data -->
@@ -24,10 +27,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, inject } from 'vue'
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import TableGateways from '@components/tables/gateways/TableGateways.vue'
+
+const icons = inject('icons', {})
 
 // State for connection status
 const isConnected = ref(true)

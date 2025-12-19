@@ -186,7 +186,7 @@
             <ion-icon
                 :icon="icons.options"
             ></ion-icon>
-            Perfiles de nodo
+            Perfiles de nodos
           </router-link>
 
           <!-- Applications: root, admin, technician, tenant_admin, tenant_user -->
@@ -197,10 +197,8 @@
               :class="{ active: $route.path === paths.APPLICATIONS }"
               @click="closeNavbar"
           >
-            <ion-icon
-                :icon="icons.package"
-            ></ion-icon>
-            Aplicaciones
+            <ion-icon :icon="icons.package" />
+            Servicios
           </router-link>
 
           <!-- Machines: root, admin, technician, tenant_admin, tenant_user -->
@@ -300,7 +298,7 @@ const canAccessRoute = (requiredRoles) => {
 
 // Check if user can access any admin route (to show the admin section)
 const canAccessAnyAdminRoute = computed(() => {
-  return canAccessRoute(['root', 'admin', 'manager', 'viewer', 'tenant_admin', 'tenant_user'])
+  return canAccessRoute(['root', 'admin', 'manager', 'viewe r', 'tenant_admin', 'tenant_user'])
 })
 
 // Check if user can access any infrastructure route (to show the infrastructure section)

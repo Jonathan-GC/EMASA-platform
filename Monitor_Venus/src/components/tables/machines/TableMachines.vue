@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🌐 Machines - Datos desde API</ion-card-title>
+        <ion-card-title>Máquinas de los clientes registradas</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${máquinas.length} máquinas encontrados` }}
+          {{ loading ? 'Cargando...' : `${machines.length} ${machines.length === 1 ? 'máquina encontrada' : 'máquinas encontradas'} ` }}
         </ion-card-subtitle>
       </ion-card-header>
       
@@ -25,7 +25,7 @@
         </div>
 
         <!-- Data table -->
-        <div v-else-if="máquinas.length > 0">
+        <div v-else-if="machines.length > 0">
           <!-- Controls -->
           <div class="table-controls">
             <ion-searchbar 
@@ -255,14 +255,14 @@ const icons = inject('icons', {})
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 
 // Component-specific state
-const máquinas = ref([])
+const machines = ref([])
 const loading = ref(false)
 const error = ref(null)
 const selectedmachine = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(máquinas, ['name', 'id', 'workspace.tenant', 'workspace.name'])
+const { searchText, filteredItems, handleSearch } = useTableSearch(machines, ['name', 'id', 'workspace.tenant', 'workspace.name'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
@@ -300,7 +300,7 @@ const fetchMachines = async () => {
     // Ensure response is an array, if not, wrap it or use a default
     const mockData = Array.isArray(response) ? response : (response?.data || []);
     
-    máquinas.value = mockData
+    machines.value = mockData
     console.log('✅ máquinas cargados:', mockData.length)
     
   } catch (err) {

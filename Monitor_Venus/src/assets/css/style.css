@@ -50,6 +50,14 @@ body a{
   border-top: 1px solid var(--color-zinc-200);
 }
 
+.page-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
 
 .header-title {
   display: flex;
