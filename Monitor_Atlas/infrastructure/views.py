@@ -790,7 +790,12 @@ class DeviceViewSet(viewsets.ModelViewSet):
         )
         if serializer.is_valid():
             serializer.save()
-            response = requests.post(url, headers=headers, timeout=5)
+            response = requests.post(
+                url,
+                headers=headers,
+                timeout=5,
+                json={"dev_eui": measurement.device.dev_eui},
+            )
             if response.status_code != 200:
                 logger.error(
                     f"Error notifying Hermes about measurement update: {response.status_code} {response.text}"
