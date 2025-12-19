@@ -794,7 +794,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 url,
                 headers=headers,
                 timeout=5,
-                json={"dev_eui": measurement.device.dev_eui},
+                params={"dev_eui": measurement.device.dev_eui},
             )
             if response.status_code != 200:
                 logger.error(
