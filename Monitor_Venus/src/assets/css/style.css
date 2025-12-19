@@ -10,9 +10,10 @@
 @import "./common.css";
 @import "./footer.css";
 @import "./tables.css";
+@import "./sidebar-styles.css";
 /*@import "./tabs.css";*/
 
-body a {
+body a{
     color: var(--color-amber-600);
 }
 
@@ -80,6 +81,10 @@ body a {
   align-items: center;
   gap: 8px;
   line-height: 1;
+}
+
+.nav-link {
+  justify-content: left!important;
 }
 
 
