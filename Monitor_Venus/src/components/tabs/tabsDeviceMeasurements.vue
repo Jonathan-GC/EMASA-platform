@@ -222,16 +222,25 @@
                 <ion-card-header>
                   <div class="card-header-content">
                     <div class="card-icon-wrapper">
-                      <ion-icon :icon="icons.analytics" color="primary"></ion-icon>
+                      <ion-icon :icon="icons[measurement.icon]" color="primary"></ion-icon>
                     </div>
                     <div class="card-title-section">
-                      <ion-card-title>{{ measurement.unit || 'Measurement' }}</ion-card-title>
+                      <ion-card-title>{{ capitalizeFirst(measurement.unit) || 'Measurement' }}</ion-card-title>
                       <ion-badge 
                         :color="getThresholdStatus(measurement)" 
                         class="status-badge"
                       >
                         {{ getThresholdStatusText(measurement) }}
                       </ion-badge>
+                      <quick-actions 
+                        type="measurement"
+                        to-edit
+                        to-delete
+                        :index:="measurement.id"
+                        :initial-data="setMeasurementInitialData(measurement)"
+                        @item-edited="handleMeasurementCreated"
+                        @item-deleted="handleMeasurementCreated"
+                      />
                     </div>
                   </div>
                 </ion-card-header>
@@ -243,7 +252,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Mínimo</span>
-                        <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.unit }}</span></span>
+                        <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.ref }}</span></span>
                       </div>
                     </div>
                     
@@ -253,7 +262,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Máximo</span>
-                        <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.unit }}</span></span>
+                        <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.ref }}</span></span>
                       </div>
                     </div>
                     
@@ -263,7 +272,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Umbral</span>
-                        <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.unit }}</span></span>
+                        <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.ref }}</span></span>
                       </div>
                     </div>
                   </div>
@@ -313,6 +322,7 @@
 <script setup>
 import { ref, inject, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { capitalizeFirst} from '@utils/formatters/formatters.js'
 import {
   IonTabs,
   IonTabBar,
@@ -648,6 +658,20 @@ function handleActivationFieldChanged(fieldKey, value) {
 function handleMeasurementCreated() {
   console.log('Measurement created, refreshing data...')
   fetchMeasurements()
+}
+
+// Set initial data for measurement editing (like TableApplications.vue)
+const setMeasurementInitialData = (measurement) => {
+  return {
+    icon: measurement.icon,
+    measurement_id: measurement.id,
+    unit: measurement.unit,
+    ref: measurement.ref,
+    min: measurement.min,
+    max: measurement.max,
+    threshold: measurement.threshold
+  }
+  console.log('Initial data for measurement:', measurement)
 }
 </script>
 

@@ -99,7 +99,8 @@
     { "key": "address.zipcode", "label": "Código postal", "type": "text" }
   ],
   "measurement": [
-    { "key": "unit", "label": "Unidad de medida", "type": "text" },
+    { "key": "unit", "label": "Nombre de variable", "type": "text" },
+    { "key": "ref", "label": "Unidad de medida", "type": "text" },
     { "key": "min", "label": "Valor mínimo", "type": "text" },
     { "key": "max", "label": "Valor máximo", "type": "text" },
     { "key": "threshold", "label": "Umbral", "type": "text" }

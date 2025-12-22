@@ -79,6 +79,7 @@ class API {
         return `infrastructure/device/${deviceId}/deactivate/`
     }
 
+//----[MEASUREMENTS]----
     DEVICE_GET_MEASUREMENTS(deviceId) {
         return `infrastructure/device/${deviceId}/measurements/`
     }
@@ -86,6 +87,7 @@ class API {
     DEVICE_CREATE_MEASUREMENTS(deviceId) {
         return `infrastructure/device/${deviceId}/create_measurement/`
     }
+    DEVICE_UPDATE_MEASUREMENTS='infrastructure/device/update_measurement/'
 
 
     //----[WEBSOCKET]----

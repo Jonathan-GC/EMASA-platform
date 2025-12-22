@@ -132,9 +132,7 @@
               </ion-col>
 
               <ion-col size="2">
-  
-
-                <QuickActions 
+                <quick-actions 
                   type="application"
                   :index="application.id" 
                   :name="application.name"
