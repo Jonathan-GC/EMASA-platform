@@ -768,6 +768,13 @@ class DeviceViewSet(viewsets.ModelViewSet):
         measurement_id = request.data.get("measurement_id", None)
 
         hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
         url = f"{hermes_url}/internal/measurements/refresh"
         headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
 
@@ -806,6 +813,57 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 )
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def last_metrics(self, request, pk=None):
+        device = self.get_object()
+
+        limit = request.query_params.get("limit", 5)
+        try:
+            limit = int(request.query_params.get("limit", 5))
+        except ValueError:
+            return Response(
+                {"message": "Invalid limit parameter"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/messages/last?dev_eui={device.dev_eui}&limit={limit}"
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        try:
+            response = requests.get(url, headers=headers, timeout=5)
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching last metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching last metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching last metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
 
 
 @extend_schema_view(

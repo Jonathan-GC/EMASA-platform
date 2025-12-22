@@ -8,6 +8,7 @@ from app.persistence.mongo import (
     get_db,
     save_message,
 )
+from app.persistence.db_helpers import get_last_messages
 from app.redis.redis import connect_to_redis, close_redis_connection
 from app.workers.redis_worker import process_messages
 from app.workers.alert_retry_worker import retry_pending_alerts
@@ -44,6 +45,16 @@ app.include_router(ws_router)
 async def create_message(message: MessageIn, db=Depends(get_db)):
     insert_id = await save_message(db, message)
     return {"insert_id": insert_id}
+
+
+@app.get("/messages/last")
+async def get_last_messages_endpoint(
+    dev_eui: str,
+    limit: int = 5,
+    db=Depends(get_db),
+    _: bool = Depends(verify_service_api_key),
+):
+    return await get_last_messages(db, dev_eui, limit)
 
 
 @app.post("/notify")
