@@ -1,4 +1,4 @@
-from pymongo import AsyncMongoClient
+from pymongo import AsyncMongoClient, ASCENDING
 from app.settings import settings
 from datetime import datetime, timezone
 from app.persistence.models import (
@@ -18,10 +18,21 @@ async def get_db():
     return client[settings.MONGO_DB]
 
 
+async def create_indexes():
+    """Creates TTL indexes for data retention."""
+    db = await get_db()
+    # Create TTL index for messages (3 months = 90 days = 7,776,000 seconds)
+    await db.messages.create_index(
+        [("timestamp", ASCENDING)], expireAfterSeconds=7776000
+    )
+    loguru.logger.debug("TTL indexes created/verified")
+
+
 async def connect_to_mongo():
     global client
     client = AsyncMongoClient(settings.MONGO_URI)
     loguru.logger.debug("Connected to MongoDB")
+    await create_indexes()
 
 
 async def close_mongo_connection():

@@ -4,6 +4,7 @@ from typing import Optional, Any, Dict, List
 
 
 class MessageIn(BaseModel):
+    type: Optional[str] = "uplink"
     tenant_id: str
     tenant_name: Optional[str] = None
     dev_eui: str

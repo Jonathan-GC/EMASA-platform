@@ -42,6 +42,7 @@ async def process_messages(db):
             #   "metadata": dict | None
             # }
 
+            msg_type = payload.get("type", "uplink")
             dev_eui = payload.get("dev_eui")
             tenant_id = payload.get("tenant_id")
             tenant_name = payload.get("tenant_name")
@@ -66,6 +67,7 @@ async def process_messages(db):
             loguru.logger.debug(f"Processing message from Redis: {dev_eui}")
 
             message = MessageIn(
+                type=msg_type,
                 tenant_id=tenant_id,
                 tenant_name=tenant_name,
                 dev_eui=dev_eui,
