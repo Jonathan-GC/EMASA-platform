@@ -412,9 +412,7 @@ def sync_gateway_update(gateway):
             },
         }
     }
-    logger.debug(
-        f"Updating gateway {gateway.cs_gateway_id} in Chirpstack. Payload: {payload}"
-    )
+
     found = get_gateway_by_id(gateway)
 
     if found:
@@ -1293,6 +1291,33 @@ def activate_device(device):
     }
     url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}/activate"
     response = requests.post(url, json=payload, headers=HEADERS)
+    if response and response.status_code == 200:
+        disabled_status = True
+        dev_url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
+        dev_response = requests.get(dev_url, headers=HEADERS)
+        if dev_response and dev_response.status_code == 200:
+            disabled_status = (
+                dev_response.json().get("device", {}).get("isDisabled", True)
+            )
+        if not disabled_status:
+            device.is_disabled = False
+            device.save(update_fields=["is_disabled"])
+        else:
+            upd_dev_url = f"{CHIRPSTACK_DEVICE_URL}/{device.dev_eui}"
+            upd_payload = {
+                "device": {
+                    "devEui": device.dev_eui,
+                    "name": device.name,
+                    "applicationId": device.application.cs_application_id,
+                    "description": device.description,
+                    "deviceProfileId": device.device_profile.cs_device_profile_id,
+                    "isDisabled": False,
+                }
+            }
+            upd_response = requests.put(upd_dev_url, json=upd_payload, headers=HEADERS)
+            if upd_response and upd_response.status_code == 200:
+                device.is_disabled = False
+                device.save(update_fields=["is_disabled"])
     return response
 
 
@@ -1308,7 +1333,8 @@ def device_activation_status(device):
     response = requests.get(url, headers=HEADERS)
     if response and response.status_code == 200:
         activation = response.json().get("device", {}).get("isDisabled", True)
-
+        device.is_disabled = activation
+        device.save(update_fields=["is_disabled"])
         if not activation:
             last_seen = response.json().get("device", {}).get("lastSeenAt", None)
             if last_seen or last_seen != None:
