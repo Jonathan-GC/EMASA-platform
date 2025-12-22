@@ -839,11 +839,18 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        url = f"{hermes_url}/messages/last?dev_eui={device.dev_eui}&limit={limit}"
+        url = f"{hermes_url}/messages/last"
+
         headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
 
+        params = {"dev_eui": device.dev_eui, "limit": limit}
+
         try:
-            response = requests.get(url, headers=headers, timeout=5)
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+
         except requests.RequestException as e:
             logger.error(
                 f"Connection error fetching last metrics from Hermes for device {device.dev_eui}: {e}"

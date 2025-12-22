@@ -1,4 +1,5 @@
 # App starting point
+from typing import Any
 from fastapi import FastAPI, Depends
 from app.ws.routes import router as ws_router
 from contextlib import asynccontextmanager
@@ -51,9 +52,10 @@ async def create_message(message: MessageIn, db=Depends(get_db)):
 async def get_last_messages_endpoint(
     dev_eui: str,
     limit: int = 5,
-    db=Depends(get_db),
+    db: Any = Depends(get_db),
     _: bool = Depends(verify_service_api_key),
 ):
+    loguru.logger.debug(f"Fetching last {limit} messages for {dev_eui}")
     return await get_last_messages(db, dev_eui, limit)
 
 
