@@ -823,7 +823,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
     def last_metrics(self, request, pk=None):
         device = self.get_object()
 
-        limit = request.query_params.get("limit", 5)
         try:
             limit = int(request.query_params.get("limit", 5))
         except ValueError:
