@@ -412,15 +412,19 @@ def sync_gateway_update(gateway):
             },
         }
     }
+    logger.debug(
+        f"Updating gateway {gateway.cs_gateway_id} in Chirpstack. Payload: {payload}"
+    )
+    found = get_gateway_by_id(gateway)
 
-    response = create_gateway_in_chirpstack(gateway)
-
-    if response and response.status_code == 200:
+    if found:
         response = requests.put(
             f"{CHIRPSTACK_GATEWAYS_URL}/{gateway.cs_gateway_id}",
             json=payload,
             headers=HEADERS,
         )
+    else:
+        response = create_gateway_in_chirpstack(gateway)
     set_status(gateway, response)
     return response
 

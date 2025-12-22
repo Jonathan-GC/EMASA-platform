@@ -760,7 +760,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=["put"],
+        methods=["patch"],
         permission_classes=[HasPermission],
         scope="device",
     )
