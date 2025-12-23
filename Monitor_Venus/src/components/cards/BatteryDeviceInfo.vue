@@ -50,9 +50,9 @@
         <ion-card-title>📡 Radio</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Region:</strong> {{ device.region || 'N.A' }}dBm</p>
-        <p><strong>SNR:</strong> {{ device.radio_info?.snr || 'N.A' }}dB</p>
-        <p><strong>Frame:</strong> #{{ device.frame_counter || 0 }}</p>
+        <p><strong>Region:</strong> {{ device.region || 'N.A' }}</p>
+        <p><strong>Frecuencia:</strong> {{ device.radio_info?.snr || 'N.A' }} Hz</p>
+        <p><strong>Frame:</strong> #{{ device.f_cnt || 0 }}</p>
       </ion-card-content>
     </ion-card>
   </div>
