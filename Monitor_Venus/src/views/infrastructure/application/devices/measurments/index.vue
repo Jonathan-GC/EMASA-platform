@@ -19,6 +19,7 @@
           :battery-device="batteryDevice"
           :battery-chart-key="batteryChartKey"
           :get-battery-percentage="getBatteryPercentage"
+          :measurement-devices="measurementDevices"
         />
       </div>
 
@@ -32,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import { useRoute } from 'vue-router'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
@@ -123,6 +124,18 @@ const handleWebSocketMessage = (data) => {
   // Note: The data will be processed by all processors, but each will only
   // create chart data if the payload contains measurements for that type
 }
+
+// Computed property to create measurementDevices map for child component
+const measurementDevices = computed(() => {
+  const devices = {}
+  
+  // Add all processors' devices to the map
+  measurementProcessors.forEach((entry, measurementType) => {
+    devices[measurementType] = entry.device.value
+  })
+  
+  return devices
+})
 
 // State for page readiness
 const pageReady = ref(false)

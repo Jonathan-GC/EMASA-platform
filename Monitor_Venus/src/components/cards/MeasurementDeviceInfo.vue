@@ -62,13 +62,15 @@ const icons = inject('icons', {})
 // Helper function to format measurement values
 const formatValue = (value) => {
   return (value || 0).toFixed(2)
+  
 }
 
 const getMeasurementStatusText = () => {
   if (!props.device?.buffer_stats || !props.measurement) return 'N.A'
   
-  const currentValue = props.device.buffer_stats[`current_${props.measurement.unit.toLowerCase()}`] || 
-                       props.device.buffer_stats[`avg_${props.measurement.unit.toLowerCase()}`] || 0
+  const measurementKey = props.measurement.unit.toLowerCase()
+  const currentValue = props.device.buffer_stats[`current_${measurementKey}`] || 
+                       props.device.buffer_stats[`avg_${measurementKey}`] || 0
   
   const min = props.measurement.min
   const max = props.measurement.max

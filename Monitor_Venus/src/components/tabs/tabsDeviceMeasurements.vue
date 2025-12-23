@@ -131,17 +131,17 @@
             </div>
 
             <!-- Device information section -->
-            <MeasurementDeviceInfo :device="device" :measurement="measurement" />
+            <MeasurementDeviceInfo :device="getMeasurementDevice(measurement)" :measurement="measurement" />
 
             <!-- No data placeholder -->
-            <div v-if="!device" class="no-data">
+            <div v-if="!getMeasurementDevice(measurement)" class="no-data">
               <h2>🔍 Esperando datos del dispositivo...</h2>
               <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
               <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
             </div>
 
             <!-- Measurement configuration card -->
-            <ion-card v-if="device" class="measurement-config-card">
+            <ion-card v-if="getMeasurementDevice(measurement)" class="measurement-config-card">
               <ion-card-header>
                 <div class="card-header-content">
                   <div class="card-title-section">
@@ -209,14 +209,14 @@
 
             <!-- Charts grid - similar to voltage tab -->
             <ChartsGrid 
-              v-if="device && getMeasurementChartData(measurement.unit).length > 0"
+              v-if="getMeasurementDevice(measurement) && getMeasurementChartData(measurement.unit).length > 0"
               :chart-fragments="getMeasurementChartData(measurement.unit)" 
               :chart-key="chartKey"
-              :device-name="device?.device_name || deviceName" 
+              :device-name="getMeasurementDevice(measurement)?.device_name || deviceName" 
             />
 
             <!-- Placeholder when no chart data available -->
-            <div v-else-if="device" class="charts-section">
+            <div v-else-if="getMeasurementDevice(measurement)" class="charts-section">
               <h3 class="section-title">📈 Real-time {{ capitalizeFirst(measurement.unit) }} Data</h3>
               <div class="waiting-data-card">
                 <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
@@ -580,6 +580,11 @@ const props = defineProps({
   batteryPercentage: {
     type: Number,
     default: 0
+  },
+  // Device data for all measurements (keyed by measurement unit)
+  measurementDevices: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -781,6 +786,22 @@ const getMeasurementChartData = (measurementUnit) => {
   
   // Return matching chart data or empty array for new measurement types
   return chartDataMap[unitLower] || []
+}
+
+// Helper function to get device data for a specific measurement
+const getMeasurementDevice = (measurement) => {
+  if (!measurement) return null
+  
+  // measurement.unit already contains the processor type (e.g., 'voltage', 'current', 'battery')
+  const measurementType = measurement.unit?.toLowerCase()
+  
+  // Check if we have device data for this measurement type
+  if (measurementType && props.measurementDevices[measurementType]) {
+    return props.measurementDevices[measurementType]
+  }
+  
+  // Fallback to main device if no specific device data found
+  return props.device
 }
 
 onMounted(() => {
