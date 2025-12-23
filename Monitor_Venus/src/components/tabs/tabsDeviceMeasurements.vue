@@ -131,7 +131,7 @@
             </div>
 
             <!-- Device information section -->
-            <DeviceInfo :device="device" />
+            <MeasurementDeviceInfo :device="device" :measurement="measurement" />
 
             <!-- No data placeholder -->
             <div v-if="!device" class="no-data">
@@ -503,6 +503,7 @@ ChartJS.register(
 import VoltageDeviceInfo from '@/components/cards/VoltageDeviceInfo.vue'
 import CurrentDeviceInfo from '@/components/cards/CurrentDeviceInfo.vue'
 import BatteryDeviceInfo from '@/components/cards/BatteryDeviceInfo.vue'
+import MeasurementDeviceInfo from '@/components/cards/MeasurementDeviceInfo.vue'
 import RecentMessages from '@/components/cards/RecentMessages.vue'
 
 // Import voltage view components

@@ -83,6 +83,7 @@ declare module 'vue' {
     IonTitle: typeof import('@ionic/vue')['IonTitle']
     IonToolbar: typeof import('@ionic/vue')['IonToolbar']
     LoginForm: typeof import('./src/components/forms/auth/LoginForm.vue')['default']
+    MeasurementDeviceInfo: typeof import('./src/components/cards/MeasurementDeviceInfo.vue')['default']
     MessageList: typeof import('./src/components/forms/inbox/MessageList.vue')['default']
     MessageReadingPane: typeof import('./src/components/forms/inbox/MessageReadingPane.vue')['default']
     ModalSelector: typeof import('./src/components/ui/ModalSelector.vue')['default']

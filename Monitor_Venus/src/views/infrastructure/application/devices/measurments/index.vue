@@ -42,6 +42,7 @@ import { useWebSocket } from '@composables/useWebSocket.js'
 import { useVoltageDataProcessor } from '@composables/useVoltageDataProcessor.js'
 import { useCurrentDataProcessor } from '@composables/useCurrentDataProcessor.js'
 import { useBatteryDataProcessor } from '@composables/useBatteryDataProcessor.js'
+import { useMeasurementDataProcessor } from '@composables/useMeasurementDataProcessor.js'
 
 // Get route params
 const route = useRoute()
@@ -80,12 +81,47 @@ const {
   processIncomingData: processBatteryData
 } = useBatteryDataProcessor()
 
+// Map of active measurement processors
+const measurementProcessors = new Map()
+
+// Register default processors
+measurementProcessors.set('voltage', { processor: { processIncomingData }, device: lastDevice })
+measurementProcessors.set('current', { processor: { processIncomingData: processCurrentData }, device: currentDevice })
+measurementProcessors.set('battery', { processor: { processIncomingData: processBatteryData }, device: batteryDevice })
+
+// Function to create and register custom measurement processor
+const registerMeasurementProcessor = (measurementType, config = {}) => {
+  if (measurementProcessors.has(measurementType)) {
+    console.log(`⚠️ Processor for ${measurementType} already exists, skipping registration`)
+    return measurementProcessors.get(measurementType)
+  }
+
+  const processor = useMeasurementDataProcessor({
+    measurementType,
+    chartLabel: config.chartLabel || measurementType.charAt(0).toUpperCase() + measurementType.slice(1),
+    unit: config.unit || '',
+    chartColors: config.chartColors,
+    specialProcessing: config.specialProcessing
+  })
+
+  measurementProcessors.set(measurementType, {
+    processor,
+    device: processor.lastDevice
+  })
+
+  console.log(`✅ Registered processor for ${measurementType}`)
+  return measurementProcessors.get(measurementType)
+}
+
 // Combined message handler for all data types
 const handleWebSocketMessage = (data) => {
-  // Process data for all three measurement types
-  processIncomingData(data)      // Voltage
-  processCurrentData(data)       // Current
-  processBatteryData(data)       // Battery
+  // Process data for all registered measurement types
+  measurementProcessors.forEach((entry, measurementType) => {
+    entry.processor.processIncomingData(data)
+  })
+
+  // Note: The data will be processed by all processors, but each will only
+  // create chart data if the payload contains measurements for that type
 }
 
 // State for page readiness
