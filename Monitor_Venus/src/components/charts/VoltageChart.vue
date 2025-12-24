@@ -3,12 +3,13 @@
     <ion-card-header>
       <ion-card-title>
         {{ title || `Sensor ${index + 1}` }} 
-        ({{ chartData.datasets[0]?.data?.length || 0 }} muestras)
+        ({{ sampleCount }} muestras)
       </ion-card-title>
     </ion-card-header>
     <ion-card-content>
       <div class="chart-container">
         <Line
+          ref="chartRef"
           :data="chartData"
           :options="chartOptions"
         />
@@ -18,13 +19,14 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { Line } from 'vue-chartjs'
 import { format } from 'date-fns'
 
 /**
  * VoltageChart Component - Single voltage chart display
  * Responsibility: Render a single voltage chart with proper configuration
+ * Optimized to update chart data without re-rendering with progressive line drawing
  */
 const props = defineProps({
   chartData: {
@@ -42,7 +44,37 @@ const props = defineProps({
   deviceName: {
     type: String,
     default: 'Dispositivo IoT'
+  },
+  yAxisMin: {
+    type: Number,
+    default: null
+  },
+  yAxisMax: {
+    type: Number,
+    default: null
   }
+})
+
+const chartRef = ref(null)
+const sampleCount = ref(0)
+
+// Update sample count without triggering re-render
+const updateSampleCount = () => {
+  sampleCount.value = props.chartData.datasets[0]?.data?.length || 0
+}
+
+// Watch for data changes and update chart directly
+watch(() => props.chartData, (newData) => {
+  if (chartRef.value?.chart) {
+    // Update chart data directly without re-rendering or animation
+    chartRef.value.chart.data.datasets = newData.datasets
+    chartRef.value.chart.update('none') // 'none' mode = no animation
+    updateSampleCount()
+  }
+}, { deep: false })
+
+onMounted(() => {
+  updateSampleCount()
 })
 
 // Chart options configuration
@@ -53,6 +85,7 @@ const chartOptions = computed(() => ({
     intersect: false,
     mode: 'index'
   },
+  animation: false,
   plugins: {
     title: {
       display: true,
@@ -92,6 +125,8 @@ const chartOptions = computed(() => ({
     },
     y: {
       beginAtZero: false,
+      min: props.yAxisMin,
+      max: props.yAxisMax,
       title: {
         display: true,
         text: 'Voltaje (V)'
@@ -101,8 +136,15 @@ const chartOptions = computed(() => ({
       }
     }
   },
-  animation: {
-    duration: 200
+  elements: {
+    line: {
+      tension: 0.4 // Smooth curve for the line
+    },
+    point: {
+      radius: 0,
+      hitRadius: 10,
+      hoverRadius: 5
+    }
   }
 }))
 </script>

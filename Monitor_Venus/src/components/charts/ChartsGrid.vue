@@ -10,6 +10,8 @@
       :chart-data="fragment"
       :index="index"
       :device-name="deviceName"
+      :y-axis-min="yAxisMin"
+      :y-axis-max="yAxisMax"
     />
   </div>
 </template>
@@ -34,6 +36,14 @@ const props = defineProps({
   deviceName: {
     type: String,
     default: 'Dispositivo IoT'
+  },
+  yAxisMin: {
+    type: Number,
+    default: null
+  },
+  yAxisMax: {
+    type: Number,
+    default: null
   }
 })
 

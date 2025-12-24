@@ -32,6 +32,7 @@ export function useMeasurementDataProcessor(config) {
     const chartKey = ref(0)
     const chartDataFragments = ref([])
     const maxChannelIndex = ref(0)
+    const maxAccumulatedMessages = 6 // Accumulate last 6 messages
 
     const parseTime = (t) => {
         if (t === undefined || t === null) return new Date(NaN)
@@ -199,10 +200,26 @@ export function useMeasurementDataProcessor(config) {
         recentMessages.value.unshift(messageWithTimestamp)
         if (recentMessages.value.length > 15) recentMessages.value.pop()
 
-        // Determine numeric indices and update maxChannelIndex
-        const incomingKeys = Object.keys(channels)
+        // Accumulate channels from last 3 messages
+        const accumulatedChannels = {}
+        const messagesToProcess = recentMessages.value.slice(0, maxAccumulatedMessages)
+        
+        messagesToProcess.forEach(msg => {
+            const msgChannels = extractSensorChannels(msg, measurementType)
+            if (msgChannels) {
+                Object.entries(msgChannels).forEach(([channelKey, samples]) => {
+                    if (!accumulatedChannels[channelKey]) {
+                        accumulatedChannels[channelKey] = []
+                    }
+                    accumulatedChannels[channelKey].push(...samples)
+                })
+            }
+        })
+
+        // Determine numeric indices from accumulated channels
+        const accumulatedKeys = Object.keys(accumulatedChannels)
         let highest = maxChannelIndex.value
-        incomingKeys.forEach(k => {
+        accumulatedKeys.forEach(k => {
             const idx = getChannelIndex(k)
             if (Number.isFinite(idx) && idx > 0 && idx < Number.MAX_SAFE_INTEGER && idx > highest) {
                 highest = idx
@@ -210,13 +227,13 @@ export function useMeasurementDataProcessor(config) {
         })
         if (highest > maxChannelIndex.value) maxChannelIndex.value = highest
 
-        // Build fragments for fixed positions: ch1..chN
+        // Build fragments using accumulated data
         const fragments = []
         const label = chartLabel || measurementType.charAt(0).toUpperCase() + measurementType.slice(1)
         
         for (let i = 1; i <= Math.max(1, maxChannelIndex.value); i++) {
-            const matchKey = incomingKeys.find(k => getChannelIndex(k) === i) || null
-            const samplesRaw = matchKey ? channels[matchKey] : []
+            const matchKey = accumulatedKeys.find(k => getChannelIndex(k) === i) || null
+            const samplesRaw = matchKey ? accumulatedChannels[matchKey] : []
             const samples = (samplesRaw || [])
                 .map(s => ({ x: parseTime(s.time), y: s.value }))
                 .filter(p => p.x.toString() !== 'Invalid Date' && typeof p.y === 'number')
@@ -238,10 +255,15 @@ export function useMeasurementDataProcessor(config) {
             fragments.push({ datasets: [dataset] })
         }
 
+        // Update fragments in-place to avoid triggering unnecessary re-renders
+        // Only update the key if the number of fragments changed (new channels detected)
+        const fragmentsChanged = chartDataFragments.value.length !== fragments.length
         chartDataFragments.value = fragments
-        chartKey.value++
+        if (fragmentsChanged) {
+            chartKey.value++
+        }
 
-        console.log(`✅ Procesados ${fragments.length} canales de ${measurementType}`)
+        console.log(`✅ Procesados ${fragments.length} canales de ${measurementType} (acumulando ${messagesToProcess.length} mensajes)`)
     }
 
     /**

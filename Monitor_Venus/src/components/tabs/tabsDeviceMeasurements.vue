@@ -65,8 +65,12 @@
             </div>
 
             <!-- Charts grid -->
-            <ChartsGrid :chart-fragments="chartDataFragments" :chart-key="chartKey"
-              :device-name="device?.device_name || deviceName" />
+            <ChartsGrid 
+              :chart-fragments="chartDataFragments" 
+              :chart-key="chartKey"
+              :device-name="device?.device_name || deviceName"
+              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.min"
+              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.max" />
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
@@ -100,8 +104,13 @@
             </div>
 
             <!-- Current charts grid (multi-channel) -->
-            <ChartsGrid v-if="currentDevice" :chart-fragments="currentChartDataFragments" :chart-key="currentChartKey"
-              :device-name="currentDevice?.device_name || 'Dispositivo IoT'" />
+            <ChartsGrid 
+              v-if="currentDevice" 
+              :chart-fragments="currentChartDataFragments" 
+              :chart-key="currentChartKey"
+              :device-name="currentDevice?.device_name || 'Dispositivo IoT'"
+              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.min"
+              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.max" />
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
@@ -212,7 +221,9 @@
               v-if="getMeasurementDevice(measurement) && getMeasurementChartData(measurement.unit).length > 0"
               :chart-fragments="getMeasurementChartData(measurement.unit)" 
               :chart-key="chartKey"
-              :device-name="getMeasurementDevice(measurement)?.device_name || deviceName" 
+              :device-name="getMeasurementDevice(measurement)?.device_name || deviceName"
+              :y-axis-min="measurement.min"
+              :y-axis-max="measurement.max" 
             />
 
             <!-- Placeholder when no chart data available -->
