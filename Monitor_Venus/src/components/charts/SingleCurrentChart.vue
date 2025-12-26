@@ -5,103 +5,143 @@
         📊 Mediciones de Corriente - {{ deviceName }}
       </ion-card-title>
       <ion-card-subtitle>
-        {{ chartData.datasets[0]?.data?.length || 0 }} muestras
+        {{ sampleCount }} muestras
       </ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
       <div class="chart-wrapper">
-        <Line
-          :data="chartData"
-          :options="chartOptions"
-          :key="chartKey"
-        />
+        <canvas ref="canvasRef"></canvas>
       </div>
     </ion-card-content>
   </ion-card>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { Line } from 'vue-chartjs'
+import { computed, ref, watch, onMounted, onUnmounted, toRaw, markRaw } from 'vue'
+import { Chart } from 'chart.js'
 import { format } from 'date-fns'
+import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent } from '@ionic/vue'
 
 /**
- * SingleCurrentChart Component - Single current chart display
- * Responsibility: Render current measurements chart with proper configuration
+ * SingleCurrentChart Component
+ * Renders current measurements using native Chart.js
+ * for high-performance streaming and stability.
  */
 const props = defineProps({
-  chartData: {
-    type: Object,
-    required: true
-  },
-  chartKey: {
-    type: Number,
-    default: 0
-  },
-  deviceName: {
-    type: String,
-    default: 'Dispositivo IoT'
+  chartData: { type: Object, required: true },
+  latestDataPoints: { type: Object, default: () => ({}) },
+  chartKey: { type: Number, default: 0 },
+  deviceName: { type: String, default: 'Dispositivo IoT' },
+  yAxisMin: { type: Number, default: null },
+  yAxisMax: { type: Number, default: null }
+})
+
+const canvasRef = ref(null)
+const chartInstance = ref(null)
+const sampleCount = ref(0)
+const streamingBufferMap = {}
+
+// Initialize non-reactive data structure for Chart.js
+const localChartData = markRaw({
+  datasets: props.chartData.datasets.map(ds => ({
+    ...ds,
+    data: [...ds.data]
+  }))
+})
+
+// Helper: Update the sample count display
+const updateSampleCount = () => {
+  if (chartInstance.value) {
+    sampleCount.value = chartInstance.value.data.datasets[0]?.data?.length || 0
+  }
+}
+
+// Watch for incoming points and buffer them by channel
+watch(() => props.latestDataPoints, (newPointsMap) => {
+  if (newPointsMap) {
+    Object.entries(newPointsMap).forEach(([channelIndex, points]) => {
+      if (!streamingBufferMap[channelIndex]) {
+        streamingBufferMap[channelIndex] = []
+      }
+      streamingBufferMap[channelIndex].push(...points)
+    })
+  }
+}, { deep: false })
+
+onMounted(() => {
+  if (canvasRef.value) {
+    chartInstance.value = new Chart(canvasRef.value, {
+      type: 'line',
+      data: localChartData,
+      options: chartOptions.value
+    })
+    updateSampleCount()
   }
 })
 
-// Chart options configuration for current measurements
+onUnmounted(() => {
+  if (chartInstance.value) {
+    chartInstance.value.destroy()
+    chartInstance.value = null
+  }
+})
+
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  animation: false,
   interaction: {
-    intersect: false,
-    mode: 'index'
+    intersect: true,
+    mode: 'nearest'
+  },
+  hover: {
+    mode: 'nearest',
+    intersect: true,
+    animationDuration: 0
   },
   plugins: {
     title: {
       display: true,
-      text: `Mediciones de Corriente - ${props.deviceName}`
+      text: `Corriente - ${props.deviceName}`
     },
-    legend: {
-      display: true
-    },
+    legend: { display: true },
     tooltip: {
+      animation: false,
       callbacks: {
-        title: function(context) {
-          if (context[0]?.parsed?.x) {
-            return format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS')
-          }
-          return ''
-        },
-        label: function(context) {
-          return `Corriente: ${context.parsed.y.toFixed(3)}A`
-        }
+        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS') : '',
+        label: (context) => `Corriente: ${context.parsed.y.toFixed(3)}A`
       }
     }
   },
   scales: {
     x: {
-      type: 'time',
-      time: {
-        displayFormats: {
-          millisecond: 'HH:mm:ss.SSS',
-          second: 'HH:mm:ss',
-          minute: 'HH:mm'
+      type: 'realtime',
+      realtime: {
+        duration: 30000,
+        refresh: 1000,
+        delay: 1000,
+        ttl: 60000,
+        onRefresh: (chart) => {
+          let hasUpdates = false
+          Object.entries(streamingBufferMap).forEach(([channelIndex, points]) => {
+            const idx = parseInt(channelIndex)
+            if (chart.data.datasets[idx] && points.length > 0) {
+              chart.data.datasets[idx].data.push(...points.map(p => toRaw(p)))
+              points.length = 0
+              hasUpdates = true
+            }
+          })
+          if (hasUpdates) updateSampleCount()
         }
       },
-      title: {
-        display: true,
-        text: 'Tiempo'
-      }
+      title: { display: true, text: 'Tiempo' }
     },
     y: {
-      beginAtZero: false,
-      title: {
-        display: true,
-        text: 'Corriente (A)'
-      },
-      grid: {
-        color: 'rgba(0, 0, 0, 0.1)'
-      }
+      min: props.yAxisMin,
+      max: props.yAxisMax,
+      title: { display: true, text: 'Corriente (A)' },
+      grid: { color: 'rgba(0, 0, 0, 0.1)' }
     }
-  },
-  animation: {
-    duration: 200
   }
 }))
 </script>

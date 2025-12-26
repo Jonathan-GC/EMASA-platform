@@ -40,6 +40,7 @@
         <SingleCurrentChart 
           v-if="lastDevice && chartData.datasets[0].data.length > 0"
           :chart-data="chartData"
+          :latest-data-points="latestDataPoints"
           :chart-key="chartKey"
           :device-name="lastDevice?.device_name || 'Dispositivo IoT'"
         />
@@ -102,7 +103,8 @@ ChartJS.register(
 // Use our composables
 const { isConnected, reconnectAttempts, setOnMessage } = useWebSocket()
 const { 
-  chartData, 
+  chartDataFragments: chartData, 
+  latestDataPoints,
   lastDevice, 
   recentMessages, 
   chartKey, 

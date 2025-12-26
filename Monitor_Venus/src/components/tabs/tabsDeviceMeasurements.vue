@@ -68,6 +68,7 @@
             <ChartsGrid 
               :chart-fragments="chartDataFragments" 
               :chart-key="chartKey"
+              :latest-data-points="latestDataPoints"
               :device-name="device?.device_name || deviceName"
               :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.min"
               :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.max" />
@@ -108,6 +109,7 @@
               v-if="currentDevice" 
               :chart-fragments="currentChartDataFragments" 
               :chart-key="currentChartKey"
+              :latest-data-points="currentLatestDataPoints"
               :device-name="currentDevice?.device_name || 'Dispositivo IoT'"
               :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.min"
               :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.max" />
@@ -221,6 +223,7 @@
               v-if="getMeasurementDevice(measurement) && getMeasurementChartData(measurement.unit).length > 0"
               :chart-fragments="getMeasurementChartData(measurement.unit)" 
               :chart-key="chartKey"
+              :latest-data-points="getMeasurementLatestDataPoints(measurement.unit)"
               :device-name="getMeasurementDevice(measurement)?.device_name || deviceName"
               :y-axis-min="measurement.min"
               :y-axis-max="measurement.max" 
@@ -269,7 +272,10 @@
 
             <!-- Battery charts grid (multi-channel dual-axis) -->
             <BatteryChartsGrid v-if="batteryDevice" :chart-fragments="batteryChartDataFragments" :chart-key="batteryChartKey"
-              :device-name="batteryDevice?.device_name || 'Dispositivo IoT'" />
+              :latest-data-points="batteryLatestDataPoints"
+              :device-name="batteryDevice?.device_name || 'Dispositivo IoT'"
+              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.min"
+              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.max" />
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
@@ -558,6 +564,10 @@ const props = defineProps({
     type: Number,
     default: 0
   },
+  latestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
   deviceName: {
     type: String,
     default: 'Dispositivo IoT'
@@ -566,6 +576,10 @@ const props = defineProps({
   currentChartDataFragments: {
     type: Array,
     default: () => []
+  },
+  currentLatestDataPoints: {
+    type: Object,
+    default: () => ({})
   },
   currentDevice: {
     type: Object,
@@ -579,6 +593,10 @@ const props = defineProps({
   batteryChartDataFragments: {
     type: Array,
     default: () => []
+  },
+  batteryLatestDataPoints: {
+    type: Object,
+    default: () => ({})
   },
   batteryDevice: {
     type: Object,
@@ -797,6 +815,25 @@ const getMeasurementChartData = (measurementUnit) => {
   
   // Return matching chart data or empty array for new measurement types
   return chartDataMap[unitLower] || []
+}
+
+// Helper function to get latest data points for dynamic measurements
+const getMeasurementLatestDataPoints = (measurementUnit) => {
+  if (!measurementUnit) return {}
+  
+  const unitLower = measurementUnit.toLowerCase()
+  
+  const latestDataMap = {
+    'voltage': props.latestDataPoints || {},
+    'voltaje': props.latestDataPoints || {},
+    'current': props.currentLatestDataPoints || {},
+    'corriente': props.currentLatestDataPoints || {},
+    'battery': props.batteryLatestDataPoints || {},
+    'batería': props.batteryLatestDataPoints || {},
+    'bateria': props.batteryLatestDataPoints || {},
+  }
+  
+  return latestDataMap[unitLower] || {}
 }
 
 // Helper function to get device data for a specific measurement

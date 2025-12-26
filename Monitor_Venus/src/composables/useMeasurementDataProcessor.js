@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, shallowRef, toRaw, computed } from 'vue'
 
 /**
  * Generic measurement data processor for IoT measurements
@@ -30,9 +30,20 @@ export function useMeasurementDataProcessor(config) {
     const lastDevice = ref(null)
     const recentMessages = ref([])
     const chartKey = ref(0)
-    const chartDataFragments = ref([])
+    const chartDataFragments = shallowRef([])
+    const latestDataPoints = shallowRef({}) // Changed to object: { channelIndex: [newPoints] }
     const maxChannelIndex = ref(0)
-    const maxAccumulatedMessages = 6 // Accumulate last 6 messages
+    const maxAccumulatedMessages = 15 // Increased to provide more history on load
+
+    const lastProcessedTimestamp = ref({}) // Track last timestamp per channel to avoid duplicates
+
+    // Computed property for backwards compatibility with views expecting a single chart
+    const chartData = computed(() => {
+        if (chartDataFragments.value.length > 0) {
+            return chartDataFragments.value[0]
+        }
+        return { datasets: [{ label: '', data: [] }] }
+    })
 
     const parseTime = (t) => {
         if (t === undefined || t === null) return new Date(NaN)
@@ -179,15 +190,18 @@ export function useMeasurementDataProcessor(config) {
             return
         }
 
+        // Use raw data for processing to avoid reactivity overhead
+        const rawData = toRaw(data)
+
         // Extract channels for this measurement type
-        const channels = extractSensorChannels(data, measurementType)
+        const channels = extractSensorChannels(rawData, measurementType)
         if (!channels) return
 
         // Create enhanced device object
         const enhancedDevice = {
-            ...data,
-            buffer_stats: calculateBufferStats(data),
-            reception_timestamp: data.payload?.arrival_date || data.arrival_date || new Date().toISOString()
+            ...rawData,
+            buffer_stats: calculateBufferStats(rawData),
+            reception_timestamp: rawData.payload?.arrival_date || rawData.arrival_date || new Date().toISOString()
         }
         lastDevice.value = enhancedDevice
 
@@ -200,12 +214,12 @@ export function useMeasurementDataProcessor(config) {
         recentMessages.value.unshift(messageWithTimestamp)
         if (recentMessages.value.length > 15) recentMessages.value.pop()
 
-        // Accumulate channels from last 3 messages
+        // Accumulate channels from last messages using raw data
         const accumulatedChannels = {}
-        const messagesToProcess = recentMessages.value.slice(0, maxAccumulatedMessages)
+        const messagesToProcess = toRaw(recentMessages.value).slice(0, maxAccumulatedMessages)
         
         messagesToProcess.forEach(msg => {
-            const msgChannels = extractSensorChannels(msg, measurementType)
+            const msgChannels = extractSensorChannels(toRaw(msg), measurementType)
             if (msgChannels) {
                 Object.entries(msgChannels).forEach(([channelKey, samples]) => {
                     if (!accumulatedChannels[channelKey]) {
@@ -236,29 +250,70 @@ export function useMeasurementDataProcessor(config) {
             const samplesRaw = matchKey ? accumulatedChannels[matchKey] : []
             const samples = (samplesRaw || [])
                 .map(s => ({ x: parseTime(s.time), y: s.value }))
-                .filter(p => p.x.toString() !== 'Invalid Date' && typeof p.y === 'number')
+                .filter(p => p.x instanceof Date && !isNaN(p.x.getTime()) && typeof p.y === 'number')
                 .sort((a, b) => a.x - b.x)
             
             const color = chartColors[(i - 1) % chartColors.length]
-            const dataset = {
-                label: `${label} ch${i}${unit ? ' (' + unit + ')' : ''}`,
-                data: samples,
-                borderColor: color,
-                backgroundColor: color,
-                borderWidth: 2,
-                tension: 0.1,
-                pointRadius: 1,
-                pointHoverRadius: 4,
-                fill: false
+            
+            let datasets = []
+            if (config.datasetGenerator && typeof config.datasetGenerator === 'function') {
+                datasets = config.datasetGenerator(i, samples, color)
+            } else {
+                datasets = [{
+                    label: `${label} ch${i}${unit ? ' (' + unit + ')' : ''}`,
+                    data: samples,
+                    borderColor: color,
+                    backgroundColor: color,
+                    borderWidth: 2,
+                    tension: 0.1,
+                    pointRadius: 1,
+                    pointHoverRadius: 4,
+                    fill: false
+                }]
             }
             
-            fragments.push({ datasets: [dataset] })
+            fragments.push({ datasets })
         }
 
-        // Update fragments in-place to avoid triggering unnecessary re-renders
-        // Only update the key if the number of fragments changed (new channels detected)
+        // Update fragments reference only if the number of channels changed
+        // This prevents the charts from resetting on every message when using streaming
         const fragmentsChanged = chartDataFragments.value.length !== fragments.length
-        chartDataFragments.value = fragments
+        
+        if (fragmentsChanged) {
+            chartDataFragments.value = fragments
+            chartKey.value++
+        } else {
+            // Silently update the data in existing fragments for future components (like tab switching)
+            // without triggering a reactive update of the shallowRef reference
+            fragments.forEach((newFrag, idx) => {
+                if (chartDataFragments.value[idx]) {
+                    // Update the datasets content but keep the fragment object reference
+                    chartDataFragments.value[idx].datasets = newFrag.datasets
+                }
+            })
+        }
+        
+        // NEW: Extract only NEW points for streaming from this specific message
+        const newPointsMap = {}
+        Object.entries(channels).forEach(([chKey, samples]) => {
+            const chIdx = getChannelIndex(chKey)
+            // Use 0-based index to match chartDataFragments array indices
+            const arrayIdx = chIdx > 0 ? chIdx - 1 : 0
+            
+            const lastTs = lastProcessedTimestamp.value[chIdx] || 0
+            
+            const newSamples = samples
+                .map(s => ({ x: parseTime(s.time), y: s.value }))
+                .filter(p => p.x instanceof Date && !isNaN(p.x.getTime()) && p.x.getTime() > lastTs)
+                .sort((a, b) => a.x - b.x)
+
+            if (newSamples.length > 0) {
+                newPointsMap[arrayIdx] = newSamples
+                lastProcessedTimestamp.value[chIdx] = newSamples[newSamples.length - 1].x.getTime()
+            }
+        })
+        latestDataPoints.value = newPointsMap
+
         if (fragmentsChanged) {
             chartKey.value++
         }
@@ -278,7 +333,9 @@ export function useMeasurementDataProcessor(config) {
     }
 
     return {
+        chartData,
         chartDataFragments,
+        latestDataPoints,
         lastDevice,
         recentMessages,
         chartKey,

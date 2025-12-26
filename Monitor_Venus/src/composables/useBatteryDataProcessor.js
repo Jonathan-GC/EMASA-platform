@@ -35,12 +35,41 @@ export function useBatteryDataProcessor() {
         }
     }
 
+    // Dataset generator for dual-axis battery charts
+    const datasetGenerator = (i, samples, color) => {
+        return [
+            {
+                label: `Voltaje ch${i} (V)`,
+                data: samples,
+                borderColor: color,
+                backgroundColor: color,
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 1,
+                fill: false,
+                yAxisID: 'y-left'
+            },
+            {
+                label: `Porcentaje ch${i} (%)`,
+                data: samples.map(p => ({ x: p.x, y: voltageToPercentage(p.y) })),
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 1,
+                fill: false,
+                yAxisID: 'y-right'
+            }
+        ]
+    }
+
     const processor = useMeasurementDataProcessor({
         measurementType: 'battery',
         chartColors,
         chartLabel: 'Voltaje',
         unit: 'V',
-        specialProcessing
+        specialProcessing,
+        datasetGenerator
     })
 
     // Computed battery percentage from max voltage

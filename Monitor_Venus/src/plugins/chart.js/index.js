@@ -15,6 +15,7 @@ import {
   Legend,
   TimeScale
 } from 'chart.js'
+import StreamingPlugin from 'chartjs-plugin-streaming'
 
 // enable date adapter globally (adapter is side-effectful and safe to import)
 import 'chartjs-adapter-date-fns'
@@ -34,7 +35,8 @@ export function install(/* app */) {
     Title,
     Tooltip,
     Legend,
-    TimeScale
+    TimeScale,
+    StreamingPlugin,
   )
 }
 

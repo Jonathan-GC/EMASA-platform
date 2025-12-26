@@ -10,12 +10,15 @@
           :reconnect-attempts="reconnectAttempts"
           :device="lastDevice"
           :chart-data-fragments="chartDataFragments"
+          :latest-data-points="voltageLatestPoints"
           :chart-key="chartKey"
           :recent-messages="recentMessages"
           :current-chart-data-fragments="currentChartDataFragments"
+          :current-latest-data-points="currentLatestPoints"
           :current-device="currentDevice"
           :current-chart-key="currentChartKey"
           :battery-chart-data-fragments="batteryChartDataFragments"
+          :battery-latest-data-points="batteryLatestPoints"
           :battery-device="batteryDevice"
           :battery-chart-key="batteryChartKey"
           :get-battery-percentage="getBatteryPercentage"
@@ -57,6 +60,7 @@ const { isConnected, reconnectAttempts, setOnMessage } = useWebSocket(deviceId)
 // Use voltage data processor for chart data
 const { 
   chartDataFragments, 
+  latestDataPoints: voltageLatestPoints,
   lastDevice, 
   recentMessages, 
   chartKey, 
@@ -66,6 +70,7 @@ const {
 // Use current data processor
 const {
   chartDataFragments: currentChartDataFragments,
+  latestDataPoints: currentLatestPoints,
   lastDevice: currentDevice,
   recentMessages: currentMessages,
   chartKey: currentChartKey,
@@ -75,6 +80,7 @@ const {
 // Use battery data processor
 const {
   chartDataFragments: batteryChartDataFragments,
+  latestDataPoints: batteryLatestPoints,
   lastDevice: batteryDevice,
   recentMessages: batteryMessages,
   chartKey: batteryChartKey,
