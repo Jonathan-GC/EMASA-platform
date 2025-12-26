@@ -1,9 +1,11 @@
 <template>
   <ion-card class="chart-container">
     <ion-card-header>
-      <ion-card-title>
-        📊 Mediciones de Corriente - {{ deviceName }}
-      </ion-card-title>
+      <div class="header-content">
+        <ion-card-title>
+          📊 Mediciones de Corriente - {{ deviceName }}
+        </ion-card-title>
+      </div>
       <ion-card-subtitle>
         {{ sampleCount }} muestras
       </ion-card-subtitle>
@@ -11,6 +13,15 @@
     <ion-card-content>
       <div class="chart-wrapper">
         <canvas ref="canvasRef"></canvas>
+        <ion-button 
+          v-if="isZoomed" 
+          fill="clear" 
+          size="small" 
+          @click="resetZoom"
+          class="reset-zoom-btn"
+        >
+          <ion-icon slot="icon-only" :icon="refreshOutline"></ion-icon>
+        </ion-button>
       </div>
     </ion-card-content>
   </ion-card>
@@ -20,7 +31,8 @@
 import { computed, ref, watch, onMounted, onUnmounted, toRaw, markRaw } from 'vue'
 import { Chart } from 'chart.js'
 import { format } from 'date-fns'
-import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent } from '@ionic/vue'
+import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonButton, IonIcon } from '@ionic/vue'
+import { refreshOutline } from 'ionicons/icons'
 
 /**
  * SingleCurrentChart Component
@@ -39,6 +51,7 @@ const props = defineProps({
 const canvasRef = ref(null)
 const chartInstance = ref(null)
 const sampleCount = ref(0)
+const isZoomed = ref(false)
 const streamingBufferMap = {}
 
 // Initialize non-reactive data structure for Chart.js
@@ -53,6 +66,13 @@ const localChartData = markRaw({
 const updateSampleCount = () => {
   if (chartInstance.value) {
     sampleCount.value = chartInstance.value.data.datasets[0]?.data?.length || 0
+  }
+}
+
+const resetZoom = () => {
+  if (chartInstance.value) {
+    chartInstance.value.resetZoom()
+    isZoomed.value = false
   }
 }
 
@@ -108,6 +128,38 @@ const chartOptions = computed(() => ({
       radius: 0,
       hitRadius: 10,
       hoverRadius: 5
+    }
+  },
+  plugins: {
+    title: {
+      display: true,
+      text: `Corriente - ${props.deviceName}`
+    },
+    legend: { display: true },
+    tooltip: {
+      animation: false,
+      callbacks: {
+        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS') : '',
+        label: (context) => `Corriente: ${context.parsed.y.toFixed(3)}A`
+      }
+    },
+    zoom: {
+      pan: {
+        enabled: true,
+        mode: 'x',
+        modifierKey: 'ctrl',
+        onPanComplete: () => { isZoomed.value = true }
+      },
+      zoom: {
+        wheel: {
+          enabled: true,
+        },
+        pinch: {
+          enabled: true
+        },
+        mode: 'x',
+        onZoomComplete: () => { isZoomed.value = true }
+      }
     }
   },
   scales: {

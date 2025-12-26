@@ -1,14 +1,25 @@
 <template>
   <ion-card class="chart-fragment">
     <ion-card-header>
-      <ion-card-title>
-        {{ title || `Sensor ${index + 1}` }} 
-        ({{ sampleCount }} muestras)
-      </ion-card-title>
+      <div class="header-content">
+        <ion-card-title>
+          {{ title || `Sensor ${index + 1}` }} 
+          ({{ sampleCount }} muestras)
+        </ion-card-title>
+      </div>
     </ion-card-header>
     <ion-card-content>
       <div class="chart-container">
         <canvas ref="canvasRef"></canvas>
+        <ion-button 
+          v-if="isZoomed" 
+          fill="clear" 
+          size="small" 
+          @click="resetZoom"
+          class="reset-zoom-btn"
+        >
+          <ion-icon slot="icon-only" :icon="refreshOutline"></ion-icon>
+        </ion-button>
       </div>
     </ion-card-content>
   </ion-card>
@@ -18,7 +29,8 @@
 import { computed, ref, watch, onMounted, onUnmounted, toRaw, markRaw } from 'vue'
 import { Chart } from 'chart.js'
 import { format } from 'date-fns'
-import { IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/vue'
+import { IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonIcon } from '@ionic/vue'
+import { refreshOutline } from 'ionicons/icons'
 
 /**
  * BatteryChart Component
@@ -42,6 +54,7 @@ const BATTERY_MAX_V = 13.2
 const canvasRef = ref(null)
 const chartInstance = ref(null)
 const sampleCount = ref(0)
+const isZoomed = ref(false)
 const streamingBuffer = []
 
 // Initialize non-reactive data structure for Chart.js
@@ -63,6 +76,13 @@ const voltageToPercentage = (v) => {
 const updateSampleCount = () => {
   if (chartInstance.value) {
     sampleCount.value = chartInstance.value.data.datasets[0]?.data?.length || 0
+  }
+}
+
+const resetZoom = () => {
+  if (chartInstance.value) {
+    chartInstance.value.resetZoom()
+    isZoomed.value = false
   }
 }
 
@@ -113,6 +133,41 @@ const chartOptions = computed(() => ({
       radius: 0,
       hitRadius: 10,
       hoverRadius: 5
+    }
+  },
+  plugins: {
+    title: {
+      display: true,
+      text: `${props.title || `Sensor ${props.index + 1}`} - ${props.deviceName}`
+    },
+    legend: { display: true },
+    tooltip: {
+      animation: false,
+      callbacks: {
+        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS') : '',
+        label: (context) => {
+          const isPercent = context.dataset.label.includes('%')
+          return `${context.dataset.label}: ${context.parsed.y.toFixed(isPercent ? 1 : 3)}${isPercent ? '%' : 'V'}`
+        }
+      }
+    },
+    zoom: {
+      pan: {
+        enabled: true,
+        mode: 'x',
+        modifierKey: 'ctrl',
+        onPanComplete: () => { isZoomed.value = true }
+      },
+      zoom: {
+        wheel: {
+          enabled: true,
+        },
+        pinch: {
+          enabled: true
+        },
+        mode: 'x',
+        onZoomComplete: () => { isZoomed.value = true }
+      }
     }
   },
   scales: {
