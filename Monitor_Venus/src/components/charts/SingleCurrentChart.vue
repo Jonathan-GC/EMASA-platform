@@ -99,18 +99,15 @@ const chartOptions = computed(() => ({
     intersect: true,
     animationDuration: 0
   },
-  plugins: {
-    title: {
-      display: true,
-      text: `Corriente - ${props.deviceName}`
+  elements: {
+    line: {
+      tension: 0,
+      spanGaps: true
     },
-    legend: { display: true },
-    tooltip: {
-      animation: false,
-      callbacks: {
-        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS') : '',
-        label: (context) => `Corriente: ${context.parsed.y.toFixed(3)}A`
-      }
+    point: {
+      radius: 0,
+      hitRadius: 10,
+      hoverRadius: 5
     }
   },
   scales: {

@@ -104,21 +104,15 @@ const chartOptions = computed(() => ({
     intersect: true,
     animationDuration: 0
   },
-  plugins: {
-    title: {
-      display: true,
-      text: `${props.title || `Sensor ${props.index + 1}`} - ${props.deviceName}`
+  elements: {
+    line: {
+      tension: 0,
+      spanGaps: true
     },
-    legend: { display: true },
-    tooltip: {
-      animation: false,
-      callbacks: {
-        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS') : '',
-        label: (context) => {
-          const isPercent = context.dataset.label.includes('%')
-          return `${context.dataset.label}: ${context.parsed.y.toFixed(isPercent ? 1 : 3)}${isPercent ? '%' : 'V'}`
-        }
-      }
+    point: {
+      radius: 0,
+      hitRadius: 10,
+      hoverRadius: 5
     }
   },
   scales: {

@@ -93,18 +93,15 @@ const chartOptions = computed(() => ({
     intersect: true,
     animationDuration: 0
   },
-  plugins: {
-    title: {
-      display: true,
-      text: `${props.title || `Sensor ${props.index + 1}`} - ${props.deviceName}`
+  elements: {
+    line: {
+      tension: 0, // Disable Bezier curves to prevent segment calculation errors
+      spanGaps: true // Prevent crashes if points are pruned during draw
     },
-    legend: { display: true },
-    tooltip: {
-      animation: false,
-      callbacks: {
-        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS') : '',
-        label: (context) => `Voltaje: ${context.parsed.y.toFixed(3)}V`
-      }
+    point: {
+      radius: 0, // Performance: don't draw points
+      hitRadius: 10,
+      hoverRadius: 5
     }
   },
   scales: {
@@ -113,7 +110,7 @@ const chartOptions = computed(() => ({
       realtime: {
         duration: 30000,
         refresh: 1000,
-        delay: 1000,
+        delay: 3250,
         ttl: 60000,
         onRefresh: (chart) => {
           if (streamingBuffer.length > 0) {

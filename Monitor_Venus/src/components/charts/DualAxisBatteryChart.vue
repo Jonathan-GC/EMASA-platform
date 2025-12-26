@@ -108,21 +108,15 @@ const chartOptions = computed(() => ({
     intersect: true,
     animationDuration: 0
   },
-  plugins: {
-    title: {
-      display: true,
-      text: `Batería - ${props.deviceName}`
+  elements: {
+    line: {
+      tension: 0,
+      spanGaps: true
     },
-    legend: { display: true },
-    tooltip: {
-      animation: false,
-      callbacks: {
-        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS') : '',
-        label: (context) => {
-          const isPercent = context.datasetIndex === 1
-          return `${isPercent ? 'Porcentaje' : 'Voltaje'}: ${context.parsed.y.toFixed(isPercent ? 1 : 2)}${isPercent ? '%' : 'V'}`
-        }
-      }
+    point: {
+      radius: 0,
+      hitRadius: 10,
+      hoverRadius: 5
     }
   },
   scales: {
