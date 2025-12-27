@@ -47,6 +47,7 @@ import { useVoltageDataProcessor } from '@composables/useVoltageDataProcessor.js
 import { useCurrentDataProcessor } from '@composables/useCurrentDataProcessor.js'
 import { useBatteryDataProcessor } from '@composables/useBatteryDataProcessor.js'
 import { useMeasurementDataProcessor } from '@composables/useMeasurementDataProcessor.js'
+import API from '@/utils/api/api.js'
 
 // Get route params
 const route = useRoute()
@@ -146,6 +147,28 @@ const measurementDevices = computed(() => {
 // State for page readiness
 const pageReady = ref(false)
 
+/**
+ * Preload last measurements from API to populate charts immediately
+ */
+const preloadLastMeasurements = async () => {
+  try {
+    console.log('📥 Preloading last measurements for device:', deviceId)
+    // Fetch last 10 measurements as requested
+    const response = await API.get(`${API.DEVICE_LAST_MEASUREMENT(deviceId)}?limit=10`)
+    
+    if (response) {
+      console.log('✅ Preload data received:', response)
+      // Process the preloaded data through all registered processors
+      // We pass true for isPreload to avoid streaming animations for historical data
+      measurementProcessors.forEach((entry) => {
+        entry.processor.processIncomingData(response, true)
+      })
+    }
+  } catch (error) {
+    console.error('❌ Error preloading measurements:', error)
+  }
+}
+
 // Ionic lifecycle hooks
 onIonViewWillEnter(() => {
   console.log('🚀 Gateway page will enter')
@@ -159,6 +182,8 @@ onIonViewDidEnter(() => {
 
 onMounted(() => {
   console.log('🔧 Measurements page mounted')
+  // Preload historical data before starting WebSocket
+  preloadLastMeasurements()
   // Set up WebSocket message handler for all data types
   setOnMessage(handleWebSocketMessage)
 })

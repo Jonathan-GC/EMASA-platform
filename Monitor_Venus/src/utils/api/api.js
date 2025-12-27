@@ -87,6 +87,9 @@ class API {
     DEVICE_CREATE_MEASUREMENTS(deviceId) {
         return `infrastructure/device/${deviceId}/create_measurement/`
     }
+    DEVICE_LAST_MEASUREMENT(deviceId) {
+        return `infrastructure/device/${deviceId}/last_metrics/`
+    }
     DEVICE_UPDATE_MEASUREMENTS='infrastructure/device/update_measurement/'
 
 

@@ -181,42 +181,56 @@ export function useMeasurementDataProcessor(config) {
     }
 
     /**
-     * Process incoming WebSocket data
+     * Process incoming WebSocket data or preloaded API data
      */
-    const processIncomingData = (data) => {
-        if (!data || typeof data !== 'object') return
-        if (data.error) {
-            console.warn('⚠️ Datos con error recibidos:', data.error)
-            return
+    const processIncomingData = (data, isPreload = false) => {
+        if (!data) return
+
+        const items = Array.isArray(data) ? data : [data]
+        
+        if (isPreload) {
+            // For preload, we process all historical items
+            const processedMessages = items.map(item => {
+                const rawItem = toRaw(item)
+                return {
+                    ...rawItem,
+                    buffer_stats: calculateBufferStats(rawItem),
+                    reception_timestamp: rawItem.payload?.arrival_date || rawItem.arrival_date || new Date().toISOString(),
+                    device_name: rawItem.device_name || rawItem.name
+                }
+            }).filter(msg => extractSensorChannels(msg, measurementType))
+
+            // Replace history with preloaded data (sorted by time if possible)
+            recentMessages.value = processedMessages.slice(0, maxAccumulatedMessages)
+            
+            if (recentMessages.value.length > 0) {
+                lastDevice.value = recentMessages.value[0]
+            }
+        } else {
+            // Standard WebSocket logic for a single message
+            const rawData = toRaw(data)
+            const channels = extractSensorChannels(rawData, measurementType)
+            if (!channels) return
+
+            const enhancedDevice = {
+                ...rawData,
+                buffer_stats: calculateBufferStats(rawData),
+                reception_timestamp: rawData.payload?.arrival_date || rawData.arrival_date || new Date().toISOString()
+            }
+            lastDevice.value = enhancedDevice
+
+            const messageWithTimestamp = {
+                ...enhancedDevice,
+                reception_timestamp: enhancedDevice.reception_timestamp,
+                device_name: enhancedDevice.device_name
+            }
+            recentMessages.value.unshift(messageWithTimestamp)
+            if (recentMessages.value.length > maxAccumulatedMessages) recentMessages.value.pop()
         }
 
-        // Use raw data for processing to avoid reactivity overhead
-        const rawData = toRaw(data)
-
-        // Extract channels for this measurement type
-        const channels = extractSensorChannels(rawData, measurementType)
-        if (!channels) return
-
-        // Create enhanced device object
-        const enhancedDevice = {
-            ...rawData,
-            buffer_stats: calculateBufferStats(rawData),
-            reception_timestamp: rawData.payload?.arrival_date || rawData.arrival_date || new Date().toISOString()
-        }
-        lastDevice.value = enhancedDevice
-
-        // Add to recent messages
-        const messageWithTimestamp = {
-            ...enhancedDevice,
-            reception_timestamp: enhancedDevice.reception_timestamp,
-            device_name: enhancedDevice.device_name
-        }
-        recentMessages.value.unshift(messageWithTimestamp)
-        if (recentMessages.value.length > 15) recentMessages.value.pop()
-
-        // Accumulate channels from last messages using raw data
+        // Re-extract channels from the updated history to build fragments
         const accumulatedChannels = {}
-        const messagesToProcess = toRaw(recentMessages.value).slice(0, maxAccumulatedMessages)
+        const messagesToProcess = toRaw(recentMessages.value)
         
         messagesToProcess.forEach(msg => {
             const msgChannels = extractSensorChannels(toRaw(msg), measurementType)
@@ -295,23 +309,38 @@ export function useMeasurementDataProcessor(config) {
         
         // NEW: Extract only NEW points for streaming from this specific message
         const newPointsMap = {}
-        Object.entries(channels).forEach(([chKey, samples]) => {
-            const chIdx = getChannelIndex(chKey)
-            // Use 0-based index to match chartDataFragments array indices
-            const arrayIdx = chIdx > 0 ? chIdx - 1 : 0
+        
+        // If it's a preload, we don't want to trigger the streaming buffer logic
+        // because the data is already in the fragments
+        if (!isPreload) {
+            const latestMsg = toRaw(recentMessages.value[0])
+            const channels = extractSensorChannels(latestMsg, measurementType) || {}
             
-            const lastTs = lastProcessedTimestamp.value[chIdx] || 0
-            
-            const newSamples = samples
-                .map(s => ({ x: parseTime(s.time), y: s.value }))
-                .filter(p => p.x instanceof Date && !isNaN(p.x.getTime()) && p.x.getTime() > lastTs)
-                .sort((a, b) => a.x - b.x)
+            Object.entries(channels).forEach(([chKey, samples]) => {
+                const chIdx = getChannelIndex(chKey)
+                const arrayIdx = chIdx > 0 ? chIdx - 1 : 0
+                const lastTs = lastProcessedTimestamp.value[chIdx] || 0
+                
+                const newSamples = samples
+                    .map(s => ({ x: parseTime(s.time), y: s.value }))
+                    .filter(p => p.x instanceof Date && !isNaN(p.x.getTime()) && p.x.getTime() > lastTs)
+                    .sort((a, b) => a.x - b.x)
 
-            if (newSamples.length > 0) {
-                newPointsMap[arrayIdx] = newSamples
-                lastProcessedTimestamp.value[chIdx] = newSamples[newSamples.length - 1].x.getTime()
-            }
-        })
+                if (newSamples.length > 0) {
+                    newPointsMap[arrayIdx] = newSamples
+                    lastProcessedTimestamp.value[chIdx] = newSamples[newSamples.length - 1].x.getTime()
+                }
+            })
+        } else {
+            // For preload, just update the last processed timestamp to the latest point found
+            Object.entries(accumulatedChannels).forEach(([chKey, samples]) => {
+                const chIdx = getChannelIndex(chKey)
+                const latestTs = Math.max(...samples.map(s => parseTime(s.time).getTime()).filter(t => !isNaN(t)))
+                if (latestTs > (lastProcessedTimestamp.value[chIdx] || 0)) {
+                    lastProcessedTimestamp.value[chIdx] = latestTs
+                }
+            })
+        }
         latestDataPoints.value = newPointsMap
 
         if (fragmentsChanged) {

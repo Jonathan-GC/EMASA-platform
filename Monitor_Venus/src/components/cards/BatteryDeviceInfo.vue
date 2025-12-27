@@ -1,13 +1,13 @@
 <template>
-  <div class="device-info" v-if="device">
+  <div class="device-info">
     <ion-card class="info-card">
       <ion-card-header>
         <ion-card-title>📟 Dispositivo</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Nombre:</strong> {{ device.device_name || 'N.A' }}</p>
-        <p><strong>DevEUI:</strong> {{ device.dev_eui || 'N.A' }}</p>
-        <p><strong>Tenant:</strong> {{ device.tenant_id || 'N.A' }}</p>
+        <p><strong>Nombre:</strong> {{ device?.device_name || 'N.A' }}</p>
+        <p><strong>DevEUI:</strong> {{ device?.dev_eui || 'N.A' }}</p>
+        <p><strong>Tenant:</strong> {{ device?.tenant_id || 'N.A' }}</p>
       </ion-card-content>
     </ion-card>
     
@@ -16,9 +16,9 @@
         <ion-card-title>📊 Último Buffer</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Muestras:</strong> {{ device.buffer_stats?.total_samples || 0 }}</p>
-        <p><strong>Promedio:</strong> {{ formatVoltage(device.buffer_stats?.avg_value || 0) }}V</p>
-        <p><strong>Valor:</strong> {{ formatVoltage(device.buffer_stats?.max_voltage || 0) }}V</p>
+        <p><strong>Muestras:</strong> {{ device?.buffer_stats?.total_samples || 0 }}</p>
+        <p><strong>Promedio:</strong> {{ formatVoltage(device?.buffer_stats?.avg_value || 0) }}V</p>
+        <p><strong>Valor:</strong> {{ formatVoltage(device?.buffer_stats?.max_voltage || 0) }}V</p>
       </ion-card-content>
     </ion-card>
 
@@ -50,9 +50,9 @@
         <ion-card-title>📡 Radio</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Region:</strong> {{ device.region || 'N.A' }}</p>
-        <p><strong>Frecuencia:</strong> {{ device.radio_info?.snr || 'N.A' }} Hz</p>
-        <p><strong>Frame:</strong> #{{ device.f_cnt || 0 }}</p>
+        <p><strong>Region:</strong> {{ device?.region || 'N.A' }}</p>
+        <p><strong>Frecuencia:</strong> {{ device?.radio_info?.snr || 'N.A' }} Hz</p>
+        <p><strong>Frame:</strong> #{{ device?.f_cnt || 0 }}</p>
       </ion-card-content>
     </ion-card>
   </div>

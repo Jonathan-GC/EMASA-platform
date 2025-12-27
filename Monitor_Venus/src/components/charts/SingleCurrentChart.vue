@@ -55,7 +55,7 @@ const isZoomed = ref(false)
 const streamingBufferMap = {}
 
 // Initialize non-reactive data structure for Chart.js
-const localChartData = markRaw({
+const localChartData = ref({
   datasets: props.chartData.datasets.map(ds => ({
     ...ds,
     data: [...ds.data]
@@ -76,6 +76,19 @@ const resetZoom = () => {
   }
 }
 
+// Watch for chartData changes (e.g. from preload)
+watch(() => props.chartKey, () => {
+  if (chartInstance.value && props.chartData?.datasets) {
+    props.chartData.datasets.forEach((ds, i) => {
+      if (chartInstance.value.data.datasets[i]) {
+        chartInstance.value.data.datasets[i].data = [...ds.data]
+      }
+    })
+    chartInstance.value.update('none')
+    updateSampleCount()
+  }
+}, { immediate: false })
+
 // Watch for incoming points and buffer them by channel
 watch(() => props.latestDataPoints, (newPointsMap) => {
   if (newPointsMap) {
@@ -92,7 +105,7 @@ onMounted(() => {
   if (canvasRef.value) {
     chartInstance.value = new Chart(canvasRef.value, {
       type: 'line',
-      data: localChartData,
+      data: toRaw(localChartData.value),
       options: chartOptions.value
     })
     updateSampleCount()

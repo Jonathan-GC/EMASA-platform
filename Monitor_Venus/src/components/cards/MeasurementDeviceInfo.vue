@@ -1,13 +1,13 @@
 <template>
-  <div class="device-info" v-if="device">
+  <div class="device-info">
     <ion-card class="info-card">
       <ion-card-header>
         <ion-card-title>📟 Dispositivo</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Nombre:</strong> {{ device.device_name || 'N.A' }}</p>
-        <p><strong>DevEUI:</strong> {{ device.dev_eui || 'N.A' }}</p>
-        <p><strong>Tenant:</strong> {{ device.tenant_name || 'N.A' }}</p>
+        <p><strong>Nombre:</strong> {{ device?.device_name || 'N.A' }}</p>
+        <p><strong>DevEUI:</strong> {{ device?.dev_eui || 'N.A' }}</p>
+        <p><strong>Tenant:</strong> {{ device?.tenant_name || 'N.A' }}</p>
       </ion-card-content>
     </ion-card>
 
@@ -16,10 +16,10 @@
         <ion-card-title>📊 Último Buffer - {{ capitalizeFirst(measurement.unit) }}</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Total Muestras:</strong> {{ device.buffer_stats?.total_samples || 0 }}</p>
-        <p><strong>Fragmentos:</strong> {{ device.buffer_stats?.total_fragments || 0 }}</p>
-        <p><strong>Promedio:</strong> {{ formatValue(device.buffer_stats?.[`avg_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }}</p>
-        <p><strong>Rango:</strong> {{ formatValue(device.buffer_stats?.[`min_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }} - {{ formatValue(device.buffer_stats?.[`max_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }}</p>
+        <p><strong>Total Muestras:</strong> {{ device?.buffer_stats?.total_samples || 0 }}</p>
+        <p><strong>Fragmentos:</strong> {{ device?.buffer_stats?.total_fragments || 0 }}</p>
+        <p><strong>Promedio:</strong> {{ formatValue(device?.buffer_stats?.[`avg_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }}</p>
+        <p><strong>Rango:</strong> {{ formatValue(device?.buffer_stats?.[`min_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }} - {{ formatValue(device?.buffer_stats?.[`max_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }}</p>
       </ion-card-content>
     </ion-card>
 
@@ -29,9 +29,9 @@
         <ion-card-title>📡 Radio</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <p><strong>Región:</strong> {{ device.payload?.radio_info?.rssi || device.region || 'N.A' }}</p>
-        <p><strong>Frecuencia:</strong> {{ device.payload?.radio_info?.snr || device.frequency || 'N.A' }} Hz</p>
-        <p><strong>Frame:</strong> #{{ device.payload?.frame_counter || device.f_cnt || 0 }}</p>
+        <p><strong>Región:</strong> {{ device?.payload?.radio_info?.rssi || device?.region || 'N.A' }}</p>
+        <p><strong>Frecuencia:</strong> {{ device?.payload?.radio_info?.snr || device?.frequency || 'N.A' }} Hz</p>
+        <p><strong>Frame:</strong> #{{ device?.payload?.frame_counter || device?.f_cnt || 0 }}</p>
       </ion-card-content>
     </ion-card>
   </div>

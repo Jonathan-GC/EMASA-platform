@@ -57,21 +57,25 @@
             <!-- Device information section -->
             <DeviceInfo :device="device" />
 
-            <!-- No data placeholder -->
-            <div v-if="!device" class="no-data">
-              <h2>🔍 Esperando datos del dispositivo...</h2>
-              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
-              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
-            </div>
-
             <!-- Charts grid -->
             <ChartsGrid 
+              v-if="chartDataFragments.length > 0"
               :chart-fragments="chartDataFragments" 
               :chart-key="chartKey"
               :latest-data-points="latestDataPoints"
               :device-name="device?.device_name || deviceName"
               :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.min"
               :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.max" />
+
+            <!-- Placeholder when no chart data available -->
+            <div v-else class="charts-section">
+              <h3 class="section-title">📈 Real-time Voltage Data</h3>
+              <div class="waiting-data-card">
+                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
+                <p>Esperando datos en tiempo real de voltaje...</p>
+                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de voltaje</p>
+              </div>
+            </div>
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
@@ -97,22 +101,25 @@
             <!-- Device information section -->
             <CurrentDeviceInfo :device="currentDevice" />
 
-            <!-- No data placeholder -->
-            <div v-if="!currentDevice" class="no-data">
-              <h2>🔍 Esperando datos del dispositivo...</h2>
-              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
-              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
-            </div>
-
             <!-- Current charts grid (multi-channel) -->
             <ChartsGrid 
-              v-if="currentDevice" 
+              v-if="currentChartDataFragments.length > 0" 
               :chart-fragments="currentChartDataFragments" 
               :chart-key="currentChartKey"
               :latest-data-points="currentLatestDataPoints"
               :device-name="currentDevice?.device_name || 'Dispositivo IoT'"
               :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.min"
               :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.max" />
+
+            <!-- Placeholder when no chart data available -->
+            <div v-else class="charts-section">
+              <h3 class="section-title">📈 Real-time Current Data</h3>
+              <div class="waiting-data-card">
+                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
+                <p>Esperando datos en tiempo real de corriente...</p>
+                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de corriente</p>
+              </div>
+            </div>
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
@@ -144,15 +151,8 @@
             <!-- Device information section -->
             <MeasurementDeviceInfo :device="getMeasurementDevice(measurement)" :measurement="measurement" />
 
-            <!-- No data placeholder -->
-            <div v-if="!getMeasurementDevice(measurement)" class="no-data">
-              <h2>🔍 Esperando datos del dispositivo...</h2>
-              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
-              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
-            </div>
-
             <!-- Measurement configuration card -->
-            <ion-card v-if="getMeasurementDevice(measurement)" class="measurement-config-card">
+            <ion-card class="measurement-config-card">
               <ion-card-header>
                 <div class="card-header-content">
                   <div class="card-title-section">
@@ -220,7 +220,7 @@
 
             <!-- Charts grid - similar to voltage tab -->
             <ChartsGrid 
-              v-if="getMeasurementDevice(measurement) && getMeasurementChartData(measurement.unit).length > 0"
+              v-if="getMeasurementChartData(measurement.unit).length > 0"
               :chart-fragments="getMeasurementChartData(measurement.unit)" 
               :chart-key="chartKey"
               :latest-data-points="getMeasurementLatestDataPoints(measurement.unit)"
@@ -230,7 +230,7 @@
             />
 
             <!-- Placeholder when no chart data available -->
-            <div v-else-if="getMeasurementDevice(measurement)" class="charts-section">
+            <div v-else class="charts-section">
               <h3 class="section-title">📈 Real-time {{ capitalizeFirst(measurement.unit) }} Data</h3>
               <div class="waiting-data-card">
                 <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
@@ -263,19 +263,25 @@
             <!-- Device information section -->
             <BatteryDeviceInfo :device="batteryDevice" :battery-percentage="getBatteryPercentage?.() || 0" />
 
-            <!-- No data placeholder -->
-            <div v-if="!batteryDevice" class="no-data">
-              <h2>🔍 Esperando datos del dispositivo...</h2>
-              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
-              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
-            </div>
-
             <!-- Battery charts grid (multi-channel dual-axis) -->
-            <BatteryChartsGrid v-if="batteryDevice" :chart-fragments="batteryChartDataFragments" :chart-key="batteryChartKey"
+            <BatteryChartsGrid 
+              v-if="batteryChartDataFragments.length > 0" 
+              :chart-fragments="batteryChartDataFragments" 
+              :chart-key="batteryChartKey"
               :latest-data-points="batteryLatestDataPoints"
               :device-name="batteryDevice?.device_name || 'Dispositivo IoT'"
               :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.min"
               :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.max" />
+
+            <!-- Placeholder when no chart data available -->
+            <div v-else class="charts-section">
+              <h3 class="section-title">📈 Real-time Battery Data</h3>
+              <div class="waiting-data-card">
+                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
+                <p>Esperando datos en tiempo real de batería...</p>
+                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de batería</p>
+              </div>
+            </div>
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
