@@ -9,7 +9,7 @@ from app.persistence.mongo import (
     get_db,
     save_message,
 )
-from app.persistence.db_helpers import get_last_messages
+from app.persistence.db_helpers import get_last_messages, aggregations
 from app.redis.redis import connect_to_redis, close_redis_connection
 from app.workers.redis_worker import process_messages
 from app.workers.alert_retry_worker import retry_pending_alerts
@@ -19,6 +19,8 @@ from app.validation.measurement_cache import force_refresh_measurement_configs
 from app.mqtt.client import start_mqtt
 import loguru
 import asyncio
+from datetime import datetime
+from typing import Optional
 from app.ws.helpers import notify_user
 from app.auth.deps import verify_service_api_key
 
@@ -57,6 +59,33 @@ async def get_last_messages_endpoint(
 ):
     loguru.logger.debug(f"Fetching last {limit} messages for {dev_eui}")
     return await get_last_messages(db, dev_eui, limit)
+
+
+@app.get("/measurements/history")
+async def get_measurements_history(
+    dev_eui: str,
+    measurement_type: str,
+    start: datetime,
+    end: datetime,
+    steps: int = 100,
+    channel: Optional[str] = None,
+    db: Any = Depends(get_db),
+    _: bool = Depends(verify_service_api_key),
+):
+    """
+    Get aggregated historical measurements for a device.
+
+    - **dev_eui**: Device EUI
+    - **measurement_type**: Type of measurement (e.g., "voltage", "current")
+    - **start**: Start datetime (ISO 8601)
+    - **end**: End datetime (ISO 8601)
+    - **steps**: Number of data points to return (resolution)
+    - **channel**: Optional channel filter (e.g., "ch1")
+    """
+    loguru.logger.debug(
+        f"Fetching history for {dev_eui} ({measurement_type}) from {start} to {end}"
+    )
+    return await aggregations(db, dev_eui, measurement_type, start, end, steps, channel)
 
 
 @app.post("/notify")

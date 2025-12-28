@@ -871,6 +871,86 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
         return Response(response.json())
 
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def historical_aggregated_metrics(self, request, pk=None):
+        """
+        Makes a request to the Hermes service to get historical aggregated metrics for the device.
+
+        Endpoint: GET /measurements/history
+        Query Parameters:
+            - dev_eui: Device EUI (from the device object)
+            - start: Start datetime for the metrics (ISO 8601 format)
+            - end: End datetime for the metrics (ISO 8601 format)
+            - measurement_type: Type of measurement to aggregate (e.g., voltage, current)
+            - steps: Number of data points to return (resolution)
+            - channel: Optional channel filter
+        """
+
+        device = self.get_object()
+
+        try:
+            start = request.query_params.get("start", None)
+            end = request.query_params.get("end", None)
+            measurement_type = request.query_params.get("measurement_type", None)
+            steps = int(request.query_params.get("steps", 10))
+            channel = request.query_params.get("channel", None)
+        except ValueError:
+            return Response(
+                {"message": "Invalid query parameters"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/messages/historical/aggregated"
+
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        params = {
+            "dev_eui": device.dev_eui,
+            "start": start,
+            "end": end,
+            "measurement_type": measurement_type,
+            "steps": steps,
+        }
+        if channel:
+            params["channel"] = channel
+        try:
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching historical aggregated metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching historical aggregated metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching historical aggregated metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
+
 
 @extend_schema_view(
     list=extend_schema(description="Application List (ChirpStack)"),

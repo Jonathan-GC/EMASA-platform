@@ -28,11 +28,47 @@ async def create_indexes():
     loguru.logger.debug("TTL indexes created/verified")
 
 
+async def create_timeseries_collection():
+    """Creates the time series collection if it doesn't exist."""
+    db = await get_db()
+    collections = await db.list_collection_names()
+    if "measurements_history" not in collections:
+        try:
+            await db.create_collection(
+                "measurements_history",
+                timeseries={
+                    "timeField": "ts",
+                    "metaField": "meta",
+                    "granularity": "seconds",
+                },
+                expireAfterSeconds=7776000,  # 3 months retention
+            )
+            # Create index for tenant queries if needed, though meta+ts is default
+            await db.measurements_history.create_index([("meta.t", 1), ("ts", 1)])
+            loguru.logger.info("Created time series collection 'measurements_history'")
+        except Exception as e:
+            loguru.logger.error(f"Failed to create time series collection: {e}")
+    else:
+        loguru.logger.debug(
+            "Time series collection 'measurements_history' already exists"
+        )
+        try:
+            # Ensure TTL is updated if collection exists
+            await db.command(
+                "collMod", "measurements_history", expireAfterSeconds=7776000
+            )
+        except Exception as e:
+            loguru.logger.warning(
+                f"Failed to update TTL for 'measurements_history': {e}"
+            )
+
+
 async def connect_to_mongo():
     global client
     client = AsyncMongoClient(settings.MONGO_URI)
     loguru.logger.debug("Connected to MongoDB")
     await create_indexes()
+    await create_timeseries_collection()
 
 
 async def close_mongo_connection():
