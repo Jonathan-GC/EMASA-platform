@@ -49,6 +49,7 @@ declare module 'vue' {
     FormUpdateMeasurements: typeof import('./src/components/forms/update/measurements/formUpdateMeasurements.vue')['default']
     FormUpdateTenants: typeof import('./src/components/forms/update/tenants/formUpdateTenants.vue')['default']
     FormUpdateWorkspaces: typeof import('./src/components/forms/update/workspaces/formUpdateWorkspaces.vue')['default']
+    HistoricalMeasurementChart: typeof import('./src/components/charts/HistoricalMeasurementChart.vue')['default']
     IconPicker: typeof import('./src/components/ui/IconPicker.vue')['default']
     ImageUpload: typeof import('./src/components/common/ImageUpload.vue')['default']
     InboxForm: typeof import('./src/components/forms/inbox/InboxForm.vue')['default']

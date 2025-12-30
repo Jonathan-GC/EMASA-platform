@@ -6,6 +6,7 @@
       <div v-if="pageReady" class="current-dashboard">
         <!-- Main applications table with fetch data -->
         <TabsDeviceMeasurements
+          :device-id="deviceId"
           :is-connected="isConnected"
           :reconnect-attempts="reconnectAttempts"
           :device="lastDevice"

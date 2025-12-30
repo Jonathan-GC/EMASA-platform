@@ -79,6 +79,14 @@
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
+
+            <!-- Historical Measurement Chart -->
+            <HistoricalMeasurementChart 
+              v-if="deviceId || (device && device.id)"
+              :device-id="deviceId || device.id"
+              :available-measurements="measurements"
+              initial-type="voltage"
+            />
           </div>
         </ion-content>
       </ion-tab>
@@ -123,6 +131,14 @@
 
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
+
+            <!-- Historical Measurement Chart -->
+            <HistoricalMeasurementChart 
+              v-if="deviceId || (device && device.id)"
+              :device-id="deviceId || device.id"
+              :available-measurements="measurements"
+              initial-type="current"
+            />
           </div>
         </ion-content>
       </ion-tab>
@@ -239,8 +255,18 @@
               </div>
             </div>
 
+            <HistoricalMeasurementChart 
+              v-if="deviceId || (device && device.id)"
+              :device-id="deviceId || device.id"
+              :available-measurements="measurements"
+              :initial-type="measurement.unit?.toLowerCase()"
+            />
+
             <!-- Recent messages -->
             <RecentMessages :messages="recentMessages" />
+
+            <!-- Historical Measurement Chart -->
+            
           </div>
         </ion-content>
       </ion-tab>
@@ -284,7 +310,16 @@
             </div>
 
             <!-- Recent messages -->
+            <HistoricalMeasurementChart 
+              v-if="deviceId || (device && device.id)"
+              :device-id="deviceId || device.id"
+              :available-measurements="measurements"
+              initial-type="battery"
+            />
             <RecentMessages :messages="recentMessages" />
+
+            <!-- Historical Measurement Chart -->
+            
           </div>
         </ion-content>
       </ion-tab>
@@ -495,6 +530,7 @@ import {
 } from '@ionic/vue'
 import API from '@/utils/api/api.js'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
+import HistoricalMeasurementChart from '@/components/charts/HistoricalMeasurementChart.vue'
 
 // Chart.js imports and registration
 import {
@@ -541,6 +577,10 @@ import FloatingActionButtons from '@/components/operators/FloatingActionButtons.
 
 // Props
 const props = defineProps({
+  deviceId: {
+    type: [String, Number],
+    default: null
+  },
   device: {
     type: Object,
     default: null

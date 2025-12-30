@@ -1,0 +1,394 @@
+<template>
+  <ion-card class="historical-chart-card">
+    <ion-card-header>
+      <div class="header-container">
+        <div class="title-section">
+          <ion-card-title>{{ title }}</ion-card-title>
+          <ion-card-subtitle>{{ subtitle }}</ion-card-subtitle>
+        </div>
+        <div class="filter-section">
+          <div class="date-filters">
+            <div class="filter-item">
+              <input type="datetime-local" v-model="filters.start" @change="fetchData" />
+            </div>
+            <div class="filter-item">
+              <input type="datetime-local" v-model="filters.end" @change="fetchData" />
+            </div>
+          </div>
+          <div class="other-filters">
+            <div class="filter-item">
+              <select v-model="filters.measurement_type" @change="fetchData">
+                <option v-for="type in measurementTypes" :key="type" :value="type">
+                  {{ capitalize(type) }}
+                </option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <input type="number" v-model.number="filters.steps" @change="fetchData" min="1" max="1000" placeholder="Steps" style="width: 80px;" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </ion-card-header>
+
+    <ion-card-content>
+      <div v-if="loading" class="loading-overlay">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+      <div class="chart-container">
+        <canvas ref="canvasRef"></canvas>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</template>
+
+<script setup>
+import { ref, onMounted, watch, reactive, computed } from 'vue'
+import { 
+  IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, 
+  IonCardContent, IonSpinner 
+} from '@ionic/vue'
+import { Chart, registerables } from 'chart.js'
+import 'chartjs-adapter-date-fns'
+import API from '@/utils/api/api.js'
+import { format, subDays } from 'date-fns'
+
+Chart.register(...registerables)
+
+const props = defineProps({
+  deviceId: {
+    type: [String, Number],
+    required: true
+  },
+  initialType: {
+    type: String,
+    default: 'voltage'
+  },
+  availableMeasurements: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const canvasRef = ref(null)
+let chartInstance = null
+
+const loading = ref(false)
+const title = ref('Total Visitors')
+const subtitle = ref('Total for the last 3 months')
+
+const measurementTypes = computed(() => {
+  const types = new Set(['voltage', 'current', 'battery'])
+  if (props.availableMeasurements && props.availableMeasurements.length > 0) {
+    props.availableMeasurements.forEach(m => {
+      if (m.unit) types.add(m.unit.toLowerCase())
+    })
+  }
+  return Array.from(types)
+})
+
+const filters = reactive({
+  start: format(subDays(new Date(), 90), "yyyy-MM-dd'T'HH:mm"),
+  end: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+  measurement_type: props.initialType,
+  steps: 100
+})
+
+const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
+
+const fetchData = async () => {
+  if (!props.deviceId) return
+  
+  loading.value = true
+  try {
+    const params = new URLSearchParams({
+      start: new Date(filters.start).toISOString(),
+      end: new Date(filters.end).toISOString(),
+      measurement_type: filters.measurement_type,
+      steps: filters.steps
+    })
+
+    const url = `${API.DEVICE_HISTORICAL_MEASUREMENTS(props.deviceId)}?${params.toString()}`
+    const response = await API.get(url)
+    
+    let data = []
+    if (response && response.data) {
+      data = response.data
+    } else if (Array.isArray(response)) {
+      data = response
+    }
+    
+    updateChart(data)
+    
+    // Update title based on measurement type
+    title.value = `Historical ${capitalize(filters.measurement_type)}`
+    subtitle.value = `Data from ${format(new Date(filters.start), 'MMM dd')} to ${format(new Date(filters.end), 'MMM dd')}`
+  } catch (error) {
+    console.error('Error fetching historical data:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const updateChart = (data) => {
+  if (!chartInstance) return
+
+  const datasets = []
+  
+  if (data && data.length > 0) {
+    // Group data by channel
+    const channelGroups = {}
+    data.forEach(item => {
+      const ch = item.channel || 'default'
+      if (!channelGroups[ch]) channelGroups[ch] = []
+      channelGroups[ch].push({
+        x: new Date(item.timestamp || item.time || item.arrival_date),
+        y: item.avg !== undefined ? item.avg : (item.value !== undefined ? item.value : item.values?.[ch]),
+        min: item.min,
+        max: item.max
+      })
+    })
+
+    // Sort each group by timestamp to ensure correct line rendering
+    Object.keys(channelGroups).forEach(ch => {
+      channelGroups[ch].sort((a, b) => a.x - b.x)
+    })
+
+    // Create datasets for each channel
+    Object.keys(channelGroups).forEach((ch, index) => {
+      const color = getChartColor(index)
+      datasets.push({
+        label: ch === 'default' ? capitalize(filters.measurement_type) : `Channel ${ch}`,
+        data: channelGroups[ch],
+        fill: true,
+        borderColor: color,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, color.replace('1)', '0.4)'));
+          gradient.addColorStop(1, color.replace('1)', '0)'));
+          return gradient;
+        },
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: color,
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2
+      })
+    })
+  }
+
+  chartInstance.data.datasets = datasets
+  chartInstance.update()
+}
+
+const getChartColor = (index) => {
+  const colors = [
+    'rgba(59, 130, 246, 1)', // Blue
+    'rgba(16, 185, 129, 1)', // Green
+    'rgba(246, 59, 59, 1)',  // Red
+    'rgba(234, 179, 8, 1)',   // Yellow
+    'rgba(139, 92, 246, 1)'  // Purple
+  ]
+  return colors[index % colors.length]
+}
+
+onMounted(() => {
+  const ctx = canvasRef.value.getContext('2d')
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: []
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            displayFormats: {
+              minute: 'HH:mm',
+              hour: 'HH:mm',
+              day: 'MMM dd',
+              month: 'MMM yyyy'
+            }
+          },
+          grid: {
+            display: false,
+            drawBorder: false
+          },
+          ticks: {
+            color: '#9ca3af',
+            font: {
+              size: 11
+            }
+          }
+        },
+        y: {
+          grid: {
+            color: 'rgba(156, 163, 175, 0.05)',
+            drawBorder: false
+          },
+          ticks: {
+            color: '#9ca3af',
+            font: {
+              size: 11
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: '#000',
+          titleColor: '#9ca3af',
+          bodyColor: '#fff',
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: true,
+          usePointStyle: true,
+          callbacks: {
+            title: (context) => {
+              return format(new Date(context[0].parsed.x), 'MMM dd, HH:mm')
+            },
+            label: (context) => {
+              const point = context.raw;
+              let label = `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+              if (point.min !== undefined && point.max !== undefined) {
+                label += ` (Min: ${point.min}, Max: ${point.max})`;
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  })
+
+  fetchData()
+})
+
+watch(() => props.deviceId, () => {
+  fetchData()
+})
+</script>
+
+<style scoped>
+.historical-chart-card {
+  border-radius: 16px;
+  margin: 24px 0;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 4px;
+}
+
+.title-section ion-card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.title-section ion-card-subtitle {
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.filter-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.date-filters {
+  display: flex;
+  gap: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding-right: 12px;
+}
+
+.other-filters {
+  display: flex;
+  gap: 12px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-item label {
+  display: none; /* Hide labels to match image */
+}
+
+.filter-item input, .filter-item select {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.filter-item input[type="datetime-local"] {
+  min-width: 180px;
+}
+
+.filter-item input:focus, .filter-item select:focus {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.chart-container {
+  height: 350px;
+  position: relative;
+  margin-top: 20px;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(17, 24, 39, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .header-container {
+    flex-direction: column;
+  }
+  
+  .filter-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+</style>
