@@ -946,6 +946,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
             )
 
         hermes_url = getattr(settings, "HERMES_API_URL", "")
+
         if not hermes_url:
             logger.error("HERMES_API_URL is not configured")
             return Response(
@@ -953,7 +954,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        url = f"{hermes_url}/messages/historical/aggregated"
+        url = f"{hermes_url}/measurements/history"
 
         headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
 
@@ -964,6 +965,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
             "measurement_type": measurement_type,
             "steps": steps,
         }
+
         if channel:
             params["channel"] = channel
         try:
