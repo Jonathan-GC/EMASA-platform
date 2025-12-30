@@ -45,6 +45,7 @@ from chirpstack.chirpstack_api import (
     deactivate_device,
     device_activation_status,
 )
+
 from rest_framework import status
 
 from loguru import logger
@@ -56,6 +57,8 @@ from django.conf import settings
 
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from roles.helpers import assign_created_instance_permissions
+
+from django.utils import timezone
 
 
 @extend_schema_view(
@@ -892,6 +895,10 @@ class DeviceViewSet(viewsets.ModelViewSet):
         """
 
         device = self.get_object()
+        now = timezone.now()
+        three_months_ago = now - timezone.timedelta(
+            days=90
+        )  # Hermes only keeps 3 months of data
 
         try:
             start = request.query_params.get("start", None)
@@ -902,6 +909,39 @@ class DeviceViewSet(viewsets.ModelViewSet):
         except ValueError:
             return Response(
                 {"message": "Invalid query parameters"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if steps <= 0:
+            return Response(
+                {"message": "Steps parameter must be a positive integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        elif steps > 300:
+            return Response(
+                {"message": "Steps parameter exceeds maximum limit of 300"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if start > now.isoformat() or end > now.isoformat():
+            return Response(
+                {"message": "Start and end parameters cannot be in the future"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not all([start, end, measurement_type]):
+            return Response(
+                {
+                    "message": "Missing required query parameters: start, end, measurement_type"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if start < three_months_ago.isoformat():
+            return Response(
+                {
+                    "message": f"Start parameter cannot be older than {three_months_ago.date().isoformat()}"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
