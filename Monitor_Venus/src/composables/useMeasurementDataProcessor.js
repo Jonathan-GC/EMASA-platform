@@ -263,8 +263,11 @@ export function useMeasurementDataProcessor(config) {
             const matchKey = accumulatedKeys.find(k => getChannelIndex(k) === i) || null
             const samplesRaw = matchKey ? accumulatedChannels[matchKey] : []
             const samples = (samplesRaw || [])
-                .map(s => ({ x: parseTime(s.time), y: s.value }))
-                .filter(p => p.x instanceof Date && !isNaN(p.x.getTime()) && typeof p.y === 'number')
+                .map(s => {
+                    const t = parseTime(s.time)
+                    return { x: t instanceof Date ? t.getTime() : NaN, y: s.value }
+                })
+                .filter(p => !isNaN(p.x) && typeof p.y === 'number')
                 .sort((a, b) => a.x - b.x)
             
             const color = chartColors[(i - 1) % chartColors.length]
@@ -276,6 +279,7 @@ export function useMeasurementDataProcessor(config) {
                 datasets = [{
                     label: `${label} ch${i}${unit ? ' (' + unit + ')' : ''}`,
                     data: samples,
+                    parsing: false,
                     borderColor: color,
                     backgroundColor: color,
                     borderWidth: 2,
@@ -322,13 +326,16 @@ export function useMeasurementDataProcessor(config) {
                 const lastTs = lastProcessedTimestamp.value[chIdx] || 0
                 
                 const newSamples = samples
-                    .map(s => ({ x: parseTime(s.time), y: s.value }))
-                    .filter(p => p.x instanceof Date && !isNaN(p.x.getTime()) && p.x.getTime() > lastTs)
+                    .map(s => {
+                        const t = parseTime(s.time)
+                        return { x: t instanceof Date ? t.getTime() : NaN, y: s.value }
+                    })
+                    .filter(p => !isNaN(p.x) && p.x > lastTs && typeof p.y === 'number')
                     .sort((a, b) => a.x - b.x)
 
                 if (newSamples.length > 0) {
                     newPointsMap[arrayIdx] = newSamples
-                    lastProcessedTimestamp.value[chIdx] = newSamples[newSamples.length - 1].x.getTime()
+                    lastProcessedTimestamp.value[chIdx] = newSamples[newSamples.length - 1].x
                 }
             })
         } else {

@@ -949,6 +949,15 @@ const setMeasurementInitialData = (measurement) => {
 </script>
 
 <style scoped>
+.tab-content {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 /* Measurements Tab Styles */
 .measurements-container {
   max-width: 1400px;
@@ -1208,6 +1217,11 @@ const setMeasurementInitialData = (measurement) => {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .tab-content {
+    padding: 0;
+    gap: 15px;
+  }
+
   .measurements-container {
     margin: 1rem auto;
     padding: 0 0.5rem;

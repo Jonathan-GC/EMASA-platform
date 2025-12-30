@@ -39,6 +39,7 @@
         <!-- Single current chart -->
         <SingleCurrentChart 
           v-if="lastDevice && chartData.datasets[0].data.length > 0"
+          :key="chartKey"
           :chart-data="chartData"
           :latest-data-points="latestDataPoints"
           :chart-key="chartKey"

@@ -6,7 +6,7 @@
           <ion-card-title>{{ title }}</ion-card-title>
           <ion-card-subtitle>{{ subtitle }}</ion-card-subtitle>
         </div>
-        <div class="filter-section">
+        <div class="filter-section" :class="{ 'is-mobile': isMobile }">
           <div class="date-filters">
             <div class="filter-item">
               <input type="datetime-local" v-model="filters.start" @change="fetchData" />
@@ -31,7 +31,7 @@
       </div>
     </ion-card-header>
 
-    <ion-card-content>
+    <ion-card-content :class="{ 'is-mobile-content': isMobile }">
       <div v-if="loading" class="loading-overlay">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
@@ -52,6 +52,7 @@ import { Chart, registerables } from 'chart.js'
 import 'chartjs-adapter-date-fns'
 import API from '@/utils/api/api.js'
 import { format, subDays } from 'date-fns'
+import { useResponsiveView } from '@/composables/useResponsiveView.js'
 
 Chart.register(...registerables)
 
@@ -70,6 +71,7 @@ const props = defineProps({
   }
 })
 
+const { isMobile } = useResponsiveView()
 const canvasRef = ref(null)
 let chartInstance = null
 
@@ -121,8 +123,8 @@ const fetchData = async () => {
     updateChart(data)
     
     // Update title based on measurement type
-    title.value = `Historical ${capitalize(filters.measurement_type)}`
-    subtitle.value = `Data from ${format(new Date(filters.start), 'MMM dd')} to ${format(new Date(filters.end), 'MMM dd')}`
+    title.value = `Historico de ${capitalize(filters.measurement_type)}`
+    subtitle.value = `Datos desde ${format(new Date(filters.start), 'MMM dd')} hasta ${format(new Date(filters.end), 'MMM dd')}`
   } catch (error) {
     console.error('Error fetching historical data:', error)
   } finally {
@@ -148,7 +150,7 @@ const updateChart = (data) => {
       const val = item.avg !== undefined ? item.avg : (item.value !== undefined ? item.value : item.values?.[ch])
       
       channelGroups[ch].push({
-        x: timestamp,
+        x: timestamp.getTime(),
         y: val !== undefined && val !== null ? Number(val) : null,
         min: item.min,
         max: item.max
@@ -166,12 +168,12 @@ const updateChart = (data) => {
       datasets.push({
         label: ch === 'default' ? capitalize(filters.measurement_type) : `Channel ${ch}`,
         data: channelGroups[ch],
-        
+        parsing: false,
         borderColor: color,
         backgroundColor: (context) => {
           const chart = context.chart;
           const {ctx, chartArea} = chart;
-          if (!chartArea) return null;
+          if (!chartArea || !ctx) return 'transparent';
           const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
           gradient.addColorStop(0, color.replace('1)', '0.4)'));
           gradient.addColorStop(1, color.replace('1)', '0)'));
@@ -219,6 +221,7 @@ onMounted(() => {
       scales: {
         x: {
           type: 'time',
+          realtime: false,
           time: {
             displayFormats: {
               minute: 'HH:mm',
@@ -295,6 +298,7 @@ watch(() => props.deviceId, () => {
 <style scoped>
 
 
+
 .header-container {
   display: flex;
   justify-content: space-between;
@@ -319,22 +323,42 @@ watch(() => props.deviceId, () => {
   display: flex;
   gap: 12px;
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--ion-color-light, rgba(255, 255, 255, 0.03));
   padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ion-border-color, rgba(255, 255, 255, 0.05));
+  transition: all 0.3s ease;
+}
+
+.filter-section.is-mobile {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  padding: 16px;
 }
 
 .date-filters {
   display: flex;
   gap: 8px;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid var(--ion-border-color, rgba(255, 255, 255, 0.1));
   padding-right: 12px;
+}
+
+.is-mobile .date-filters {
+  flex-direction: column;
+  border-right: none;
+  padding-right: 0;
+  border-bottom: 1px solid var(--ion-border-color, rgba(255, 255, 255, 0.1));
+  padding-bottom: 12px;
 }
 
 .other-filters {
   display: flex;
   gap: 12px;
+}
+
+.is-mobile .other-filters {
+  justify-content: space-between;
 }
 
 .filter-item {
@@ -343,22 +367,37 @@ watch(() => props.deviceId, () => {
   gap: 8px;
 }
 
+.is-mobile .filter-item {
+  width: 100%;
+}
+
 .filter-item label {
   display: none; /* Hide labels to match image */
 }
 
 .filter-item input, .filter-item select {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--ion-background-color, transparent);
+  border: 1px solid var(--ion-border-color, rgba(255, 255, 255, 0.1));
   border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 0.8125rem;
+  padding: 8px 12px;
+  font-size: 0.875rem;
   outline: none;
   transition: all 0.2s;
+  color: var(--ion-text-color, #000);
+}
+
+.is-mobile .filter-item input, 
+.is-mobile .filter-item select {
+  width: 100%;
+  height: 44px; /* Better touch target */
 }
 
 .filter-item input[type="datetime-local"] {
   min-width: 180px;
+}
+
+.is-mobile .filter-item input[type="datetime-local"] {
+  min-width: 0;
 }
 
 .filter-item input:focus, .filter-item select:focus {
@@ -366,10 +405,20 @@ watch(() => props.deviceId, () => {
   background: rgba(59, 130, 246, 0.05);
 }
 
+.is-mobile-content {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
 .chart-container {
   height: 350px;
   position: relative;
   margin-top: 20px;
+}
+
+.is-mobile .chart-container {
+  height: 280px;
+  margin-top: 10px;
 }
 
 .loading-overlay {
@@ -388,11 +437,16 @@ watch(() => props.deviceId, () => {
 @media (max-width: 768px) {
   .header-container {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
   }
   
+  .title-section ion-card-title {
+    font-size: 1.25rem;
+  }
+
   .filter-section {
     width: 100%;
-    justify-content: space-between;
   }
 }
 </style>

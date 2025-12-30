@@ -135,8 +135,7 @@
    Specific to RecentMessages component
    =========================== */
 
-.recent-messages {
-  margin-top: 30px;
+.recent-messages {  
   font-family: monospace;
 }
 

@@ -41,6 +41,7 @@ export function useBatteryDataProcessor() {
             {
                 label: `Voltaje ch${i} (V)`,
                 data: samples,
+                parsing: false,
                 borderColor: color,
                 backgroundColor: color,
                 borderWidth: 2,
@@ -52,6 +53,7 @@ export function useBatteryDataProcessor() {
             {
                 label: `Porcentaje ch${i} (%)`,
                 data: samples.map(p => ({ x: p.x, y: voltageToPercentage(p.y) })),
+                parsing: false,
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.5)',
                 borderWidth: 2,
