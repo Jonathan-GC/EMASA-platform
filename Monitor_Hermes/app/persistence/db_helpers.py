@@ -33,9 +33,12 @@ async def aggregations(
     if steps < 1:
         steps = 1
 
+    # Ensure the time range is valid (start should be earlier than or equal to end)
+    if end < start:
+        start, end = end, start
     # Calculate interval in milliseconds
     duration_ms = (end - start).total_seconds() * 1000
-    interval_ms = max(1, duration_ms / steps)
+    interval_ms = max(1, int(duration_ms / steps))
 
     # Build Match Stage
     match_stage = {
@@ -84,7 +87,8 @@ async def aggregations(
     ]
 
     results = []
-    async for doc in db.measurements_history.aggregate(pipeline):
+    cursor = await db.measurements_history.aggregate(pipeline)
+    async for doc in cursor:
         results.append(doc)
 
     return results
