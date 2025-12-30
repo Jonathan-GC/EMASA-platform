@@ -24,7 +24,7 @@
               </select>
             </div>
             <div class="filter-item">
-              <input type="number" v-model.number="filters.steps" @change="fetchData" min="1" max="1000" placeholder="Steps" style="width: 80px;" />
+              <input type="number" v-model.number="filters.step" @change="fetchData" min="1" max="1000" placeholder="Steps" style="width: 80px;" />
             </div>
           </div>
         </div>
@@ -91,7 +91,7 @@ const filters = reactive({
   start: format(subDays(new Date(), 90), "yyyy-MM-dd'T'HH:mm"),
   end: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   measurement_type: props.initialType,
-  steps: 100
+  step: 100
 })
 
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
@@ -105,7 +105,7 @@ const fetchData = async () => {
       start: new Date(filters.start).toISOString(),
       end: new Date(filters.end).toISOString(),
       measurement_type: filters.measurement_type,
-      steps: filters.steps
+      steps: filters.step
     })
 
     const url = `${API.DEVICE_HISTORICAL_MEASUREMENTS(props.deviceId)}?${params.toString()}`
@@ -141,9 +141,15 @@ const updateChart = (data) => {
     data.forEach(item => {
       const ch = item.channel || 'default'
       if (!channelGroups[ch]) channelGroups[ch] = []
+      
+      const timestamp = new Date(item.timestamp || item.time || item.arrival_date)
+      if (isNaN(timestamp.getTime())) return // Skip invalid dates
+      
+      const val = item.avg !== undefined ? item.avg : (item.value !== undefined ? item.value : item.values?.[ch])
+      
       channelGroups[ch].push({
-        x: new Date(item.timestamp || item.time || item.arrival_date),
-        y: item.avg !== undefined ? item.avg : (item.value !== undefined ? item.value : item.values?.[ch]),
+        x: timestamp,
+        y: val !== undefined && val !== null ? Number(val) : null,
         min: item.min,
         max: item.max
       })
@@ -160,7 +166,7 @@ const updateChart = (data) => {
       datasets.push({
         label: ch === 'default' ? capitalize(filters.measurement_type) : `Channel ${ch}`,
         data: channelGroups[ch],
-        fill: true,
+        
         borderColor: color,
         backgroundColor: (context) => {
           const chart = context.chart;
@@ -172,7 +178,7 @@ const updateChart = (data) => {
           return gradient;
         },
         tension: 0.4,
-        pointRadius: 0,
+        pointRadius: 2,
         pointHoverRadius: 6,
         pointHoverBackgroundColor: color,
         pointHoverBorderColor: '#fff',
@@ -246,6 +252,7 @@ onMounted(() => {
         }
       },
       plugins: {
+        streaming: false,
         legend: {
           display: false
         },
@@ -259,10 +266,12 @@ onMounted(() => {
           usePointStyle: true,
           callbacks: {
             title: (context) => {
+              if (!context || !context[0]) return ''
               return format(new Date(context[0].parsed.x), 'MMM dd, HH:mm')
             },
             label: (context) => {
               const point = context.raw;
+              if (!point) return ''
               let label = `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
               if (point.min !== undefined && point.max !== undefined) {
                 label += ` (Min: ${point.min}, Max: ${point.max})`;
@@ -284,12 +293,7 @@ watch(() => props.deviceId, () => {
 </script>
 
 <style scoped>
-.historical-chart-card {
-  border-radius: 16px;
-  margin: 24px 0;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
+
 
 .header-container {
   display: flex;
