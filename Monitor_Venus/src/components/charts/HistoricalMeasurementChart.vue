@@ -9,22 +9,15 @@
         <div class="filter-section" :class="{ 'is-mobile': isMobile }">
           <div class="date-filters">
             <div class="filter-item">
-              <input type="datetime-local" v-model="filters.start" @change="fetchData" />
+              <input type="datetime-local" v-model="filters.start" :max="today" :min="yesterday" @change="fetchData" />
             </div>
             <div class="filter-item">
-              <input type="datetime-local" v-model="filters.end" @change="fetchData" />
+              <input type="datetime-local" v-model="filters.end" :max="today" :min="yesterday" @change="fetchData"  />
             </div>
           </div>
           <div class="other-filters">
             <div class="filter-item">
-              <select v-model="filters.measurement_type" @change="fetchData">
-                <option v-for="type in measurementTypes" :key="type" :value="type">
-                  {{ capitalize(type) }}
-                </option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <input type="number" v-model.number="filters.step" @change="fetchData" min="1" max="1000" placeholder="Steps" style="width: 80px;" />
+              <input type="number" v-model.number="stepValue" @change="fetchData" min="1" max="300" placeholder="Steps" style="width: 80px;" />
             </div>
           </div>
         </div>
@@ -78,6 +71,8 @@ let chartInstance = null
 const loading = ref(false)
 const title = ref('Total Visitors')
 const subtitle = ref('Total for the last 3 months')
+const today = format(new Date(), "yyyy-MM-dd'T'HH:mm")
+const yesterday = format(subDays(new Date(), 89), "yyyy-MM-dd'T'HH:mm")
 
 const measurementTypes = computed(() => {
   const types = new Set(['voltage', 'current', 'battery'])
@@ -90,10 +85,25 @@ const measurementTypes = computed(() => {
 })
 
 const filters = reactive({
-  start: format(subDays(new Date(), 90), "yyyy-MM-dd'T'HH:mm"),
+  start: format(subDays(new Date(), 89), "yyyy-MM-dd'T'HH:mm"),
   end: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   measurement_type: props.initialType,
   step: 100
+})
+
+// Watch for initialType changes to update the chart automatically
+watch(() => props.initialType, (newType) => {
+  if (newType) {
+    filters.measurement_type = newType
+    fetchData()
+  }
+})
+
+const stepValue = computed({
+  get: () => filters.step,
+  set: (val) => {
+    filters.step = Math.min(Math.max(1, val), 300)
+  }
 })
 
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
@@ -231,7 +241,7 @@ onMounted(() => {
             }
           },
           grid: {
-            display: false,
+            display: true,
             drawBorder: false
           },
           ticks: {
@@ -243,8 +253,9 @@ onMounted(() => {
         },
         y: {
           grid: {
-            color: 'rgba(156, 163, 175, 0.05)',
-            drawBorder: false
+
+            drawBorder: false,
+            display: true
           },
           ticks: {
             color: '#9ca3af',
