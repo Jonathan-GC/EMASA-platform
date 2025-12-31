@@ -47,12 +47,34 @@ export function useMeasurementDataProcessor(config) {
 
     const parseTime = (t) => {
         if (t === undefined || t === null) return new Date(NaN)
+        
+        // Handle numeric timestamps
         if (typeof t === 'number') {
             const ms = t < 1e12 ? t * 1000 : t
             return new Date(ms)
         }
+        
+        // Handle strings
+        if (typeof t === 'string') {
+            // If it's a numeric string, parse it as a number first
+            if (/^\d+$/.test(t)) {
+                const n = Number(t)
+                const ms = n < 1e12 ? n * 1000 : n
+                return new Date(ms)
+            }
+            
+            // If it's an ISO-like string without timezone info, assume UTC
+            // This is critical because backends often send UTC strings without the 'Z' suffix
+            if (!t.includes('Z') && !t.includes('+') && !t.match(/-\d{2}:?\d{2}$/)) {
+                const isoTime = t.includes(' ') ? t.replace(' ', 'T') : t
+                const d = new Date(isoTime + (isoTime.includes('T') ? 'Z' : ''))
+                if (!isNaN(d)) return d
+            }
+        }
+        
         const d = new Date(t)
         if (!isNaN(d)) return d
+        
         const n = Number(t)
         if (!isNaN(n)) return parseTime(n)
         return new Date(NaN)

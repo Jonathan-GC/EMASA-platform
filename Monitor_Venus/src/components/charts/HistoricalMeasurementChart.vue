@@ -154,7 +154,21 @@ const updateChart = (data) => {
       const ch = item.channel || 'default'
       if (!channelGroups[ch]) channelGroups[ch] = []
       
-      const timestamp = new Date(item.timestamp || item.time || item.arrival_date)
+      let rawTime = item.timestamp || item.time || item.arrival_date
+      let timestamp;
+      
+      if (typeof rawTime === 'number') {
+        const ms = rawTime < 1e12 ? rawTime * 1000 : rawTime
+        timestamp = new Date(ms)
+      } else if (typeof rawTime === 'string' && !rawTime.includes('Z') && !rawTime.includes('+')) {
+        // If the string doesn't have timezone info, assume it's UTC and add 'Z'
+        // This ensures the browser converts it to local time correctly
+        const isoTime = rawTime.includes(' ') ? rawTime.replace(' ', 'T') : rawTime;
+        timestamp = new Date(isoTime + 'Z');
+      } else {
+        timestamp = new Date(rawTime);
+      }
+
       if (isNaN(timestamp.getTime())) return // Skip invalid dates
       
       const val = item.avg !== undefined ? item.avg : (item.value !== undefined ? item.value : item.values?.[ch])
