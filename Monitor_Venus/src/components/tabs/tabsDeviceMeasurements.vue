@@ -78,7 +78,7 @@
             </div>
 
             <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" />
+            <RecentMessages :messages="recentMessages" measurement-type="voltage" />
 
             <!-- Historical Measurement Chart -->
             <HistoricalMeasurementChart 
@@ -130,7 +130,7 @@
             </div>
 
             <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" />
+            <RecentMessages :messages="currentMessages" measurement-type="current" />
 
             <!-- Historical Measurement Chart -->
             <HistoricalMeasurementChart 
@@ -263,7 +263,7 @@
             />
 
             <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" />
+            <RecentMessages :messages="getMeasurementRecentMessages(measurement.unit)" :measurement-type="measurement.unit?.toLowerCase()" />
 
             <!-- Historical Measurement Chart -->
             
@@ -316,7 +316,7 @@
               :available-measurements="measurements"
               initial-type="battery"
             />
-            <RecentMessages :messages="recentMessages" />
+            <RecentMessages :messages="batteryMessages" measurement-type="battery" />
 
             <!-- Historical Measurement Chart -->
             
@@ -585,11 +585,23 @@ const props = defineProps({
     type: Object,
     default: null
   },
+  measurements: {
+    type: Array,
+    default: () => []
+  },
   batteryPercentage: {
     type: Number,
     default: 0
   },
   recentMessages: {
+    type: Array,
+    default: () => []
+  },
+  currentMessages: {
+    type: Array,
+    default: () => []
+  },
+  batteryMessages: {
     type: Array,
     default: () => []
   },
@@ -660,6 +672,10 @@ const props = defineProps({
   measurementDevices: {
     type: Object,
     default: () => ({})
+  },
+  measurementMessages: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -674,7 +690,7 @@ const { isMobile, isTablet, isDesktop } = useResponsiveView()
 
 // Component state
 const isMounted = ref(false)
-const measurements = ref(null)
+const measurements = ref(props.measurements && props.measurements.length > 0 ? props.measurements : null)
 const measurementsLoading = ref(false)
 const measurementsError = ref(null)
 // Device fetch state (used by fetchDevice)
@@ -682,8 +698,17 @@ const loading = ref(false)
 const error = ref(null)
 const deviceDetails = ref(null) // store fetched device details (used by activation form)
 
+// Watch for props.measurements changes
+watch(() => props.measurements, (newVal) => {
+  if (newVal && newVal.length > 0) {
+    measurements.value = newVal
+  }
+})
+
 // Fetch measurements from API
 const fetchMeasurements = async () => {
+  if (measurements.value && measurements.value.length > 0) return
+  
   const deviceId = route.params.device_id
   
   if (!deviceId) {
@@ -880,6 +905,25 @@ const getMeasurementLatestDataPoints = (measurementUnit) => {
   }
   
   return latestDataMap[unitLower] || {}
+}
+
+// Helper function to get recent messages for dynamic measurements
+const getMeasurementRecentMessages = (measurementUnit) => {
+  if (!measurementUnit) return []
+  
+  const unitLower = measurementUnit.toLowerCase()
+  
+  const messagesMap = {
+    'voltage': props.recentMessages || [],
+    'voltaje': props.recentMessages || [],
+    'current': props.currentMessages || [],
+    'corriente': props.currentMessages || [],
+    'battery': props.batteryMessages || [],
+    'batería': props.batteryMessages || [],
+    'bateria': props.batteryMessages || [],
+  }
+  
+  return messagesMap[unitLower] || props.measurementMessages[unitLower] || []
 }
 
 // Helper function to get device data for a specific measurement

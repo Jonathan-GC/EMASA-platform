@@ -45,6 +45,7 @@ import { Chart, registerables } from 'chart.js'
 import 'chartjs-adapter-date-fns'
 import API from '@/utils/api/api.js'
 import { format, subDays } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
 
 Chart.register(...registerables)
@@ -134,7 +135,7 @@ const fetchData = async () => {
     
     // Update title based on measurement type
     title.value = `Historico de ${capitalize(filters.measurement_type)}`
-    subtitle.value = `Datos desde ${format(new Date(filters.start), 'MMM dd')} hasta ${format(new Date(filters.end), 'MMM dd')}`
+    subtitle.value = `Datos desde ${format(new Date(filters.start), 'MMM dd', { locale: es })} hasta ${format(new Date(filters.end), 'MMM dd', { locale: es })}`
   } catch (error) {
     console.error('Error fetching historical data:', error)
   } finally {
@@ -238,6 +239,9 @@ onMounted(() => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      onHover: (event, activeElements) => {
+        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+      },
       interaction: {
         intersect: false,
         mode: 'index',
@@ -245,6 +249,11 @@ onMounted(() => {
       scales: {
         x: {
           type: 'time',
+          adapters: {
+            date: {
+              locale: es
+            }
+          },
           realtime: false,
           time: {
             displayFormats: {
@@ -295,7 +304,7 @@ onMounted(() => {
           callbacks: {
             title: (context) => {
               if (!context || !context[0]) return ''
-              return format(new Date(context[0].parsed.x), 'MMM dd, HH:mm')
+              return format(new Date(context[0].parsed.x), 'MMM dd, HH:mm', { locale: es })
             },
             label: (context) => {
               const point = context.raw;

@@ -18,8 +18,8 @@
       <ion-card-content>
         <p><strong>Total Muestras:</strong> {{ device?.buffer_stats?.total_samples || 0 }}</p>
         <p><strong>Fragmentos:</strong> {{ device?.buffer_stats?.total_fragments || 0 }}</p>
-        <p><strong>Promedio:</strong> {{ formatValue(device?.buffer_stats?.[`avg_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }}</p>
-        <p><strong>Rango:</strong> {{ formatValue(device?.buffer_stats?.[`min_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }} - {{ formatValue(device?.buffer_stats?.[`max_${measurement.unit.toLowerCase()}`] || 0) }} {{ measurement.ref }}</p>
+        <p><strong>Promedio:</strong> {{ formatValue(device?.buffer_stats?.[`avg_${measurement.unit.toLowerCase()}`]) }} {{ measurement.ref }}</p>
+        <p><strong>Rango:</strong> {{ formatValue(device?.buffer_stats?.[`min_${measurement.unit.toLowerCase()}`]) }} {{ measurement.ref }} - {{ formatValue(device?.buffer_stats?.[`max_${measurement.unit.toLowerCase()}`]) }} {{ measurement.ref }}</p>
       </ion-card-content>
     </ion-card>
 
@@ -61,10 +61,8 @@ const icons = inject('icons', {})
 
 // Helper function to format measurement values
 const formatValue = (value) => {
-    console.log('device: ', props.device)
-  return (value || 0).toFixed(2)
-  
-  
+  if (value === null || value === undefined) return 'N.A'
+  return value.toFixed(2)
 }
 
 const getMeasurementStatusText = () => {

@@ -10,10 +10,13 @@
           :is-connected="isConnected"
           :reconnect-attempts="reconnectAttempts"
           :device="lastDevice"
+          :measurements="measurements"
           :chart-data-fragments="chartDataFragments"
           :latest-data-points="voltageLatestPoints"
           :chart-key="chartKey"
           :recent-messages="recentMessages"
+          :current-messages="currentMessages"
+          :battery-messages="batteryMessages"
           :current-chart-data-fragments="currentChartDataFragments"
           :current-latest-data-points="currentLatestPoints"
           :current-device="currentDevice"
@@ -24,6 +27,7 @@
           :battery-chart-key="batteryChartKey"
           :get-battery-percentage="getBatteryPercentage"
           :measurement-devices="measurementDevices"
+          :measurement-messages="measurementMessages"
         />
       </div>
 
@@ -94,9 +98,18 @@ const {
 const measurementProcessors = new Map()
 
 // Register default processors
-measurementProcessors.set('voltage', { processor: { processIncomingData }, device: lastDevice })
-measurementProcessors.set('current', { processor: { processIncomingData: processCurrentData }, device: currentDevice })
-measurementProcessors.set('battery', { processor: { processIncomingData: processBatteryData }, device: batteryDevice })
+measurementProcessors.set('voltage', { 
+  processor: { processIncomingData, recentMessages }, 
+  device: lastDevice 
+})
+measurementProcessors.set('current', { 
+  processor: { processIncomingData: processCurrentData, recentMessages: currentMessages }, 
+  device: currentDevice 
+})
+measurementProcessors.set('battery', { 
+  processor: { processIncomingData: processBatteryData, recentMessages: batteryMessages }, 
+  device: batteryDevice 
+})
 
 // Function to create and register custom measurement processor
 const registerMeasurementProcessor = (measurementType, config = {}) => {
@@ -145,8 +158,45 @@ const measurementDevices = computed(() => {
   return devices
 })
 
+// Computed property to create measurementMessages map for child component
+const measurementMessages = computed(() => {
+  const messages = {}
+  
+  // Add all processors' messages to the map
+  measurementProcessors.forEach((entry, measurementType) => {
+    messages[measurementType] = entry.processor.recentMessages.value
+  })
+  
+  return messages
+})
+
 // State for page readiness
 const pageReady = ref(false)
+const measurements = ref([])
+
+/**
+ * Fetch measurements and register processors
+ */
+const fetchAndRegisterMeasurements = async () => {
+  try {
+    console.log('📊 Fetching measurements for device:', deviceId)
+    const response = await API.get(API.DEVICE_GET_MEASUREMENTS(deviceId))
+    measurements.value = Array.isArray(response) ? response : [response]
+    
+    measurements.value.forEach(m => {
+      const type = m.unit?.toLowerCase()
+      if (type && !['voltage', 'voltaje', 'current', 'corriente', 'battery', 'batería', 'bateria'].includes(type)) {
+        registerMeasurementProcessor(type, {
+          unit: m.ref,
+          chartLabel: m.unit,
+          icon: m.icon
+        })
+      }
+    })
+  } catch (error) {
+    console.error('❌ Error fetching measurements:', error)
+  }
+}
 
 /**
  * Preload last measurements from API to populate charts immediately
@@ -181,8 +231,10 @@ onIonViewDidEnter(() => {
   pageReady.value = true
 })
 
-onMounted(() => {
+onMounted(async () => {
   console.log('🔧 Measurements page mounted')
+  // Fetch measurements first to register all processors
+  await fetchAndRegisterMeasurements()
   // Preload historical data before starting WebSocket
   preloadLastMeasurements()
   // Set up WebSocket message handler for all data types

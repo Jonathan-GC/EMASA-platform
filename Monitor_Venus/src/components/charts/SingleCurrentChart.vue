@@ -31,6 +31,7 @@
 import { computed, ref, watch, onMounted, onUnmounted, toRaw, markRaw } from 'vue'
 import { Chart } from 'chart.js'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonButton, IonIcon } from '@ionic/vue'
 import { refreshOutline } from 'ionicons/icons'
 
@@ -152,7 +153,7 @@ const chartOptions = computed(() => ({
     tooltip: {
       animation: false,
       callbacks: {
-        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS') : '',
+        title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS', { locale: es }) : '',
         label: (context) => `Corriente: ${context.parsed.y.toFixed(3)}A`
       }
     },
@@ -178,6 +179,11 @@ const chartOptions = computed(() => ({
   scales: {
     x: {
       type: 'realtime',
+      adapters: {
+        date: {
+          locale: es
+        }
+      },
       realtime: {
         duration: 30000,
         refresh: 1000,

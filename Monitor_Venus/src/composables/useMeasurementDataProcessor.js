@@ -33,7 +33,7 @@ export function useMeasurementDataProcessor(config) {
     const chartDataFragments = shallowRef([])
     const latestDataPoints = shallowRef({}) // Changed to object: { channelIndex: [newPoints] }
     const maxChannelIndex = ref(0)
-    const maxAccumulatedMessages = 15 // Increased to provide more history on load
+    const maxAccumulatedMessages = 7 // Increased to provide more history on load
 
     const lastProcessedTimestamp = ref({}) // Track last timestamp per channel to avoid duplicates
 
