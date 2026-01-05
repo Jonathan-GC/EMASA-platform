@@ -340,6 +340,70 @@ class TypeViewSet(viewsets.ModelViewSet):
     ),
     measurements=extend_schema(description="Get Measurements config for Device"),
     measurements_by_dev_eui=extend_schema(description="Get Measurements by DevEUI"),
+    update_measurement=extend_schema(
+        description="Update Measurement",
+        request=MeasurementsSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to update a measurement",
+                value={
+                    "measurement_id": 1,
+                    "min": 12.0,
+                    "max": 30.0,
+                    "threshold": 22.0,
+                    "unit": "Volts",
+                },
+                request_only=True,
+                response_only=False,
+            ),
+        ],
+    ),
+    last_metrics=extend_schema(
+        description="Get Last n Metrics for Device",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get last metrics for device with limit",
+                value={"limit": 5},
+            ),
+        ],
+    ),
+    historical_aggregated_metrics=extend_schema(
+        description="Get Historical Aggregated Metrics for Device",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get historical aggregated metrics for device",
+                value={
+                    "start": "2024-01-01T00:00:00Z",
+                    "end": "2024-01-07T00:00:00Z",
+                    "measurement_type": "voltage",
+                    "steps": 10,
+                    "channel": "ch1",
+                },
+            ),
+        ],
+    ),
+    historic_metrics=extend_schema(
+        description="Get Historic Metrics for Device (Range Query)",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get historic metrics for device",
+                value={
+                    "start": "2024-01-01T00:00:00Z",
+                    "end": "2024-01-07T00:00:00Z",
+                    "measurement_type": "voltage",
+                    "channel": "ch1",
+                },
+            ),
+        ],
+    ),
 )
 class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.all()
@@ -988,6 +1052,76 @@ class DeviceViewSet(viewsets.ModelViewSet):
             )
             return Response(
                 {"message": "Error fetching historical aggregated metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def historic_metrics(self, request, pk=None):
+        device = self.get_object()
+
+        start = request.query_params.get("start", None)
+        end = request.query_params.get("end", None)
+        measurement_type = request.query_params.get("measurement_type", None)
+        channel = request.query_params.get("channel", None)
+
+        if not all([start, end, measurement_type]):
+            return Response(
+                {
+                    "message": "Missing required query parameters: start, end, measurement_type"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/measurements/historic"
+
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        params = {
+            "dev_eui": device.dev_eui,
+            "start": start,
+            "end": end,
+            "measurement_type": measurement_type,
+        }
+
+        if channel:
+            params["channel"] = channel
+
+        try:
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching historical metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching historical metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching historical metrics from Hermes"},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 

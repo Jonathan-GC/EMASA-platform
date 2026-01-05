@@ -9,7 +9,11 @@ from app.persistence.mongo import (
     get_db,
     save_message,
 )
-from app.persistence.db_helpers import get_last_messages, aggregations
+from app.persistence.db_helpers import (
+    get_last_messages,
+    aggregations,
+    get_historic_from_date_range,
+)
 from app.redis.redis import connect_to_redis, close_redis_connection
 from app.workers.redis_worker import process_messages
 from app.workers.alert_retry_worker import retry_pending_alerts
@@ -158,3 +162,30 @@ async def refresh_measurements_endpoint(
             "status": "error",
             "message": f"Failed to refresh measurements for {dev_eui}",
         }
+
+
+@app.get("/measurements/historic")
+async def get_historic_measurements_endpoint(
+    dev_eui: str,
+    measurement_type: str,
+    start: datetime,
+    end: datetime,
+    channel: Optional[str] = None,
+    db: Any = Depends(get_db),
+    _: bool = Depends(verify_service_api_key),
+):
+    """
+    Get historic measurements for a device within a date range.
+
+    - **dev_eui**: Device EUI
+    - **measurement_type**: Type of measurement (e.g., "voltage", "current")
+    - **start**: Start datetime (ISO 8601)
+    - **end**: End datetime (ISO 8601)
+    - **channel**: Optional channel filter (e.g., "ch1")
+    """
+    loguru.logger.debug(
+        f"Fetching historic measurements for {dev_eui} ({measurement_type}) from {start} to {end}"
+    )
+    return await get_historic_from_date_range(
+        db, dev_eui, measurement_type, start, end, channel
+    )
