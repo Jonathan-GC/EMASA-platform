@@ -116,14 +116,20 @@ async def get_historic_from_date_range(
     """
     match_stage = {
         "dev_eui": dev_eui,
-        "measurement_type": measurement_type,
-        "timestamp": {"$gte": start, "$lte": end},
+        "timestamp": {
+            "$gte": start,
+            "$lte": end,
+        },
+        f"payload.measurements.{measurement_type}": {"$exists": True},
     }
 
     if channel:
-        match_stage["channel"] = channel
+        match_stage[f"payload.measurements.{measurement_type}.{channel}"] = {
+            "$exists": True
+        }
 
     cursor = db.messages.find(match_stage).sort("timestamp", 1)
+
     messages = []
     async for doc in cursor:
         doc["_id"] = str(doc["_id"])
