@@ -138,13 +138,14 @@ import {
   IonCardContent, IonSpinner, IonButton 
 } from '@ionic/vue'
 import { Chart, registerables } from 'chart.js'
+import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
 import API from '@/utils/api/api.js'
 import { format, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
 
-Chart.register(...registerables)
+Chart.register(...registerables, annotationPlugin)
 
 const props = defineProps({
   deviceId: {
@@ -178,6 +179,7 @@ const detailedTableData = ref([])
 const detailedPointsInfo = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
+const clickedPointX = ref(null)
 
 const measurementTypes = computed(() => {
   const types = new Set(['voltage', 'current', 'battery'])
@@ -226,6 +228,13 @@ const closeDetailedTable = () => {
   showDetailedTable.value = false
   detailedTableData.value = []
   currentPage.value = 1
+  clickedPointX.value = null
+  
+  // Hide the vertical line
+  if (chartInstance && chartInstance.options.plugins.annotation) {
+    chartInstance.options.plugins.annotation.annotations.clickLine.display = false
+    chartInstance.update('none')
+  }
 }
 
 // Fetch detailed points from API
@@ -450,6 +459,15 @@ onMounted(() => {
           const prevPoint = index > 0 ? dataset.data[index - 1] : null
           const nextPoint = index < dataset.data.length - 1 ? dataset.data[index + 1] : null
           
+          // Store clicked point x position and update annotation
+          clickedPointX.value = clickedPoint.x
+          if (chartInstance.options.plugins.annotation) {
+            chartInstance.options.plugins.annotation.annotations.clickLine.xMin = clickedPoint.x
+            chartInstance.options.plugins.annotation.annotations.clickLine.xMax = clickedPoint.x
+            chartInstance.options.plugins.annotation.annotations.clickLine.display = true
+            chartInstance.update('none')
+          }
+          
           console.log('📍 Point clicked:', clickedPoint)
           fetchDetailedPoints(clickedPoint, prevPoint, nextPoint)
         }
@@ -504,6 +522,21 @@ onMounted(() => {
         }
       },
       plugins: {
+        annotation: {
+          annotations: {
+            clickLine: {
+              type: 'line',
+              xMin: 0,
+              xMax: 0,
+              borderColor: 'rgba(0, 0, 0, 0.8)',
+              borderWidth: 2,
+              display: false,
+              label: {
+                display: false
+              }
+            }
+          }
+        },
         streaming: false,
         legend: {
           display: false
