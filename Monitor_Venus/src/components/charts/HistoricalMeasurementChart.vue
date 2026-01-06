@@ -33,13 +33,109 @@
       </div>
     </ion-card-content>
   </ion-card>
+
+  <!-- Detailed Points Table -->
+  <ion-card v-if="showDetailedTable" class="detailed-points-table">
+    <ion-card-header>
+      <div class="table-header">
+        <ion-card-title>📊 Datos Detallados</ion-card-title>
+        <ion-button size="small" fill="clear" @click="closeDetailedTable">
+          ✕
+        </ion-button>
+      </div>
+      <ion-card-subtitle>
+        {{ detailedPointsInfo }}
+      </ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <div v-if="loadingDetails" class="loading-details">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Cargando datos detallados...</p>
+      </div>
+      <div v-else-if="detailedTableData.length > 0" class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Canal</th>
+              <th>Valor</th>
+              <th>Dispositivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, idx) in paginatedTableData" :key="idx">
+              <td>{{ row.time }}</td>
+              <td>{{ row.channel }}</td>
+              <td>{{ row.value }}</td>
+              <td>{{ row.device }}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <!-- Pagination -->
+        <div class="pagination" v-if="detailedTableData.length > 0">
+          <div class="pagination-left">
+            <span class="pagination-label">Items per page:</span>
+            <select v-model.number="itemsPerPage" class="items-per-page-select">
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
+          </div>
+          <div class="pagination-center">
+            <span class="page-range">
+              {{ (currentPage - 1) * itemsPerPage + 1 }}-{{ Math.min(currentPage * itemsPerPage, detailedTableData.length) }} of {{ detailedTableData.length }}
+            </span>
+          </div>
+          <div class="pagination-right">
+            <ion-button 
+              size="small" 
+              fill="clear" 
+              :disabled="currentPage === 1"
+              @click="currentPage = 1"
+            >
+              |‹
+            </ion-button>
+            <ion-button 
+              size="small" 
+              fill="clear" 
+              :disabled="currentPage === 1"
+              @click="currentPage--"
+            >
+              ‹
+            </ion-button>
+            <ion-button 
+              size="small" 
+              fill="clear" 
+              :disabled="currentPage === totalPages"
+              @click="currentPage++"
+            >
+              ›
+            </ion-button>
+            <ion-button 
+              size="small" 
+              fill="clear" 
+              :disabled="currentPage === totalPages"
+              @click="currentPage = totalPages"
+            >
+              ›|
+            </ion-button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="no-data">
+        <p>No hay datos detallados disponibles para este punto.</p>
+      </div>
+    </ion-card-content>
+  </ion-card>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, reactive, computed } from 'vue'
 import { 
   IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, 
-  IonCardContent, IonSpinner 
+  IonCardContent, IonSpinner, IonButton 
 } from '@ionic/vue'
 import { Chart, registerables } from 'chart.js'
 import 'chartjs-adapter-date-fns'
@@ -75,6 +171,14 @@ const subtitle = ref('Total for the last 3 months')
 const today = format(new Date(), "yyyy-MM-dd'T'HH:mm")
 const yesterday = format(subDays(new Date(), 89), "yyyy-MM-dd'T'HH:mm")
 
+// Detailed points table state
+const showDetailedTable = ref(false)
+const loadingDetails = ref(false)
+const detailedTableData = ref([])
+const detailedPointsInfo = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10
+
 const measurementTypes = computed(() => {
   const types = new Set(['voltage', 'current', 'battery'])
   if (props.availableMeasurements && props.availableMeasurements.length > 0) {
@@ -108,6 +212,101 @@ const stepValue = computed({
 })
 
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
+
+// Computed properties for pagination
+const totalPages = computed(() => Math.ceil(detailedTableData.value.length / itemsPerPage))
+
+const paginatedTableData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return detailedTableData.value.slice(start, end)
+})
+
+const closeDetailedTable = () => {
+  showDetailedTable.value = false
+  detailedTableData.value = []
+  currentPage.value = 1
+}
+
+// Fetch detailed points from API
+const fetchDetailedPoints = async (clickedPoint, prevPoint, nextPoint) => {
+  if (!clickedPoint || !props.deviceId) return
+  
+  loadingDetails.value = true
+  showDetailedTable.value = true
+  detailedTableData.value = []
+  
+  try {
+    // Calculate time window using previous and next point timestamps
+    const pointTimestamp = clickedPoint.x
+    
+    // Use previous point's timestamp as start, or current point - 1 second if first point
+    const startTimestamp = prevPoint ? prevPoint.x : pointTimestamp - 1000
+    
+    // Use next point's timestamp as end, or current point + 1 second if last point
+    const endTimestamp = nextPoint ? nextPoint.x : pointTimestamp + 1000
+    
+    const start = new Date(startTimestamp).toISOString()
+    const end = new Date(endTimestamp).toISOString()
+    
+    console.log('🕐 Time window:', {
+      start: format(new Date(startTimestamp), 'HH:mm:ss.SSS'),
+      clicked: format(new Date(pointTimestamp), 'HH:mm:ss.SSS'),
+      end: format(new Date(endTimestamp), 'HH:mm:ss.SSS')
+    })
+    
+    const params = new URLSearchParams({
+      start,
+      end,
+      measurement_type: filters.measurement_type
+    })
+    
+    const url = `${API.DETAILED_POINTS(props.deviceId)}?${params.toString()}`
+    console.log('📡 Fetching detailed points:', url)
+    
+    const response = await API.get(url)
+    const data = Array.isArray(response) ? response : (response.data || [])
+    
+    // Parse the nested structure and flatten for table display
+    const tableRows = []
+    
+    data.forEach(item => {
+      const deviceName = item.device_name || 'Unknown'
+      const measurements = item.payload?.measurements?.[filters.measurement_type]
+      
+      if (measurements) {
+        // Iterate through channels
+        Object.entries(measurements).forEach(([channel, samples]) => {
+          if (Array.isArray(samples)) {
+            samples.forEach(sample => {
+              // Use client-side time from sample, not server timestamp
+              const sampleTime = sample.time || item.payload?.arrival_date || item.timestamp
+              tableRows.push({
+                time: format(new Date(sampleTime), 'HH:mm:ss', { locale: es }),
+                channel: channel,
+                value: sample.value?.toFixed(2) || 'N/A',
+                device: deviceName
+              })
+            })
+          }
+        })
+      }
+    })
+    
+    // Sort by time
+    tableRows.sort((a, b) => a.time.localeCompare(b.time))
+    
+    detailedTableData.value = tableRows
+    detailedPointsInfo.value = `${tableRows.length} muestras encontradas cerca de ${format(new Date(pointTimestamp), 'HH:mm:ss', { locale: es })}`
+    
+    console.log('✅ Detailed points loaded:', tableRows.length, 'samples')
+  } catch (error) {
+    console.error('❌ Error fetching detailed points:', error)
+    detailedPointsInfo.value = 'Error al cargar datos detallados'
+  } finally {
+    loadingDetails.value = false
+  }
+}
 
 const fetchData = async () => {
   if (!props.deviceId) return
@@ -239,6 +438,22 @@ onMounted(() => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      onClick: (event, activeElements) => {
+        if (activeElements && activeElements.length > 0) {
+          const firstElement = activeElements[0]
+          const datasetIndex = firstElement.datasetIndex
+          const index = firstElement.index
+          const dataset = chartInstance.data.datasets[datasetIndex]
+          const clickedPoint = dataset.data[index]
+          
+          // Get previous and next points for time window
+          const prevPoint = index > 0 ? dataset.data[index - 1] : null
+          const nextPoint = index < dataset.data.length - 1 ? dataset.data[index + 1] : null
+          
+          console.log('📍 Point clicked:', clickedPoint)
+          fetchDetailedPoints(clickedPoint, prevPoint, nextPoint)
+        }
+      },
       onHover: (event, activeElements) => {
         event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
       },
@@ -466,6 +681,161 @@ watch(() => props.deviceId, () => {
   justify-content: center;
   align-items: center;
   z-index: 10;
+}
+
+/* Detailed Points Table Styles */
+.detailed-points-table {
+  margin-top: 20px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loading-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: var(--ion-color-medium);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table thead {
+  background: var(--ion-color-light);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  border-bottom: 2px solid var(--ion-color-medium);
+}
+
+.data-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+  color: var(--ion-text-color);
+}
+
+.data-table tbody tr:hover {
+  background: var(--ion-color-light);
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: rgba(var(--ion-color-light-rgb), 0.3);
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--ion-color-light-shade);
+  gap: 16px;
+}
+
+.pagination-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-label {
+  font-size: 0.875rem;
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.items-per-page-select {
+  background: var(--ion-background-color, transparent);
+  border: 1px solid var(--ion-border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  padding: 6px 32px 6px 12px;
+  font-size: 0.875rem;
+  color: var(--ion-text-color);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  transition: all 0.2s;
+}
+
+.items-per-page-select:hover {
+  border-color: var(--ion-color-primary);
+}
+
+.items-per-page-select:focus {
+  border-color: var(--ion-color-primary);
+  background-color: rgba(var(--ion-color-primary-rgb), 0.05);
+}
+
+.pagination-center {
+  flex: 1;
+  text-align: center;
+}
+
+.page-range {
+  font-size: 0.875rem;
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.pagination-right {
+  display: flex;
+  gap: 4px;
+}
+
+.pagination-right ion-button {
+  min-width: 36px;
+  height: 36px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
+.page-info {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ion-color-medium);
 }
 
 @media (max-width: 768px) {
