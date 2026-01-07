@@ -4,6 +4,7 @@ from typing import Optional, Any, Dict, List
 
 
 class MessageIn(BaseModel):
+    type: Optional[str] = "uplink"
     tenant_id: str
     tenant_name: Optional[str] = None
     dev_eui: str
@@ -60,7 +61,6 @@ class PendingAlertDB(PendingAlert):
 class DeviceUserMapping(BaseModel):
     dev_eui: str
     tenant_id: str
-    primary_user: str
     assigned_users: List[str]
     created_at: datetime
     updated_at: datetime

@@ -10,7 +10,7 @@ from app.validation.measurement_cache import get_or_fetch_measurement_configs
 from app.validation.measurement_validator import validate_measurements
 from app.validation.alert_service import send_alert_with_fallback
 from app.validation.rate_limiter import should_send_alert
-from app.persistence.device_mapping import get_primary_user_for_alert
+from app.persistence.device_mapping import get_user_ids_for_alert
 
 
 async def validate_and_alert_if_needed(message: Dict[str, Any], db) -> None:
@@ -53,9 +53,9 @@ async def validate_and_alert_if_needed(message: Dict[str, Any], db) -> None:
                 )
                 continue
 
-            user_id = await get_primary_user_for_alert(db, dev_eui, tenant_id)
+            user_ids = await get_user_ids_for_alert(db, dev_eui, tenant_id)
 
-            if not user_id:
+            if not user_ids:
                 loguru.logger.info(
                     f"No user mapping for {dev_eui}. Atlas will route, but WebSocket fallback unavailable."
                 )
@@ -66,7 +66,7 @@ async def validate_and_alert_if_needed(message: Dict[str, Any], db) -> None:
                 dev_eui=dev_eui,
                 device_name=device_name,
                 violations=unit_violations,
-                user_id=user_id,
+                user_ids=user_ids,
                 db=db,
             )
 
