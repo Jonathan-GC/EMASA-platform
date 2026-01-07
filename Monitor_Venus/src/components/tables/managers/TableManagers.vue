@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🌐 Usuarios del Tenant - Datos desde API</ion-card-title>
+        <ion-card-title>Administradores de ChirpStack</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${users.length} tenants encontrados` }}
+          {{ loading ? 'Cargando...' : `${users.length} ${users.length === 1 ? 'usuario encontrado' : 'usuarios encontrados'}` }}
         </ion-card-subtitle>
       </ion-card-header>
 

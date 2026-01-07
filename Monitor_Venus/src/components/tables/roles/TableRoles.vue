@@ -2,7 +2,8 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🎭 Roles del Sistema</ion-card-title>
+        <ion-card-title>
+          Gestion de roles del Sistema</ion-card-title>
         <ion-card-subtitle>
           {{ loading ? 'Cargando...' : `${roles.length} roles encontrados` }}
         </ion-card-subtitle>

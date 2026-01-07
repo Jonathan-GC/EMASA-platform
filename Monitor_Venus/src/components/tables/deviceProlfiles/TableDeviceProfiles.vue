@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🌐 Device Profiles - Datos desde API</ion-card-title>
+        <ion-card-title>Perfiles de nodos registrados en el sistema</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${deviceProfile.length} device profiles encontrados` }}
+          {{ loading ? 'Cargando...' : `${deviceProfile.length} ${deviceProfile.length === 1 ? 'perfil de nodo encontrado' : 'perfiles de nodos encontrados'}` }}
         </ion-card-subtitle>
       </ion-card-header>
 

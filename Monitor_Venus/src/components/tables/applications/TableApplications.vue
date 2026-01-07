@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>📦 Applications - Datos desde API</ion-card-title>
+        <ion-card-title>Servicios ofrecidos a los clientes</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${application.length} applications encontrados` }}
+          {{ loading ? 'Cargando...' : `${application.length} ${application.length === 1 ? 'servicio encontrado' : 'servicios encontrados'}` }}
         </ion-card-subtitle>
       </ion-card-header>
 
@@ -132,9 +132,7 @@
               </ion-col>
 
               <ion-col size="2">
-  
-
-                <QuickActions 
+                <quick-actions 
                   type="application"
                   :index="application.id" 
                   :name="application.name"

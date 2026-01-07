@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">proof-o-concept</string>
-    <string name="title_activity_main">proof-o-concept</string>
+    <string name="app_name">MTR Monitor</string>
+    <string name="title_activity_main">MTR Monitor</string>
     <string name="package_name">com.example.proofoconcept</string>
     <string name="custom_url_scheme">com.example.proofoconcept</string>
 </resources>

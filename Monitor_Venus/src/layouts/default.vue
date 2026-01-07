@@ -49,7 +49,6 @@ provide('notifications', notificationSystem)
 .sidebar :deep(nav),
 .sidebar :deep(.navbar),
 .sidebar :deep(.nav-container) {
-  height: 100%;
   min-height: 100%;
 }
 

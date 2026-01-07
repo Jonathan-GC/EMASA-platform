@@ -204,3 +204,15 @@ export const formatUnderscoreToSpace = (str) => {
     return str
   }
 }
+
+export const capitalizeFirst = (str) => {
+  if (!str) return ''
+  
+  try {
+    const stringValue = str.toString()
+    return stringValue.charAt(0).toUpperCase() + stringValue.slice(1)
+  } catch (error) {
+    console.error('Error capitalizing string:', error)
+    return str
+  }
+}

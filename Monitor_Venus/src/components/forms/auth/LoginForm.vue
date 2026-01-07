@@ -131,61 +131,6 @@ const credentials = ref({
   password: ''
 })
 
-// Estado del CSRF token (reactivo)
-const csrfStatus = computed(() => {
-  const token = getCookieValue('csrftoken');
-  if (token) {
-    return {
-      message: '✅ Token CSRF disponible',
-      class: 'csrf-available',
-      token: token
-    };
-  } else {
-    return {
-      message: '❌ Token CSRF no encontrado',
-      class: 'csrf-missing',
-      token: null
-    };
-  }
-})
-
-// Estado del Access Token (reactivo)
-const tokenStatus = computed(() => {
-  const token = sessionStorage.getItem('access_token');
-  const expiry = sessionStorage.getItem('access_token_expiry');
-  
-  if (token && expiry) {
-    const now = Date.now();
-    const expiryTime = parseInt(expiry);
-    const timeLeft = expiryTime - now;
-    
-    if (timeLeft > 0) {
-      const minutesLeft = Math.floor(timeLeft / (1000 * 60));
-      return {
-        message: `✅ Access token válido (${minutesLeft} min restantes)`,
-        class: 'token-valid',
-        token: token.substring(0, 20) + '...',
-        minutesLeft
-      };
-
-    } else {
-      return {
-        message: '⚠️ Access token expirado',
-        class: 'token-expired',
-        token: null,
-        minutesLeft: 0
-      };
-    }
-  } else {
-    return {
-      message: '❌ No hay access token',
-      class: 'token-missing',
-      token: null,
-      minutesLeft: 0
-    };
-  }
-})
-
 // Función para limpiar mensajes
 const clearMessages = () => {
   error.value = null
@@ -305,7 +250,20 @@ const handleLogin = async () => {
 
   } catch (err) {
     console.error('❌ Error en auth:', err)
-    error.value = `Error: ${err.message}`
+    console.error('Error completo:', {
+      message: err.message,
+      name: err.name,
+      stack: err.stack
+    })
+    
+    // Mensaje más descriptivo según el tipo de error
+    if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+      error.value = '❌ No se puede conectar con el servidor. Verifica que el backend esté corriendo en http://localhost:8000'
+    } else if (err.message.includes('CORS')) {
+      error.value = '❌ Error de CORS. Verifica la configuración del backend'
+    } else {
+      error.value = `❌ Error: ${err.message}`
+    }
   } finally {
     loading.value = false
   }

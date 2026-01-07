@@ -7,6 +7,8 @@
           :fields="formFields"
           :label="label"
           :additionalData="additionalData"
+          :initialData="initialData"
+          :reqIndex="false"
           @itemEdited="handleItemEdited"
           @closed="emit('closed')"
       />
@@ -43,7 +45,11 @@ const props = defineProps({
   },
   index: {
     type: Number,
-  },  
+  }, 
+  initialData: {
+    type: Object,
+    default: () => ({}),
+  } 
 });
 
 const emit = defineEmits(['itemCreated', 'loaded', 'closed']);

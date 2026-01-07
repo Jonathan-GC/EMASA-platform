@@ -6,7 +6,10 @@
         <div class="header">
           <div class="header-title">
             <ion-back-button default-href="/home"></ion-back-button>
-            <h1>🎭 Gestión de Roles</h1>
+            <h1>
+              <ion-icon :icon="icons.shield"></ion-icon>
+              Roles
+            </h1>
           </div>
         </div>
         
@@ -36,10 +39,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { inject } from 'vue';
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import TableRoles from '@components/tables/roles/TableRoles.vue'
 
 const pageReady = ref(false)
+const icons = inject('icons', {})
 
 // Ionic lifecycle hooks
 onIonViewWillEnter(() => {
