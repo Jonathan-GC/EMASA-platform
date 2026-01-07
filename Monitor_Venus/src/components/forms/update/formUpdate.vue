@@ -59,6 +59,18 @@
                 </ModalSelector>
               </ion-item>
 
+              <ion-item v-else-if="field.type === 'icon'" class="custom">
+                <ion-label position="stacked" class="!mb-2">{{ field.label }}</ion-label>
+                <IconPicker
+                  v-model="formValues[field.key]"
+                  :title="field.label || 'Seleccionar Icono'"
+                  :placeholder="field.placeholder || 'Seleccionar icono...'"
+                  :disabled="field.disabled || false"
+                  :searchable="field.searchable !== false"
+                  @update:modelValue="handleFieldChange(field.key, $event)"
+                />
+              </ion-item>
+
               <ion-item v-else-if="field.type === 'multiple-select'">
                 <ion-select multiple="true" v-model="formValues[field.key]" :label="field.label"
                   label-placement="floating">
@@ -130,6 +142,7 @@ import {
   IonSpinner,
 } from '@ionic/vue';
 import ModalSelector from '@/components/ui/ModalSelector.vue';
+import IconPicker from '@/components/ui/IconPicker.vue';
 import ImageUpload from '@/components/common/ImageUpload.vue';
 import API from "@utils/api/api";
 
@@ -150,7 +163,11 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: () => ({}),
-  }
+  },
+  reqIndex: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 console.log("index:", props.index);
@@ -237,6 +254,7 @@ async function createItem() {
       'group_profile': API.INVESTIGATION_GRUOPS_PROFILES,
       'seedbed_profile': API.RESEARCH_SEEDBEDS_PROFILES,
       'seedbed_member': API.RESEARCH_SEEDBEDS_MEMBERS,
+      'measurement': API.DEVICE_UPDATE_MEASUREMENTS,
     };
     const endpoint = apiEndpoints[props.type];
     if (endpoint) {
@@ -288,10 +306,14 @@ async function createItem() {
         });
       }
 
-      response = await API.patch(`${endpoint}${props.index}/`, payload);
-      if (!response.error) {
-        emit('itemEdited', formValues.value.name);
+      if (!props.reqIndex) {
+        response = await API.patch(`${endpoint}`, payload);
+      } else {
+        response = await API.patch(`${endpoint}${props.index}/`, payload);
       }
+      if (!response.error) {
+          emit('itemEdited', formValues.value.name);
+        }
     } else {
       console.error("Unknown type:", props.type);
     }

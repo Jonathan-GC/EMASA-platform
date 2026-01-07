@@ -23,7 +23,7 @@ async def should_send_alert(dev_eui: str, unit: str) -> bool:
             loguru.logger.debug(f"Alert cooldown active for {dev_eui}:{unit}")
             return False
 
-        await redis_client.setex(key, 300, "1")
+        await redis_client.setex(key, 60, "1")
         return True
 
     except Exception as e:

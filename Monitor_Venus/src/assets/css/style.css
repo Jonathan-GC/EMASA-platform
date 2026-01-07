@@ -10,9 +10,10 @@
 @import "./common.css";
 @import "./footer.css";
 @import "./tables.css";
+@import "./sidebar-styles.css";
 /*@import "./tabs.css";*/
 
-body a {
+body a{
     color: var(--color-amber-600);
 }
 
@@ -49,6 +50,14 @@ body a {
   border-top: 1px solid var(--color-zinc-200);
 }
 
+.page-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
 
 .header-title {
   display: flex;
@@ -80,6 +89,10 @@ body a {
   align-items: center;
   gap: 8px;
   line-height: 1;
+}
+
+.nav-link {
+  justify-content: left!important;
 }
 
 

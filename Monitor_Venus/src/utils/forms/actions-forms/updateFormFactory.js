@@ -18,6 +18,8 @@ const UpdateGateways = defineAsyncComponent(() => import("@components/forms/upda
 const updateApplications = defineAsyncComponent(() => import("@components/forms/update/application/formUpdateApplication.vue"));
 const UpdateDevices = defineAsyncComponent(() => import("@components/forms/update/device/formUpdateDevices.vue"));
 const UpdateMachines = defineAsyncComponent(() => import("@components/forms/update/machines/formUpdateMachines.vue"));
+const UpdateMeasurements = defineAsyncComponent(() => import("@components/forms/update/measurements/formUpdateMeasurements.vue"));
+
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
     const componentMap = {
@@ -88,6 +90,16 @@ export class UpdateFormFactory extends AbstractFormFactory {
           index: extraProps?.index,
           label: 'device',
           fields: schema.device,
+          initialData: extraProps?.initialData || {},
+        }
+      },
+      measurement: {
+        component: UpdateMeasurements,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'measurement',
+          fields: schema.measurement,
           initialData: extraProps?.initialData || {},
         }
       },

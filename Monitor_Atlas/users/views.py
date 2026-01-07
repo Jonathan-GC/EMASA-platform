@@ -14,8 +14,10 @@ from rest_framework.throttling import AnonRateThrottle
 
 from django.conf import settings
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_protect, csrf_exempt, ensure_csrf_cookie
+from django.middleware.csrf import CsrfViewMiddleware
 from datetime import timedelta
+from functools import wraps
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -222,10 +224,55 @@ REFRESH_COOKIE_NAME = settings.REFRESH_COOKIE_NAME
 REFRESH_COOKIE_PATH = settings.REFRESH_COOKIE_PATH
 
 
+# ============================================================================
+# Custom CSRF Protection for Native Apps
+# ============================================================================
+
+
+def conditional_csrf_protect(view_func):
+    """
+    Decorator that applies CSRF protection only for web browsers.
+    Allows requests from native apps without CSRF token.
+
+    Detects native apps by:
+    - User-Agent contains "Capacitor" or "Ionic"
+    - Origin/Referer contain "capacitor://" or "ionic://"
+    - Header X-Requested-With contains "com.example.proofoconcept" (your app ID)
+    """
+
+    @wraps(view_func)
+    def wrapped_view(request, *args, **kwargs):
+        user_agent = request.META.get("HTTP_USER_AGENT", "").lower()
+        origin = request.META.get("HTTP_ORIGIN", "").lower()
+        referer = request.META.get("HTTP_REFERER", "").lower()
+        x_requested_with = request.META.get("HTTP_X_REQUESTED_WITH", "").lower()
+
+        is_native_app = (
+            "capacitor" in user_agent
+            or "ionic" in user_agent
+            or "capacitor://" in origin
+            or "ionic://" in origin
+            or "capacitor://" in referer
+            or "ionic://" in referer
+            or "com.example.proofoconcept" in x_requested_with
+        )
+
+        if is_native_app:
+            logger.info(f"🔓 Native app detected - CSRF exempt | UA: {user_agent[:50]}")
+
+        if is_native_app:
+            return view_func(request, *args, **kwargs)
+
+        logger.info("🔒 Web browser detected - CSRF protection applied")
+        return csrf_protect(view_func)(request, *args, **kwargs)
+
+    return wrapped_view
+
+
 class CookieTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
-    @method_decorator(csrf_protect)
+    @method_decorator(conditional_csrf_protect)
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
@@ -253,7 +300,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
 class CookieTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
 
-    @method_decorator(csrf_protect)
+    @method_decorator(conditional_csrf_protect)
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
 
@@ -287,7 +334,7 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 
 class LogoutView(APIView):
-    @method_decorator(csrf_protect)
+    @method_decorator(conditional_csrf_protect)
     def post(self, request):
         refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if refresh:

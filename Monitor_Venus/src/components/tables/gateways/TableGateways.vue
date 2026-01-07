@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🌐 Gateways - Datos desde API</ion-card-title>
+        <ion-card-title>Gateways registrados en el sistema</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${gateways.length} gateways encontrados` }}
+          {{ loading ? 'Cargando...' : `${gateways.length} ${gateways.length === 1 ? 'gateway encontrado' : 'gateways encontrados'}` }}
         </ion-card-subtitle>
       </ion-card-header>
       

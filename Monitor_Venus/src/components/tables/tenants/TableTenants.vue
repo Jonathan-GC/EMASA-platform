@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🌐 Clientes - Datos desde API</ion-card-title>
+        <ion-card-title>Clientes registrados en el sistema</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${tenants.length} tenants encontrados` }}
+          {{ loading ? 'Cargando...' : `${tenants.length} ${tenants.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}` }}
         </ion-card-subtitle>
       </ion-card-header>
 

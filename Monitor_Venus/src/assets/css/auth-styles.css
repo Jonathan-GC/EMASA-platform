@@ -152,6 +152,7 @@ ion-input {
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
+  margin-bottom: 80px;
 }
 .progress-container {
   margin: 20px 0;
@@ -361,4 +362,29 @@ ion-button.custom {
     padding: 0;
     margin: 0;
   }
+}
+
+.modal-selector-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ion-color-primary);
+}
+
+.modal-selector-button {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Visual feedback on focus-visible (keyboard navigation) */
+.modal-selector-button:focus-visible {
+  outline: none;
+  box-shadow: 0 -2px 0 0 var(--ion-color-primary);
+}
+
+.modal-selector-button:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+.modal-selector-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

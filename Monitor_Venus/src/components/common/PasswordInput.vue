@@ -15,7 +15,8 @@
         v-if="showToggle"
         fill="clear"
         slot="end"
-        @click.prevent.stop="togglePasswordVisibility"
+        @click="togglePasswordVisibility"
+        @mousedown.prevent
         class="password-toggle-btn rounded-full"
         :aria-label="showPassword ? 'Hide password' : 'Show password'"
       >
@@ -62,7 +63,7 @@ const showPassword = ref(false)
 
 const passwordInputType = computed(() => (showPassword.value ? 'text' : 'password'))
 
-function togglePasswordVisibility() {
+function togglePasswordVisibility(event) {
   showPassword.value = !showPassword.value
 }
 

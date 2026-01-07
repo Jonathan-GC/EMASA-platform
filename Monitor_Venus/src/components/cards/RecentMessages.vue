@@ -13,6 +13,14 @@
           <span class="timestamp">{{ formatTime(message.reception_timestamp) }}</span>
           <span class="device">{{ message.device_name }}</span>
           <span class="samples">{{ message.buffer_stats?.total_samples  }} muestras</span>
+          
+          <!-- Stats display -->
+          <template v-if="measurementType && getStats(message, measurementType)">
+            <span class="stat-item avg">Avg: {{ formatValue(getStats(message, measurementType).avg) }}</span>
+            <span class="stat-item min">Min: {{ formatValue(getStats(message, measurementType).min) }}</span>
+            <span class="stat-item max">Max: {{ formatValue(getStats(message, measurementType).max) }}</span>
+          </template>
+
           <!--<span class="fragment">
             Frag: {{ message.object?.fragment_number || 'N.A' }}/{{ message.object?.total_fragments || 'N.A' }}
           </span>-->
@@ -33,6 +41,10 @@ defineProps({
   messages: {
     type: Array,
     default: () => []
+  },
+  measurementType: {
+    type: String,
+    default: null
   }
 })
 
@@ -50,6 +62,22 @@ const formatTime = (timestamp) => {
     })
   } catch {
     return 'N.A'
+  }
+}
+
+const formatValue = (value) => {
+  if (value === null || value === undefined) return 'N.A'
+  return typeof value === 'number' ? value.toFixed(2) : value
+}
+
+const getStats = (message, type) => {
+  if (!message.buffer_stats || !type) return null
+  
+  const typeLower = type.toLowerCase()
+  return {
+    avg: message.buffer_stats[`avg_${typeLower}`],
+    min: message.buffer_stats[`min_${typeLower}`],
+    max: message.buffer_stats[`max_${typeLower}`]
   }
 }
 

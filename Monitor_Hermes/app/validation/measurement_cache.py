@@ -61,3 +61,35 @@ async def get_or_fetch_measurement_configs(
     except Exception as e:
         loguru.logger.exception(f"Unexpected error fetching configs for {dev_eui}: {e}")
         return None
+
+
+async def force_refresh_measurement_configs(dev_eui: str, db) -> bool:
+    """
+    Force refresh of measurement configs from Atlas API.
+    Used by synchronization endpoints.
+    """
+    loguru.logger.info(f"Force refreshing configs for {dev_eui}...")
+
+    try:
+        response = await atlas_client.get(
+            "/api/v1/infrastructure/device/measurements_by_dev_eui/",
+            params={"dev_eui": dev_eui},
+            timeout=5.0,
+        )
+
+        configs_data = response.json()
+
+        if not isinstance(configs_data, list):
+            loguru.logger.warning(f"Invalid configs format from Atlas for {dev_eui}")
+            return False
+
+        configs = [MeasurementConfig(**config) for config in configs_data]
+
+        await save_device_measurement_configs(db, dev_eui, configs)
+
+        loguru.logger.info(f"Refreshed and cached {len(configs)} configs for {dev_eui}")
+        return True
+
+    except Exception as e:
+        loguru.logger.exception(f"Failed to force refresh configs for {dev_eui}: {e}")
+        return False

@@ -135,8 +135,7 @@
    Specific to RecentMessages component
    =========================== */
 
-.recent-messages {
-  margin-top: 30px;
+.recent-messages {  
   font-family: monospace;
 }
 
@@ -169,8 +168,8 @@
 }
 
 .samples {
-  background: #e7ffedff;
-  color: #28a745;
+  background: rgb(255, 226, 193);
+  color: #8d5c00;
   font-weight: 500;
   min-width: 80px;
   padding: 2px 6px;
@@ -186,6 +185,30 @@
   font-size: 0.8em;
   min-width: 80px;
   text-align: center;
+}
+
+.stat-item {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: center;
+}
+
+.stat-item.avg {
+  background: #d6eaf3;
+  color: #006192;
+}
+
+.stat-item.min {
+  background: #e9e9e9;
+  color: #727475;
+}
+
+.stat-item.max {
+  background: #e9e9e9;
+  color: #727475;
 }
 
 /* ===========================
@@ -212,14 +235,33 @@
   
   /* Recent messages */
   .message-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .message-item::-webkit-scrollbar {
+    display: none;
   }
   
   .timestamp,
   .samples,
-  .fragment {
+  .fragment,
+  .stat-item {
     min-width: unset;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .device {
+    flex: 0 0 auto;
+    margin-right: 4px;
+    white-space: nowrap;
+    font-weight: 600;
   }
 }

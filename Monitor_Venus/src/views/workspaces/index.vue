@@ -17,7 +17,7 @@ const icons = inject('icons', {})
             <ion-back-button default-href="/home"></ion-back-button>
             <h1>
               <ion-icon :icon="icons.layers"></ion-icon>
-              Workspaces de Clientes
+              Workspaces
             </h1>
           </div>
         </div>

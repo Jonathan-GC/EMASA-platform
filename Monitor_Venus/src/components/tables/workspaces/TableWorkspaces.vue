@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>🗃️ Workspaces - Datos desde API</ion-card-title>
+        <ion-card-title>Workspaces de clientes registrados en el sistema</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${application.length} workspace encontrados` }}
+          {{ loading ? 'Cargando...' : `${application.length} ${application.length === 1 ? 'workspace encontrado' : 'workspaces encontrados'}` }}
         </ion-card-subtitle>
       </ion-card-header>
 

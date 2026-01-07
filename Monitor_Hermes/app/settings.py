@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     WS_SECRET: str
 
-    # API Key para comunicación entre servicios
+    # External Services
     SERVICE_API_KEY: str
     ATLAS_HOST_URL: str = "http://localhost:8000"
 

@@ -6,19 +6,28 @@
       <div v-if="pageReady" class="current-dashboard">
         <!-- Main applications table with fetch data -->
         <TabsDeviceMeasurements
+          :device-id="deviceId"
           :is-connected="isConnected"
           :reconnect-attempts="reconnectAttempts"
           :device="lastDevice"
+          :measurements="measurements"
           :chart-data-fragments="chartDataFragments"
+          :latest-data-points="voltageLatestPoints"
           :chart-key="chartKey"
           :recent-messages="recentMessages"
+          :current-messages="currentMessages"
+          :battery-messages="batteryMessages"
           :current-chart-data-fragments="currentChartDataFragments"
+          :current-latest-data-points="currentLatestPoints"
           :current-device="currentDevice"
           :current-chart-key="currentChartKey"
           :battery-chart-data-fragments="batteryChartDataFragments"
+          :battery-latest-data-points="batteryLatestPoints"
           :battery-device="batteryDevice"
           :battery-chart-key="batteryChartKey"
           :get-battery-percentage="getBatteryPercentage"
+          :measurement-devices="measurementDevices"
+          :measurement-messages="measurementMessages"
         />
       </div>
 
@@ -32,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import { useRoute } from 'vue-router'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
@@ -42,6 +51,8 @@ import { useWebSocket } from '@composables/useWebSocket.js'
 import { useVoltageDataProcessor } from '@composables/useVoltageDataProcessor.js'
 import { useCurrentDataProcessor } from '@composables/useCurrentDataProcessor.js'
 import { useBatteryDataProcessor } from '@composables/useBatteryDataProcessor.js'
+import { useMeasurementDataProcessor } from '@composables/useMeasurementDataProcessor.js'
+import API from '@/utils/api/api.js'
 
 // Get route params
 const route = useRoute()
@@ -55,6 +66,7 @@ const { isConnected, reconnectAttempts, setOnMessage } = useWebSocket(deviceId)
 // Use voltage data processor for chart data
 const { 
   chartDataFragments, 
+  latestDataPoints: voltageLatestPoints,
   lastDevice, 
   recentMessages, 
   chartKey, 
@@ -64,6 +76,7 @@ const {
 // Use current data processor
 const {
   chartDataFragments: currentChartDataFragments,
+  latestDataPoints: currentLatestPoints,
   lastDevice: currentDevice,
   recentMessages: currentMessages,
   chartKey: currentChartKey,
@@ -73,6 +86,7 @@ const {
 // Use battery data processor
 const {
   chartDataFragments: batteryChartDataFragments,
+  latestDataPoints: batteryLatestPoints,
   lastDevice: batteryDevice,
   recentMessages: batteryMessages,
   chartKey: batteryChartKey,
@@ -80,16 +94,131 @@ const {
   processIncomingData: processBatteryData
 } = useBatteryDataProcessor()
 
+// Map of active measurement processors
+const measurementProcessors = new Map()
+
+// Register default processors
+measurementProcessors.set('voltage', { 
+  processor: { processIncomingData, recentMessages }, 
+  device: lastDevice 
+})
+measurementProcessors.set('current', { 
+  processor: { processIncomingData: processCurrentData, recentMessages: currentMessages }, 
+  device: currentDevice 
+})
+measurementProcessors.set('battery', { 
+  processor: { processIncomingData: processBatteryData, recentMessages: batteryMessages }, 
+  device: batteryDevice 
+})
+
+// Function to create and register custom measurement processor
+const registerMeasurementProcessor = (measurementType, config = {}) => {
+  if (measurementProcessors.has(measurementType)) {
+    console.log(`⚠️ Processor for ${measurementType} already exists, skipping registration`)
+    return measurementProcessors.get(measurementType)
+  }
+
+  const processor = useMeasurementDataProcessor({
+    measurementType,
+    chartLabel: config.chartLabel || measurementType.charAt(0).toUpperCase() + measurementType.slice(1),
+    unit: config.unit || '',
+    chartColors: config.chartColors,
+    specialProcessing: config.specialProcessing
+  })
+
+  measurementProcessors.set(measurementType, {
+    processor,
+    device: processor.lastDevice
+  })
+
+  console.log(`✅ Registered processor for ${measurementType}`)
+  return measurementProcessors.get(measurementType)
+}
+
 // Combined message handler for all data types
 const handleWebSocketMessage = (data) => {
-  // Process data for all three measurement types
-  processIncomingData(data)      // Voltage
-  processCurrentData(data)       // Current
-  processBatteryData(data)       // Battery
+  // Process data for all registered measurement types
+  measurementProcessors.forEach((entry, measurementType) => {
+    entry.processor.processIncomingData(data)
+  })
+
+  // Note: The data will be processed by all processors, but each will only
+  // create chart data if the payload contains measurements for that type
 }
+
+// Computed property to create measurementDevices map for child component
+const measurementDevices = computed(() => {
+  const devices = {}
+  
+  // Add all processors' devices to the map
+  measurementProcessors.forEach((entry, measurementType) => {
+    devices[measurementType] = entry.device.value
+  })
+  
+  return devices
+})
+
+// Computed property to create measurementMessages map for child component
+const measurementMessages = computed(() => {
+  const messages = {}
+  
+  // Add all processors' messages to the map
+  measurementProcessors.forEach((entry, measurementType) => {
+    messages[measurementType] = entry.processor.recentMessages.value
+  })
+  
+  return messages
+})
 
 // State for page readiness
 const pageReady = ref(false)
+const measurements = ref([])
+
+/**
+ * Fetch measurements and register processors
+ */
+const fetchAndRegisterMeasurements = async () => {
+  try {
+    console.log('📊 Fetching measurements for device:', deviceId)
+    const response = await API.get(API.DEVICE_GET_MEASUREMENTS(deviceId))
+    measurements.value = Array.isArray(response) ? response : [response]
+    
+    measurements.value.forEach(m => {
+      const type = m.unit?.toLowerCase()
+      if (type && !['voltage', 'voltaje', 'current', 'corriente', 'battery', 'batería', 'bateria'].includes(type)) {
+        registerMeasurementProcessor(type, {
+          unit: m.ref,
+          chartLabel: m.unit,
+          icon: m.icon
+        })
+      }
+    })
+  } catch (error) {
+    console.error('❌ Error fetching measurements:', error)
+  }
+}
+
+/**
+ * Preload last measurements from API to populate charts immediately
+ */
+const preloadLastMeasurements = async () => {
+  try {
+    console.log('📥 Preloading last measurements for device:', deviceId)
+    // Fetch last 10 measurements as requested
+    const response = await API.get(`${API.DEVICE_LAST_MEASUREMENT(deviceId)}?limit=10`)
+    
+    if (response) {
+      console.log('✅ Preload data received:', response)
+      // Process the preloaded data through all registered processors
+      // We pass true for isPreload to avoid streaming animations for historical data
+      measurementProcessors.forEach((entry) => {
+        entry.processor.processIncomingData(response, true)
+      })
+    }
+  } catch (error) {
+    console.error('❌ Error preloading measurements:', error)
+  }
+}
 
 // Ionic lifecycle hooks
 onIonViewWillEnter(() => {
@@ -102,8 +231,12 @@ onIonViewDidEnter(() => {
   pageReady.value = true
 })
 
-onMounted(() => {
+onMounted(async () => {
   console.log('🔧 Measurements page mounted')
+  // Fetch measurements first to register all processors
+  await fetchAndRegisterMeasurements()
+  // Preload historical data before starting WebSocket
+  preloadLastMeasurements()
   // Set up WebSocket message handler for all data types
   setOnMessage(handleWebSocketMessage)
 })

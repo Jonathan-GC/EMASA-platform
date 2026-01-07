@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>👥 Usuarios - Datos desde API</ion-card-title>
+        <ion-card-title>Usuarios registrados en el sistema</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${users.length} usuarios encontrados` }}
+          {{ loading ? 'Cargando...' : `${users.length} ${users.length === 1 ? 'usuario encontrado' : 'usuarios encontrados'}` }}
         </ion-card-subtitle>
       </ion-card-header>
 
