@@ -1,0 +1,35 @@
+[
+  {
+    "model": "users.mainaddress",
+    "pk": "0a1b2c3d4e5f6789",
+    "fields": {
+      "address": "Cll. 35 #4B-52",
+      "city": "Ibagué",
+      "state": "Tolima",
+      "zip_code": "730006"
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": "1b2c3d4e5f67890a",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$JMIgZbtO39Bc9jyuu3Sa48$dPj5kkYBlxt6km18b9YMTE4fwTn146J+2BRYMFWbOac=",
+      "last_login": null,
+      "code": "7",
+      "img": null,
+      "name": "Luis",
+      "last_name": "Varón",
+      "email": "luis.varon.15.2000@gmail.com",
+      "country": "Colombia",
+      "phone_code": "+57",
+      "phone": "3004981082",
+      "address": "0a1b2c3d4e5f6789",
+      "username": "weedo",
+      "is_active": true,
+      "is_staff": true,
+      "is_superuser": true,
+      "groups": [],
+      "user_permissions": []
+    }
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "model": "roles.role",
+    "pk": "6f7890a1b2c3d4e5",
+    "fields": {
+      "name": "Sin rol",
+      "description": "Sin ningún permiso en ningún lado",
+      "color": "#b5b5b5",
+      "group": 5,
+      "workspace": "5f67890a1b2c3d4e",
+      "is_admin": false
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": "7090a1b2c3d4e5f6",
+    "fields": {
+      "name": "Administrador",
+      "description": "Rol con todos los permisos globales",
+      "color": "#ff0000",
+      "group": 1,
+      "workspace": "5f67890a1b2c3d4e",
+      "is_admin": true
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": "80a1b2c3d4e5f607",
+    "fields": {
+      "name": "Gerente",
+      "description": "Rol con permisos de gestión globales",
+      "color": "#00ff00",
+      "group": 2,
+      "workspace": "5f67890a1b2c3d4e",
+      "is_admin": false
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": "91b2c3d4e5f60718",
+    "fields": {
+      "name": "Técnico",
+      "description": "Rol con permisos técnicos globales",
+      "color": "#0000ff",
+      "group": 3,
+      "workspace": "5f67890a1b2c3d4e",
+      "is_admin": false
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": "a2c3d4e5f6071829",
+    "fields": {
+      "name": "Visualizador",
+      "description": "Rol con permisos de solo lectura globales",
+      "color": "#ffff00",
+      "group": 4,
+      "workspace": "5f67890a1b2c3d4e",
+      "is_admin": false
+    }
+  },
+  {
+    "model": "roles.role",
+    "pk": "b3d4e5f60718293a",
+    "fields": {
+      "name": "Soporte",
+      "description": "Rol con permisos de soporte globales",
+      "color": "#ffff00",
+      "group": 6,
+      "workspace": "5f67890a1b2c3d4e",
+      "is_admin": false
+    }
+  }
+]

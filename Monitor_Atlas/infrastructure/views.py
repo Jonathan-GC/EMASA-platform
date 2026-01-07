@@ -1,0 +1,1296 @@
+import requests
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from .serializers import (
+    GatewaySerializer,
+    MachineSerializer,
+    TypeSerializer,
+    DeviceSerializer,
+    ApplicationSerializer,
+    LocationSerializer,
+    ActivationSerializer,
+    MeasurementsSerializer,
+)
+from .models import (
+    Gateway,
+    Machine,
+    Type,
+    Device,
+    Application,
+    Location,
+    Activation,
+    Measurements,
+)
+
+from organizations.models import Tenant
+from roles.permissions import HasPermission, IsServiceOrHasPermission
+from guardian.shortcuts import get_objects_for_user, get_users_with_perms
+
+from chirpstack.chirpstack_api import (
+    sync_gateway_create,
+    sync_gateway_get,
+    sync_gateway_update,
+    sync_gateway_destroy,
+    sync_application_destroy,
+    sync_application_update,
+    sync_application_create,
+    sync_application_get,
+    sync_device_create,
+    sync_device_update,
+    sync_device_destroy,
+    sync_device_get,
+    activate_device,
+    deactivate_device,
+    device_activation_status,
+)
+
+from rest_framework import status
+
+from loguru import logger
+
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
+
+from .helpers import encrypt_dev_eui
+from django.conf import settings
+
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from roles.helpers import assign_created_instance_permissions
+
+from django.utils import timezone
+
+
+@extend_schema_view(
+    list=extend_schema(description="Gateway List (ChirpStack)"),
+    create=extend_schema(description="Gateway Create (ChirpStack)"),
+    retrieve=extend_schema(description="Gateway Retrieve (ChirpStack)"),
+    update=extend_schema(description="Gateway Update (ChirpStack)"),
+    partial_update=extend_schema(description="Gateway Partial Update (ChirpStack)"),
+    destroy=extend_schema(description="Gateway Destroy (ChirpStack)"),
+)
+class GatewayViewSet(viewsets.ModelViewSet):
+    queryset = Gateway.objects.all()
+    serializer_class = GatewaySerializer
+    permission_classes = [HasPermission]
+    scope = "gateway"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Gateway.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_gateway",
+            klass=Gateway,
+            accept_global_perms=False,
+        )
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
+
+        sync_response = sync_gateway_create(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
+        if sync_response.status_code != 200:
+            logger.error(
+                f"Error al crear el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
+            )
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieve a gateway and sync it with Chirpstack before returning the response.
+
+        """
+        instance = self.get_object()
+
+        sync_gateway_get(instance)
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        """
+        List a queryset of gateways and sync each one with Chirpstack before
+        returning the response.
+
+        """
+
+        queryset = self.filter_queryset(self.get_queryset())
+
+        for gateway in queryset:
+            sync_gateway_get(gateway)
+            gateway.refresh_from_db()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        """
+        Update a gateway and sync it with Chirpstack.
+
+        Args:
+            serializer: a GatewaySerializer instance
+
+        """
+        instance = serializer.save()
+
+        sync_response = sync_gateway_update(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
+        if sync_response.status_code != 200:
+            logger.error(
+                f"Error al actualizar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
+            )
+
+    def perform_destroy(self, instance):
+        sync_response = sync_gateway_destroy(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for gateway {instance.name}, if this is not expected please check manually or try again"
+            )
+            # proceed to delete locally
+
+        elif sync_response.status_code != 200:
+            logger.error(
+                f"Error al eliminar el gateway {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado el gateway {instance.cs_gateway_id} - {instance.name} con Chirpstack"
+            )
+
+        instance.delete()
+
+
+@extend_schema_view(
+    list=extend_schema(description="Machine List"),
+    create=extend_schema(description="Machine Create"),
+    retrieve=extend_schema(description="Machine Retrieve"),
+    update=extend_schema(description="Machine Update"),
+    partial_update=extend_schema(description="Machine Partial Update"),
+    destroy=extend_schema(description="Machine Destroy"),
+    set_machine_image=extend_schema(
+        description="Set Machine Image",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set machine image",
+                value={"image": "image_url"},
+            )
+        ],
+    ),
+)
+class MachineViewSet(viewsets.ModelViewSet):
+    queryset = Machine.objects.all()
+    serializer_class = MachineSerializer
+    permission_classes = [HasPermission]
+    scope = "machine"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Machine.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_machine",
+            klass=Machine,
+            accept_global_perms=False,
+        )
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
+
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
+    def set_machine_image(self, request, pk=None):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+@extend_schema_view(
+    list=extend_schema(description="Type List"),
+    create=extend_schema(description="Type Create"),
+    retrieve=extend_schema(description="Type Retrieve"),
+    update=extend_schema(description="Type Update"),
+    partial_update=extend_schema(description="Type Partial Update"),
+    destroy=extend_schema(description="Type Destroy"),
+    set_type_image=extend_schema(
+        description="Set Type Image (icon)",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set type image",
+                value={"image": "image_url"},
+            )
+        ],
+    ),
+)
+class TypeViewSet(viewsets.ModelViewSet):
+    queryset = Type.objects.all()
+    serializer_class = TypeSerializer
+    permission_classes = [HasPermission]
+    scope = "type"
+
+    def get_queryset(self):
+        # Everyone can see types
+        return Type.objects.all()
+
+    def get_permissions(self):
+        # Only superuser or global Tenant staff can manage types
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
+
+    @action(detail=True, methods=["patch"], permission_classes=[HasPermission])
+    def set_type_image(self, request, pk=None):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+@extend_schema_view(
+    list=extend_schema(description="Device List (ChirpStack)"),
+    create=extend_schema(description="Device Create (ChirpStack)"),
+    retrieve=extend_schema(description="Device Retrieve (ChirpStack)"),
+    update=extend_schema(description="Device Update (ChirpStack)"),
+    partial_update=extend_schema(description="Device Partial Update (ChirpStack)"),
+    destroy=extend_schema(description="Device Destroy (ChirpStack)"),
+    set_activation=extend_schema(
+        description="Set Device Activation Data",
+        request=ActivationSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to set device activation data",
+                value={
+                    "afcntdown": 0,
+                    "app_s_key": "E81B6C49A0F57D92C3FE21B4D6A98F3C",
+                    "dev_addr": "260CA2F1",
+                    "f_cnt_up": 0,
+                    "f_nwk_s_int_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                    "n_f_cnt_down": 0,
+                    "nwk_s_enc_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                    "s_nwk_s_int_key": "4A95DEB10C7F2E63B9D1A34C85FE2D17",
+                },
+            )
+        ],
+    ),
+    activate=extend_schema(description="Activate Device"),
+    deactivate=extend_schema(description="Deactivate Device"),
+    get_ws_link=extend_schema(
+        description="Get Device WebSocket Link",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to get device WebSocket link",
+                value={"access_token": "your_access_token_here"},
+            ),
+        ],
+    ),
+    activation_details=extend_schema(description="Get Device Activation Details"),
+    create_measurement=extend_schema(
+        description="Create Measurement for Device",
+        request=MeasurementsSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to create a measurement for device",
+                value={"min": 10.5, "max": 25.3, "threshold": 20.0, "unit": "Volts"},
+                request_only=True,
+                response_only=False,
+            ),
+        ],
+    ),
+    measurements=extend_schema(description="Get Measurements config for Device"),
+    measurements_by_dev_eui=extend_schema(description="Get Measurements by DevEUI"),
+    update_measurement=extend_schema(
+        description="Update Measurement",
+        request=MeasurementsSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to update a measurement",
+                value={
+                    "measurement_id": 1,
+                    "min": 12.0,
+                    "max": 30.0,
+                    "threshold": 22.0,
+                    "unit": "Volts",
+                },
+                request_only=True,
+                response_only=False,
+            ),
+        ],
+    ),
+    last_metrics=extend_schema(
+        description="Get Last n Metrics for Device",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get last metrics for device with limit",
+                value={"limit": 5},
+            ),
+        ],
+    ),
+    historical_aggregated_metrics=extend_schema(
+        description="Get Historical Aggregated Metrics for Device",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get historical aggregated metrics for device",
+                value={
+                    "start": "2024-01-01T00:00:00Z",
+                    "end": "2024-01-07T00:00:00Z",
+                    "measurement_type": "voltage",
+                    "steps": 10,
+                    "channel": "ch1",
+                },
+            ),
+        ],
+    ),
+    historic_metrics=extend_schema(
+        description="Get Historic Metrics for Device (Range Query)",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get historic metrics for device",
+                value={
+                    "start": "2024-01-01T00:00:00Z",
+                    "end": "2024-01-07T00:00:00Z",
+                    "measurement_type": "voltage",
+                    "channel": "ch1",
+                },
+            ),
+        ],
+    ),
+)
+class DeviceViewSet(viewsets.ModelViewSet):
+    queryset = Device.objects.all()
+    serializer_class = DeviceSerializer
+    permission_classes = [HasPermission]
+    scope = "device"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Device.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_device",
+            klass=Device,
+            accept_global_perms=False,
+        )
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
+
+        sync_response = sync_device_create(instance)
+
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
+        if sync_response.status_code != 200:
+            logger.error(
+                f"Error al crear el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
+            )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+
+        sync_response = sync_device_update(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
+        if sync_response.status_code != 200:
+            logger.error(
+                f"Error al sincronizar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
+            )
+
+    def perform_destroy(self, instance):
+        sync_response = sync_device_destroy(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for device {instance.name}, if this is not expected please check manually or try again"
+            )
+            # proceed to delete locally
+
+        elif sync_response.status_code != 200:
+            logger.error(
+                f"Error al eliminar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado el dispositivo {instance.dev_eui} - {instance.name} con Chirpstack"
+            )
+
+        instance.delete()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        for device in queryset:
+            sync_device_get(device)
+            device.refresh_from_db()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        sync_device_get(instance)
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def set_activation(self, request, pk=None):
+        """
+        "aFCntDown": 0,
+        "appSKey": "53C020841486263981FA77355D278762",
+        "devAddr": "260CB229",
+        "fCntUp": 0,
+        "fNwkSIntKey": "4978CB8E7FFBD46BC570FE11F17FA56E",
+        "nFCntDown": 0,
+        "nwkSEncKey": "4978CB8E7FFBD46BC570FE11F17FA56E"
+        """
+
+        device = self.get_object()
+
+        data = request.data
+        required_fields = [
+            "afcntdown",
+            "app_s_key",
+            "dev_addr",
+            "f_cnt_up",
+            "f_nwk_s_int_key",
+            "n_f_cnt_down",
+            "nwk_s_enc_key",
+            "s_nwk_s_int_key",
+        ]
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return Response(
+                {"message": f"Missing required fields: {', '.join(missing_fields)}"},
+                status=400,
+            )
+        try:
+            activation = Activation.objects.create(
+                afcntdown=data["afcntdown"],
+                app_s_key=data["app_s_key"],
+                dev_addr=data["dev_addr"],
+                f_cnt_up=data["f_cnt_up"],
+                f_nwk_s_int_key=data["f_nwk_s_int_key"],
+                n_f_cnt_down=data["n_f_cnt_down"],
+                nwk_s_enc_key=data["nwk_s_enc_key"],
+                s_nwk_s_int_key=data["s_nwk_s_int_key"],
+            )
+            device.activation = activation
+            device.save()
+            serializer = self.get_serializer(device)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Error setting activation for device {device.name}: {str(e)}")
+            return Response(
+                {"message": f"Error setting activation: {str(e)}"},
+                status=500,
+            )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def activate(self, request, pk=None):
+        device = self.get_object()
+
+        if not device.activation:
+            return Response(
+                {"message": "Device has no activation data"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if device_activation_status(device):
+            logger.debug(f"Device {device.dev_eui} - {device.name} is already active")
+            device.is_active = True
+            device.save(update_fields=["is_active"])
+            return Response(
+                {"message": "Device is already active"},
+                status=status.HTTP_304_NOT_MODIFIED,
+            )
+
+        try:
+            sync_response = activate_device(device)
+
+            if sync_response is None:
+                device.is_active = False
+                device.sync_error = "No response from Chirpstack (no-op)"
+                device.save(update_fields=["is_active", "sync_error"])
+                logger.debug(
+                    f"No changes made in Chirpstack for activation of {device.name}, if this is not expected please check manually or try again"
+                )
+                return Response(
+                    {
+                        "message": "No changes made in Chirpstack for activation",
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            if sync_response.status_code != 200:
+                device.is_active = False
+                device.sync_error = sync_response.text
+                device.save(update_fields=["is_active", "sync_error"])
+                logger.error(
+                    f"Activation failed for {device.name}: {sync_response.status_code} {sync_response.text}"
+                )
+                return Response(
+                    {
+                        "message": "Error activating device",
+                        "details": sync_response.text,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            device.is_active = True
+            device.save(update_fields=["is_active"])
+            logger.debug(f"Device {device.dev_eui} - {device.name} activated")
+
+            serializer = self.get_serializer(device)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.exception(f"Unexpected error activating device {device.name}")
+            return Response(
+                {"message": "Unexpected error activating device", "error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def deactivate(self, request, pk=None):
+        instance = self.get_object()
+        sync_response = deactivate_device(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for deactivation of {instance.name}, if this is not expected please check manually or try again"
+            )
+            return Response(
+                {"message": "Device deactivated (no-op in Chirpstack)"},
+                status=status.HTTP_304_NOT_MODIFIED,
+            )
+
+        if sync_response.status_code != 200:
+            logger.error(
+                f"Error al desactivar el dispositivo {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+            return Response(
+                {
+                    "message": f"Error al desactivar el dispositivo {sync_response.status_code} {instance.sync_error}"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            logger.debug(
+                f"Se ha desactivado el dispositivo {instance.dev_eui} - {instance.name}"
+            )
+            instance.is_active = False
+            instance.save(update_fields=["is_active"])
+
+        return Response({"message": "Device deactivated"})
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def get_ws_link(self, request, pk=None):
+        dev_eui = self.get_object().dev_eui
+        access_token = request.data.get("access_token", None)
+
+        if not access_token:
+            return Response(
+                {"message": "No access token found in request"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            encrypted_dev_eui = encrypt_dev_eui(dev_eui)
+        except ValueError as e:
+            logger.error(f"Error encrypting DevEUI for device {dev_eui}: {str(e)}")
+            return Response(
+                {"message": f"Error generating WebSocket link: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        ws_url = f"{settings.HERMES_WS_URL}/ws/device/{encrypted_dev_eui}?token={access_token}"
+
+        return Response({"ws_url": ws_url})
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def activation_details(self, request, pk=None):
+        device = self.get_object()
+        if not device.activation:
+            return Response(
+                {"message": "Device has no activation data"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = ActivationSerializer(device.activation)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def measurements(self, request, pk=None):
+        device = self.get_object()
+
+        if not device:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        measurements = Measurements.objects.filter(device=device)
+
+        if not measurements.exists():
+            return Response(
+                {"message": "No measurements found for this device"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(measurements, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def create_measurement(self, request, pk=None):
+        device = self.get_object()
+        serializer = MeasurementsSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(device=device)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsServiceOrHasPermission],
+        scope="device",
+    )
+    def measurements_by_dev_eui(self, request):
+        dev_eui = request.query_params.get("dev_eui", None)
+
+        if not dev_eui:
+            return Response(
+                {"message": "No DevEUI provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            device = Device.objects.get(dev_eui=dev_eui)
+        except Device.DoesNotExist:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        measurements = Measurements.objects.filter(device=device)
+
+        if not measurements.exists():
+            return Response(
+                {"message": "No measurements found for this device"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(measurements, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsServiceOrHasPermission],
+        scope="device",
+    )
+    def get_users_for_device(self, request):
+        dev_eui = request.query_params.get("dev_eui", None)
+
+        if not dev_eui:
+            return Response(
+                {"message": "No DevEUI provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            device = Device.objects.get(dev_eui=dev_eui)
+        except Device.DoesNotExist:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        tenant = Tenant.objects.get(workspace=device.workspace)
+
+        payload = {
+            "dev_eui": device.dev_eui,
+            "tenant_id": tenant.cs_tenant_id,
+            "assigned_users": [],
+        }
+
+        users_queryset = get_users_with_perms(device)
+        for user in users_queryset:
+            payload["assigned_users"].append(
+                {"user_id": user[0].id, "username": user[0].username}
+            )
+
+        return Response(payload)
+
+    @action(
+        detail=False,
+        methods=["patch"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def update_measurement(self, request):
+        measurement_id = request.data.get("measurement_id", None)
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/internal/measurements/refresh"
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        if not measurement_id:
+            return Response(
+                {"message": "No measurement_id provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            measurement = Measurements.objects.get(id=measurement_id)
+        except Measurements.DoesNotExist:
+            return Response(
+                {"message": "Measurement not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(
+            measurement, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            response = requests.post(
+                url,
+                headers=headers,
+                timeout=5,
+                params={"dev_eui": measurement.device.dev_eui},
+            )
+            if response.status_code != 200:
+                logger.error(
+                    f"Error notifying Hermes about measurement update: {response.status_code} {response.text}"
+                )
+            else:
+                logger.debug(
+                    f"Hermes notified about measurement update: {response.status_code} {response.text}"
+                )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def last_metrics(self, request, pk=None):
+        device = self.get_object()
+
+        try:
+            limit = int(request.query_params.get("limit", 5))
+        except ValueError:
+            return Response(
+                {"message": "Invalid limit parameter"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/messages/last"
+
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        params = {"dev_eui": device.dev_eui, "limit": limit}
+
+        try:
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching last metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching last metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching last metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def historical_aggregated_metrics(self, request, pk=None):
+        """
+        Makes a request to the Hermes service to get historical aggregated metrics for the device.
+
+        Endpoint: GET /measurements/history
+        Query Parameters:
+            - dev_eui: Device EUI (from the device object)
+            - start: Start datetime for the metrics (ISO 8601 format)
+            - end: End datetime for the metrics (ISO 8601 format)
+            - measurement_type: Type of measurement to aggregate (e.g., voltage, current)
+            - steps: Number of data points to return (resolution)
+            - channel: Optional channel filter
+        """
+
+        device = self.get_object()
+        now = timezone.now()
+        three_months_ago = now - timezone.timedelta(
+            days=90
+        )  # Hermes only keeps 3 months of data
+
+        try:
+            start = request.query_params.get("start", None)
+            end = request.query_params.get("end", None)
+            measurement_type = request.query_params.get("measurement_type", None)
+            steps = int(request.query_params.get("steps", 10))
+            channel = request.query_params.get("channel", None)
+        except ValueError:
+            return Response(
+                {"message": "Invalid query parameters"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if steps <= 0:
+            return Response(
+                {"message": "Steps parameter must be a positive integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        elif steps > 300:
+            return Response(
+                {"message": "Steps parameter exceeds maximum limit of 300"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if start > now.isoformat() or end > now.isoformat():
+            return Response(
+                {"message": "Start and end parameters cannot be in the future"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not all([start, end, measurement_type]):
+            return Response(
+                {
+                    "message": "Missing required query parameters: start, end, measurement_type"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if start < three_months_ago.isoformat():
+            return Response(
+                {
+                    "message": f"Start parameter cannot be older than {three_months_ago.date().isoformat()}"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/measurements/history"
+
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        params = {
+            "dev_eui": device.dev_eui,
+            "start": start,
+            "end": end,
+            "measurement_type": measurement_type,
+            "steps": steps,
+        }
+
+        if channel:
+            params["channel"] = channel
+        try:
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching historical aggregated metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching historical aggregated metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching historical aggregated metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def historic_metrics(self, request, pk=None):
+        device = self.get_object()
+
+        start = request.query_params.get("start", None)
+        end = request.query_params.get("end", None)
+        measurement_type = request.query_params.get("measurement_type", None)
+        channel = request.query_params.get("channel", None)
+
+        if not all([start, end, measurement_type]):
+            return Response(
+                {
+                    "message": "Missing required query parameters: start, end, measurement_type"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/measurements/historic"
+
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        params = {
+            "dev_eui": device.dev_eui,
+            "start": start,
+            "end": end,
+            "measurement_type": measurement_type,
+        }
+
+        if channel:
+            params["channel"] = channel
+
+        try:
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching historical metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching historical metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching historical metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
+
+
+@extend_schema_view(
+    list=extend_schema(description="Application List (ChirpStack)"),
+    create=extend_schema(description="Application Create (ChirpStack)"),
+    retrieve=extend_schema(description="Application Retrieve (ChirpStack)"),
+    update=extend_schema(description="Application Update (ChirpStack)"),
+    partial_update=extend_schema(description="Application Partial Update (ChirpStack)"),
+    destroy=extend_schema(description="Application Destroy (ChirpStack)"),
+    devices=extend_schema(description="List Devices in Application (ChirpStack)"),
+)
+class ApplicationViewSet(viewsets.ModelViewSet):
+    queryset = Application.objects.all()
+    serializer_class = ApplicationSerializer
+    permission_classes = [HasPermission]
+    scope = "application"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Application.objects.all()
+        return get_objects_for_user(
+            user,
+            "infrastructure.view_application",
+            klass=Application,
+            accept_global_perms=False,
+        )
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
+
+        sync_response = sync_application_create(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
+        if sync_response.status_code != 200:
+            logger.error(
+                f"Error al crear la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
+            )
+
+    def perform_destroy(self, instance):
+        sync_response = sync_application_destroy(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            # proceed to delete locally
+
+        elif sync_response.status_code != 200:
+            logger.error(
+                f"Error al eliminar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
+            )
+
+        instance.delete()
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+
+        sync_response = sync_application_update(instance)
+        if sync_response is None:
+            logger.debug(
+                f"No changes made in Chirpstack for application {instance.name}, if this is not expected please check manually or try again"
+            )
+            return
+
+        if sync_response.status_code != 200:
+            logger.error(
+                f"Error al sincronizar la aplicación {instance.name} con Chirpstack: {sync_response.status_code} {instance.sync_error}"
+            )
+        else:
+            logger.debug(
+                f"Se ha sincronizado la aplicación {instance.cs_application_id} - {instance.name} con Chirpstack"
+            )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        for application in queryset:
+            logger.debug(f"Syncing application {application.name}")
+            sync_application_get(application)
+
+            application.refresh_from_db()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        sync_application_get(instance)
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="application",
+    )
+    def devices(self, request, pk=None):
+        application = self.get_object()
+        devices = Device.objects.filter(application=application)
+
+        for device in devices:
+            logger.debug(
+                f"Syncing device {device.name} in application {application.name}"
+            )
+            sync_device_get(device)
+            device.refresh_from_db()
+
+        page = self.paginate_queryset(devices)
+        if page is not None:
+            serializer = DeviceSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = DeviceSerializer(devices, many=True)
+        return Response(serializer.data)
+
+
+@extend_schema_view(
+    list=extend_schema(description="Location List"),
+    create=extend_schema(description="Location Create"),
+    retrieve=extend_schema(description="Location Retrieve"),
+    update=extend_schema(description="Location Update"),
+    partial_update=extend_schema(description="Location Partial Update"),
+    destroy=extend_schema(description="Location Destroy"),
+)
+class LocationViewSet(viewsets.ModelViewSet):
+    queryset = Location.objects.all()
+    serializer_class = LocationSerializer
+    permission_classes = [HasPermission]
+    scope = "location"
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Location.objects.all()
+
+        accessible_gateways = get_objects_for_user(
+            user,
+            "infrastructure.view_gateway",
+            klass=Gateway,
+            accept_global_perms=False,
+        )
+        return Location.objects.filter(gateway__in=accessible_gateways)
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
+        logger.debug(f"Created location {instance.name} with ID {instance.id}")

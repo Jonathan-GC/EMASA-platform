@@ -1,0 +1,16 @@
+[
+  {
+    "model": "infrastructure.activation",
+    "pk": "9012345678902345",
+    "fields": {
+      "afcntdown": 0,
+      "app_s_key": "8F19E73ACB50746192A4DF26B3E18C59",
+      "dev_addr": "260CA112",
+      "f_cnt_up": 0,
+      "f_nwk_s_int_key": "C4D8E91FB27A08F3E1562AC48B5F70DD",
+      "n_f_cnt_down": 0,
+      "nwk_s_enc_key": "C4D8E91FB27A08F3E1562AC48B5F70DD",
+      "s_nwk_s_int_key": "C4D8E91FB27A08F3E1562AC48B5F70DD"
+    }
+  }
+]
