@@ -1055,7 +1055,18 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        return Response(response.json())
+        try:
+            response_json = response.json()
+        except ValueError:
+            logger.error(
+                f"Invalid JSON response from Hermes for device {device.dev_eui}: {response.text}"
+            )
+            return Response(
+                {"message": "Invalid response from Hermes service"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response_json)
 
     @action(
         detail=True,
@@ -1125,7 +1136,18 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        return Response(response.json())
+        try:
+            response_json = response.json()
+        except ValueError:
+            logger.error(
+                f"Invalid JSON response from Hermes for device {device.dev_eui}: {response.text}"
+            )
+            return Response(
+                {"message": "Invalid response from Hermes service"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response_json)
 
 
 @extend_schema_view(
