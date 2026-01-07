@@ -5,6 +5,7 @@
       class="h-full reset-password-page ion-no-padding" 
       :scroll-y="true"
       :keyboard-offset="!isMobile"
+      scroll-events="false"
     >
       <ion-header class="ion-no-border transparent-header">
         <ion-toolbar color="amber-700/10 transparent-toolbar">
@@ -21,7 +22,7 @@
           <img :src="MonitorLogo" alt="Monitor Logo" class="logo">
         </div>
         <div class="reset-card-container">
-          <SignupForm />
+          <SignupForm/>
         </div>
         <AuthFooter />
         

@@ -2,9 +2,9 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>📍 Locations - Datos desde API</ion-card-title>
+        <ion-card-title>Ubicaciones registradas de los clientes</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${application.length} workspace encontrados` }}
+          {{ loading ? 'Cargando...' : `${application.length} ${application.length === 1 ? 'ubicación encontrada' : 'ubicaciones encontradas'}` }}
         </ion-card-subtitle>
       </ion-card-header>
 

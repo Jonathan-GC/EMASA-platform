@@ -12,6 +12,16 @@
           <ion-label>Corriente</ion-label>
         </ion-tab-button>
 
+        <!-- Dynamic measurement tabs -->
+        <ion-tab-button 
+          v-for="measurement in measurements" 
+          :key="measurement.id"
+          :tab="`measurement-${measurement.id}`"
+        >
+          <ion-icon :icon="icons[measurement.icon] || icons.analytics"></ion-icon>
+          <ion-label>{{ capitalizeFirst(measurement.unit) }}</ion-label>
+        </ion-tab-button>
+
         <ion-tab-button tab="battery">
           <ion-icon :icon="icons.batteryHalf"></ion-icon>
           <ion-label>Batería</ion-label>
@@ -47,19 +57,36 @@
             <!-- Device information section -->
             <DeviceInfo :device="device" />
 
-            <!-- No data placeholder -->
-            <div v-if="!device" class="no-data">
-              <h2>🔍 Esperando datos del dispositivo...</h2>
-              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
-              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
+            <!-- Charts grid -->
+            <ChartsGrid 
+              v-if="chartDataFragments.length > 0"
+              :chart-fragments="chartDataFragments" 
+              :chart-key="chartKey"
+              :latest-data-points="latestDataPoints"
+              :device-name="device?.device_name || deviceName"
+              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.min"
+              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.max" />
+
+            <!-- Placeholder when no chart data available -->
+            <div v-else class="charts-section">
+              <h3 class="section-title">📈 Real-time Voltage Data</h3>
+              <div class="waiting-data-card">
+                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
+                <p>Esperando datos en tiempo real de voltaje...</p>
+                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de voltaje</p>
+              </div>
             </div>
 
-            <!-- Charts grid -->
-            <ChartsGrid :chart-fragments="chartDataFragments" :chart-key="chartKey"
-              :device-name="device?.device_name || deviceName" />
-
             <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" />
+            <RecentMessages :messages="recentMessages" measurement-type="voltage" />
+
+            <!-- Historical Measurement Chart -->
+            <HistoricalMeasurementChart 
+              v-if="deviceId || (device && device.id)"
+              :device-id="deviceId || device.id"
+              :available-measurements="measurements"
+              initial-type="voltage"
+            />
           </div>
         </ion-content>
       </ion-tab>
@@ -82,19 +109,164 @@
             <!-- Device information section -->
             <CurrentDeviceInfo :device="currentDevice" />
 
-            <!-- No data placeholder -->
-            <div v-if="!currentDevice" class="no-data">
-              <h2>🔍 Esperando datos del dispositivo...</h2>
-              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
-              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
+            <!-- Current charts grid (multi-channel) -->
+            <ChartsGrid 
+              v-if="currentChartDataFragments.length > 0" 
+              :chart-fragments="currentChartDataFragments" 
+              :chart-key="currentChartKey"
+              :latest-data-points="currentLatestDataPoints"
+              :device-name="currentDevice?.device_name || 'Dispositivo IoT'"
+              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.min"
+              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.max" />
+
+            <!-- Placeholder when no chart data available -->
+            <div v-else class="charts-section">
+              <h3 class="section-title">📈 Real-time Current Data</h3>
+              <div class="waiting-data-card">
+                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
+                <p>Esperando datos en tiempo real de corriente...</p>
+                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de corriente</p>
+              </div>
             </div>
 
-            <!-- Current charts grid (multi-channel) -->
-            <ChartsGrid v-if="currentDevice" :chart-fragments="currentChartDataFragments" :chart-key="currentChartKey"
-              :device-name="currentDevice?.device_name || 'Dispositivo IoT'" />
+            <!-- Recent messages -->
+            <RecentMessages :messages="currentMessages" measurement-type="current" />
+
+            <!-- Historical Measurement Chart -->
+            <HistoricalMeasurementChart 
+              v-if="deviceId || (device && device.id)"
+              :device-id="deviceId || device.id"
+              :available-measurements="measurements"
+              initial-type="current"
+            />
+          </div>
+        </ion-content>
+      </ion-tab>
+
+      <!-- Dynamic Measurement Tabs -->
+      <ion-tab 
+        v-for="measurement in measurements" 
+        :key="measurement.id"
+        :tab="`measurement-${measurement.id}`"
+      >
+        <ion-content class="ion-padding custom">
+          <div class="tab-content">
+            <!-- Header with connection status -->
+            <div class="header flex">
+              <div class="header-title">
+                <ion-back-button default-href="/home"></ion-back-button>
+                <h1>
+                  <ion-icon :icon="icons[measurement.icon] || icons.analytics" size="large"></ion-icon>
+                  Device Measurements - {{ capitalizeFirst(measurement.unit) }}</h1>
+              </div>
+              <div class="header-subtitle connection-status">
+                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
+              </div>
+            </div>
+
+            <!-- Device information section -->
+            <MeasurementDeviceInfo :device="getMeasurementDevice(measurement)" :measurement="measurement" />
+
+            <!-- Measurement configuration card -->
+            <ion-card class="measurement-config-card">
+              <ion-card-header>
+                <div class="card-header-content">
+                  <div class="card-title-section">
+                    <ion-card-title>Configuración - {{ capitalizeFirst(measurement.unit) }}</ion-card-title>
+                    <ion-badge 
+                      :color="getThresholdStatus(measurement)" 
+                      class="status-badge"
+                    >
+                      {{ getThresholdStatusText(measurement) }}
+                    </ion-badge>
+                  </div>
+                </div>
+              </ion-card-header>
+              <ion-card-content>
+                <div class="measurements-grid">
+                  <div class="measurement-item min">
+                    <div class="measurement-icon">
+                      <ion-icon :icon="icons.arrowDownCircle" color="success"></ion-icon>
+                    </div>
+                    <div class="measurement-info">
+                      <span class="measurement-label">Mínimo</span>
+                      <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                    </div>
+                  </div>
+                  
+                  <div class="measurement-item max">
+                    <div class="measurement-icon">
+                      <ion-icon :icon="icons.arrowUpCircle" color="danger"></ion-icon>
+                    </div>
+                    <div class="measurement-info">
+                      <span class="measurement-label">Máximo</span>
+                      <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                    </div>
+                  </div>
+                  
+                  <div class="measurement-item threshold">
+                    <div class="measurement-icon">
+                      <ion-icon :icon="icons.alert" color="warning"></ion-icon>
+                    </div>
+                    <div class="measurement-info">
+                      <span class="measurement-label">Umbral</span>
+                      <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Range visualization -->
+                <div class="range-visualization">
+                  <div class="range-bar">
+                    <div class="range-fill"></div>
+                    <div class="range-marker" :style="{ left: '0%' }"></div>
+                    <div class="range-marker" :style="{ left: calculateSafeZoneWidth(measurement) + '%' }"></div>
+                    <div class="range-marker warning-marker" :style="{ left: (((measurement.max - measurement.threshold - measurement.min) / (measurement.max - measurement.min)) * 100) + '%' }"></div>
+                    <div class="range-marker danger-marker" :style="{ left: '100%' }"></div>
+                  </div>
+                  <div class="range-labels">
+                    <span class="range-label" :style="{ left: '0%' }">{{ formatValue(measurement.min) }}</span>
+                    <span class="range-label" :style="{ left: calculateSafeZoneWidth(measurement) + '%' }">{{ formatValue(measurement.min + measurement.threshold) }}</span>
+                    <span class="range-label" :style="{ left: (((measurement.max - measurement.threshold - measurement.min) / (measurement.max - measurement.min)) * 100) + '%' }">{{ formatValue(measurement.max - measurement.threshold) }}</span>
+                    <span class="range-label" :style="{ left: '100%' }">{{ formatValue(measurement.max) }}</span>
+                  </div>
+                </div>
+              </ion-card-content>
+            </ion-card>
+
+            <!-- Charts grid - similar to voltage tab -->
+            <ChartsGrid 
+              v-if="getMeasurementChartData(measurement.unit).length > 0"
+              :chart-fragments="getMeasurementChartData(measurement.unit)" 
+              :chart-key="chartKey"
+              :latest-data-points="getMeasurementLatestDataPoints(measurement.unit)"
+              :device-name="getMeasurementDevice(measurement)?.device_name || deviceName"
+              :y-axis-min="measurement.min"
+              :y-axis-max="measurement.max" 
+            />
+
+            <!-- Placeholder when no chart data available -->
+            <div v-else class="charts-section">
+              <h3 class="section-title">📈 Real-time {{ capitalizeFirst(measurement.unit) }} Data</h3>
+              <div class="waiting-data-card">
+                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
+                <p>Esperando datos en tiempo real de {{ measurement.unit }}...</p>
+                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de {{ measurement.unit }}</p>
+              </div>
+            </div>
+
+            <HistoricalMeasurementChart 
+              v-if="deviceId || (device && device.id)"
+              :device-id="deviceId || device.id"
+              :available-measurements="measurements"
+              :initial-type="measurement.unit?.toLowerCase()"
+            />
 
             <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" />
+            <RecentMessages :messages="getMeasurementRecentMessages(measurement.unit)" :measurement-type="measurement.unit?.toLowerCase()" />
+
+            <!-- Historical Measurement Chart -->
+            
           </div>
         </ion-content>
       </ion-tab>
@@ -117,19 +289,37 @@
             <!-- Device information section -->
             <BatteryDeviceInfo :device="batteryDevice" :battery-percentage="getBatteryPercentage?.() || 0" />
 
-            <!-- No data placeholder -->
-            <div v-if="!batteryDevice" class="no-data">
-              <h2>🔍 Esperando datos del dispositivo...</h2>
-              <p>Estado WebSocket: {{ isConnected ? 'Conectado' : 'Desconectado' }}</p>
-              <p v-if="!isConnected">Intentando reconectar al WebSocket...</p>
+            <!-- Battery charts grid (multi-channel dual-axis) -->
+            <BatteryChartsGrid 
+              v-if="batteryChartDataFragments.length > 0" 
+              :chart-fragments="batteryChartDataFragments" 
+              :chart-key="batteryChartKey"
+              :latest-data-points="batteryLatestDataPoints"
+              :device-name="batteryDevice?.device_name || 'Dispositivo IoT'"
+              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.min"
+              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.max" />
+
+            <!-- Placeholder when no chart data available -->
+            <div v-else class="charts-section">
+              <h3 class="section-title">📈 Real-time Battery Data</h3>
+              <div class="waiting-data-card">
+                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
+                <p>Esperando datos en tiempo real de batería...</p>
+                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de batería</p>
+              </div>
             </div>
 
-            <!-- Battery charts grid (multi-channel dual-axis) -->
-            <BatteryChartsGrid v-if="batteryDevice" :chart-fragments="batteryChartDataFragments" :chart-key="batteryChartKey"
-              :device-name="batteryDevice?.device_name || 'Dispositivo IoT'" />
-
             <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" />
+            <HistoricalMeasurementChart 
+              v-if="deviceId || (device && device.id)"
+              :device-id="deviceId || device.id"
+              :available-measurements="measurements"
+              initial-type="battery"
+            />
+            <RecentMessages :messages="batteryMessages" measurement-type="battery" />
+
+            <!-- Historical Measurement Chart -->
+            
           </div>
         </ion-content>
       </ion-tab>
@@ -222,16 +412,25 @@
                 <ion-card-header>
                   <div class="card-header-content">
                     <div class="card-icon-wrapper">
-                      <ion-icon :icon="icons.analytics" color="primary"></ion-icon>
+                      <ion-icon :icon="icons[measurement.icon]" color="primary"></ion-icon>
                     </div>
                     <div class="card-title-section">
-                      <ion-card-title>{{ measurement.unit || 'Measurement' }}</ion-card-title>
+                      <ion-card-title>{{ capitalizeFirst(measurement.unit) || 'Measurement' }}</ion-card-title>
                       <ion-badge 
                         :color="getThresholdStatus(measurement)" 
                         class="status-badge"
                       >
                         {{ getThresholdStatusText(measurement) }}
                       </ion-badge>
+                      <quick-actions 
+                        type="measurement"
+                        to-edit
+                        to-delete
+                        :index:="measurement.id"
+                        :initial-data="setMeasurementInitialData(measurement)"
+                        @item-edited="handleMeasurementCreated"
+                        @item-deleted="handleMeasurementCreated"
+                      />
                     </div>
                   </div>
                 </ion-card-header>
@@ -243,7 +442,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Mínimo</span>
-                        <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.unit }}</span></span>
+                        <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.ref }}</span></span>
                       </div>
                     </div>
                     
@@ -253,7 +452,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Máximo</span>
-                        <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.unit }}</span></span>
+                        <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.ref }}</span></span>
                       </div>
                     </div>
                     
@@ -263,7 +462,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Umbral</span>
-                        <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.unit }}</span></span>
+                        <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.ref }}</span></span>
                       </div>
                     </div>
                   </div>
@@ -313,6 +512,7 @@
 <script setup>
 import { ref, inject, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { capitalizeFirst} from '@utils/formatters/formatters.js'
 import {
   IonTabs,
   IonTabBar,
@@ -330,6 +530,7 @@ import {
 } from '@ionic/vue'
 import API from '@/utils/api/api.js'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
+import HistoricalMeasurementChart from '@/components/charts/HistoricalMeasurementChart.vue'
 
 // Chart.js imports and registration
 import {
@@ -361,6 +562,7 @@ ChartJS.register(
 import VoltageDeviceInfo from '@/components/cards/VoltageDeviceInfo.vue'
 import CurrentDeviceInfo from '@/components/cards/CurrentDeviceInfo.vue'
 import BatteryDeviceInfo from '@/components/cards/BatteryDeviceInfo.vue'
+import MeasurementDeviceInfo from '@/components/cards/MeasurementDeviceInfo.vue'
 import RecentMessages from '@/components/cards/RecentMessages.vue'
 
 // Import voltage view components
@@ -375,15 +577,31 @@ import FloatingActionButtons from '@/components/operators/FloatingActionButtons.
 
 // Props
 const props = defineProps({
+  deviceId: {
+    type: [String, Number],
+    default: null
+  },
   device: {
     type: Object,
     default: null
+  },
+  measurements: {
+    type: Array,
+    default: () => []
   },
   batteryPercentage: {
     type: Number,
     default: 0
   },
   recentMessages: {
+    type: Array,
+    default: () => []
+  },
+  currentMessages: {
+    type: Array,
+    default: () => []
+  },
+  batteryMessages: {
     type: Array,
     default: () => []
   },
@@ -404,6 +622,10 @@ const props = defineProps({
     type: Number,
     default: 0
   },
+  latestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
   deviceName: {
     type: String,
     default: 'Dispositivo IoT'
@@ -412,6 +634,10 @@ const props = defineProps({
   currentChartDataFragments: {
     type: Array,
     default: () => []
+  },
+  currentLatestDataPoints: {
+    type: Object,
+    default: () => ({})
   },
   currentDevice: {
     type: Object,
@@ -426,6 +652,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  batteryLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
   batteryDevice: {
     type: Object,
     default: null
@@ -437,6 +667,15 @@ const props = defineProps({
   batteryPercentage: {
     type: Number,
     default: 0
+  },
+  // Device data for all measurements (keyed by measurement unit)
+  measurementDevices: {
+    type: Object,
+    default: () => ({})
+  },
+  measurementMessages: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -451,7 +690,7 @@ const { isMobile, isTablet, isDesktop } = useResponsiveView()
 
 // Component state
 const isMounted = ref(false)
-const measurements = ref(null)
+const measurements = ref(props.measurements && props.measurements.length > 0 ? props.measurements : null)
 const measurementsLoading = ref(false)
 const measurementsError = ref(null)
 // Device fetch state (used by fetchDevice)
@@ -459,8 +698,17 @@ const loading = ref(false)
 const error = ref(null)
 const deviceDetails = ref(null) // store fetched device details (used by activation form)
 
+// Watch for props.measurements changes
+watch(() => props.measurements, (newVal) => {
+  if (newVal && newVal.length > 0) {
+    measurements.value = newVal
+  }
+})
+
 // Fetch measurements from API
 const fetchMeasurements = async () => {
+  if (measurements.value && measurements.value.length > 0) return
+  
   const deviceId = route.params.device_id
   
   if (!deviceId) {
@@ -615,6 +863,85 @@ const formatValue = (value, unit) => {
   return `${value} ${unit || ''}`
 }
 
+// Helper function to get chart data for dynamic measurements
+const getMeasurementChartData = (measurementUnit) => {
+  // This function maps measurement units to their corresponding chart data
+  // You can extend this to match specific measurement types with their data sources
+  
+  if (!measurementUnit) return []
+  
+  const unitLower = measurementUnit.toLowerCase()
+  
+  // Map common measurement types to existing chart data
+  // You can extend this mapping as needed
+  const chartDataMap = {
+    'voltage': props.chartDataFragments || [],
+    'voltaje': props.chartDataFragments || [],
+    'current': props.currentChartDataFragments || [],
+    'corriente': props.currentChartDataFragments || [],
+    'battery': props.batteryChartDataFragments || [],
+    'batería': props.batteryChartDataFragments || [],
+    'bateria': props.batteryChartDataFragments || [],
+  }
+  
+  // Return matching chart data or empty array for new measurement types
+  return chartDataMap[unitLower] || []
+}
+
+// Helper function to get latest data points for dynamic measurements
+const getMeasurementLatestDataPoints = (measurementUnit) => {
+  if (!measurementUnit) return {}
+  
+  const unitLower = measurementUnit.toLowerCase()
+  
+  const latestDataMap = {
+    'voltage': props.latestDataPoints || {},
+    'voltaje': props.latestDataPoints || {},
+    'current': props.currentLatestDataPoints || {},
+    'corriente': props.currentLatestDataPoints || {},
+    'battery': props.batteryLatestDataPoints || {},
+    'batería': props.batteryLatestDataPoints || {},
+    'bateria': props.batteryLatestDataPoints || {},
+  }
+  
+  return latestDataMap[unitLower] || {}
+}
+
+// Helper function to get recent messages for dynamic measurements
+const getMeasurementRecentMessages = (measurementUnit) => {
+  if (!measurementUnit) return []
+  
+  const unitLower = measurementUnit.toLowerCase()
+  
+  const messagesMap = {
+    'voltage': props.recentMessages || [],
+    'voltaje': props.recentMessages || [],
+    'current': props.currentMessages || [],
+    'corriente': props.currentMessages || [],
+    'battery': props.batteryMessages || [],
+    'batería': props.batteryMessages || [],
+    'bateria': props.batteryMessages || [],
+  }
+  
+  return messagesMap[unitLower] || props.measurementMessages[unitLower] || []
+}
+
+// Helper function to get device data for a specific measurement
+const getMeasurementDevice = (measurement) => {
+  if (!measurement) return null
+  
+  // measurement.unit already contains the processor type (e.g., 'voltage', 'current', 'battery')
+  const measurementType = measurement.unit?.toLowerCase()
+  
+  // Check if we have device data for this measurement type
+  if (measurementType && props.measurementDevices[measurementType]) {
+    return props.measurementDevices[measurementType]
+  }
+  
+  // Fallback to main device if no specific device data found
+  return props.device
+}
+
 onMounted(() => {
   // mark component as mounted first so helper methods can run immediately
   isMounted.value = true
@@ -649,9 +976,32 @@ function handleMeasurementCreated() {
   console.log('Measurement created, refreshing data...')
   fetchMeasurements()
 }
+
+// Set initial data for measurement editing (like TableApplications.vue)
+const setMeasurementInitialData = (measurement) => {
+  return {
+    icon: measurement.icon,
+    measurement_id: measurement.id,
+    unit: measurement.unit,
+    ref: measurement.ref,
+    min: measurement.min,
+    max: measurement.max,
+    threshold: measurement.threshold
+  }
+  console.log('Initial data for measurement:', measurement)
+}
 </script>
 
 <style scoped>
+.tab-content {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 /* Measurements Tab Styles */
 .measurements-container {
   max-width: 1400px;
@@ -911,6 +1261,11 @@ function handleMeasurementCreated() {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .tab-content {
+    padding: 0;
+    gap: 15px;
+  }
+
   .measurements-container {
     margin: 1rem auto;
     padding: 0 0.5rem;
@@ -992,6 +1347,101 @@ function handleMeasurementCreated() {
   .measurements-container.desktop-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* Dynamic Measurement Detail Styles */
+.measurement-detail-card,
+.measurement-config-card {
+  margin: 1rem 0;
+}
+
+.charts-section {
+  margin: 2rem 0;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.waiting-data-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  border: 2px dashed var(--ion-color-medium);
+  text-align: center;
+}
+
+.waiting-data-card ion-icon {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.waiting-data-card p {
+  color: var(--ion-color-dark);
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}
+
+.waiting-data-card .hint-text {
+  color: var(--ion-color-medium);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.additional-info {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ion-color-light-shade);
+}
+
+.additional-info h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 1rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+}
+
+.info-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+}
+
+.action-buttons {
+  margin-top: 1rem;
+  padding: 0 1rem;
+}
+
+.action-buttons ion-button {
+  margin-bottom: 0.5rem;
 }
 </style>
 

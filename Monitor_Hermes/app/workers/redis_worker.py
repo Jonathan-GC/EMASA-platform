@@ -5,6 +5,7 @@ import importlib
 from app.persistence.models import MessageIn
 from app.persistence.mongo import save_message
 from app.validation.orchestrator import validate_and_alert_if_needed
+from app.persistence.timeseries import transform_and_insert_timeseries
 
 
 async def save_mapping(dev_eui: str, tenant_id: str, redis_client):
@@ -42,6 +43,7 @@ async def process_messages(db):
             #   "metadata": dict | None
             # }
 
+            msg_type = payload.get("type", "uplink")
             dev_eui = payload.get("dev_eui")
             tenant_id = payload.get("tenant_id")
             tenant_name = payload.get("tenant_name")
@@ -66,6 +68,7 @@ async def process_messages(db):
             loguru.logger.debug(f"Processing message from Redis: {dev_eui}")
 
             message = MessageIn(
+                type=msg_type,
                 tenant_id=tenant_id,
                 tenant_name=tenant_name,
                 dev_eui=dev_eui,
@@ -86,6 +89,11 @@ async def process_messages(db):
             loguru.logger.debug(
                 f"Message saved to database for device {message.dev_eui} in tenant {message.tenant_id}"
             )
+
+            try:
+                await transform_and_insert_timeseries(db, payload)
+            except Exception as e:
+                loguru.logger.error(f"Failed to ingest timeseries for {dev_eui}: {e}")
 
             try:
                 await validate_and_alert_if_needed(payload, db)

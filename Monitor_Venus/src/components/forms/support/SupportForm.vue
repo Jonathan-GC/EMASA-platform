@@ -1,364 +1,263 @@
 <template>
 
-  <div class="page-heading">Submit your report here:</div>
 
-      <ion-card>
-        <ion-card-content>
+  <ion-card>
+    <ion-card-content>
 
-          <!-- Signed-in badge (no input field) -->
-          <div v-if="isLoggedIn" class="account-bar">
-            <ion-icon :icon="personCircleOutline" class="account-icon" />
-            <div class="account-text">
-              <div class="label">Signed in as</div>
-              <div class="value">{{ sessionUserLabel }}</div>
-            </div>
+      <!-- Signed-in badge (no input field) -->
+      <div v-if="isLoggedIn" class="account-bar">
+        <ion-icon :icon="personCircleOutline" class="account-icon" />
+        <div class="account-text">
+          <div class="label">Conectado como</div>
+          <div class="value">{{ sessionUserLabel }}</div>
+        </div>
+      </div>
+
+      <form @submit.prevent="handleSubmit" novalidate>
+        <ion-list>
+
+          <!-- Title -->
+          <ion-item class="custom" lines="none">
+            <ion-label position="stacked" class="!mb-2">Asunto *</ion-label>
+            <ion-input class="custom" fill="solid" v-model="form.title" :maxlength="TITLE_MAX" type="text"
+              inputmode="text" :aria-invalid="!!errors.title" aria-describedby="title-error" @ion-blur="onBlur('title')"
+              placeholder="Resumen breve del problema" />
+          </ion-item>
+
+          <div class="field-error">
+            <ion-note v-if="errors.title && (touched.title || submitAttempted)" id="title-error" color="danger">
+              {{ errors.title }}
+            </ion-note>
           </div>
 
-          <form @submit.prevent="handleSubmit" novalidate>
-            <ion-list>
+          <div v-if="!isLoggedIn" class="divider large-divider"></div>
 
-                            <!-- Title -->
-              <ion-item class="custom" lines="none">
-                <ion-icon :icon="documentTextOutline" slot="start" class="item-icon" />
-                <ion-input
-                  class="custom"
-                  fill="solid"
-                  v-model="form.title"
-                  label="Issue *"
-                  label-placement="floating"
-                  :maxlength="TITLE_MAX"
-                  type="text"
-                  inputmode="text"
-                  :aria-invalid="!!errors.title"
-                  aria-describedby="title-error"
-                  @ion-blur="onBlur('title')"
-                  placeholder="Short summary of the issue"
-                />
-              </ion-item>
-
-              <div class="field-error">
-                <ion-note v-if="errors.title && (touched.title || submitAttempted)" id="title-error" color="danger">
-                  {{ errors.title }}
-                </ion-note>
-              </div>
-
-                            <div v-if="!isLoggedIn" class="divider large-divider"></div>
-
-
-              <!-- Guest-only fields (moved up) -->
-              <template v-if="!isLoggedIn">
-                <ion-item class="custom" lines="none">
-                  <ion-icon :icon="personOutline" slot="start" class="item-icon" />
-                  <ion-input
-                    class="custom"
-                    fill="solid"
-                    v-model="form.guest_name"
-                    label="Guest Name *"
-                    label-placement="floating"
-                    type="text"
-                    :aria-invalid="!!errors.guest_name"
-                    aria-describedby="guest_name-error"
-                    @ion-blur="onBlur('guest_name')"
-                    placeholder="John Doe"
-                  />
-                </ion-item>
-                <div class="field-error">
-                  <ion-note v-if="errors.guest_name && (touched.guest_name || submitAttempted)" id="guest_name-error" color="danger">
-                    {{ errors.guest_name }}
-                  </ion-note>
-                </div>
-
-                <ion-item class="custom" lines="none">
-                  <ion-icon :icon="mailOutline" slot="start" class="item-icon" />
-                  <ion-input
-                    class="custom"
-                    fill="solid"
-                    v-model="form.guest_email"
-                    label="Guest Email *"
-                    label-placement="floating"
-                    type="email"
-                    inputmode="email"
-                    autocapitalize="off"
-                    autocomplete="email"
-                    :aria-invalid="!!errors.guest_email"
-                    aria-describedby="guest_email-error"
-                    @ion-blur="onBlur('guest_email')"
-                    placeholder="guest@example.com"
-                  />
-                </ion-item>
-                <div class="field-error">
-                  <ion-note v-if="errors.guest_email && (touched.guest_email || submitAttempted)" id="guest_email-error" color="danger">
-                    {{ errors.guest_email }}
-                  </ion-note>
-                </div>
-              </template>
-
-              <div class="divider large-divider"></div>
-
-                <div class="field-error">
-                </div>
-
-                <!-- Ticket types: chained selectors -->
-                <ion-list>
-                  <ion-item class="custom">
-                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
-                    <ion-label position="stacked" class="selector-label !mb-2">Category</ion-label>
-                    <ModalSelector
-                      class="custom"
-                      v-model="ticketSelection.category"
-                      :options="categoryOptions"
-                      :value-field="'code'"
-                      :display-field="'name'"
-                      :search-fields="['name']"
-                      title="Select category"
-                      placeholder=" -"
-                      search-placeholder="Search category..."
-                      :disabled="loadingTypes"
-                    >
-                      <template #option="{ option }">
-                        <ion-label>{{ option.name }}</ion-label>
-                      </template>
-                    </ModalSelector>
-                  </ion-item>
-                  <div class="field-error">
-                    <ion-note v-if="errors.category && (touched.category || submitAttempted)" id="category-error" color="danger">
-                      {{ errors.category }}
-                    </ion-note>
-                  </div>
-
-                  <ion-item v-if="ticketSelection.category === 'infrastructure'" class="custom">
-                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
-                    <ion-label position="stacked" class="selector-label !mb-2">Infrastructure</ion-label>
-                    <ModalSelector
-                      class="custom"
-                      v-model="ticketSelection.infrastructure"
-                      :options="infraOptions"
-                      :value-field="'code'"
-                      :display-field="'name'"
-                      :search-fields="['name']"
-                      title="Select infrastructure"
-                      placeholder=" -"
-                      search-placeholder="Search infrastructure..."
-                      :disabled="loadingTypes"
-                    >
-                      <template #option="{ option }">
-                        <ion-label>{{ option.name }}</ion-label>
-                      </template>
-                    </ModalSelector>
-                  </ion-item>
-                  <div class="field-error">
-                    <ion-note v-if="errors.infrastructure_category && (touched.infrastructure_category || submitAttempted)" id="infrastructure_category-error" color="danger">
-                      {{ errors.infrastructure_category }}
-                    </ion-note>
-                  </div>
-
-                  <ion-item v-if="ticketSelection.infrastructure === 'machines'" class="custom">
-                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
-                    <ion-label position="stacked" class="selector-label !mb-2">Machine type</ion-label>
-                    <ModalSelector
-                      class="custom"
-                      v-model="ticketSelection.machine_type"
-                      :options="machineTypeOptions"
-                      :value-field="'code'"
-                      :display-field="'name'"
-                      :search-fields="['name']"
-                      title="Select machine type"
-                      placeholder=" -"
-                      search-placeholder="Search machine type..."
-                      :disabled="loadingTypes"
-                    >
-                      <template #option="{ option }">
-                        <ion-label>{{ option.name }}</ion-label>
-                      </template>
-                    </ModalSelector>
-                  </ion-item>
-                  <div class="field-error">
-                    <ion-note v-if="errors.machine_type && (touched.machine_type || submitAttempted)" id="machine_type-error" color="danger">
-                      {{ errors.machine_type }}
-                    </ion-note>
-                  </div>
-
-                  <ion-item v-if="ticketSelection.machine_type === 'electric'" class="custom">
-                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
-                    <ion-label position="stacked" class="selector-label !mb-2">Electric machine subtype</ion-label>
-                    <ModalSelector
-                      class="custom"
-                      v-model="ticketSelection.electric_subtype"
-                      :options="electricSubtypeOptions"
-                      :value-field="'code'"
-                      :display-field="'name'"
-                      :search-fields="['name']"
-                      title="Select electric subtype"
-                      placeholder=" -"
-                      search-placeholder="Search subtype..."
-                      :disabled="loadingTypes"
-                    >
-                      <template #option="{ option }">
-                        <ion-label>{{ option.name }}</ion-label>
-                      </template>
-                    </ModalSelector>
-                  </ion-item>
-                  <div class="field-error">
-                    <ion-note v-if="errors.electric_machine_subtype && (touched.electric_machine_subtype || submitAttempted)" id="electric_machine_subtype-error" color="danger">
-                      {{ errors.electric_machine_subtype }}
-                    </ion-note>
-                  </div>
-
-                  <ion-item v-if="ticketSelection.machine_type === 'mechanical'" class="custom">
-                    <ion-icon :icon="listOutline" slot="start" class="item-icon" />
-                    <ion-label position="stacked" class="selector-label !mb-2">Mechanical machine subtype</ion-label>
-                    <ModalSelector
-                      class="custom"
-                      v-model="ticketSelection.mechanical_subtype"
-                      :options="mechanicalSubtypeOptions"
-                      :value-field="'code'"
-                      :display-field="'name'"
-                      :search-fields="['name']"
-                      title="Select mechanical subtype"
-                      placeholder=" -"
-                      search-placeholder="Search subtype..."
-                      :disabled="loadingTypes"
-                    >
-                      <template #option="{ option }">
-                        <ion-label>{{ option.name }}</ion-label>
-                      </template>
-                    </ModalSelector>
-                  </ion-item>
-                  <div class="field-error">
-                    <ion-note v-if="errors.mechanical_machine_subtype && (touched.mechanical_machine_subtype || submitAttempted)" id="mechanical_machine_subtype-error" color="danger">
-                      {{ errors.mechanical_machine_subtype }}
-                    </ion-note>
-                  </div>
-                </ion-list>
-
-
-              <!-- Description -->
-              <!-- Organization (optional) -->
-              <ion-item class="custom" lines="none">
-                <ion-icon :icon="documentTextOutline" slot="start" class="item-icon" />
-                <ion-input
-                  class="custom"
-                  fill="solid"
-                  v-model="form.organization"
-                  label="Organization"
-                  label-placement="floating"
-                  type="text"
-                  inputmode="text"
-                  :aria-invalid="!!errors.organization"
-                  aria-describedby="organization-error"
-                  @ion-blur="onBlur('organization')"
-                  placeholder="Organization (optional)"
-                />
-              </ion-item>
-              <div class="field-error">
-                <ion-note v-if="errors.organization && (touched.organization || submitAttempted)" id="organization-error" color="danger">
-                  {{ errors.organization }}
-                </ion-note>
-              </div>
-              <ion-item class="custom" lines="none">
-                <ion-icon :icon="createOutline" slot="start" class="item-icon" />
-                <ion-textarea
-                  class="custom"
-                  fill="solid"
-                  v-model="form.description"
-                  label="Description *"
-                  label-placement="floating"
-                  auto-grow
-                  :rows="5"
-                  :maxlength="DESC_MAX"
-                  :aria-invalid="!!errors.description"
-                  aria-describedby="description-error"
-                  @ion-blur="onBlur('description')"
-                  placeholder="Please describe the problem in detail"
-                />
-              </ion-item>
-              <div class="field-error">
-                <ion-note v-if="errors.description && (touched.description || submitAttempted)" id="description-error" color="danger">
-                  {{ errors.description }}
-                </ion-note>
-              </div>
-
-              <div class="divider"></div>
-
-              <!-- Attachment (logged-in only) -->
-              <template v-if="isLoggedIn">
-                <ion-item class="custom" lines="none">
-                  <ion-icon :icon="attachOutline" slot="start" class="item-icon" />
-                  <div class="file-field">
-                    <div class="file-header">Attachment (optional)</div>
-
-
-                    <div class="file-row">
-                      <input
-                        ref="fileInputRef"
-                        type="file"
-                        class="hidden"
-                        :accept="accepts"
-                        @change="handleFileChange"
-                        aria-label="Upload attachment"
-                      />
-                      <ion-button fill="outline" size="small" type="button" @click="triggerFilePicker" :disabled="isUploading">
-                        Choose file
-                      </ion-button>
-                      <ion-button
-                        v-if="selectedFile"
-                        fill="clear"
-                        size="small"
-                        color="medium"
-                        type="button"
-                        @click="removeFile"
-                        :disabled="isUploading"
-                      >
-                        Remove
-                      </ion-button>
-                    </div>
-
-                    <div class="divider small-divider" aria-hidden="true"></div>
-
-                    <div v-if="selectedFile" class="file-chip">
-                      <ion-icon :icon="documentAttachOutline" class="chip-icon" />
-                      <span class="chip-text">{{ selectedFile.name }}</span>
-                      <span class="chip-size">({{ prettyBytes(selectedFile.size) }})</span>
-                      <ion-button fill="clear" size="small" color="danger" class="chip-remove" @click="removeFile" :disabled="isUploading">
-                        ✕
-                      </ion-button>
-                    </div>
-
-                    <ion-note color="medium" class="hint">
-                      Allowed: PNG, JPG, JPEG, PDF, DOC, DOCX, TXT. Max size: {{ prettyBytes(MAX_FILE_SIZE) }}.
-                    </ion-note>
-                    <ion-note v-if="fileError" color="danger" class="hint">
-                      {{ fileError }}
-                    </ion-note>
-                  </div>
-                </ion-item>
-              </template>
-            </ion-list>
-
-            <div class="divider"></div>
-
-            <!-- Actions -->
-            <div class="actions">
-              <ion-button type="button" fill="outline" color="medium" @click="resetForm" :disabled="isBusy">Clear</ion-button>
-              <div class="button-divider" aria-hidden="true"></div>
-              <ion-button type="submit" :disabled="isBusy || !isValid">
-                <ion-spinner v-if="isBusy" slot="start" />
-                Submit
-              </ion-button>
+          <!-- Guest-only fields (moved up) -->
+          <template v-if="!isLoggedIn">
+            <ion-item class="custom" lines="none">
+              <ion-label position="stacked" class="!mb-2">Nombre *</ion-label>
+              <ion-input class="custom" fill="solid" v-model="form.guest_name"
+                type="text" :aria-invalid="!!errors.guest_name"
+                aria-describedby="guest_name-error" @ion-blur="onBlur('guest_name')" placeholder="Fulano Detal" />
+            </ion-item>
+            <div class="field-error">
+              <ion-note v-if="errors.guest_name && (touched.guest_name || submitAttempted)" id="guest_name-error"
+                color="danger">
+                {{ errors.guest_name }}
+              </ion-note>
             </div>
-          </form>
-        </ion-card-content>
-      </ion-card>
 
-      <!-- UX helpers -->
-      <ion-loading :is-open="isBusy" message="Submitting..." />
-      <ion-toast
-        :is-open="toast.open"
-        :message="toast.message"
-        :color="toast.color"
-        :duration="2600"
-        @didDismiss="toast.open = false"
-      />
+            <ion-item class="custom" lines="none">
+              <ion-label position="stacked" class="!mb-2">Correo electrónico *</ion-label>
+              <ion-input class="custom" fill="solid" v-model="form.guest_email" 
+                type="email" inputmode="email" autocapitalize="off" autocomplete="email"
+                :aria-invalid="!!errors.guest_email" aria-describedby="guest_email-error"
+                @ion-blur="onBlur('guest_email')" placeholder="ejemplo@mail.com" />
+            </ion-item>
+            <div class="field-error">
+              <ion-note v-if="errors.guest_email && (touched.guest_email || submitAttempted)" id="guest_email-error"
+                color="danger">
+                {{ errors.guest_email }}
+              </ion-note>
+            </div>
+          </template>
+
+          <div class="divider large-divider"></div>
+
+          <div class="field-error">
+          </div>
+
+          <!-- Ticket types: chained selectors -->
+          <ion-list>
+            <ion-item class="custom">
+              <ion-label position="stacked" class=" !mb-2">Categoría *</ion-label>
+              <ModalSelector class="custom" v-model="ticketSelection.category" :options="categoryOptions"
+                :value-field="'code'" :display-field="'name'" :search-fields="['name']" title="Seleccionar categoría"
+                placeholder=" -" search-placeholder="Buscar Categoría..." :disabled="loadingTypes">
+                <template #option="{ option }">
+                  <ion-label>{{ option.name }}</ion-label>
+                </template>
+              </ModalSelector>
+            </ion-item>
+            <div class="field-error">
+              <ion-note v-if="errors.category && (touched.category || submitAttempted)" id="category-error"
+                color="danger">
+                {{ errors.category }}
+              </ion-note>
+            </div>
+
+            <ion-item v-if="ticketSelection.category === 'infrastructure'" class="custom">
+              <ion-label position="stacked" class="!mb-2">Infrastructura</ion-label>
+              <ModalSelector class="custom" v-model="ticketSelection.infrastructure" :options="infraOptions"
+                :value-field="'code'" :display-field="'name'" :search-fields="['name']"
+                title="Seleccionar infrastructura" placeholder=" -" search-placeholder="Buscar infrastructura..."
+                :disabled="loadingTypes">
+                <template #option="{ option }">
+                  <ion-label>{{ option.name }}</ion-label>
+                </template>
+              </ModalSelector>
+            </ion-item>
+            <div class="field-error">
+              <ion-note v-if="errors.infrastructure_category && (touched.infrastructure_category || submitAttempted)"
+                id="infrastructure_category-error" color="danger">
+                {{ errors.infrastructure_category }}
+              </ion-note>
+            </div>
+
+            <ion-item v-if="ticketSelection.infrastructure === 'machines'" class="custom">
+              <ion-label position="stacked" class="!mb-2">Tipo de máquina</ion-label>
+              <ModalSelector class="custom" v-model="ticketSelection.machine_type" :options="machineTypeOptions"
+                :value-field="'code'" :display-field="'name'" :search-fields="['name']"
+                title="Seleccionar tipo de máquina" placeholder=" -" search-placeholder="Buscar tipo de máquina..."
+                :disabled="loadingTypes">
+                <template #option="{ option }">
+                  <ion-label>{{ option.name }}</ion-label>
+                </template>
+              </ModalSelector>
+            </ion-item>
+            <div class="field-error">
+              <ion-note v-if="errors.machine_type && (touched.machine_type || submitAttempted)" id="machine_type-error"
+                color="danger">
+                {{ errors.machine_type }}
+              </ion-note>
+            </div>
+
+            <ion-item v-if="ticketSelection.machine_type === 'electric'" class="custom">
+              <ion-label position="stacked" class="!mb-2">Subtipo de máquina eléctrica</ion-label>
+              <ModalSelector class="custom" v-model="ticketSelection.electric_subtype" :options="electricSubtypeOptions"
+                :value-field="'code'" :display-field="'name'" :search-fields="['name']"
+                title="Seleccionar subtipo de máquina eléctrica" placeholder=" -" search-placeholder="Buscar subtipo..."
+                :disabled="loadingTypes">
+                <template #option="{ option }">
+                  <ion-label>{{ option.name }}</ion-label>
+                </template>
+              </ModalSelector>
+            </ion-item>
+            <div class="field-error">
+              <ion-note v-if="errors.electric_machine_subtype && (touched.electric_machine_subtype || submitAttempted)"
+                id="electric_machine_subtype-error" color="danger">
+                {{ errors.electric_machine_subtype }}
+              </ion-note>
+            </div>
+
+            <ion-item v-if="ticketSelection.machine_type === 'mechanical'" class="custom">
+              <ion-label position="stacked" class="!mb-2">Subtipo de máquina mecánica</ion-label>
+              <ModalSelector class="custom" v-model="ticketSelection.mechanical_subtype"
+                :options="mechanicalSubtypeOptions" :value-field="'code'" :display-field="'name'"
+                :search-fields="['name']" title="Seleccionar subtipo de máquina mecánica" placeholder=" -"
+                search-placeholder="Buscar subtipo..." :disabled="loadingTypes">
+                <template #option="{ option }">
+                  <ion-label>{{ option.name }}</ion-label>
+                </template>
+              </ModalSelector>
+            </ion-item>
+            <div class="field-error">
+              <ion-note
+                v-if="errors.mechanical_machine_subtype && (touched.mechanical_machine_subtype || submitAttempted)"
+                id="mechanical_machine_subtype-error" color="danger">
+                {{ errors.mechanical_machine_subtype }}
+              </ion-note>
+            </div>
+          </ion-list>
+
+
+          <!-- Description -->
+          <!-- Organization (optional) -->
+          <ion-item class="custom" lines="none">
+            <ion-label position="stacked" class=" !mb-2">Organización</ion-label>
+            <ion-input class="custom" fill="solid" v-model="form.organization" type="text" inputmode="text"
+              :aria-invalid="!!errors.organization" aria-describedby="organization-error"
+              @ion-blur="onBlur('organization')" placeholder="MTR SAS" />
+          </ion-item>
+          <div class="field-error">
+            <ion-note v-if="errors.organization && (touched.organization || submitAttempted)" id="organization-error"
+              color="danger">
+              {{ errors.organization }}
+            </ion-note>
+          </div>
+          <ion-item class="custom" lines="none">
+            <ion-label position="stacked" class=" !mb-2">Descripción *</ion-label>
+            <ion-textarea class="custom" fill="solid" v-model="form.description" auto-grow :rows="5"
+              :maxlength="DESC_MAX" :aria-invalid="!!errors.description" aria-describedby="description-error"
+              @ion-blur="onBlur('description')"
+              placeholder="Por favor describa el problema con el mayor detalle posible." />
+          </ion-item>
+          <div class="field-error">
+            <ion-note v-if="errors.description && (touched.description || submitAttempted)" id="description-error"
+              color="danger">
+              {{ errors.description }}
+            </ion-note>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Attachment (logged-in only) -->
+          <template v-if="isLoggedIn">
+            <ion-item class="custom" lines="none">
+              <div class="file-field">
+                <div class="file-header">Attachment (optional)</div>
+
+
+                <div class="file-row">
+                  <input ref="fileInputRef" type="file" class="hidden" :accept="accepts" @change="handleFileChange"
+                    aria-label="Upload attachment" />
+                  <ion-button fill="outline" size="small" type="button" @click="triggerFilePicker"
+                    :disabled="isUploading" shape="round">
+                     <ion-icon :icon="attachOutline" slot="start"/>
+                    Adjuntar archivo
+                  </ion-button>
+                  <ion-button v-if="selectedFile" fill="clear" size="small" color="medium" type="button"
+                    @click="removeFile" :disabled="isUploading">
+                    Eliminar
+                  </ion-button>
+                </div>
+
+                <div class="divider small-divider" aria-hidden="true"></div>
+
+                <div v-if="selectedFile" class="file-chip">
+                  <ion-icon :icon="documentAttachOutline" class="chip-icon" />
+                  <span class="chip-text">{{ selectedFile.name }}</span>
+                  <span class="chip-size">({{ prettyBytes(selectedFile.size) }})</span>
+                  <ion-button fill="clear" size="small" color="danger" class="chip-remove" @click="removeFile"
+                    :disabled="isUploading">
+                    ✕
+                  </ion-button>
+                </div>
+
+                <ion-note color="medium" class="hint">
+                  Permitidos: PNG, JPG, JPEG, PDF, DOC, DOCX, TXT | Tamaño máximo: {{ prettyBytes(MAX_FILE_SIZE) }}.
+                </ion-note>
+                <ion-note v-if="fileError" color="danger" class="hint">
+                  {{ fileError }}
+                </ion-note>
+              </div>
+            </ion-item>
+          </template>
+        </ion-list>
+
+        <div class="divider"></div>
+
+        <!-- Actions -->
+        <div class="actions ion-text-end">
+          <ion-button type="button" fill="outline" color="medium" @click="resetForm" :disabled="isBusy" shape="round">
+            <ion-icon :icon="syncOutline" slot="start" />
+            Limpiar
+          </ion-button>
+          
+          <ion-button type="submit" :disabled="isBusy || !isValid" shape="round">
+            <ion-spinner v-if="isBusy" slot="start" />
+            <ion-icon :icon="paperPlaneOutline" slot="start" />
+            Enviar
+          </ion-button>
+        </div>
+      </form>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- UX helpers -->
+  <ion-loading :is-open="isBusy" message="Submitting..." />
+  <ion-toast :is-open="toast.open" :message="toast.message" :color="toast.color" :duration="2600"
+    @didDismiss="toast.open = false" />
 
 </template>
 
@@ -376,7 +275,7 @@ import {
   IonPage, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardContent,
   IonList, IonItem, IonInput, IonTextarea, IonNote, IonButton, IonSpinner, IonToast, IonLoading, IonIcon,
 } from '@ionic/vue'
-import { personOutline, personCircleOutline, mailOutline, attachOutline, documentAttachOutline, createOutline, documentTextOutline, listOutline } from 'ionicons/icons'
+import { personOutline, personCircleOutline, mailOutline, attachOutline, documentAttachOutline, createOutline, documentTextOutline, listOutline, syncOutline, paperPlaneOutline } from 'ionicons/icons'
 import API from '@/utils/api/api'
 import ModalSelector from '@/components/ui/ModalSelector.vue'
 
@@ -448,7 +347,7 @@ async function loadSessionContext() {
       const uid = extractUserId(claims)
       if (uid != null) {
         sessionUserId.value = uid
-        try { localStorage.setItem('sb_user_id', String(uid)) } catch {}
+        try { localStorage.setItem('sb_user_id', String(uid)) } catch { }
       }
       // Try to extract a friendly display name from the JWT claims immediately
       // Prefer common claim names (name, full_name, given_name, preferred_username, username, email)
@@ -524,17 +423,17 @@ function validateField(field: keyof SupportTicketPayload) {
     const val = (form[field] ?? '').toString().trim()
     switch (field) {
       case 'title':
-        errors.title = val.length < 3 ? 'Issue must be at least 3 characters.' : null
+        errors.title = val.length < 5 ? 'El asunto debe tener al menos 5 caracteres.' : null
         break
       case 'description':
-        errors.description = val.length < 10 ? 'Description must be at least 10 characters.' : null
+        errors.description = val.length < 10 ? 'La descripción debe tener al menos 10 caracteres.' : null
         break
       case 'guest_name':
-        errors.guest_name = !isLoggedIn.value && val.length < 2 ? 'Guest name must be at least 2 characters.' : null
+        errors.guest_name = !isLoggedIn.value && val.length < 2 ? 'El nombre del invitado debe tener al menos 2 caracteres.' : null
         break
       case 'guest_email': {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        errors.guest_email = !isLoggedIn.value && !emailRegex.test(val) ? 'Please enter a valid email address.' : null
+        errors.guest_email = !isLoggedIn.value && !emailRegex.test(val) ? 'Por favor, introduce una dirección de correo electrónico válida.' : null
         break
       }
     }
@@ -573,16 +472,16 @@ function validateField(field: keyof SupportTicketPayload) {
   }
 }
 function validateAll(): boolean {
-  ;(['title', 'description'] as (keyof SupportTicketPayload)[]).forEach(validateField)
-  ;(['organization'] as (keyof SupportTicketPayload)[]).forEach(validateField)
+  ; (['title', 'description'] as (keyof SupportTicketPayload)[]).forEach(validateField)
+    ; (['organization'] as (keyof SupportTicketPayload)[]).forEach(validateField)
   if (!isLoggedIn.value) {
-    ;(['guest_name', 'guest_email'] as (keyof SupportTicketPayload)[]).forEach(validateField)
+    ; (['guest_name', 'guest_email'] as (keyof SupportTicketPayload)[]).forEach(validateField)
   } else {
     errors.guest_name = null
     errors.guest_email = null
   }
   // validate selection fields
-  ;(['category','infrastructure_category','machine_type','electric_machine_subtype','mechanical_machine_subtype'] as (keyof SupportTicketPayload)[]).forEach(validateField)
+  ; (['category', 'infrastructure_category', 'machine_type', 'electric_machine_subtype', 'mechanical_machine_subtype'] as (keyof SupportTicketPayload)[]).forEach(validateField)
   const baseOk = !!form.title?.trim() && !!form.description?.trim() && !errors.title && !errors.description
   const guestOk = isLoggedIn.value ? true : !!form.guest_name?.trim() && !!form.guest_email?.trim() && !errors.guest_name && !errors.guest_email
   const selectionOk = !errors.category && !errors.infrastructure_category && !errors.machine_type && !errors.electric_machine_subtype && !errors.mechanical_machine_subtype
@@ -600,7 +499,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 
 function prettyBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
-  const k = 1024, sizes = ['B','KB','MB','GB','TB']
+  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
 }
@@ -614,7 +513,7 @@ function handleFileChange(e: Event) {
     fileError.value = `File is too large. Max ${prettyBytes(MAX_FILE_SIZE)}.`
     input.value = ''; selectedFile.value = null; return
   }
-  const allowed = ['image/png','image/jpg','image/jpeg','application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain']
+  const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
   const ext = file.name.split('.').pop()?.toLowerCase() || ''
   if (!allowed.includes(file.type) && !accepts.includes(ext)) {
     fileError.value = 'Unsupported file type.'
@@ -650,7 +549,7 @@ function mapServerErrors(err: any) {
   if (serverErrors && typeof serverErrors === 'object') {
     for (const [key, value] of Object.entries(serverErrors)) {
       const first = Array.isArray(value) ? value[0] : value
-      if (key in errors) { ;(errors as any)[key] = String(first) }
+      if (key in errors) { ; (errors as any)[key] = String(first) }
     }
   }
 }
@@ -703,7 +602,7 @@ function resetForm() {
   form.guest_name = ''
   form.guest_email = ''
   // Clear ticket selections
-  try { ticketSelection.category = null; ticketSelection.infrastructure = null; ticketSelection.machine_type = null; ticketSelection.electric_subtype = null; ticketSelection.mechanical_subtype = null } catch(_) {}
+  try { ticketSelection.category = null; ticketSelection.infrastructure = null; ticketSelection.machine_type = null; ticketSelection.electric_subtype = null; ticketSelection.mechanical_subtype = null } catch (_) { }
 
   // Clear file and file errors
   removeFile()
@@ -718,7 +617,7 @@ function resetForm() {
   // clear error messages (they won't be visible while touched/submitAttempted are false,
   // but clear them to avoid stale state)
   try {
-    for (const k of Object.keys(errors)) { ;(errors as any)[k] = null }
+    for (const k of Object.keys(errors)) { ; (errors as any)[k] = null }
   } catch (_) { /* ignore */ }
   // allow watchers to operate normally again
   isResetting.value = false
@@ -897,20 +796,24 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
   padding: 6px 8px 12px 4px;
   margin-bottom: 8px;
 }
+
 .account-icon {
   font-size: 30px;
   color: var(--ion-color-primary);
 }
+
 .account-text .label {
   font-size: 13px;
   color: var(--ion-color-medium);
   line-height: 1.1;
 }
+
 .account-text .value {
   font-weight: 700;
   color: var(--ion-color-dark);
   line-height: 1.2;
-  font-size: 1.2rem; /* increased per user request */
+  font-size: 1.2rem;
+  /* increased per user request */
 }
 
 /* Row hints and icons */
@@ -920,9 +823,11 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
   align-items: baseline;
   padding: 0 16px 8px 16px;
 }
+
 .item-icon {
   font-size: 20px;
-  color: var(--ion-color-warning, #ff8c00); /* make icons orange for guest/title/description/file */
+  color: var(--ion-color-warning, #ff8c00);
+  /* make icons orange for guest/title/description/file */
 }
 
 /* Selector labels (stacked) should match other input label sizing */
@@ -933,9 +838,26 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
 }
 
 /* File preview chip */
-.file-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-.file-header { font-size: 0.95rem; font-weight: 600; color: var(--ion-color-medium-contrast, #222); margin-bottom: 2px; }
-.file-row { display: flex; gap: 8px; align-items: center; }
+.file-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.file-header {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ion-color-medium-contrast, #222);
+  margin-bottom: 2px;
+}
+
+.file-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .file-chip {
   display: inline-flex;
   align-items: center;
@@ -945,15 +867,30 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
   padding: 4px 8px;
   margin-top: 6px;
 }
-.chip-icon { font-size: 16px; color: var(--ion-color-warning, #ff8c00); }
-.chip-text { font-weight: 600; }
-.chip-size { color: var(--ion-color-medium); font-size: 12px; }
-.chip-remove { margin-left: 2px; }
+
+.chip-icon {
+  font-size: 16px;
+  color: var(--ion-color-warning, #ff8c00);
+}
+
+.chip-text {
+  font-weight: 600;
+}
+
+.chip-size {
+  color: var(--ion-color-medium);
+  font-size: 12px;
+}
+
+.chip-remove {
+  margin-left: 2px;
+}
 
 .actions {
   display: flex;
   gap: 12px;
-  justify-content: center; /* center buttons */
+  justify-content: right;
+  /* center buttons */
   margin-top: 8px;
 }
 
@@ -965,9 +902,36 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
 }
 
 /* Heading and divider used by SupportForm layout tweaks */
-.page-heading{ text-align:left; font-size:1.6rem; font-weight:800; margin:8px 0 }
-.divider{ height:0; border-top:1px solid rgba(0,0,0,0.08); margin:6px 0 }
-.large-divider{ margin:16px 0 } /* extra spacing between guest fields and Title */
-.small-divider{ height:0; border-top:1px solid rgba(0,0,0,0.06); margin:6px 0 }
-.button-divider{ width:1px; background:var(--ion-color-medium); opacity:0.12; margin:0 12px; align-self:center; height:22px }
+.page-heading {
+  text-align: left;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 8px 0
+}
+
+.divider {
+  height: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 6px 0
+}
+
+.large-divider {
+  margin: 16px 0
+}
+
+/* extra spacing between guest fields and Title */
+.small-divider {
+  height: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin: 6px 0
+}
+
+.button-divider {
+  width: 1px;
+  background: var(--ion-color-medium);
+  opacity: 0.12;
+  margin: 0 12px;
+  align-self: center;
+  height: 22px
+}
 </style>

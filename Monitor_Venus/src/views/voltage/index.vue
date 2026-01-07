@@ -35,6 +35,7 @@
         <!-- Charts grid -->
         <ChartsGrid 
           :chart-fragments="chartDataFragments"
+          :latest-data-points="latestDataPoints"
           :chart-key="chartKey"
           :device-name="lastDevice?.device_name || 'Dispositivo IoT'"
         />
@@ -97,6 +98,7 @@ ChartJS.register(
 const { isConnected, reconnectAttempts, setOnMessage } = useWebSocket()
 const { 
   chartDataFragments, 
+  latestDataPoints,
   lastDevice, 
   recentMessages, 
   chartKey, 

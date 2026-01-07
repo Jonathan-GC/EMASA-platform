@@ -1,3 +1,4 @@
+import requests
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -23,8 +24,9 @@ from .models import (
     Measurements,
 )
 
+from organizations.models import Tenant
 from roles.permissions import HasPermission, IsServiceOrHasPermission
-from guardian.shortcuts import get_objects_for_user
+from guardian.shortcuts import get_objects_for_user, get_users_with_perms
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -43,6 +45,7 @@ from chirpstack.chirpstack_api import (
     deactivate_device,
     device_activation_status,
 )
+
 from rest_framework import status
 
 from loguru import logger
@@ -54,6 +57,8 @@ from django.conf import settings
 
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from roles.helpers import assign_created_instance_permissions
+
+from django.utils import timezone
 
 
 @extend_schema_view(
@@ -335,6 +340,70 @@ class TypeViewSet(viewsets.ModelViewSet):
     ),
     measurements=extend_schema(description="Get Measurements config for Device"),
     measurements_by_dev_eui=extend_schema(description="Get Measurements by DevEUI"),
+    update_measurement=extend_schema(
+        description="Update Measurement",
+        request=MeasurementsSerializer,
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request body to update a measurement",
+                value={
+                    "measurement_id": 1,
+                    "min": 12.0,
+                    "max": 30.0,
+                    "threshold": 22.0,
+                    "unit": "Volts",
+                },
+                request_only=True,
+                response_only=False,
+            ),
+        ],
+    ),
+    last_metrics=extend_schema(
+        description="Get Last n Metrics for Device",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get last metrics for device with limit",
+                value={"limit": 5},
+            ),
+        ],
+    ),
+    historical_aggregated_metrics=extend_schema(
+        description="Get Historical Aggregated Metrics for Device",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get historical aggregated metrics for device",
+                value={
+                    "start": "2024-01-01T00:00:00Z",
+                    "end": "2024-01-07T00:00:00Z",
+                    "measurement_type": "voltage",
+                    "steps": 10,
+                    "channel": "ch1",
+                },
+            ),
+        ],
+    ),
+    historic_metrics=extend_schema(
+        description="Get Historic Metrics for Device (Range Query)",
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                summary="Example Request",
+                description="Example request to get historic metrics for device",
+                value={
+                    "start": "2024-01-01T00:00:00Z",
+                    "end": "2024-01-07T00:00:00Z",
+                    "measurement_type": "voltage",
+                    "channel": "ch1",
+                },
+            ),
+        ],
+    ),
 )
 class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.all()
@@ -716,6 +785,347 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
         serializer = MeasurementsSerializer(measurements, many=True)
         return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsServiceOrHasPermission],
+        scope="device",
+    )
+    def get_users_for_device(self, request):
+        dev_eui = request.query_params.get("dev_eui", None)
+
+        if not dev_eui:
+            return Response(
+                {"message": "No DevEUI provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            device = Device.objects.get(dev_eui=dev_eui)
+        except Device.DoesNotExist:
+            return Response(
+                {"message": "Device not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        tenant = Tenant.objects.get(workspace=device.workspace)
+
+        payload = {
+            "dev_eui": device.dev_eui,
+            "tenant_id": tenant.cs_tenant_id,
+            "assigned_users": [],
+        }
+
+        users_queryset = get_users_with_perms(device)
+        for user in users_queryset:
+            payload["assigned_users"].append(
+                {"user_id": user[0].id, "username": user[0].username}
+            )
+
+        return Response(payload)
+
+    @action(
+        detail=False,
+        methods=["patch"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def update_measurement(self, request):
+        measurement_id = request.data.get("measurement_id", None)
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/internal/measurements/refresh"
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        if not measurement_id:
+            return Response(
+                {"message": "No measurement_id provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            measurement = Measurements.objects.get(id=measurement_id)
+        except Measurements.DoesNotExist:
+            return Response(
+                {"message": "Measurement not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = MeasurementsSerializer(
+            measurement, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            response = requests.post(
+                url,
+                headers=headers,
+                timeout=5,
+                params={"dev_eui": measurement.device.dev_eui},
+            )
+            if response.status_code != 200:
+                logger.error(
+                    f"Error notifying Hermes about measurement update: {response.status_code} {response.text}"
+                )
+            else:
+                logger.debug(
+                    f"Hermes notified about measurement update: {response.status_code} {response.text}"
+                )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def last_metrics(self, request, pk=None):
+        device = self.get_object()
+
+        try:
+            limit = int(request.query_params.get("limit", 5))
+        except ValueError:
+            return Response(
+                {"message": "Invalid limit parameter"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/messages/last"
+
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        params = {"dev_eui": device.dev_eui, "limit": limit}
+
+        try:
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching last metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching last metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching last metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def historical_aggregated_metrics(self, request, pk=None):
+        """
+        Makes a request to the Hermes service to get historical aggregated metrics for the device.
+
+        Endpoint: GET /measurements/history
+        Query Parameters:
+            - dev_eui: Device EUI (from the device object)
+            - start: Start datetime for the metrics (ISO 8601 format)
+            - end: End datetime for the metrics (ISO 8601 format)
+            - measurement_type: Type of measurement to aggregate (e.g., voltage, current)
+            - steps: Number of data points to return (resolution)
+            - channel: Optional channel filter
+        """
+
+        device = self.get_object()
+        now = timezone.now()
+        three_months_ago = now - timezone.timedelta(
+            days=90
+        )  # Hermes only keeps 3 months of data
+
+        try:
+            start = request.query_params.get("start", None)
+            end = request.query_params.get("end", None)
+            measurement_type = request.query_params.get("measurement_type", None)
+            steps = int(request.query_params.get("steps", 10))
+            channel = request.query_params.get("channel", None)
+        except ValueError:
+            return Response(
+                {"message": "Invalid query parameters"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if steps <= 0:
+            return Response(
+                {"message": "Steps parameter must be a positive integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        elif steps > 300:
+            return Response(
+                {"message": "Steps parameter exceeds maximum limit of 300"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if start > now.isoformat() or end > now.isoformat():
+            return Response(
+                {"message": "Start and end parameters cannot be in the future"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not all([start, end, measurement_type]):
+            return Response(
+                {
+                    "message": "Missing required query parameters: start, end, measurement_type"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if start < three_months_ago.isoformat():
+            return Response(
+                {
+                    "message": f"Start parameter cannot be older than {three_months_ago.date().isoformat()}"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/measurements/history"
+
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        params = {
+            "dev_eui": device.dev_eui,
+            "start": start,
+            "end": end,
+            "measurement_type": measurement_type,
+            "steps": steps,
+        }
+
+        if channel:
+            params["channel"] = channel
+        try:
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching historical aggregated metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching historical aggregated metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching historical aggregated metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def historic_metrics(self, request, pk=None):
+        device = self.get_object()
+
+        start = request.query_params.get("start", None)
+        end = request.query_params.get("end", None)
+        measurement_type = request.query_params.get("measurement_type", None)
+        channel = request.query_params.get("channel", None)
+
+        if not all([start, end, measurement_type]):
+            return Response(
+                {
+                    "message": "Missing required query parameters: start, end, measurement_type"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hermes_url = getattr(settings, "HERMES_API_URL", "")
+        if not hermes_url:
+            logger.error("HERMES_API_URL is not configured")
+            return Response(
+                {"message": "Hermes service not configured"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        url = f"{hermes_url}/measurements/historic"
+
+        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
+
+        params = {
+            "dev_eui": device.dev_eui,
+            "start": start,
+            "end": end,
+            "measurement_type": measurement_type,
+        }
+
+        if channel:
+            params["channel"] = channel
+
+        try:
+            response = requests.get(url, headers=headers, timeout=5, params=params)
+            logger.debug(
+                f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
+            )
+
+        except requests.RequestException as e:
+            logger.error(
+                f"Connection error fetching historical metrics from Hermes for device {device.dev_eui}: {e}"
+            )
+            return Response(
+                {"message": "Hermes service unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"Error fetching historical metrics from Hermes for device {device.dev_eui}: {response.status_code} {response.text}"
+            )
+            return Response(
+                {"message": "Error fetching historical metrics from Hermes"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response.json())
 
 
 @extend_schema_view(

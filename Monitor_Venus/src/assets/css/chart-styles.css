@@ -49,7 +49,6 @@
 .chart-fragment {
   background: white;
   border-radius: 8px;
-  padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -72,7 +71,6 @@
    =========================== */
 
 .chart-container {
-  margin-top: 30px;
   background: white;
   border-radius: 8px;
 }
@@ -95,6 +93,41 @@
    =========================== */
 
 /* Ensure charts are responsive and don't overflow */
+.header-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  text-align: center;
+}
+
+.header-content ion-card-title {
+  width: 100%;
+}
+
+ion-card-header ion-card-subtitle {
+  text-align: center;
+  width: 100%;
+}
+
+.reset-zoom-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  margin: 0;
+  height: 32px;
+  --background: rgba(255, 255, 255, 0.8);
+  --background-activated: rgba(255, 255, 255, 1);
+  --border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  color: var(--ion-color-base);
+  border-radius: 50%;
+}
+
 .chart-container canvas,
 .chart-wrapper canvas,
 .chart-fragment canvas {

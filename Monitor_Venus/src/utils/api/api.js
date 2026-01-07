@@ -79,6 +79,7 @@ class API {
         return `infrastructure/device/${deviceId}/deactivate/`
     }
 
+//----[MEASUREMENTS]----
     DEVICE_GET_MEASUREMENTS(deviceId) {
         return `infrastructure/device/${deviceId}/measurements/`
     }
@@ -86,6 +87,16 @@ class API {
     DEVICE_CREATE_MEASUREMENTS(deviceId) {
         return `infrastructure/device/${deviceId}/create_measurement/`
     }
+    DEVICE_LAST_MEASUREMENT(deviceId) {
+        return `infrastructure/device/${deviceId}/last_metrics/`
+    }
+    DEVICE_HISTORICAL_MEASUREMENTS(deviceId) {
+        return `infrastructure/device/${deviceId}/historical_aggregated_metrics/`
+    }
+    DETAILED_POINTS(deviceId) {
+        return `infrastructure/device/${deviceId}/historic_metrics/`
+    }
+    DEVICE_UPDATE_MEASUREMENTS='infrastructure/device/update_measurement/'
 
 
     //----[WEBSOCKET]----
