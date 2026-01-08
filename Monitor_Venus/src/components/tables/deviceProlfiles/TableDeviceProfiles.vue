@@ -112,7 +112,6 @@
                   type="device_profile"
                   :index="deviceProfile.id" 
                   :name="deviceProfile.name"
-                  :to-view="`/tenants/${deviceProfile.id}`"
                   to-edit
                   to-delete
                   :initial-data="setInitialData(deviceProfile)"
@@ -159,7 +158,6 @@
                     type="device_profile"
                     :index="deviceProfile.id" 
                     :name="deviceProfile.name"
-                    :to-view="`/tenants/${deviceProfile.id}`"
                     to-edit
                     to-delete
                     :initial-data="setInitialData(deviceProfile)"

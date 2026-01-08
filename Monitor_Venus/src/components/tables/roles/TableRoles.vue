@@ -141,14 +141,7 @@
                   >
                     <ion-icon :icon="icons.person_add"></ion-icon>
                   </ion-button>
-                  <ion-button 
-                    fill="clear" 
-                    size="small"
-                    @click.stop="viewRole(role)"
-                    title="Ver detalles"
-                  >
-                    <ion-icon :icon="icons.eye"></ion-icon>
-                  </ion-button>
+
                 </div>
               </ion-col>
             </ion-row>
@@ -214,13 +207,6 @@
                     @click.stop="openWorkspaceMembershipForm(role)"
                   >
                     <ion-icon :icon="icons.person_add"></ion-icon>
-                  </ion-button>
-                  <ion-button 
-                    fill="clear" 
-                    size="small"
-                    @click.stop="viewRole(role)"
-                  >
-                    <ion-icon :icon="icons.eye"></ion-icon>
                   </ion-button>
                 </div>
               </ion-card-content>

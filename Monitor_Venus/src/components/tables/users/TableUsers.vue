@@ -142,7 +142,6 @@
                   type="user"
                   :index="user.id" 
                   :name="user.username"
-                  :toView="`/users/${user.id}`"
                   to-edit
                   to-delete
                   :initial-data="setInitialData(user)"
@@ -209,7 +208,6 @@
                     type="user"
                     :index="user.id" 
                     :name="user.username"
-                    :toView="`/users/${user.id}`"
                     to-edit
                     to-delete
                     :initial-data="setInitialData(user)"
