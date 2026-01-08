@@ -99,20 +99,6 @@
             Workspaces
           </router-link>
 
-          <!-- Managers: root, admin, manager (commented out in routes) -->
-          <router-link
-              v-if="canAccessRoute(['root', 'admin'])"
-              :to="paths.TENANT_MANAGERS"
-              class="nav-link"
-              :class="{ active: $route.path === paths.TENANT_MANAGERS }"
-              @click="closeNavbar"
-          >
-            <ion-icon
-                :icon="icons.people"
-            ></ion-icon>
-            Administradores
-          </router-link>
-
           <!-- Users: root, admin, manager, tenant_admin, tenant_user -->
           <router-link
               v-if="canAccessRoute(['root', 'admin', 'manager', 'tenant_admin', 'tenant_user'])"
