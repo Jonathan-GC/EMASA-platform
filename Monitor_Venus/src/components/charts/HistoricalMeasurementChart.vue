@@ -192,7 +192,7 @@ const measurementTypes = computed(() => {
 })
 
 const filters = reactive({
-  start: format(subDays(new Date(), 89), "yyyy-MM-dd'T'HH:mm"),
+  start: format(subDays(new Date(), 1), "yyyy-MM-dd'T'HH:mm"),
   end: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   measurement_type: props.initialType,
   step: 100

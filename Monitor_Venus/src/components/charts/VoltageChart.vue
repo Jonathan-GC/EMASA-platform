@@ -192,7 +192,7 @@ const chartOptions = computed(() => ({
       realtime: {
         duration: 30000,
         refresh: 1000,
-        delay: 4000,
+        delay: 10000,
         ttl: 60000,
         onRefresh: (chart) => {
           if (streamingBuffer.length > 0) {
