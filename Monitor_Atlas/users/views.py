@@ -152,6 +152,20 @@ class UserViewSet(ModelViewSet):
             accept_global_perms=False,
         )
 
+    def list(self, request, *args, **kwargs):
+        """Filter users by workspace if 'workspace' query param is provided.
+        It checks the workspace membership of the users."""
+        workspace = request.query_params.get("workspace", None)
+        queryset = self.get_queryset()
+        if workspace:
+            queryset = queryset.filter(
+                workspacemembership__workspace__id=workspace
+            ).distinct()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
     def perform_create(self, serializer):
         user = self.request.user
         instance = serializer.save()
@@ -218,11 +232,21 @@ class UserViewSet(ModelViewSet):
                 {"error": "This user does not have a support membership."}, status=404
             )
 
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="user",
+    )
+    def me(self, request):
+        user = request.user
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
 
 # Authentication
 REFRESH_COOKIE_NAME = settings.REFRESH_COOKIE_NAME
 REFRESH_COOKIE_PATH = settings.REFRESH_COOKIE_PATH
-
 
 # ============================================================================
 # Custom CSRF Protection for Native Apps
