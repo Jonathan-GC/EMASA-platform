@@ -129,6 +129,7 @@ import plugOutline from '@assets/icons/plug.svg'
 import enginesOutline from '@assets/icons/engines.svg'
 import packageOutline from '@assets/icons/package.svg'
 import deviceCard from '@assets/icons/device_card.svg'
+import antenna from '@assets/icons/antenna.svg'
 
 export const icons = {
   // Action icons
@@ -201,6 +202,7 @@ export const icons = {
   'plug': plugOutline,
   'engines': enginesOutline,
   'deviceCard': deviceCard,
+  'antenna': antenna,
 
   // Location icons
   'location': locationOutline,

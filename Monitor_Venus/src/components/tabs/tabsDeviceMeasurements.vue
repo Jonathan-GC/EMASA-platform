@@ -157,7 +157,7 @@
                 <ion-back-button default-href="/home"></ion-back-button>
                 <h1>
                   <ion-icon :icon="icons[measurement.icon] || icons.analytics" size="large"></ion-icon>
-                  Device Measurements - {{ capitalizeFirst(measurement.unit) }}</h1>
+                  {{ capitalizeFirst(measurement.unit) }}</h1>
               </div>
               <div class="header-subtitle connection-status">
                 <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />

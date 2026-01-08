@@ -2,7 +2,7 @@
   <div>
     <ion-card class="table-card">
       <ion-card-header>
-        <ion-card-title>📟 Devices - Datos desde API</ion-card-title>
+        <ion-card-title>Dispositivos registrados en el servicio</ion-card-title>
         <ion-card-subtitle>
           {{ loading ? 'Cargando...' : `${device.length} dispositivos encontrados` }}
         </ion-card-subtitle>
