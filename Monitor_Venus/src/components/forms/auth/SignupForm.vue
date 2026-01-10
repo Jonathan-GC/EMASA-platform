@@ -99,11 +99,14 @@
                 </ion-item>
 
                 <!-- Email -->
-                <ion-item class="custom">
+                <ion-item class="custom" :class="{ 'ion-invalid': emailError && credentials.email }">
                   <ion-label position="stacked" class="!mb-2">Correo</ion-label>
                   <ion-input v-model="credentials.email" type="email" placeholder="ejemplo@mail.com" :disabled="loading"
-                    class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur"></ion-input>
+                    class="custom" fill="solid" @focus="handleInputFocus" @blur="validateEmail" @ionInput="validateEmail"></ion-input>
                 </ion-item>
+                <div v-if="emailError && credentials.email" class="text-red-500 text-sm mt-1 ml-4">
+                  {{ emailError }}
+                </div>
 
                 <!-- Phone -->
                 <ion-item class="custom">
@@ -127,8 +130,8 @@
                     </div>
                     <div :class="isMobile ? 'full-width' : 'flex-2 ml-2'">
                       <ion-label position="stacked" class="!mb-2">Teléfono</ion-label>
-                      <ion-input v-model="credentials.phone" type="tel" placeholder="000000000" :disabled="loading"
-                        class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur"></ion-input>
+                      <ion-input v-model="credentials.phone" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="000000000" :disabled="loading"
+                        class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur" @ionInput="filterNumericInput($event, 'phone')"></ion-input>
                     </div>
                   </div>
                 </ion-item>
@@ -171,8 +174,8 @@
 
                   <ion-item :class="isMobile ? 'custom full-width' : 'custom flex-2'">
                     <ion-label position="stacked" class="!mb-2">Código Postal</ion-label>
-                    <ion-input v-model="credentials.address.zip_code" type="text" placeholder="000000"
-                      :disabled="loading" class="bg-zinc-300 rounded-md custom" fill="solid"></ion-input>
+                    <ion-input v-model="credentials.address.zip_code" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="000000"
+                      :disabled="loading" class="bg-zinc-300 rounded-md custom" fill="solid" @ionInput="filterNumericInput($event, 'zip_code')"></ion-input>
                   </ion-item>
                 </div>
               </ion-card-content>
@@ -208,8 +211,37 @@
                     class="custom" fill="solid" @focus="handleInputFocus" @blur="handleInputBlur"></ion-input>
                 </ion-item>
 
-                <PasswordInput v-model="credentials.password" :disabled="loading" placeholder="*****" @focus="handleInputFocus" @blur="handleInputBlur" />
-                <PasswordInput v-model="credentials.confirm_password" :disabled="loading" label="Confirma tu contraseña" placeholder="*****" @focus="handleInputFocus" @blur="handleInputBlur" />
+                <PasswordInput v-model="credentials.password" :disabled="loading" placeholder="*****" @focus="handleInputFocus" @blur="validatePassword" @input="validatePassword" />
+                
+                <!-- Password Validation Rules -->
+                <div v-if="credentials.password" class="password-rules mt-2 ml-4 mb-4">
+                  <div class="rule-item" :class="{ 'rule-valid': passwordValidation.minLength, 'rule-invalid': !passwordValidation.minLength }">
+                    <ion-icon :icon="passwordValidation.minLength ? icons.success : icons.ellipse"></ion-icon>
+                    <span>Mínimo 8 caracteres</span>
+                  </div>
+                  <div class="rule-item" :class="{ 'rule-valid': passwordValidation.notSimilar, 'rule-invalid': !passwordValidation.notSimilar }">
+                    <ion-icon :icon="passwordValidation.notSimilar ? icons.success : icons.ellipse"></ion-icon>
+                    <span>No similar a tus datos personales</span>
+                  </div>
+                  <div class="rule-item" :class="{ 'rule-valid': passwordValidation.notCommon, 'rule-invalid': !passwordValidation.notCommon }">
+                    <ion-icon :icon="passwordValidation.notCommon ? icons.success : icons.ellipse"></ion-icon>
+                    <span>No es una contraseña común</span>
+                  </div>
+                  <div class="rule-item" :class="{ 'rule-valid': passwordValidation.notNumeric, 'rule-invalid': !passwordValidation.notNumeric }">
+                    <ion-icon :icon="passwordValidation.notNumeric ? icons.success : icons.ellipse"></ion-icon>
+                    <span>No es completamente numérica</span>
+                  </div>
+                </div>
+                
+                <PasswordInput v-model="credentials.confirm_password" :disabled="loading" label="Confirma tu contraseña" placeholder="*****" @focus="handleInputFocus" @blur="validatePasswordMatch" @input="validatePasswordMatch" />
+                
+                <!-- Password Match Validation -->
+                <div v-if="credentials.confirm_password" class="password-rules mt-2 ml-4 mb-4">
+                  <div class="rule-item" :class="{ 'rule-valid': passwordsMatch, 'rule-invalid': !passwordsMatch }">
+                    <ion-icon :icon="passwordsMatch ? icons.success : icons.ellipse"></ion-icon>
+                    <span>Las contraseñas coinciden</span>
+                  </div>
+                </div>
               </ion-card-content>
             </ion-card>
             
@@ -322,6 +354,93 @@ const handleInputBlur = () => {
   emit('input-blur')
 }
 
+const filterNumericInput = (event, field) => {
+  const value = event.detail.value || ''
+  const numericValue = value.replace(/[^0-9]/g, '')
+  
+  if (field === 'phone') {
+    credentials.value.phone = numericValue
+  } else if (field === 'zip_code') {
+    credentials.value.address.zip_code = numericValue
+  }
+  
+  // Force update the input value
+  event.target.value = numericValue
+}
+
+const validateEmail = () => {
+  const email = credentials.value.email
+  
+  if (!email) {
+    emailError.value = ''
+    return
+  }
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  
+  if (!emailRegex.test(email)) {
+    emailError.value = 'Por favor ingresa un correo válido'
+  } else {
+    emailError.value = ''
+  }
+}
+
+const validatePassword = () => {
+  const password = credentials.value.password
+  
+  if (!password) {
+    passwordValidation.value = {
+      minLength: false,
+      notSimilar: false,
+      notCommon: false,
+      notNumeric: false
+    }
+    return
+  }
+  
+  // Rule 1: Minimum 8 characters
+  passwordValidation.value.minLength = password.length >= 8
+  
+  // Rule 2: Not too similar to user data
+  const userData = [
+    credentials.value.username,
+    credentials.value.email,
+    credentials.value.name,
+    credentials.value.last_name
+  ].filter(Boolean).map(str => str.toLowerCase())
+  
+  const passwordLower = password.toLowerCase()
+  passwordValidation.value.notSimilar = !userData.some(data => {
+    // Check if password contains significant portion of user data or vice versa
+    if (data.length >= 3 && passwordLower.includes(data)) return true
+    if (password.length >= 3 && data.includes(passwordLower)) return true
+    return false
+  })
+  
+  // Rule 3: Not a common password
+  passwordValidation.value.notCommon = !commonPasswords.includes(passwordLower)
+  
+  // Rule 4: Not completely numeric
+  passwordValidation.value.notNumeric = !/^\d+$/.test(password)
+}
+
+const isPasswordValid = computed(() => {
+  return passwordValidation.value.minLength &&
+         passwordValidation.value.notSimilar &&
+         passwordValidation.value.notCommon &&
+         passwordValidation.value.notNumeric
+})
+
+const passwordsMatch = computed(() => {
+  if (!credentials.value.confirm_password) return false
+  return credentials.value.password === credentials.value.confirm_password
+})
+
+const validatePasswordMatch = () => {
+  // Just trigger reactivity, the computed property handles the logic
+  return passwordsMatch.value
+}
+
 // Multi-step state
 const currentStep = ref(1)
 const steps = [
@@ -343,6 +462,21 @@ const resendCooldown = ref(0)
 const selectedCountryCode = ref('+57')
 const profileImage = ref(null)
 const imageUploadRef = ref(null)
+const emailError = ref('')
+const passwordValidation = ref({
+  minLength: false,
+  notSimilar: false,
+  notCommon: false,
+  notNumeric: false
+})
+
+// Common passwords list
+const commonPasswords = [
+  'password', 'password123', '12345678', '123456789', '1234567890',
+  'qwerty', 'qwerty123', 'abc123', 'password1', 'admin', 'admin123',
+  'letmein', 'welcome', 'monkey', '1234', '12345', '123456', '1234567',
+  'password12', 'passw0rd', 'iloveyou', 'princess', 'rockyou', 'abc12345'
+]
 
 // Credenciales del usuario
 const credentials = ref({
@@ -436,7 +570,7 @@ const canProceedToNextStep = computed(() => {
   const currentStepData = steps[currentStep.value - 1]
   if (!currentStepData) return false
 
-  return currentStepData.required.every(field => {
+  const allFieldsFilled = currentStepData.required.every(field => {
     const keys = field.split('.')
     let value = credentials.value
     for (const key of keys) {
@@ -445,6 +579,18 @@ const canProceedToNextStep = computed(() => {
     }
     return value && value.toString().trim() !== ''
   })
+  
+  // On step 1, also check email is valid
+  if (currentStep.value === 1 && credentials.value.email) {
+    return allFieldsFilled && !emailError.value
+  }
+  
+  // On step 2, check password is valid and passwords match
+  if (currentStep.value === 2) {
+    return allFieldsFilled && isPasswordValid.value && passwordsMatch.value
+  }
+  
+  return allFieldsFilled
 })
 
 const canSubmit = computed(() => {
@@ -779,5 +925,39 @@ const handleResendVerification = async () => {
   justify-content: center;
   gap: 0.5rem;
   font-size: 0.9rem;
+}
+
+.password-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.rule-item ion-icon {
+  font-size: 1.25rem;
+}
+
+.rule-valid {
+  color: var(--ion-color-success);
+}
+
+.rule-valid ion-icon {
+  color: var(--ion-color-success);
+}
+
+.rule-invalid {
+  color: #6b7280;
+}
+
+.rule-invalid ion-icon {
+  color: #6b7280;
 }
 </style>
