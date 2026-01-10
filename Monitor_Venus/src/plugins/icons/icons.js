@@ -105,6 +105,7 @@ import {
   lockOpenOutline,
 
   // UI icons
+  checkmarkCircle,
   personCircleOutline,
   searchOutline,
   filterOutline,
@@ -187,7 +188,7 @@ export const icons = {
 
   // Hardware icons
   'hardwareChip': hardwareChipOutline,
-  'phonePortrait': phonePortraitOutline,
+  'phone_portrait': phonePortraitOutline,
   'server': serverOutline,
   'cloud': cloudOutline,
   'wifi': wifiOutline,
@@ -234,6 +235,7 @@ export const icons = {
   'alert': alertCircleOutline,
   'alertCircle': alertCircleOutline,
   'success': checkmarkCircleOutline,
+  'checkmark': checkmarkCircle,
   'warning': warningOutline,
   'info': informationCircleOutline,
   'error': closeCircleOutline,

@@ -7,7 +7,7 @@
           <div class="gradient-bg"></div>
           <div class="welcome-content">
             <div class="welcome-text">
-              <div class="greeting">Welcome back,</div>
+              <div class="greeting">Bienvenido de vuelta,</div>
               <h1 class="welcome-title">{{ userName }}</h1>
               <div class="user-meta">
                 <ion-chip class="role-chip" outline>
@@ -15,14 +15,14 @@
                   <ion-label>{{ userRoleLabel }}</ion-label>
                 </ion-chip>
                 <ion-chip class="platform-chip" outline>
-                  <ion-icon :icon="icons.phone"></ion-icon>
+                  <ion-icon :icon="icons.phone_portrait"></ion-icon>
                   <ion-label>{{ platformLabel }}</ion-label>
                 </ion-chip>
               </div>
             </div>
             <div class="status-container">
               <ion-badge :color="systemStatusColor" class="system-badge">
-                <ion-icon :icon="checkmarkCircleOutline"></ion-icon>
+                <ion-icon :icon="icons.checkmark"></ion-icon>
                 {{ systemStatus }}
               </ion-badge>
             </div>
