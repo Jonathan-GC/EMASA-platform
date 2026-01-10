@@ -76,6 +76,7 @@
 
           <!-- Step 1: Personal Data -->
           <div v-else-if="currentStep === 1" class="step-content">
+            <form @submit.prevent="nextStep">
             <ion-card class="form-card">
               <ion-card-content>
                 <h1 class="step-title">Datos Personales</h1>
@@ -176,10 +177,26 @@
                 </div>
               </ion-card-content>
             </ion-card>
+            
+            <!-- Navigation Buttons for Step 1 -->
+            <div class="navigation-buttons">
+              <ion-button v-if="currentStep > 1" fill="outline" color="danger" @click="previousStep" :disabled="loading">
+                <ion-icon :icon="icons.arrowBack" slot="start"></ion-icon>
+                Anterior
+              </ion-button>
+
+              <ion-button type="submit" :disabled="!canProceedToNextStep"
+                :loading="loading" class="custom next-button">
+                Siguiente
+                <ion-icon :icon="icons.arrowForward" slot="end"></ion-icon>
+              </ion-button>
+            </div>
+            </form>
           </div>
 
           <!-- Step 2: Account Details -->
           <div v-else-if="currentStep === 2" class="step-content">
+            <form @submit.prevent="nextStep">
             <ion-card class="form-card">
               <ion-card-content>
                 <h1 class="step-title">Detalles de Cuenta</h1>
@@ -195,10 +212,26 @@
                 <PasswordInput v-model="credentials.confirm_password" :disabled="loading" label="Confirma tu contraseña" placeholder="*****" @focus="handleInputFocus" @blur="handleInputBlur" />
               </ion-card-content>
             </ion-card>
+            
+            <!-- Navigation Buttons for Step 2 -->
+            <div class="navigation-buttons">
+              <ion-button fill="outline" color="danger" @click="previousStep" :disabled="loading">
+                <ion-icon :icon="icons.arrowBack" slot="start"></ion-icon>
+                Anterior
+              </ion-button>
+
+              <ion-button type="submit" :disabled="!canProceedToNextStep"
+                :loading="loading" class="custom next-button">
+                Siguiente
+                <ion-icon :icon="icons.arrowForward" slot="end"></ion-icon>
+              </ion-button>
+            </div>
+            </form>
           </div>
 
           <!-- Step 3: Profile Picture -->
           <div v-else-if="currentStep === 3" class="step-content">
+            <form @submit.prevent="handleRegistration">
             <ion-card class="form-card">
               <h1 class="step-title">Foto de Perfil</h1>
               <hr class="divider" />
@@ -210,26 +243,21 @@
                   @error="handleImageError" />
               </div>
             </ion-card>
-          </div>
+            
+            <!-- Navigation Buttons for Step 3 -->
+            <div class="navigation-buttons">
+              <ion-button fill="outline" color="danger" @click="previousStep" :disabled="loading">
+                <ion-icon :icon="icons.arrowBack" slot="start"></ion-icon>
+                Anterior
+              </ion-button>
 
-          <!-- Navigation Buttons -->
-          <div class="navigation-buttons">
-            <ion-button v-if="currentStep > 1" fill="outline" color="danger" @click="previousStep" :disabled="loading">
-              <ion-icon :icon="icons.arrowBack" slot="start"></ion-icon>
-              Anterior
-            </ion-button>
-
-            <ion-button v-if="currentStep < steps.length" @click="nextStep" :disabled="!canProceedToNextStep"
-              :loading="loading" class="custom next-button">
-              Siguiente
-              <ion-icon :icon="icons.arrowForward" slot="end"></ion-icon>
-            </ion-button>
-
-            <ion-button v-else expand="block" color="amber-600" class="bg-amber-600" @click="handleRegistration"
-              :disabled="!canSubmit" :loading="loading">
-              <ion-icon :icon="icons.key" slot="start"></ion-icon>
-              Registrar
-            </ion-button>
+              <ion-button type="submit" expand="block" color="amber-600" class="bg-amber-600"
+                :disabled="!canSubmit" :loading="loading">
+                <ion-icon :icon="icons.key" slot="start"></ion-icon>
+                Registrar
+              </ion-button>
+            </div>
+            </form>
           </div>
 
           <!-- Error/Success Messages -->
