@@ -1,19 +1,17 @@
 <template>
   <ion-page>
+    <ion-header class="form-header-sticky ion-no-border">
+      <ion-toolbar>
+        <ion-title>Agregar {{ label }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="closeModal">
+            <ion-icon :icon="icons.close" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
 
     <ion-content class="ion-padding">
-
-      <ion-card-header class="custom">
-        <ion-toolbar>
-          <ion-title>Agregar {{ label }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button @click="closeModal">
-              <ion-icon :icon="icons.close" slot="icon-only"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-card-header>
-      <hr class="divider" />
       <ion-card-content>
         <form @submit.prevent="createItem">
           <ion-list>
@@ -95,16 +93,21 @@
 
             </div>
           </ion-list>
-          <div class="ion-text-end ion-padding-top">
-            <ion-button type="submit" :disabled="loading">
-              <ion-spinner v-if="loading" slot="start"></ion-spinner>
-              Guardar
-            </ion-button>
-          </div>
         </form>
       </ion-card-content>
 
     </ion-content>
+    
+    <ion-footer class="form-footer-sticky ion-no-border">
+      <ion-toolbar>
+        <div class="ion-text-end ion-padding">
+          <ion-button type="submit" @click="createItem" :disabled="loading">
+            <ion-spinner v-if="loading" slot="start"></ion-spinner>
+            Guardar
+          </ion-button>
+        </div>
+      </ion-toolbar>
+    </ion-footer>
   </ion-page>
 </template>
 
@@ -113,6 +116,7 @@ import { ref, watch, toRefs, inject } from 'vue';
 import {
   IonPage,
   IonHeader,
+  IonFooter,
   IonToolbar,
   IonTitle,
   IonContent,

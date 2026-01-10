@@ -52,6 +52,34 @@ ion-modal{
   }
 }
 
+/* Sticky header and footer for forms */
+.form-header-sticky {
+  z-index: 10;
+  background: var(--ion-background-color, #fff);
+  border: none !important;
+}
+
+.form-header-sticky ion-toolbar {
+  --box-shadow: none;
+  --border-width: 0;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.form-footer-sticky {
+  z-index: 10;
+  background: var(--ion-background-color, #fff);
+  border: none !important;
+}
+
+.form-footer-sticky ion-toolbar {
+  --background: var(--ion-background-color, #fff);
+  --box-shadow: none;
+  --border-width: 0;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 ion-searchbar.custom{
     --border-radius: 50rem;
     --box-shadow: inset 0 1px 5px 0px rgba(0, 0, 0, 0.14);
