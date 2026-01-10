@@ -105,6 +105,7 @@ import {
   lockOpenOutline,
 
   // UI icons
+  personCircleOutline,
   searchOutline,
   filterOutline,
   menuOutline,
@@ -245,6 +246,7 @@ export const icons = {
   'flash': flashOutline,
 
   // UI icons
+  'person_circle': personCircleOutline,
   'search': searchOutline,
   'filter': filterOutline,
   'menu': menuOutline,

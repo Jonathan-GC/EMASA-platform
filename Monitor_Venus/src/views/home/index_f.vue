@@ -1,8 +1,8 @@
+
+
 <template>
   <ion-page>
     <ion-content :fullscreen="true">
-      <!-- Welcome Section -->
-      <div v-if="pageReady" class="current-dashboard">
       <div class="welcome-section">
           <div class="gradient-bg"></div>
           <div class="welcome-content">
@@ -28,9 +28,7 @@
             </div>
           </div>
         </div>
-     
-
-      <div class="dashboard-container">
+        <div class="dashboard-container">
         <!-- Real-Time Metrics -->
         <div class="section metrics-section">
           <div class="section-header">
@@ -174,7 +172,7 @@
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container warning-bg">
-                        <ion-icon :icon="icons.people" size="large"></ion-icon>
+                        <ion-icon :icon="peopleOutline" size="large"></ion-icon>
                       </div>
                       <div class="nav-card-text">
                         <h3>Usuarios</h3>
@@ -208,7 +206,7 @@
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container tertiary-bg">
-                        <ion-icon :icon="icons.building" size="large"></ion-icon>
+                        <ion-icon :icon="businessOutline" size="large"></ion-icon>
                       </div>
                       <div class="nav-card-text">
                         <h3>Clientes</h3>
@@ -239,7 +237,7 @@
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container danger-bg">
-                        <ion-icon :icon="icons.notifications" size="large"></ion-icon>
+                        <ion-icon :icon="notificationsOutline" size="large"></ion-icon>
                       </div>
                       <div class="nav-card-text">
                         <h3>Notificationes</h3>
@@ -256,7 +254,7 @@
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container info-bg">
-                        <ion-icon :icon="icons.mail" size="large"></ion-icon>
+                        <ion-icon :icon="mailOutline" size="large"></ion-icon>
                       </div>
                       <div class="nav-card-text">
                         <h3>Inbox</h3>
@@ -288,9 +286,9 @@
           </ion-grid>
         </div>
       </div>
-      </div>
     </ion-content>
   </ion-page>
+
 </template>
 
 <script setup>
@@ -552,11 +550,9 @@ onBeforeRouteLeave(() => {
 ion-page {
   background: var(--ion-background-color, #f4f5f8);
 }
-
 ion-content {
   --background: var(--ion-background-color, #f4f5f8);
 }
-
 .dashboard-container {
   padding: 0;
   max-width: 1400px;
@@ -564,7 +560,6 @@ ion-content {
   min-height: 100vh;
 }
 
-/* Welcome Section with Gradient */
 .welcome-section {
   position: relative;
   width: 100%;
@@ -579,10 +574,8 @@ ion-content {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--ion-color-orange-500);
+  background: var(--ion-color-orange-200);
   z-index: 0;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .welcome-content {
@@ -662,15 +655,11 @@ ion-content {
   color: #738e80 !important;
 }
 
-/* Disconnected/Warning state - matches ConnectionStatus */
 .system-badge[color="danger"],
 .system-badge[color="warning"] {
   background: #fee2e2 !important;
   color: #ef4444 !important;
 }
-
-/* Pulse animation for non-operational states */
-
 
 .system-badge[color="danger"],
 .system-badge[color="warning"] {
@@ -725,7 +714,6 @@ ion-content {
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   will-change: transform;
-  transform: translateZ(0);
 }
 
 .nav-card:hover {
@@ -841,7 +829,6 @@ ion-content {
   margin-bottom: 32px;
 }
 
-/* Metrics Section */
 .metrics-section {
   margin-bottom: 32px;
 }
@@ -929,7 +916,6 @@ ion-content {
   color: var(--ion-color-medium);
 }
 
-/* Activity Card */
 .activity-card {
   margin: 0;
   border-radius: 16px;
@@ -982,7 +968,6 @@ ion-content {
   color: var(--ion-color-primary);
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .welcome-section {
     padding: 24px 0;
@@ -1094,4 +1079,5 @@ ion-content {
     border-color: var(--ion-color-dark);
   }
 }
+
 </style>
