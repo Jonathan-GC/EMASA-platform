@@ -14,7 +14,7 @@
   <ion-button v-if="toCreate" fill="clear" class="mx-2 rounded-full" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
     <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
     Agregar
-    <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false">
+    <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
@@ -30,7 +30,7 @@
   -->
   <ion-button v-if="toEdit" fill="clear" size="small" class="action edit" @click="overlayEdit = !overlayEdit; selectedAction = 'update';">
     <ion-icon :icon="createOutline" slot="icon-only"></ion-icon>
-    <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false">
+    <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
@@ -49,7 +49,7 @@
   -->
   <ion-button v-if="toDelete" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'delete'">
     <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
-    <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" >
+    <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>

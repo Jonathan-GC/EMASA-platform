@@ -6,7 +6,7 @@
   
   <ion-button color="secondary" v-if="toCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
     <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
-    <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false">
+    <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
@@ -19,7 +19,7 @@
   <ion-button color="primary" v-if="toInitial" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
     <ion-icon :icon="addOutline" slot="start"></ion-icon>
     {{ text }}
-    <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false">
+    <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
@@ -36,7 +36,7 @@
   <ion-button v-if="toEdit" fill="outline" class="mx-2" @click="overlayEdit = !overlayEdit; selectedAction = 'update';">
     <ion-icon :icon="pencilOutline" slot="start"></ion-icon>
     Editar
-    <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false">
+    <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>

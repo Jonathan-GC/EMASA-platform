@@ -44,6 +44,14 @@ ion-modal{
     --border-radius: 12px;
 }
 
+/* Prevent modals from going full-screen on desktop regardless of screen height */
+@media (min-width: 768px) {
+  ion-modal.form-modal {
+    --width: 600px;
+    --height: 85vh;
+  }
+}
+
 ion-searchbar.custom{
     --border-radius: 50rem;
     --box-shadow: inset 0 1px 5px 0px rgba(0, 0, 0, 0.14);
