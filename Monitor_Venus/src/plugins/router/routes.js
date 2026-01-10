@@ -32,15 +32,7 @@ export const routes = [
                     label: 'Home'
                 }
             },
-            {
-                path: P.ABOUT,
-                component: C.ABOUT,
-                beforeEnter: requireRoles,
-                meta: { 
-                    requiresAuth: true,
-                    label: 'About'
-                }
-            },
+
             // ========================================
             // RUTAS DE ADMINISTRACIÓN
             // Solo SuperUsers y Admins

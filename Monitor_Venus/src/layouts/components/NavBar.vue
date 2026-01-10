@@ -40,17 +40,6 @@
           ></ion-icon>
           Inicio
         </router-link>
-        <router-link 
-          to="/about" 
-          class="nav-link"
-          :class="{ active: $route.path === '/about' }"
-          @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.info"
-          ></ion-icon>
-           Acerca de
-        </router-link>
 
         <!-- Enlaces para usuarios autenticados -->
         <template v-if="authStore.isAuthenticated">
