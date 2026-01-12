@@ -498,6 +498,11 @@ class API {
                 requestConfig.body = isFormData ? data : JSON.stringify(data);
             }
 
+            // Add signal from options if provided (for request cancellation)
+            if (options.signal) {
+                requestConfig.signal = options.signal;
+            }
+
             // Agregar timeout si está especificado
             if (options.timeout) {
                 const controller = new AbortController();
