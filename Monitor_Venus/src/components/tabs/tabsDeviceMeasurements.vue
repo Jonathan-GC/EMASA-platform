@@ -353,9 +353,6 @@
               <FormActivationDevice type="device_activation" label="device activation" :device="deviceDetails ? { ...deviceDetails } : device"
                 @item-created="handleActivationCreated" @field-changed="handleActivationFieldChanged" />
             </div>
-
-            <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" />
           </div>
         </ion-content>
       </ion-tab>
