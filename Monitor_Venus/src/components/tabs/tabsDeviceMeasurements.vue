@@ -2,16 +2,6 @@
   <div v-if="loaded" class="tabs-device-measurements">
     <ion-tabs>
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="voltage">
-          <ion-icon :icon="icons.flash"></ion-icon>
-          <ion-label>Voltaje</ion-label>
-        </ion-tab-button>
-
-        <ion-tab-button tab="current">
-          <ion-icon :icon="icons.plug"></ion-icon>
-          <ion-label>Corriente</ion-label>
-        </ion-tab-button>
-
         <!-- Dynamic measurement tabs -->
         <ion-tab-button 
           v-for="measurement in measurements" 
@@ -37,111 +27,6 @@
           <ion-label>Mediciones</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
-
-      <!-- Voltage Tab -->
-      <ion-tab tab="voltage">
-        <ion-content class="ion-padding custom">
-          <div class="tab-content">
-            <!-- Header with connection status -->
-            <div class="header flex">
-              <div class="header-title">
-                <ion-back-button default-href="/home"></ion-back-button>
-                <h1>📟 Device Measurements - Voltage</h1>
-              </div>
-              <div class="header-subtitle connection-status">
-                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
-              </div>
-
-            </div>
-
-            <!-- Device information section -->
-            <DeviceInfo :device="device" />
-
-            <!-- Charts grid -->
-            <ChartsGrid 
-              v-if="chartDataFragments.length > 0"
-              :chart-fragments="chartDataFragments" 
-              :chart-key="chartKey"
-              :latest-data-points="latestDataPoints"
-              :device-name="device?.device_name || deviceName"
-              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.min"
-              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.max" />
-
-            <!-- Placeholder when no chart data available -->
-            <div v-else class="charts-section">
-              <h3 class="section-title">📈 Real-time Voltage Data</h3>
-              <div class="waiting-data-card">
-                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
-                <p>Esperando datos en tiempo real de voltaje...</p>
-                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de voltaje</p>
-              </div>
-            </div>
-
-            <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" measurement-type="voltage" />
-
-            <!-- Historical Measurement Chart -->
-            <HistoricalMeasurementChart 
-              v-if="deviceId || (device && device.id)"
-              :device-id="deviceId || device.id"
-              :available-measurements="measurements"
-              initial-type="voltage"
-            />
-          </div>
-        </ion-content>
-      </ion-tab>
-
-      <!-- Current Tab -->
-      <ion-tab tab="current">
-        <ion-content class="ion-padding">
-          <div class="tab-content">
-            <!-- Header with connection status -->
-            <div class="header">
-              <div class="header-title">
-                <ion-back-button default-href="/home"></ion-back-button>
-                <h1>📟 Device Measurements - Current</h1>
-              </div>
-              <div class="header-subtitle">
-                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
-              </div>
-            </div>
-
-            <!-- Device information section -->
-            <CurrentDeviceInfo :device="currentDevice" />
-
-            <!-- Current charts grid (multi-channel) -->
-            <ChartsGrid 
-              v-if="currentChartDataFragments.length > 0" 
-              :chart-fragments="currentChartDataFragments" 
-              :chart-key="currentChartKey"
-              :latest-data-points="currentLatestDataPoints"
-              :device-name="currentDevice?.device_name || 'Dispositivo IoT'"
-              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.min"
-              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.max" />
-
-            <!-- Placeholder when no chart data available -->
-            <div v-else class="charts-section">
-              <h3 class="section-title">📈 Real-time Current Data</h3>
-              <div class="waiting-data-card">
-                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
-                <p>Esperando datos en tiempo real de corriente...</p>
-                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de corriente</p>
-              </div>
-            </div>
-
-            <!-- Recent messages -->
-            <RecentMessages :messages="currentMessages" measurement-type="current" />
-
-            <!-- Historical Measurement Chart -->
-            <HistoricalMeasurementChart 
-              v-if="deviceId || (device && device.id)"
-              :device-id="deviceId || device.id"
-              :available-measurements="measurements"
-              initial-type="current"
-            />
-          </div>
-        </ion-content>
-      </ion-tab>
 
       <!-- Dynamic Measurement Tabs -->
       <ion-tab 
