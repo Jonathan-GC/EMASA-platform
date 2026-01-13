@@ -9,7 +9,7 @@
         </ion-card-subtitle>
       </ion-card-header>
       
-      <ion-card-content>
+      <ion-card-content class="custom">
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
