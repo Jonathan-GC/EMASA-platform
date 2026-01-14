@@ -1,5 +1,6 @@
 from .serializers import (
     UserSerializer,
+    UserMeSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
 )
@@ -243,7 +244,7 @@ class UserViewSet(ModelViewSet):
     )
     def me(self, request):
         user = request.user
-        serializer = self.get_serializer(user)
+        serializer = UserMeSerializer(user)
         return Response(serializer.data)
 
 

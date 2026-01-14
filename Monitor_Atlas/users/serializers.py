@@ -200,6 +200,7 @@ class UserSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(
         write_only=True, required=False, allow_blank=True
     )
+    tenant_name = serializers.ReadOnlyField(source="tenant.name")
 
     address_address = serializers.CharField(
         write_only=True, required=False, allow_blank=True
@@ -226,6 +227,7 @@ class UserSerializer(serializers.ModelSerializer):
             "img",
             "name",
             "tenant",
+            "tenant_name",
             "last_name",
             "is_active",
             "phone",
@@ -399,3 +401,17 @@ class UserSerializer(serializers.ModelSerializer):
             representation["address"] = None
 
         return representation
+
+
+class UserMeSerializer(UserSerializer):
+    tenant = serializers.SerializerMethodField(read_only=True)
+
+    def get_tenant(self, obj):
+        tenant = obj.tenant
+        if tenant:
+            return {
+                "id": tenant.id,
+                "name": tenant.name,
+                "img": tenant.img.url if tenant.img else None,
+            }
+        return None

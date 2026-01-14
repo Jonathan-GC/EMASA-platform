@@ -3,6 +3,8 @@ from rest_framework import serializers
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
+    tenant_name = serializers.ReadOnlyField(source="tenant.name")
+
     class Meta:
         model = Workspace
         fields = "__all__"

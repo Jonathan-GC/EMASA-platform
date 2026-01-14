@@ -95,6 +95,7 @@ class GatewaySerializer(serializers.ModelSerializer):
     location = LocationSerializer(read_only=True)
     # keep a read-only formatted workspace for responses
     workspace = serializers.SerializerMethodField(read_only=True)
+    tenant_name = serializers.ReadOnlyField(source="workspace.tenant.name")
     # accept workspace id in requests and map it to the model's workspace FK
     workspace_id = serializers.PrimaryKeyRelatedField(
         queryset=Workspace.objects.all(), write_only=True, source="workspace"
