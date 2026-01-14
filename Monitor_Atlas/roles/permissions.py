@@ -3,7 +3,12 @@ from loguru import logger
 from guardian.shortcuts import get_objects_for_user
 
 from platform_backend import settings
-from .helpers import get_global_admin_role_group, get_user_workspace_admin_status
+from .helpers import (
+    get_global_admin_role_group,
+    get_tenant_default_workspace,
+    get_user_workspace_admin_status,
+)
+
 
 CUSTOM_ACTION_DECORATORS = [
     "set_activation",
@@ -191,7 +196,17 @@ class IsTenantAdminUser(BasePermission):
         if user.is_superuser:
             return True
 
-        is_workspace_admin = get_user_workspace_admin_status(user)
+        tenant = getattr(user, "tenant", None)
+
+        if not tenant:
+            return False
+
+        default_workspace = get_tenant_default_workspace(tenant)
+
+        if not default_workspace:
+            return False
+
+        is_workspace_admin = get_user_workspace_admin_status(user, default_workspace)
         return is_workspace_admin
 
 
