@@ -295,3 +295,21 @@ MTR_LOGO_URL = env("MTR_LOGO_URL", default="https://placehold.co/500x200")
 HERMES_WS_URL = env("HERMES_WS_URL", default="ws://localhost:5000")
 HERMES_API_URL = env("HERMES_API_URL", default="http://localhost:5000")
 WS_SECRET = env("WS_SECRET", default="dummy32characterslong!!")
+
+
+# ============================================================================
+# LOGGING (Loguru)
+# ============================================================================
+
+from loguru import logger
+
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
+logger.add(
+    LOGS_DIR / "system.log",
+    rotation="5 MB",
+    retention="7 days",
+    level="INFO",
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+)
