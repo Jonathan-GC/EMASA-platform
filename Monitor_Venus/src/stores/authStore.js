@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import tokenManager from '@/utils/auth/tokenManager.js';
 import { getUserFromToken, userRoleHelpers, isTokenExpired } from '@/utils/auth/jwtHelper.js';
+import API from '@/utils/api/api.js';
 
 export const useAuthStore = defineStore('auth', () => {
   // ========================================
@@ -23,8 +24,30 @@ export const useAuthStore = defineStore('auth', () => {
     iat: null
   });
 
+  // User profile data from API.ME
+  const userProfile = ref({
+    id: null,
+    code: null,
+    username: null,
+    email: null,
+    img: null, // profile image URL
+    name: null,
+    last_name: null,
+    tenant: null, // tenant ID
+    is_active: true,
+    phone: null,
+    phone_code: null,
+    address: null,
+    tenant: {
+      id:null,
+      name:null,
+      img:null,
+    },
+  });
+
   const isAuthenticated = ref(false);
   const isLoading = ref(false);
+  const isLoadingProfile = ref(false);
 
   // ========================================
   // GETTERS - Computed properties para acceso fácil
@@ -122,6 +145,77 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const userId = computed(() => user.value.user_id);
 
+  /**
+   * Obtiene la imagen de perfil del usuario con URL completa
+   */
+  const profileImage = computed(() => {
+    const img = userProfile.value.img;
+    if (!img) return null;
+    
+    // If it's already a full URL, return it
+    if (img.startsWith('http://') || img.startsWith('https://')) {
+      return img;
+    }
+    
+    // If it's a relative path, prepend the backend URL
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
+    // Remove '/api/' from the end to get the backend base URL
+    const backendUrl = apiBaseUrl.replace(/\/api\/?$/, '');
+    
+    // Ensure the image path starts with /
+    const imagePath = img.startsWith('/') ? img : `/${img}`;
+    
+    return `${backendUrl}${imagePath}`;
+  });
+
+  /**
+   * Obtiene el nombre completo del usuario
+   */
+  const fullName = computed(() => {
+    if (userProfile.value.name && userProfile.value.last_name) {
+      return `${userProfile.value.name} ${userProfile.value.last_name}`;
+    }
+    return userProfile.value.name || userProfile.value.username || username.value;
+  });
+
+  /**
+   * Obtiene el email del usuario
+   */
+  const email = computed(() => userProfile.value.email);
+
+  /**
+   * Obtiene el ID del tenant del perfil
+   */
+  const profileTenantId = computed(() => userProfile.value.tenant.id);
+
+  /**
+   * Obtiene el nombre del tenant del perfil
+   */
+  const profileTenantName = computed(() => userProfile.value.tenant.name);
+
+  /**
+   * Obtiene la imagen del tenant del perfil
+   */
+  const profileTenantImage = computed(() => {
+    const img = userProfile.value.tenant.img;
+    if (!img) return null;
+    
+    // If it's already a full URL, return it
+    if (img.startsWith('http://') || img.startsWith('https://')) {
+      return img;
+    }
+    
+    // If it's a relative path, prepend the backend URL
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
+    // Remove '/api/' from the end to get the backend base URL
+    const backendUrl = apiBaseUrl.replace(/\/api\/?$/, '');
+    
+    // Ensure the image path starts with /
+    const imagePath = img.startsWith('/') ? img : `/${img}`;
+    
+    return `${backendUrl}${imagePath}`;
+  });
+
   // ========================================
   // ACTIONS - Funciones para modificar el estado
   // ========================================
@@ -159,6 +253,11 @@ export const useAuthStore = defineStore('auth', () => {
       is_support: userData.is_support,
       is_tenant_admin: userData.is_tenant_admin,
       tenant_id: userData.cs_tenant_id
+    });
+
+    // Fetch user profile after initializing from token
+    fetchUserProfile().catch(err => {
+      console.warn('⚠️ Could not fetch user profile on init:', err);
     });
 
     return true;
@@ -224,6 +323,68 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
+   * Fetches user profile data from API.ME endpoint
+   * Called after successful login or on app initialization
+   */
+  const fetchUserProfile = async () => {
+    if (!isAuthenticated.value) {
+      console.log('⚠️ Not authenticated, skipping profile fetch');
+      return false;
+    }
+
+    isLoadingProfile.value = true;
+    
+    try {
+      console.log('📡 Fetching user profile from API.ME...');
+      const response = await API.get(API.ME);
+      
+      console.log('🔍 API.ME raw response:', response);
+      
+      // API.handleResponse wraps objects in arrays, so unwrap it
+      const userData = Array.isArray(response) ? response[0] : response;
+      
+      console.log('📦 Unwrapped user data:', userData);
+      
+      userProfile.value = {
+        id: userData.id || null,
+        code: userData.code || null,
+        username: userData.username || null,
+        email: userData.email || null,
+        img: userData.img || null,
+        name: userData.name || null,
+        last_name: userData.last_name || null,
+        tenant: userData.tenant || null,
+        is_active: userData.is_active ?? true,
+        phone: userData.phone || null,
+        phone_code: userData.phone_code || null,
+        address: userData.address || null,
+        tenant: {
+          id: userData.tenant?.id || null,
+          name: userData.tenant?.name || null,
+          img: userData.tenant?.img || null,
+        }
+      };
+
+      console.log('✅ User profile loaded:', {
+        username: userProfile.value.username,
+        email: userProfile.value.email,
+        hasImage: !!userProfile.value.img,
+        imageUrl: userProfile.value.img,
+        tenant: userProfile.value.tenant,
+        fullName: `${userProfile.value.name} ${userProfile.value.last_name}`,
+        tenantImage: profileTenantImage.value.tenant.img
+      });
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error fetching user profile:', error);
+      return false;
+    } finally {
+      isLoadingProfile.value = false;
+    }
+  };
+
+  /**
    * Limpia la autenticación (helper interno)
    */
   const clearAuth = () => {
@@ -238,6 +399,26 @@ export const useAuthStore = defineStore('auth', () => {
       cs_tenant_id: null,
       exp: null,
       iat: null
+    };
+    userProfile.value = {
+      id: null,
+      code: null,
+      username: null,
+      email: null,
+      img: null,
+      name: null,
+      last_name: null,
+      tenant: null,
+      is_active: true,
+      phone: null,
+      phone_code: null,
+      address: null,
+      tenant:{
+        id:null,  
+        name:null,
+        img:null,
+      }
+
     };
     isAuthenticated.value = false;
   };
@@ -370,8 +551,10 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     // State
     user,
+    userProfile,
     isAuthenticated,
     isLoading,
+    isLoadingProfile,
     
     // Getters
     isSuperUser,
@@ -388,11 +571,18 @@ export const useAuthStore = defineStore('auth', () => {
     tenantId,
     username,
     userId,
+    profileImage,
+    fullName,
+    email,
+    profileTenantId,
+    profileTenantName,
+    profileTenantImage,
     
     // Actions
     initializeAuth,
     login,
     logout,
+    fetchUserProfile,
     refreshToken,
     refreshAccessToken,
     hasRole,

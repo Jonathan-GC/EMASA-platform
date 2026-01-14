@@ -25,6 +25,17 @@
           <img src="../../assets/monitor_logo.svg" alt="Logo" class="nav-logo" />
         </div>
       </div>
+
+      <!-- User Profile Avatar -->
+      <UserAvatar 
+        v-if="authStore.isAuthenticated"
+        size="medium"
+        :show-name="true"
+        :show-role="true"
+        :clickable="true"
+        :show-tenant-badge="true"
+        @click="handleProfileClick"
+      />
       
       <!-- Links del navegador -->
       <div class="nav-links">
@@ -246,13 +257,15 @@
 
 <script setup>
 import {inject, ref, computed} from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { paths } from "@/plugins/router/paths"
 import BtnLogout from "@layouts/components/BtnLogout.vue";
+import UserAvatar from "@/components/common/UserAvatar.vue";
 import { useAuthStore } from '@/stores/authStore'
 
 const icons = inject('icons', {})
 const authStore = useAuthStore()
+const router = useRouter()
 
 const $route = useRoute()
 const isOpen = ref(false)
@@ -263,6 +276,13 @@ const toggleNavbar = () => {
 
 const closeNavbar = () => {
   isOpen.value = false
+}
+
+// Handle profile avatar click
+const handleProfileClick = () => {
+  console.log('Profile clicked - you can navigate to profile page here')
+  // router.push('/profile') // Uncomment when profile route exists
+  closeNavbar()
 }
 
 // Helper function to check if user can access route with any of the required roles
