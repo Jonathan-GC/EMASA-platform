@@ -415,3 +415,21 @@ class UserMeSerializer(UserSerializer):
                 "img": tenant.img.url if tenant.img else None,
             }
         return None
+
+from auditlog.models import LogEntry
+
+class LogEntrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LogEntry
+        fields = [
+            'id', 
+            'action', 
+            'content_type', 
+            'object_pk', 
+            'object_repr', 
+            'serialized_data', 
+            'actor', 
+            'remote_addr', 
+            'timestamp', 
+            'changes',
+        ]

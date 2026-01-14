@@ -103,3 +103,8 @@ class User(UserBase, AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+from auditlog.registry import auditlog
+auditlog.register(User)
+auditlog.register(MainAddress)
+auditlog.register(BillingAddress)

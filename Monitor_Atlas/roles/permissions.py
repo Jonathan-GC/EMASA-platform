@@ -3,7 +3,7 @@ from loguru import logger
 from guardian.shortcuts import get_objects_for_user
 
 from platform_backend import settings
-
+from .helpers import get_global_admin_role_group, get_user_workspace_admin_status
 
 CUSTOM_ACTION_DECORATORS = [
     "set_activation",
@@ -163,6 +163,36 @@ class HasPermission(BasePermission):
         has_perm = user.has_perm(perm_name, obj)
         logger.debug(f"Object permission check for {perm_name}: {has_perm}")
         return has_perm
+
+
+class IsAnAdminUser(BasePermission):
+    """
+    Allows access only to admin users.
+    """
+
+    def has_permission(self, request, view):
+        global_group = get_global_admin_role_group()
+
+        return request.user.is_authenticated and (
+            request.user.is_superuser or global_group in request.user.groups.all()
+        )
+
+
+class IsTenantAdminUser(BasePermission):
+    """
+    Allows access only to tenant admin users.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated:
+            return False
+
+        if user.is_superuser:
+            return True
+
+        is_workspace_admin = get_user_workspace_admin_status(user)
+        return is_workspace_admin
 
 
 class IsAdminOrIsAuthenticatedReadOnly(BasePermission):

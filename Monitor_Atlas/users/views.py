@@ -3,9 +3,11 @@ from .serializers import (
     UserMeSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
+    LogEntrySerializer,
 )
 from .models import User
 from roles.permissions import HasPermission
+from auditlog.models import LogEntry
 
 from rest_framework.viewsets import ModelViewSet
 from guardian.shortcuts import get_objects_for_user
@@ -51,6 +53,8 @@ from roles.helpers import (
 )
 
 from support.serializers import SupportMembershipSerializer
+
+from roles.permissions import IsAnAdminUser, IsTenantAdminUser
 
 # User ViewSet
 
@@ -788,7 +792,7 @@ def csrf_setup(request):
     )
 )
 class LogLogsViewSet(viewsets.ViewSet):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAnAdminUser]
 
     def list(self, request):
         """
@@ -814,3 +818,40 @@ class LogLogsViewSet(viewsets.ViewSet):
             return Response({"logs": lines})
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+
+@extend_schema_view(
+    list=extend_schema(description="Audit Log List"),
+    retrieve=extend_schema(description="Audit Log Retrieve"),
+)
+class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing audit logs.
+    """
+
+    queryset = LogEntry.objects.all().order_by("-timestamp")
+    serializer_class = LogEntrySerializer
+    permission_classes = [IsAnAdminUser]
+
+    @action(detail=False, methods=["get"], permission_classes=[IsTenantAdminUser])
+    def get_tenant_admin_logs(self, request):
+        """
+        Return audit logs for tenant admins.
+        Filters logs where the actor belongs to the same tenant as the requester.
+        """
+        user = request.user
+
+        if user.is_superuser:
+            queryset = LogEntry.objects.all().order_by("-timestamp")
+        else:
+            queryset = LogEntry.objects.filter(actor__tenant=user.tenant).order_by(
+                "-timestamp"
+            )
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
