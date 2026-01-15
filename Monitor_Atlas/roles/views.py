@@ -23,6 +23,9 @@ from rest_framework.response import Response
 from loguru import logger
 from guardian.shortcuts import get_objects_for_user
 
+from users.models import User
+from users.serializers import UserSerializer
+
 
 @extend_schema_view(
     list=extend_schema(description="Role List"),
@@ -111,6 +114,14 @@ class RoleViewSet(viewsets.ModelViewSet):
         permissions = request.data.get("permissions", {})
         bulk_assign_permissions(permissions, role)
         return Response({"status": "permissions updated"})
+
+    @action(detail=True, methods=["get"])
+    def get_all_role_users(self, request, pk=None):
+        role = self.get_object()
+        group = role.group
+        users = User.objects.filter(groups=group)
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema_view(
