@@ -133,6 +133,7 @@
               :device-name="getMeasurementDevice(measurement)?.device_name || deviceName"
               :y-axis-min="measurement.min"
               :y-axis-max="measurement.max" 
+              :threshold="measurement.threshold"
             />
 
             <!-- Placeholder when no chart data available -->

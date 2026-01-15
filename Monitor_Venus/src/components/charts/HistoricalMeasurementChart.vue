@@ -182,8 +182,8 @@ let chartInstance = null
 const icons = inject('icons')
 
 const loading = ref(false)
-const title = ref('Total Visitors')
-const subtitle = ref('Total for the last 3 months')
+const title = ref('')
+const subtitle = ref('')
 const today = format(new Date(), "yyyy-MM-dd'T'HH:mm")
 const yesterday = format(subDays(new Date(), 89), "yyyy-MM-dd'T'HH:mm")
 
@@ -488,14 +488,26 @@ const fetchData = async () => {
     
     rawHistoricalData.value = data
     
-    updateChart(data)
+    if (filters.measurement_type) {
+      title.value = `Histórico de ${capitalize(filters.measurement_type)}`
+      subtitle.value = `Datos desde ${format(new Date(filters.start), 'MMM dd', { locale: es })} hasta ${format(new Date(filters.end), 'MMM dd', { locale: es })}`
+    } else {
+      title.value = 'Histórico de Datos'
+      subtitle.value = 'Selecciona una variable para ver los datos'
+    }
     
-    // Update title based on measurement type
-    title.value = `Historico de ${capitalize(filters.measurement_type)}`
-    subtitle.value = `Datos desde ${format(new Date(filters.start), 'MMM dd', { locale: es })} hasta ${format(new Date(filters.end), 'MMM dd', { locale: es })}`
+    updateChart(data)
   } catch (error) {
     console.error('Error fetching historical data:', error)
-  } finally {
+    if (error.status === 404) {
+      title.value = filters.measurement_type ? `Sin datos: ${capitalize(filters.measurement_type)}` : 'Sin datos'
+      subtitle.value = 'No se han encontrado registros en este periodo'
+      rawHistoricalData.value = []
+    } else {
+      title.value = 'Error de Conexión'
+      subtitle.value = 'No se pudo obtener la información histórica'
+      } 
+    }finally {
     loading.value = false
   }
 }
