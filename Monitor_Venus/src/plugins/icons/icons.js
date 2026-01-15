@@ -127,6 +127,7 @@ import {
   ellipseOutline,
   paperPlaneOutline,
   statsChartOutline,
+  barChartOutline,
 } from 'ionicons/icons'
 
 // Custom SVG icon
@@ -275,6 +276,7 @@ export const icons = {
   'paper_plane': paperPlaneOutline,
   'function': functionIco,
   'target': target,
+  'bar_chart': barChartOutline,
 }
 
 // Helper function to get icon by name
