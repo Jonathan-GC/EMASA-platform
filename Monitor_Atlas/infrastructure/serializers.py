@@ -46,6 +46,8 @@ class DeviceSerializer(serializers.ModelSerializer):
     workspace_id = serializers.PrimaryKeyRelatedField(
         queryset=Workspace.objects.all(), write_only=True, source="workspace"
     )
+    machine_name = serializers.ReadOnlyField(source="machine.name")
+    type_name = serializers.ReadOnlyField(source="device_type.name")
 
     class Meta:
         model = Device
