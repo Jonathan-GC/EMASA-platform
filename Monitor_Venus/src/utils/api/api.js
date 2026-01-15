@@ -26,6 +26,7 @@ class API {
     //====[ENDPOINTS]====
     //----[USERS]----
     USER = 'users/user/'
+    ME = 'users/user/me/'
 
     //----[AUTH]----
     TOKEN = 'token/'
