@@ -107,7 +107,7 @@
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{  application.cs_application_id }}</div>
+                <div class="gateway-id">{{  application.id }}</div>
               </ion-col>
 
 
@@ -162,7 +162,7 @@
                 <div class="card-header">
                   <div class="card-title-section">
                     <h3 class="card-title">{{ app.name }}</h3>
-                    <p class="card-subtitle">ID: {{ app.cs_application_id }}</p>
+                    <p class="card-subtitle">ID: {{ app.id }}</p>
                   </div>
                   <ion-chip :color="getStatusColor(app.sync_status)" class="card-chip-status">
                     {{ app.sync_status }}

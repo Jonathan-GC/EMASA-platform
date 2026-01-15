@@ -123,7 +123,7 @@
               
               <ion-col size="1">
                 <ion-chip size="small">
-                  {{ user.tenant }}
+                  {{ user.tenant_name }}
                 </ion-chip>
               </ion-col>
               
@@ -197,7 +197,7 @@
                   <div class="card-detail-row">
                     <span class="detail-label">Tenant:</span>
                     <span class="detail-value">
-                      <ion-chip size="small" color="primary">{{ user.tenant }}</ion-chip>
+                      <ion-chip size="small" color="primary">{{ user.tenant_name }}</ion-chip>
                     </span>
                   </div>
                 </div>

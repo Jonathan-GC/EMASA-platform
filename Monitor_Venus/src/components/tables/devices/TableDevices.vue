@@ -123,13 +123,13 @@
 
               <ion-col size="1">
                 <div class="location-info">
-                  {{ device.device_type }}
+                  {{ device.type_name }}
                 </div>
               </ion-col>
 
               <ion-col size="1">
                 <div class="devices-info">
-                  {{ device.machine || 0 }}
+                  {{ device.machine_name || 0 }}
                 </div>
               </ion-col>
               <ion-col size="2">
