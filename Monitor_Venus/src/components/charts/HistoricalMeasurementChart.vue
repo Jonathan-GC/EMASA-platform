@@ -398,8 +398,9 @@ const updateChart = (data) => {
     // Create datasets for each channel
     Object.keys(channelGroups).forEach((ch, index) => {
       const color = getChartColor(index)
+      const channelLabel = ch === 'default' ? '' : ` ${ch}`
       datasets.push({
-        label: ch === 'default' ? capitalize(filters.measurement_type) : `Channel ${ch}`,
+        label: `${capitalize(filters.measurement_type)}${channelLabel}`,
         data: channelGroups[ch],
         parsing: false,
         borderColor: color,

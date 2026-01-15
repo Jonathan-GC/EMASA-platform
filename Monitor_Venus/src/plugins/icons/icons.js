@@ -22,6 +22,7 @@ import {
   logOutOutline,
   shieldOutline,
   syncOutline,
+  gitCompareOutline,
 
   // Communication icons
   mailOutline,
@@ -65,6 +66,7 @@ import {
   micOutline,
   batteryFullOutline,
   batteryHalfOutline,
+  radioOutline,
 
   // Location icons
   locationOutline,
@@ -124,6 +126,7 @@ import {
   close,
   ellipseOutline,
   paperPlaneOutline,
+  statsChartOutline,
 } from 'ionicons/icons'
 
 // Custom SVG icon
@@ -132,6 +135,8 @@ import enginesOutline from '@assets/icons/engines.svg'
 import packageOutline from '@assets/icons/package.svg'
 import deviceCard from '@assets/icons/device_card.svg'
 import antenna from '@assets/icons/antenna.svg'
+import functionIco from '@assets/icons/function.svg'
+import target from '@assets/icons/target.svg'
 
 export const icons = {
   // Action icons
@@ -156,6 +161,7 @@ export const icons = {
   'shield': shieldOutline,
   'cube': cube,
   'sync': syncOutline,
+  'git_compare': gitCompareOutline,
 
   // Communication icons
   'mail': mailOutline,
@@ -205,6 +211,7 @@ export const icons = {
   'engines': enginesOutline,
   'deviceCard': deviceCard,
   'antenna': antenna,
+  'radio': radioOutline,
 
   // Location icons
   'location': locationOutline,
@@ -246,6 +253,7 @@ export const icons = {
   'lock_closed': lockClosedOutline,
   'lock-open': lockOpenOutline,
   'flash': flashOutline,
+  'stats': statsChartOutline,
 
   // UI icons
   'person_circle': personCircleOutline,
@@ -265,6 +273,8 @@ export const icons = {
   'ellipse': ellipseOutline,
   'person_add': personAddOutline,
   'paper_plane': paperPlaneOutline,
+  'function': functionIco,
+  'target': target,
 }
 
 // Helper function to get icon by name

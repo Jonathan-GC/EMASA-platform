@@ -2,7 +2,10 @@
   <div class="device-info">
     <ion-card class="info-card">
       <ion-card-header>
-        <ion-card-title>📟 Dispositivo</ion-card-title>
+        <ion-card-title>
+          <ion-icon :icon="icons.deviceCard" size="small"></ion-icon>
+          Dispositivo
+        </ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <p><strong>Nombre:</strong> {{ device?.device_name || 'N.A' }}</p>
@@ -13,7 +16,10 @@
 
     <ion-card class="info-card">
       <ion-card-header>
-        <ion-card-title>📊 Último Buffer - {{ capitalizeFirst(measurement.unit) }}</ion-card-title>
+        <ion-card-title>
+          <ion-icon :icon="icons.stats" size="small"></ion-icon>
+          Último Buffer - {{ capitalizeFirst(measurement.unit) }}
+        </ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <p><strong>Total Muestras:</strong> {{ device?.buffer_stats?.total_samples || 0 }}</p>
@@ -26,7 +32,10 @@
 
     <ion-card class="info-card">
       <ion-card-header>
-        <ion-card-title>📡 Radio</ion-card-title>
+        <ion-card-title>
+          <ion-icon :icon="icons.radio" size="small">x  </ion-icon>
+          Radio
+        </ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <p><strong>Región:</strong> {{ device?.payload?.radio_info?.rssi || device?.region || 'N.A' }}</p>

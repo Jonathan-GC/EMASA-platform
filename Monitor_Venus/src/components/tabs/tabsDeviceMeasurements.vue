@@ -17,6 +17,11 @@
           <ion-label>Batería</ion-label>
         </ion-tab-button>
 
+        <ion-tab-button tab="comparison">
+          <ion-icon :icon="icons.git_compare"></ion-icon>
+          <ion-label>Comparación</ion-label>
+        </ion-tab-button>
+
         <ion-tab-button tab="activation">
           <ion-icon :icon="icons.key"></ion-icon>
           <ion-label>Activación</ion-label>
@@ -158,7 +163,7 @@
 
       <!-- Battery Tab -->
       <ion-tab tab="battery">
-        <ion-content class="ion-padding">
+        <ion-content class="ion-padding custom">
           <div class="tab-content">
             <!-- Header with connection status -->
             <div class="header">
@@ -209,18 +214,143 @@
         </ion-content>
       </ion-tab>
 
+      <!-- Comparison Tab -->
+      <ion-tab tab="comparison">
+        <ion-content class="ion-padding custom">
+          <div class="tab-content">
+            <!-- Header -->
+            <div class="header">
+              <div class="header-title">
+                <h1>
+                  <ion-icon :icon="icons.git_compare" size="large"></ion-icon>
+                   Comparación de Variables
+                </h1>
+              </div>
+              <div class="header-subtitle connection-status">
+                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
+              </div>
+            </div>
+
+
+            <!-- Measurement Selection Card -->
+            <ion-card class="measurement-selector-card">
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon :icon="icons.target" size="small"></ion-icon>
+                  Seleccionar Variables
+                </ion-card-title>
+                <ion-card-subtitle>Elige dos variables diferentes para comparar</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <div class="selector-grid" :class="{ 'is-mobile': isMobile }">
+                  <!-- Measurement 1 Selector -->
+                  <div class="selector-item">
+                    <label class="selector-label">Primera Variable</label>
+                    <select v-model="selectedMeasurement1" class="measurement-select" @change="onMeasurementSelectionChange">
+                      <option value="" disabled>Selecciona una variable</option>
+                      <option 
+                        v-for="measurement in getAvailableMeasurements()"
+                        :key="'m1-' + measurement.id"
+                        :value="measurement.unit.toLowerCase()"
+                        :disabled="measurement.unit.toLowerCase() === selectedMeasurement2"
+                      >
+                        {{ capitalizeFirst(measurement.unit) }} ({{ measurement.ref || 'N/A' }})
+                      </option>
+                    </select>
+                    
+                    <!-- Channel selector for measurement 1 -->
+                    <div class="channel-selector-inline">
+                      <label class="channel-label">Canal</label>
+                      <select v-model="selectedChannel1" class="channel-select-inline" @change="onMeasurementSelectionChange">
+                        <option value="">Todos</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- VS Divider -->
+                  <div class="vs-divider" v-if="!isMobile">
+                    <span>VS</span>
+                  </div>
+
+                  <!-- Measurement 2 Selector -->
+                  <div class="selector-item">
+                    <label class="selector-label">Segunda Variable</label>
+                    <select v-model="selectedMeasurement2" class="measurement-select" @change="onMeasurementSelectionChange">
+                      <option value="" disabled>Selecciona una variable</option>
+                      <option 
+                        v-for="measurement in getAvailableMeasurements()"
+                        :key="'m2-' + measurement.id"
+                        :value="measurement.unit.toLowerCase()"
+                        :disabled="measurement.unit.toLowerCase() === selectedMeasurement1"
+                      >
+                        {{ capitalizeFirst(measurement.unit) }} ({{ measurement.ref || 'N/A' }})
+                      </option>
+                    </select>
+                    
+                    <!-- Channel selector for measurement 2 -->
+                    <div class="channel-selector-inline">
+                      <label class="channel-label">Canal</label>
+                      <select v-model="selectedChannel2" class="channel-select-inline" @change="onMeasurementSelectionChange">
+                        <option value="">Todos</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Info message -->
+                <div class="info-message" v-if="selectedMeasurement1 || selectedMeasurement2">
+                  <ion-icon :icon="icons.info"></ion-icon>
+                  <span>Selecciona dos variables diferentes para ver la comparación</span>
+                </div>
+              </ion-card-content>
+            </ion-card>
+
+            <!-- Combined Historical Chart -->
+            <CombinedHistoricalChart 
+              v-if="device && selectedMeasurement1 && selectedMeasurement2 && selectedMeasurement1 !== selectedMeasurement2"
+              :key="`${selectedMeasurement1}-${selectedMeasurement2}-${selectedChannel1}-${selectedChannel2}`"
+              :device-id="deviceId || device.id"
+              :measurement1-type="selectedMeasurement1"
+              :measurement2-type="selectedMeasurement2"
+              :channel1="selectedChannel1"
+              :channel2="selectedChannel2"
+              :initial-filters="comparisonFilters"
+              @filters-changed="handleComparisonFiltersChange"
+            />
+
+            <!-- No measurements warning -->
+            <ion-card v-else-if="!measurements || measurements.length < 2" class="warning-card">
+              <ion-card-content>
+                <div class="warning-content">
+                  <ion-icon :icon="icons.warning" size="large"></ion-icon>
+                  <p>Se necesitan al menos dos tipos de mediciones diferentes para comparar.</p>
+                  <p v-if="!measurements || measurements.length === 0">No hay mediciones registradas para este dispositivo.</p>
+                  <p v-else-if="measurements.length === 1">Solo hay una medición registrada. Registra más mediciones para usar esta función.</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+        </ion-content>
+      </ion-tab>
+
       <!-- Activation Tab -->
       <ion-tab tab="activation">
-        <ion-content class="ion-padding">
+        <ion-content class="ion-padding custom">
           <div class="tab-content">
             <!-- Header -->
             <div class="header">
               <div class="header-title">
                 <ion-back-button default-href="/home"></ion-back-button>
-                <h1>🔑 Device Activation</h1>
-              </div>
-              <div class="header-subtitle">
-                Configure activation keys for your device
+                <h1>
+                  <ion-icon :icon="icons.key" size="large"></ion-icon>
+                  Activación del dispositivo
+                </h1>
               </div>
             </div>
 
@@ -244,16 +374,16 @@
 
       <!-- Measurements Tab -->
       <ion-tab tab="measurements">
-        <ion-content class="ion-padding">
+        <ion-content class="ion-padding custom">
           <div class="tab-content">
             <!-- Header -->
             <div class="header">
               <div class="header-title">
                 <ion-back-button default-href="/home"></ion-back-button>
-                <h1>📊 Device Measurements</h1>
-              </div>
-              <div class="header-subtitle">
-                View measurement thresholds and limits
+                <h1>
+                  <ion-icon :icon="icons.analytics" size="large"></ion-icon>
+                  Variables del dispositivo
+                </h1>
               </div>
             </div>
 
@@ -413,6 +543,8 @@ import {
 import API from '@/utils/api/api.js'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
 import HistoricalMeasurementChart from '@/components/charts/HistoricalMeasurementChart.vue'
+import CombinedHistoricalChart from '@/components/charts/CombinedHistoricalChart.vue'
+import { format, subDays } from 'date-fns'
 
 // Chart.js imports and registration
 import {
@@ -580,10 +712,31 @@ const loading = ref(false)
 const error = ref(null)
 const deviceDetails = ref(null) // store fetched device details (used by activation form)
 
+// Comparison tab state
+const selectedMeasurement1 = ref('')
+const selectedMeasurement2 = ref('')
+const selectedChannel1 = ref('')
+const selectedChannel2 = ref('')
+
+// Comparison chart filters state (persisted)
+const comparisonFilters = ref({
+  start: format(subDays(new Date(), 1), "yyyy-MM-dd'T'HH:mm"),
+  end: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+  step: 100
+})
+
 // Watch for props.measurements changes
 watch(() => props.measurements, (newVal) => {
   if (newVal && newVal.length > 0) {
     measurements.value = newVal
+    initializeDefaultSelections()
+  }
+})
+
+// Watch for measurements changes to initialize selections
+watch(measurements, (newVal) => {
+  if (newVal && newVal.length > 0) {
+    initializeDefaultSelections()
   }
 })
 
@@ -830,7 +983,10 @@ onMounted(() => {
 
   // then fetch device / measurements
   fetchDevice()
-  fetchMeasurements()
+  fetchMeasurements().then(() => {
+    // Initialize default selections after measurements are loaded
+    initializeDefaultSelections()
+  })
   loaded.value = true
 })
 
@@ -872,9 +1028,108 @@ const setMeasurementInitialData = (measurement) => {
   }
   console.log('Initial data for measurement:', measurement)
 }
+
+// Helper functions for measurement comparison
+const getAvailableMeasurements = () => {
+  if (!measurements.value || measurements.value.length === 0) return []
+  return measurements.value
+}
+
+const initializeDefaultSelections = () => {
+  if (!measurements.value || measurements.value.length < 2) return
+  
+  // Auto-select first two measurements if nothing selected
+  if (!selectedMeasurement1.value && !selectedMeasurement2.value) {
+    // Try to find voltage and temperature first
+    const voltage = measurements.value.find(m => 
+      m.unit?.toLowerCase() === 'voltage' || m.unit?.toLowerCase() === 'voltaje'
+    )
+    const temperature = measurements.value.find(m => 
+      m.unit?.toLowerCase() === 'temperature' || m.unit?.toLowerCase() === 'temperatura'
+    )
+    
+    if (voltage && temperature) {
+      selectedMeasurement1.value = voltage.unit.toLowerCase()
+      selectedMeasurement2.value = temperature.unit.toLowerCase()
+    } else {
+      // Just use the first two available
+      selectedMeasurement1.value = measurements.value[0].unit?.toLowerCase() || ''
+      if (measurements.value.length > 1) {
+        selectedMeasurement2.value = measurements.value[1].unit?.toLowerCase() || ''
+      }
+    }
+  }
+}
+
+const onMeasurementSelectionChange = () => {
+  console.log('📊 Measurement selection changed:', {
+    measurement1: selectedMeasurement1.value,
+    measurement2: selectedMeasurement2.value
+  })
+}
+
+const handleComparisonFiltersChange = (newFilters) => {
+  console.log('📅 Comparison filters updated:', newFilters)
+  comparisonFilters.value = { ...newFilters }
+}
 </script>
 
 <style scoped>
+/* Scrollable Tab Bar */
+.tabs-device-measurements ion-tab-bar {
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ion-color-medium) transparent;
+  padding: 0;
+}
+
+/* Mobile: align tabs to start for proper scrolling */
+@media (max-width: 768px) {
+  .tabs-device-measurements ion-tab-bar {
+    justify-content: flex-start;
+  }
+}
+
+/* Desktop: center tabs when they fit */
+@media (min-width: 769px) {
+  .tabs-device-measurements ion-tab-bar {
+    justify-content: center;
+    gap: 12px;
+  }
+}
+
+.tabs-device-measurements ion-tab-bar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-device-measurements ion-tab-bar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabs-device-measurements ion-tab-bar::-webkit-scrollbar-thumb {
+  background-color: var(--ion-color-medium);
+  border-radius: 2px;
+}
+
+.tabs-device-measurements ion-tab-button {
+  flex: 0 0 auto;
+  min-width: 80px;
+  max-width: 150px;
+  margin: 0;
+}
+
+.tabs-device-measurements ion-tab-button:first-child {
+  margin-left: 0;
+}
+
+.tabs-device-measurements ion-tab-button:last-child {
+  margin-right: 0;
+}
+
 .tab-content {
   width: 100%;
   max-width: 100%;
@@ -886,29 +1141,34 @@ const setMeasurementInitialData = (measurement) => {
 
 /* Measurements Tab Styles */
 .measurements-container {
+  width: 100%;
   max-width: 1400px;
   margin: 1.5rem auto;
   padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 .measurements-container.desktop-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
   gap: 1.5rem;
 }
 
 .measurements-container.mobile-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  padding: 0 0.5rem;
 }
 
 .measurement-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   margin-bottom: 0;
 }
 
@@ -919,7 +1179,7 @@ const setMeasurementInitialData = (measurement) => {
 
 .measurement-card ion-card-header {
   padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.05) 0%, rgba(var(--ion-color-primary-rgb), 0.02) 100%);
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.15) 0%, rgba(var(--ion-color-primary-rgb), 0.05) 100%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -1145,77 +1405,134 @@ const setMeasurementInitialData = (measurement) => {
 @media (max-width: 768px) {
   .tab-content {
     padding: 0;
-    gap: 15px;
+    gap: 1rem;
+    width: 100%;
   }
 
   .measurements-container {
-    margin: 1rem auto;
-    padding: 0 0.5rem;
+    margin: 0;
+    padding: 0.5rem;
+    width: 100%;
   }
 
-  .measurements-grid {
-    grid-template-columns: 1fr;
+  .measurements-container.mobile-stack,
+  .measurements-container.desktop-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .measurement-card {
+    border-radius: 12px;
+    margin-bottom: 0;
+    width: 100%;
   }
 
   .measurement-card ion-card-header {
-    padding: 1rem;
+    padding: 0.875rem;
   }
 
   .card-header-content {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     gap: 0.75rem;
   }
 
+  .card-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+  }
+
+  .card-icon-wrapper ion-icon {
+    font-size: 24px;
+  }
+
   .card-title-section {
-    width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
+    width: auto;
+    flex: 1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
     gap: 0.5rem;
   }
 
   .measurement-card ion-card-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    font-weight: 600;
   }
 
-  .measurement-icon {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+  .measurement-card ion-card-content {
+    padding: 0.875rem;
   }
 
-  .measurement-icon ion-icon {
-    font-size: 20px;
-  }
-
-  .measurement-value {
-    font-size: 1.1rem;
-  }
-
-  .range-visualization {
-    padding: 1rem;
-  }
-
-  .range-header {
+  .measurements-grid {
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
     gap: 0.5rem;
   }
 
-  .range-legend {
-    flex-wrap: wrap;
+  .measurement-item {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .measurement-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 8px;
+  }
+
+  .measurement-icon ion-icon {
+    font-size: 18px;
+  }
+
+  .measurement-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .measurement-label {
+    font-size: 0.7rem;
+  }
+
+  .measurement-value {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .unit-text {
+    font-size: 0.75rem;
+  }
+
+  .range-visualization {
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .range-bar {
+    height: 6px;
+    margin-bottom: 0.75rem;
   }
 
   .range-labels {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+    height: 20px;
   }
 
-  .range-label-start,
-  .range-label-warning,
-  .range-label-threshold,
-  .range-label-end {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.7rem;
+  .range-label {
+    font-size: 0.65rem;
+    top: 6px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .measurements-container.desktop-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 1rem;
   }
 }
 
@@ -1324,6 +1641,201 @@ const setMeasurementInitialData = (measurement) => {
 
 .action-buttons ion-button {
   margin-bottom: 0.5rem;
+}
+
+/* Comparison Tab Styles */
+.measurement-selector-card {
+  margin: 1rem 0;
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.05) 0%, rgba(var(--ion-color-primary-rgb), 0.02) 100%);
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.measurement-selector-card ion-card-header {
+  padding-bottom: 0.5rem;
+}
+
+.measurement-selector-card ion-card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.measurement-selector-card ion-card-subtitle {
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.selector-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.selector-grid.is-mobile {
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.selector-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.channel-selector-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.channel-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+  min-width: 45px;
+}
+
+.channel-select-inline {
+  padding: 0.5rem;
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  color: var(--ion-color-dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.channel-select-inline:hover {
+  border-color: var(--ion-color-primary);
+}
+
+.channel-select-inline:focus {
+  outline: none;
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.selector-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 0.25rem;
+}
+
+.measurement-select {
+  padding: 0.75rem;
+  border: 2px solid var(--ion-color-light-shade);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  color: var(--ion-color-dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.measurement-select:hover {
+  border-color: var(--ion-color-primary);
+}
+
+.measurement-select:focus {
+  outline: none;
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.measurement-select option:disabled {
+  color: var(--ion-color-medium);
+}
+
+.vs-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+  padding: 0 1rem;
+  align-self: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.vs-divider span {
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.info-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(var(--ion-color-primary-rgb), 0.05);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--ion-color-medium);
+}
+
+.info-message ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 1.25rem;
+}
+
+.instructions-card {
+  margin: 1rem 0;
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.05) 0%, rgba(var(--ion-color-primary-rgb), 0.02) 100%);
+}
+
+.instructions-card ion-card-header {
+  padding-bottom: 0.5rem;
+}
+
+.instructions-card ion-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.instructions-card p {
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.instructions-card strong {
+  color: var(--ion-color-primary);
+  font-weight: 600;
+}
+
+.warning-card {
+  margin: 2rem 0;
+  background: rgba(var(--ion-color-warning-rgb), 0.1);
+  border: 2px solid var(--ion-color-warning);
+}
+
+.warning-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  gap: 1rem;
+}
+
+.warning-content ion-icon {
+  color: var(--ion-color-warning);
+  font-size: 48px;
+}
+
+.warning-content p {
+  color: var(--ion-color-dark);
+  font-size: 1rem;
+  margin: 0;
 }
 </style>
 
