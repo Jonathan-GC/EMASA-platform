@@ -2,13 +2,15 @@
   <!--
     View button (toView):
     Displays an icon that redirects to the 'toView' route when clicked.
+    If toView is a string, it acts as a router-link. If it's a boolean, it emits a view-clicked event.
   -->
  <ion-buttons>
-   <ion-button v-if="toView" fill="clear" size="small" :router-link="toView">
+   <ion-button v-if="toView && typeof toView === 'string'" fill="clear" size="small" :router-link="toView">
     <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
-    <!--<ion-tooltip>
-      Ingresar
-    </ion-tooltip>-->
+  </ion-button>
+  
+   <ion-button v-else-if="toView" fill="clear" size="small" @click="handleViewClick">
+    <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
   </ion-button>
 
   <ion-button v-if="toCreate" fill="clear" class="mx-2 rounded-full" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
@@ -84,7 +86,7 @@ export default defineComponent({
     //IonTooltip,
     IonButtons
   },
-  emits: ['itemCreated', 'itemDeleted', 'itemEdited'],
+  emits: ['itemCreated', 'itemDeleted', 'itemEdited', 'view-clicked'],
   props: {
     /**
      * The type of the item to handle (e.g. 'periodo', 'grupo', 'semillero').
@@ -117,7 +119,7 @@ export default defineComponent({
      */
     // ---[View]---
     toView: {
-      type: String,
+      type: [String, Boolean],
       required: false,
     },
     //--[Create]---
@@ -191,6 +193,9 @@ export default defineComponent({
   },
 
   methods: {
+    handleViewClick() {
+      this.$emit('view-clicked');
+    },
     runfetch() {
       // 1) Select the update action
       // 3) Once modal is set to true, call the child's runFetchMapData
