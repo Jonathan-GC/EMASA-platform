@@ -115,11 +115,22 @@ class RoleViewSet(viewsets.ModelViewSet):
         bulk_assign_permissions(permissions, role)
         return Response({"status": "permissions updated"})
 
+    @extend_schema(responses=UserSerializer(many=True))
     @action(detail=True, methods=["get"])
     def get_all_role_users(self, request, pk=None):
         role = self.get_object()
         group = role.group
-        users = User.objects.filter(groups=group)
+
+        if not group:
+            return Response([])
+
+        users = User.objects.filter(groups=group).select_related("tenant", "address")
+
+        page = self.paginate_queryset(users)
+        if page is not None:
+            serializer = UserSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
