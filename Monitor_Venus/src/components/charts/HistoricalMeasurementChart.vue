@@ -33,7 +33,14 @@
       <div v-if="loading" class="loading-overlay">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
-      <div class="chart-container">
+
+      <div v-else-if="rawHistoricalData.length === 0" class="no-data-overlay">
+        <ion-icon :icon="icons.analytics" size="large" color="medium"></ion-icon>
+        <p>No hay datos históricos para este periodo</p>
+        <small>Intenta ampliar el rango de fechas.</small>
+      </div>
+
+      <div class="chart-container" v-show="!loading && rawHistoricalData.length > 0">
         <canvas ref="canvasRef"></canvas>
       </div>
     </ion-card-content>
@@ -571,11 +578,11 @@ const updateChart = (data) => {
 
 const getChartColor = (index) => {
   const colors = [
-    'rgba(59, 130, 246, 1)', // Blue
-    'rgba(16, 185, 129, 1)', // Green
-    'rgba(246, 59, 59, 1)',  // Red
-    'rgba(234, 179, 8, 1)',   // Yellow
-    'rgba(139, 92, 246, 1)'  // Purple
+    '#3b82f6', // Blue
+    '#10b981', // Emerald
+    '#8b5cf6', // Violet
+    '#f59e0b', // Amber
+    '#6366f1'  // Indigo
   ]
   return colors[index % colors.length]
 }
@@ -863,6 +870,29 @@ watch(() => props.deviceId, () => {
   justify-content: center;
   align-items: center;
   z-index: 10;
+}
+
+.no-data-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 350px;
+  text-align: center;
+  color: var(--ion-color-medium);
+  gap: 0.5rem;
+}
+
+.no-data-overlay p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--ion-color-step-600);
+}
+
+.no-data-overlay small {
+  font-size: 0.85rem;
+  opacity: 0.7;
 }
 
 /* Detailed Points Table Styles */

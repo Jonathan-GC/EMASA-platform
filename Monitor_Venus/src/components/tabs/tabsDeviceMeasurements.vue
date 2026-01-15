@@ -320,6 +320,7 @@
               :measurement2-type="selectedMeasurement2"
               :channel1="selectedChannel1"
               :channel2="selectedChannel2"
+              :available-measurements="measurements"
               :initial-filters="comparisonFilters"
               @filters-changed="handleComparisonFiltersChange"
             />
@@ -396,18 +397,23 @@
             <!-- Loading state -->
             <div v-if="measurementsLoading" class="loading-container">
               <ion-spinner name="crescent" color="primary"></ion-spinner>
-              <p>Loading measurements...</p>
+              <p>Cargando variables...</p>
             </div>
 
             <!-- Error state -->
-            <div v-else-if="measurementsError" class="error-container">
-              <ion-icon :icon="icons.alertCircle" color="danger" size="large"></ion-icon>
-              <p class="text-red-600">{{ measurementsError }}</p>
-              <ion-button @click="fetchMeasurements" shape="round">
-                <ion-icon :icon="icons.refresh" slot="start"></ion-icon>
-                Retry
-              </ion-button>
-            </div>
+            <ion-card v-else-if="measurementsError" class="error-card">
+              <ion-card-content>
+                <div class="error-container">
+                  <ion-icon :icon="icons.alertCircle" color="danger" size="large"></ion-icon>
+                  <h2>Error al cargar variables</h2>
+                  <p class="error-message">{{ measurementsError }}</p>
+                  <ion-button @click="fetchMeasurements" shape="round" fill="outline" color="danger">
+                    <ion-icon :icon="icons.refresh" slot="start"></ion-icon>
+                    Reintentar
+                  </ion-button>
+                </div>
+              </ion-card-content>
+            </ion-card>
 
             <!-- Measurements Summary -->
             <div 
@@ -502,10 +508,14 @@
             </div>
 
             <!-- No data state -->
-            <div v-else class="no-data">
-              <ion-icon :icon="icons.analytics" size="large" color="medium"></ion-icon>
-              <h2>No measurement data available</h2>
-              <p>Measurement data will appear here once available</p>
+            <div v-else class="no-data-empty-state">
+              <ion-icon :icon="icons.analytics" class="empty-icon"></ion-icon>
+              <h2>Sin variables registradas</h2>
+              <p>No se ha registrado Variables para este nodo</p>
+              <ion-button fill="clear" @click="fetchMeasurements" color="medium">
+                <ion-icon :icon="icons.refresh" slot="start"></ion-icon>
+                Actualizar
+              </ion-button>
             </div>
           </div>
 
@@ -765,7 +775,19 @@ const fetchMeasurements = async () => {
     console.log('✅ Measurements fetched:', measurements.value)
   } catch (error) {
     console.error('❌ Error fetching measurements:', error)
-    measurementsError.value = error.message || 'Failed to load measurements'
+    
+    // Check if it's a 404 error (No data found)
+    const is404 = error.message?.includes('404') || 
+                  error.status === 404 || 
+                  error.response?.status === 404;
+
+    if (is404) {
+      // Treat 404 as "Success but empty" to show the friendly No Data state
+      measurements.value = []
+      measurementsError.value = null
+    } else {
+      measurementsError.value = error.message || 'Error al cargar las mediciones'
+    }
   } finally {
     measurementsLoading.value = false
   }
@@ -1367,20 +1389,34 @@ const handleComparisonFiltersChange = (newFilters) => {
 
 
 
-.error-message {
-  color: var(--ion-color-danger);
-  margin: 0.5rem 0 1rem;
+.error-container h2 {
+  color: var(--ion-color-dark);
+  font-size: 1.25rem;
+  margin: 1rem 0 0.5rem;
+  font-weight: 600;
 }
 
-.no-data ion-icon {
-  margin-bottom: 1rem;
-  opacity: 0.5;
+.error-message {
+  color: var(--ion-color-danger);
+  background: rgba(var(--ion-color-danger-rgb), 0.05);
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  margin: 1rem 0 2rem;
+  font-size: 0.9rem;
+  max-width: 90%;
+  line-height: 1.4;
+  border: 1px dashed rgba(var(--ion-color-danger-rgb), 0.3);
+}
+
+.error-container ion-icon {
+  font-size: 3rem;
+  opacity: 0.8;
 }
 
 .no-data h2 {
   color: var(--ion-color-dark);
   font-size: 1.25rem;
-  margin-bottom: 0.5rem;
+  margin: 1rem 0 0.5rem;
 }
 
 .no-data p {
@@ -1813,8 +1849,57 @@ const handleComparisonFiltersChange = (newFilters) => {
 
 .warning-card {
   margin: 2rem 0;
-  background: rgba(var(--ion-color-warning-rgb), 0.1);
-  border: 2px solid var(--ion-color-warning);
+  background: var(--ion-color-step-50, #f9f9f9);
+  border-left: 6px solid var(--ion-color-warning);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.error-card {
+  margin: 2rem 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(var(--ion-color-danger-rgb), 0.08);
+}
+
+.no-data-card {
+  margin: 2rem 0;
+  background: var(--ion-color-step-50, #f9f9f9);
+  border-left: 6px solid var(--ion-color-medium);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.no-data-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+  text-align: center;
+  background: var(--ion-color-light, #f4f5f8);
+  border-radius: 20px;
+  margin: 2rem 0;
+  border: 2px dashed var(--ion-color-step-200, #cccccc);
+}
+
+.empty-icon {
+  font-size: 5rem;
+  color: var(--ion-color-medium);
+  margin-bottom: 1.5rem;
+  opacity: 0.4;
+}
+
+.no-data-empty-state h2 {
+  color: var(--ion-color-dark);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.no-data-empty-state p {
+  color: var(--ion-color-step-600, #666666);
+  font-size: 1.1rem;
+  margin: 0 0 2rem 0;
+  max-width: 300px;
 }
 
 .warning-content {

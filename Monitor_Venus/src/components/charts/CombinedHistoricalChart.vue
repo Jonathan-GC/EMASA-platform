@@ -34,7 +34,14 @@
         <ion-spinner name="crescent"></ion-spinner>
         <p>Cargando datos...</p>
       </div>
-      <div class="chart-container">
+      
+      <div v-else-if="rawHistoricalData.data1.length === 0 && rawHistoricalData.data2.length === 0" class="no-data-overlay">
+        <ion-icon :icon="icons.analytics" size="large" color="medium"></ion-icon>
+        <p>No hay datos históricos para el periodo seleccionado</p>
+        <small>Intenta ampliar el rango de fechas o aumentar los pasos.</small>
+      </div>
+
+      <div class="chart-container" v-show="!loading && (rawHistoricalData.data1.length > 0 || rawHistoricalData.data2.length > 0)">
         <canvas ref="canvasRef"></canvas>
       </div>
     </ion-card-content>
@@ -609,7 +616,8 @@ const updateChart = (data1, data2) => {
   // Process first measurement
   if (data1 && data1.length > 0) {
     const channelGroups1 = processDataByChannel(data1, props.measurement1Type)
-    const colors1 = ['rgba(52, 152, 219, 1)', 'rgba(237, 66, 69, 1)', 'rgba(46, 204, 113, 1)']
+    // Blue, Violet, Emerald
+    const colors1 = ['#3b82f6', '#8b5cf6', '#10b981']
     
     Object.keys(channelGroups1).forEach((ch, index) => {
       const color = colors1[index % colors1.length]
@@ -642,7 +650,8 @@ const updateChart = (data1, data2) => {
   // Process second measurement
   if (data2 && data2.length > 0) {
     const channelGroups2 = processDataByChannel(data2, props.measurement2Type)
-    const colors2 = ['rgba(234, 179, 8, 1)', 'rgba(139, 92, 246, 1)', 'rgba(230, 126, 34, 1)']
+    // Amber, Pink, Indigo
+    const colors2 = ['#f59e0b', '#ec4899', '#6366f1']
     
     Object.keys(channelGroups2).forEach((ch, index) => {
       const color = colors2[index % colors2.length]
@@ -953,6 +962,29 @@ ion-card-content.is-mobile-content {
   background: rgba(255, 255, 255, 0.9);
   z-index: 10;
   gap: 1rem;
+}
+
+.no-data-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 350px;
+  text-align: center;
+  color: var(--ion-color-medium);
+  gap: 0.5rem;
+}
+
+.no-data-overlay p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--ion-color-step-600);
+}
+
+.no-data-overlay small {
+  font-size: 0.85rem;
+  opacity: 0.7;
 }
 
 .loading-overlay p {
