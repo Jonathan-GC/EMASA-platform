@@ -63,6 +63,12 @@
     { "key": "min", "label": "Valor mínimo", "type": "text" },
     { "key": "max", "label": "Valor máximo", "type": "text" },
     { "key": "threshold", "label": "Umbral", "type": "text" }
+  ],
+  "role": [
+    { "key": "name", "label": "Nombre del rol", "type": "text" },
+    { "key": "description", "label": "Descripción", "type": "textarea" },
+    { "key": "color", "label": "Color", "type": "text" },
+    { "key": "workspace_id", "label": "Workspace", "type": "select" }
   ]
   
 }

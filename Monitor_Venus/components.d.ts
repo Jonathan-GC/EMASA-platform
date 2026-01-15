@@ -48,6 +48,7 @@ declare module 'vue' {
     FormUpdateLocations: typeof import('./src/components/forms/update/locations/formUpdateLocations.vue')['default']
     FormUpdateMachines: typeof import('./src/components/forms/update/machines/formUpdateMachines.vue')['default']
     FormUpdateMeasurements: typeof import('./src/components/forms/update/measurements/formUpdateMeasurements.vue')['default']
+    FormUpdateRoles: typeof import('./src/components/forms/update/roles/formUpdateRoles.vue')['default']
     FormUpdateTenants: typeof import('./src/components/forms/update/tenants/formUpdateTenants.vue')['default']
     FormUpdateWorkspaces: typeof import('./src/components/forms/update/workspaces/formUpdateWorkspaces.vue')['default']
     HistoricalMeasurementChart: typeof import('./src/components/charts/HistoricalMeasurementChart.vue')['default']

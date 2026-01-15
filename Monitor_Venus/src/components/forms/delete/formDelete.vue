@@ -148,7 +148,7 @@ async function deleteItem() {  // Renamed function
       'seedbed': API.RESEARCH_SEEDBEDS,
       'user_integra': API.USERS_INTEGRA,
       'user_external': API.USERS,
-      'role': API.ROLES,
+      'role': API.ROLE,
       'functionary_profile': API.FUNCTIONARY_PROFILES,
       'student_profile': API.STUDENT_PROFILES,
       'external_profile': API.EXTERNAL_USER_PROFILES,

@@ -80,6 +80,15 @@ export class DeleteFormFactory extends AbstractFormFactory {
           index: extraProps?.index,
         }
       },
+      role: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "role",
+          index: extraProps?.index,
+        }
+      },
     };
 
     if (!(type in componentMap) || !EntityTypes.includes(type)) {

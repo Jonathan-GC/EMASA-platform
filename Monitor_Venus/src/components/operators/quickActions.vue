@@ -5,11 +5,11 @@
     If toView is a string, it acts as a router-link. If it's a boolean, it emits a view-clicked event.
   -->
  <ion-buttons>
-   <ion-button v-if="toView && typeof toView === 'string'" fill="clear" size="small" :router-link="toView">
+   <ion-button v-if="toView && typeof toView === 'string'" fill="clear" size="small" :router-link="toView" title="ver">
     <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
   </ion-button>
   
-   <ion-button v-else-if="toView" fill="clear" size="small" @click="handleViewClick">
+   <ion-button v-else-if="toView" fill="clear" size="small" @click="handleViewClick" title="ver">
     <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
   </ion-button>
 
@@ -27,10 +27,26 @@
   </ion-button>
 
   <!--
+    Permissions button (toPermissions):
+    Displays a key icon that emits permissions-clicked event.
+  -->
+  <ion-button v-if="toPermissions" fill="clear" size="small" @click="handlePermissionsClick" title="permisos">
+    <ion-icon :icon="keyOutline" slot="icon-only"></ion-icon>
+  </ion-button>
+
+  <!--
+    Membership button (toMembership):
+    Displays a person-add icon that emits membership-clicked event.
+  -->
+  <ion-button v-if="toMembership" fill="clear" size="small" @click="handleMembershipClick" title="miembros">
+    <ion-icon :icon="personAddOutline" slot="icon-only"></ion-icon>
+  </ion-button>
+
+  <!--
     Edit button (toEdit):
     Opens a modal containing FormUpdateGeneral to update the item.
   -->
-  <ion-button v-if="toEdit" fill="clear" size="small" class="action edit" @click="overlayEdit = !overlayEdit; selectedAction = 'update';">
+  <ion-button v-if="toEdit" fill="clear" size="small" class="action edit" @click="overlayEdit = !overlayEdit; selectedAction = 'update';" title="editar">
     <ion-icon :icon="createOutline" slot="icon-only"></ion-icon>
     <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
       <ion-content>
@@ -49,7 +65,7 @@
     Delete button (toDelete):
     Opens a modal with FormDeleteGeneral to perform a delete action.
   -->
-  <ion-button v-if="toDelete" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'delete'">
+  <ion-button v-if="toDelete" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'delete'" title="eliminar">
     <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
     <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
       <ion-content>
@@ -63,13 +79,15 @@
       Eliminar
     </ion-tooltip>-->
   </ion-button>
+
+  
   </ion-buttons>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { IonButton, IonIcon, IonModal, IonContent, IonSpinner, IonButtons } from '@ionic/vue';
-import { eyeOutline, addOutline, createOutline, trashOutline } from 'ionicons/icons';
+import { eyeOutline, addOutline, createOutline, trashOutline, keyOutline, personAddOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from '@utils/forms/form-types/formsTypes';
 
@@ -86,7 +104,7 @@ export default defineComponent({
     //IonTooltip,
     IonButtons
   },
-  emits: ['itemCreated', 'itemDeleted', 'itemEdited', 'view-clicked'],
+  emits: ['itemCreated', 'itemDeleted', 'itemEdited', 'view-clicked', 'permissions-clicked', 'membership-clicked'],
   props: {
     /**
      * The type of the item to handle (e.g. 'periodo', 'grupo', 'semillero').
@@ -136,6 +154,16 @@ export default defineComponent({
       type: Boolean,
       required: false,
     },
+    // ---[Permissions]---
+    toPermissions: {
+      type: Boolean,
+      required: false,
+    },
+    // ---[Membership]---
+    toMembership: {
+      type: Boolean,
+      required: false,
+    },
     /**
      * Initial data for the edit form (e.g. { name, start_date, ... }).
      */
@@ -150,7 +178,9 @@ export default defineComponent({
       eyeOutline,
       addOutline,
       createOutline,
-      trashOutline
+      trashOutline,
+      keyOutline,
+      personAddOutline
     };
   },
   computed: {
@@ -195,6 +225,12 @@ export default defineComponent({
   methods: {
     handleViewClick() {
       this.$emit('view-clicked');
+    },
+    handlePermissionsClick() {
+      this.$emit('permissions-clicked');
+    },
+    handleMembershipClick() {
+      this.$emit('membership-clicked');
     },
     runfetch() {
       // 1) Select the update action

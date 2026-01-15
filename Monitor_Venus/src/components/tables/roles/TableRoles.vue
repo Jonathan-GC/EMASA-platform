@@ -55,20 +55,23 @@
           <ion-grid class="data-table">
             <!-- Header -->
             <ion-row class="table-header">
-              <ion-col size="2.5" @click="sortBy('name')" class="sortable">
+              <ion-col size="2" @click="sortBy('name')" class="sortable">
                 <strong>Nombre</strong>
                 <ion-icon
                   :icon="sortOrder.name === 'asc' ? icons.chevronUp : icons.chevronDown"
                   v-if="sortField === 'name'"
                 ></ion-icon>
               </ion-col>
-              <ion-col size="3.5">
+              <ion-col size="2">
                 <strong>Descripción</strong>
               </ion-col>
-              <ion-col size="1.5">
-                <strong>Color</strong>
+              <ion-col size="2">
+                <strong>Cliente</strong>
               </ion-col>
-              <ion-col size="1.5" @click="sortBy('users_count')" class="sortable">
+              <ion-col size="2">
+                <strong>Workspace</strong>
+              </ion-col>
+              <ion-col size="1" @click="sortBy('users_count')" class="sortable">
                 <strong>Usuarios</strong>
                 <ion-icon 
                   :icon="sortOrder.users_count === 'asc' ? icons.chevronUp : icons.chevronDown"
@@ -87,7 +90,7 @@
               class="table-row-stylized"
               :class="{ 'row-selected': selectedRole?.id === role.id }"
             >
-              <ion-col size="2.5">
+              <ion-col size="2">
                 <div class="role-info">
                   <ion-avatar 
                     aria-hidden="true" 
@@ -106,43 +109,44 @@
                   </div>
                 </div>
               </ion-col>
-              <ion-col size="3.5">
+              <ion-col size="2">
                 <div class="role-description">
                   {{ role.description || 'Sin descripción' }}
                 </div>
               </ion-col>
-              <ion-col size="1.5">
+              <ion-col size="2">
                 <ion-chip 
                 >
                   {{ role.workspace.tenant }}
                 </ion-chip>
               </ion-col>
-              <ion-col size="1.5">
+              <ion-col size="2">
+                <ion-chip 
+                >
+                  {{ role.workspace.name }}
+                </ion-chip>
+              </ion-col>
+              <ion-col size="1">
                 <div class="users-count">
                   <ion-icon :icon="icons.people"></ion-icon>
                   <span>{{ role.users_count || 0 }}</span>
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="action-buttons">
-                  <ion-button 
-                    fill="clear" 
-                    size="small"
-                    @click.stop="openPermissionsManager(role)"
-                    title="Gestionar permisos"
-                  >
-                    <ion-icon :icon="icons.key"></ion-icon>
-                  </ion-button>
-                  <ion-button 
-                    fill="clear" 
-                    size="small"
-                    @click.stop="openWorkspaceMembershipForm(role)"
-                    title="Asignar usuario a workspace"
-                  >
-                    <ion-icon :icon="icons.person_add"></ion-icon>
-                  </ion-button>
-
-                </div>
+                <quick-actions 
+                  type="role"
+                  :index="role.id" 
+                  :name="role.name"
+                  :initial-data="setInitialData(role)"
+                  to-permissions
+                  to-membership
+                  to-edit
+                  to-delete
+                  @permissions-clicked="openPermissionsManager(role)"
+                  @membership-clicked="openWorkspaceMembershipForm(role)"
+                  @itemEdited="handleItemRefresh"
+                  @itemDeleted="handleItemRefresh"
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -193,21 +197,20 @@
 
                 <!-- Card actions -->
                 <div class="card-actions">
-                  <ion-button 
-                    fill="clear" 
-                    size="small"
-                    @click.stop="openPermissionsManager(role)"
-                  >
-                    <ion-icon :icon="icons.key"></ion-icon>
-          
-                  </ion-button>
-                  <ion-button 
-                    fill="clear" 
-                    size="small"
-                    @click.stop="openWorkspaceMembershipForm(role)"
-                  >
-                    <ion-icon :icon="icons.person_add"></ion-icon>
-                  </ion-button>
+                  <quick-actions 
+                    type="role"
+                    :index="role.id" 
+                    :name="role.name"
+                    :initial-data="setInitialData(role)"
+                    to-permissions
+                    to-membership
+                    to-edit
+                    to-delete
+                    @permissions-clicked="openPermissionsManager(role)"
+                    @membership-clicked="openWorkspaceMembershipForm(role)"
+                    @itemEdited="handleItemRefresh"
+                    @itemDeleted="handleItemRefresh"
+                  />
                 </div>
               </ion-card-content>
             </ion-card>
@@ -265,6 +268,8 @@ import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import FloatingActionButtons from '@components/operators/FloatingActionButtons.vue'
+import QuickControl from '@components/operators/quickControl.vue'
+import QuickActions from '@components/operators/quickActions.vue'
 import RolePermissionsManager from '@components/forms/permissions/RolePermissionsManager.vue'
 import WorkspaceMembershipForm from '@components/forms/roles/WorkspaceMembershipForm.vue'
 import { IonAvatar, modalController } from '@ionic/vue'
@@ -313,6 +318,15 @@ const fetchRoles = async () => {
     console.error('❌ Error fetching roles:', err)
   } finally {
     loading.value = false
+  }
+}
+
+const setInitialData = (role) => {
+  return {
+    name: role.name,
+    description: role.description,
+    color: role.color,
+    workspace_id: role.workspace?.id
   }
 }
 

@@ -19,6 +19,7 @@ const updateApplications = defineAsyncComponent(() => import("@components/forms/
 const UpdateDevices = defineAsyncComponent(() => import("@components/forms/update/device/formUpdateDevices.vue"));
 const UpdateMachines = defineAsyncComponent(() => import("@components/forms/update/machines/formUpdateMachines.vue"));
 const UpdateMeasurements = defineAsyncComponent(() => import("@components/forms/update/measurements/formUpdateMeasurements.vue"));
+const UpdateRoles = defineAsyncComponent(() => import("@components/forms/update/roles/formUpdateRoles.vue"));
 
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
@@ -112,7 +113,17 @@ export class UpdateFormFactory extends AbstractFormFactory {
           fields: schema.machine,
           initialData: extraProps?.initialData || {},
         }
-      }
+      },
+      role: {
+        component: UpdateRoles,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'role',
+          fields: schema.role,
+          initialData: extraProps?.initialData || {},
+        }
+      },
     }
     if (!(type in componentMap) || !EntityTypes.includes(type)) {
       console.log(`Componente no encontrado para el tipo: ${type}`);
