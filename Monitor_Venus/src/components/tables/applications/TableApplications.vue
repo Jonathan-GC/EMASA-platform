@@ -120,7 +120,7 @@
               <ion-col size="1">
                 <div class="devices-info">
                   <ion-icon :icon="icons.deviceCard" size="small"></ion-icon>
-                  {{  application.connectedDevices || 0 }}
+                  {{  application.devices_count || 0 }}
                 </div>
               </ion-col>
               <ion-col size="2">
