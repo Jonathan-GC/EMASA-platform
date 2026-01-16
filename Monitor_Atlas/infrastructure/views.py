@@ -2,6 +2,7 @@ import requests
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models import Count
 
 from .serializers import (
     GatewaySerializer,
@@ -1193,13 +1194,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Application.objects.all()
-        return get_objects_for_user(
-            user,
-            "infrastructure.view_application",
-            klass=Application,
-            accept_global_perms=False,
-        )
+            queryset = Application.objects.all()
+        else:
+            queryset = get_objects_for_user(
+                user,
+                "infrastructure.view_application",
+                klass=Application,
+                accept_global_perms=False,
+            )
+        return queryset.annotate(devices_count=Count("device"))
 
     def perform_create(self, serializer):
         instance = serializer.save()

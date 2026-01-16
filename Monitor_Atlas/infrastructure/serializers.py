@@ -70,6 +70,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     workspace_id = serializers.PrimaryKeyRelatedField(
         queryset=Workspace.objects.all(), write_only=True, source="workspace"
     )
+    devices_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Application

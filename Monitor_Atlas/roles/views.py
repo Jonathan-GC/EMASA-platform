@@ -3,6 +3,8 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .permissions import HasPermission
 
+from django.db.models import Count
+
 from .serializers import (
     RoleSerializer,
     WorkspaceMembershipSerializer,
@@ -50,11 +52,13 @@ class RoleViewSet(viewsets.ModelViewSet):
         user_tenant = user.tenant
 
         if user.is_superuser:
-            return Role.objects.all()
+            queryset = Role.objects.all()
         else:
-            return get_objects_for_user(user, "roles.view_role", Role).filter(
+            queryset = get_objects_for_user(user, "roles.view_role", Role).filter(
                 workspace__tenant=user_tenant
             )
+
+        return queryset.annotate(users_count=Count("group__user"))
 
     def perform_create(self, serializer):
         user = self.request.user

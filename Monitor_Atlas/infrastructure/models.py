@@ -22,7 +22,7 @@ class Type(models.Model):
         max_length=16, primary_key=True, default=generate_id, editable=False
     )
     name = models.CharField(max_length=255, unique=True)
-    img = models.FileField(upload_to="type_icons/", blank=True, null=True)  # icon
+    img = models.CharField(max_length=50, blank=True, null=True)  # icon
     description = models.CharField(max_length=255)
 
     def __str__(self):
