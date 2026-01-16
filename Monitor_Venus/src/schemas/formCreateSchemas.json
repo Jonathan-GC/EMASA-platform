@@ -22,9 +22,10 @@
 
   "location": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "accuracy", "label":  "Presición", "type": "text" },
+    { "key": "coords", "label": "Seleccionar ubicación en mapa", "type": "map" },
     { "key": "latitude", "label":"Latitud", "type": "text" },
     { "key": "longitude", "label": "Longitud", "type": "text" },
+    { "key": "accuracy", "label":  "Presición", "type": "text" },
     { "key": "altitude", "label": "Altitud", "type": "text" },
     { "key": "source", "label": "Fuente", "type": "text" }
   ],
@@ -80,6 +81,7 @@
     { "key": "afcntdown", "label": "Application Downlink Counter", "type": "text" }
   ],
   "machine": [
+    { "key": "img", "label": "Imagen", "type": "image" },
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "workspace_id", "label": "Workspace", "type": "select" }

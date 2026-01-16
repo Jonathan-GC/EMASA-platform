@@ -12,9 +12,10 @@
   ],
   "location": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "accuracy", "label":  "Presición", "type": "text" },
+    { "key": "coords", "label": "Seleccionar ubicación en mapa", "type": "map" },
     { "key": "latitude", "label":"Latitud", "type": "text" },
     { "key": "longitude", "label": "Longitud", "type": "text" },
+    { "key": "accuracy", "label":  "Presición", "type": "text" },
     { "key": "altitude", "label": "Altitud", "type": "text" },
     { "key": "source", "label": "Fuente", "type": "text" }
   ],

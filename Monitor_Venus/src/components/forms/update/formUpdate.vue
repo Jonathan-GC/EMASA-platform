@@ -16,7 +16,7 @@
       <ion-card-content>
         <form @submit.prevent="createItem">
           <ion-list>
-            <div v-for="(field, index) in fields" :key="index">
+            <div v-for="(field, index) in filteredFields" :key="index">
               <ion-item v-if="field.type === 'text'" class="custom">
                 <ion-label class="!mb-2" position="stacked">{{ field.label }}</ion-label>
                 <ion-input v-model="formValues[field.key]" class="custom" fill="solid" />
@@ -92,6 +92,17 @@
                 </ion-checkbox>
               </ion-item>
 
+              <ion-item v-else-if="field.type === 'map'" class="custom no-lines">
+                <div class="map-field-full-width">
+                  <ion-label class="!mb-2">{{ field.label }}</ion-label>
+                  <InlineMap 
+                    v-model:lat="formValues.latitude"
+                    v-model:lng="formValues.longitude"
+                    @change="onInlineMapChange"
+                  />
+                </div>
+              </ion-item>
+
               <div v-else-if="field.type === 'image'" class="image-field-wrapper">
                 <ImageUpload
                   :ref="el => setImageUploadRef(field.key, el)"
@@ -114,11 +125,19 @@
         </form>
       </ion-card-content>
     </ion-content>
+
+    <MapPicker
+      :show="mapModalOpen"
+      :initial="mapInitial"
+      :title="label"
+      @update:show="mapModalOpen = $event"
+      @selected="onMapSelected"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, toRefs, inject } from 'vue';
+import { ref, watch, toRefs, inject, computed } from 'vue';
 import {
   IonPage,
   IonHeader,
@@ -144,7 +163,10 @@ import {
 import ModalSelector from '@/components/ui/ModalSelector.vue';
 import IconPicker from '@/components/ui/IconPicker.vue';
 import ImageUpload from '@/components/common/ImageUpload.vue';
+import MapPicker from '@/components/maps/MapPicker.vue';
+import InlineMap from '@/components/maps/InlineMap.vue';
 import API from "@utils/api/api";
+import { useResponsiveView } from '@/composables/useResponsiveView';
 
 const props = defineProps({
   type: String,
@@ -175,13 +197,37 @@ console.log("index:", props.index);
 const emit = defineEmits(['itemEdited', 'fieldChanged', 'closed']);
 
 const { fields, additionalData } = toRefs(props);
+const { isMobile } = useResponsiveView();
 
 const loading = ref(false);
-const formValues = ref({ ...fields.value, ...additionalData.value, ...props.initialData });
+
+const filteredFields = computed(() => {
+  if (!Array.isArray(props.fields)) return [];
+  return props.fields.filter(field => field.key !== 'accuracy' && field.key !== 'source');
+});
+
+// Properly initialize formValues from fields array and initialData
+const initializeFormValues = (fieldsArray) => {
+  const values = {};
+  if (Array.isArray(fieldsArray)) {
+    fieldsArray.forEach(field => {
+      values[field.key] = field.value !== undefined ? field.value : null;
+    });
+  }
+  // Order of priority: field default values < additionalData < initialData
+  return { ...values, ...additionalData.value, ...props.initialData };
+};
+
+const formValues = ref(initializeFormValues(props.fields));
 const componentKey = ref(0);
 const imageUploadRefs = ref({});
 
 const icons = inject('icons',{});
+
+// Map picker state
+const mapModalOpen = ref(false);
+const mapInitial = ref(null);
+let currentMapFieldKey = '';
 
 // Store refs for ImageUpload components
 const setImageUploadRef = (key, el) => {
@@ -196,11 +242,7 @@ const closeModal = () => {
 // Watch for changes in props.fields to update formValues
 // Preserve initialData when fields update (e.g., after fetching dropdown options)
 watch(fields, (newFields) => {
-  formValues.value = { 
-    ...newFields, 
-    ...additionalData.value, 
-    ...props.initialData  // Always preserve initialData last so it has highest priority
-  };
+  formValues.value = initializeFormValues(newFields);
 }, { deep: true });
 
 function handleFieldChange(fieldKey, value) {
@@ -226,10 +268,61 @@ function clearField(fieldKey) {
   componentKey.value++;
 }
 
+// Map Picker functions
+function openMap(fieldKey) {
+  currentMapFieldKey = fieldKey;
+  // Try to find current coordinates
+  const latValue = formValues.value.latitude;
+  const lngValue = formValues.value.longitude;
+
+  if (latValue && lngValue) {
+    mapInitial.value = { lat: parseFloat(latValue), lng: parseFloat(lngValue) };
+  } else {
+    mapInitial.value = null;
+  }
+  
+  mapModalOpen.value = true;
+}
+
+function onMapSelected(coord) {
+  console.log('📍 Map coordinates selected:', coord);
+  
+  // Set the specific field if it exists
+  if (currentMapFieldKey) {
+    formValues.value[currentMapFieldKey] = `${coord.lat.toFixed(6)}, ${coord.lng.toFixed(6)}`;
+  }
+  
+  // Also try to automatically fill latitude and longitude fields if they exist in schema
+  const hasLatField = props.fields.some(f => f.key === 'latitude');
+  const hasLngField = props.fields.some(f => f.key === 'longitude');
+  
+  if (hasLatField) formValues.value.latitude = coord.lat.toFixed(6);
+  if (hasLngField) formValues.value.longitude = coord.lng.toFixed(6);
+  
+  emit('fieldChanged', 'latitude', coord.lat.toFixed(6));
+  emit('fieldChanged', 'longitude', coord.lng.toFixed(6));
+}
+
+function onInlineMapChange(coord) {
+  console.log('📍 Inline map coordinates changed:', coord);
+  formValues.value.latitude = coord.lat;
+  formValues.value.longitude = coord.lng;
+  
+  emit('fieldChanged', 'latitude', coord.lat);
+  emit('fieldChanged', 'longitude', coord.lng);
+}
+
 async function createItem() {
   loading.value = true;
   try {
     let response;
+
+    // Inject accuracy and source for locations
+    if (props.type === 'location') {
+      formValues.value.accuracy = isMobile.value ? 10 : 25;
+      formValues.value.source = 'GPS';
+    }
+
     // Map of types to API endpoints
     const apiEndpoints = {
       'tenant': API.TENANT,
@@ -338,5 +431,51 @@ async function createItem() {
   font-size: 16px;
   font-weight: 600;
   color: var(--ion-color-step-600);
+}
+
+/* Map field styles */
+.map-field-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.map-values {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-val {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: var(--ion-color-step-800);
+  font-family: monospace;
+}
+
+.map-placeholder {
+  font-style: italic;
+  color: var(--ion-color-step-400);
+  font-size: 14px;
+}
+
+.map-btn {
+  --padding-start: 0;
+  --padding-end: 0;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.map-field-full-width {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.no-lines {
+  --inner-padding-end: 0;
+  --padding-start: 16px;
 }
 </style>
