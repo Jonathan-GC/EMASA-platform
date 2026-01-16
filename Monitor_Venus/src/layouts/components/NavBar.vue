@@ -175,6 +175,20 @@
             Perfiles de nodos
           </router-link>
 
+          <router-link
+              v-if="canAccessRoute(['root', 'admin', 'technician'])"
+              :to=paths.DEVICE_TYPES
+              class="nav-link"
+              :class="{ active: $route.path === paths.DEVICE_TYPES }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.shapes"
+            ></ion-icon>
+            Tipos de nodo
+          </router-link>
+
+
           <!-- Applications: root, admin, technician, tenant_admin, tenant_user -->
           <router-link
               v-if="canAccessRoute(['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'])"

@@ -13,7 +13,7 @@ export class DeleteFormFactory extends AbstractFormFactory {
         props: {
           name: extraProps?.name,
           type: type,
-          label: "tenant",
+          label: "cliente",
           index: extraProps?.index,
         }
       },
@@ -31,7 +31,7 @@ export class DeleteFormFactory extends AbstractFormFactory {
         props: {
           name: extraProps?.name,
           type: type,
-          label: "location",
+          label: "ubicación",
           index: extraProps?.index,
         }
       },
@@ -49,7 +49,7 @@ export class DeleteFormFactory extends AbstractFormFactory {
         props: {
           name: extraProps?.name,
           type: type,
-          label: "device profile",
+          label: "perfil de dispositivo",
           index: extraProps?.index,
         }
       },
@@ -58,7 +58,7 @@ export class DeleteFormFactory extends AbstractFormFactory {
         props: {
           name: extraProps?.name,
           type: type,
-          label: "application",
+          label: "servicio",
           index: extraProps?.index,
         }
       },
@@ -67,7 +67,16 @@ export class DeleteFormFactory extends AbstractFormFactory {
         props: {
           name: extraProps?.name,
           type: type,
-          label: "device",
+          label: "dispositivo",
+          index: extraProps?.index,
+        }
+      },
+      device_type: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name, 
+          type: type,
+          label: "tipo de dispositivo",
           index: extraProps?.index,
         }
       },
@@ -76,7 +85,7 @@ export class DeleteFormFactory extends AbstractFormFactory {
         props: {
           name: extraProps?.name,
           type: type,
-          label: "machine",
+          label: "máquina",
           index: extraProps?.index,
         }
       },
@@ -85,7 +94,7 @@ export class DeleteFormFactory extends AbstractFormFactory {
         props: {
           name: extraProps?.name,
           type: type,
-          label: "role",
+          label: "rol",
           index: extraProps?.index,
         }
       },

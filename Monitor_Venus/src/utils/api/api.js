@@ -64,6 +64,7 @@ class API {
     APPLICATION = 'infrastructure/application/'
     LOCATION = 'infrastructure/location/'
     DEVICE_PROFILE_TEMPLATE = '/device-profile-template/'
+    DEVICE_TYPES = 'infrastructure/type/'
     DEVICE_SET_ACTIVATION_KEYS(deviceId) {
         return `infrastructure/device/${deviceId}/set_activation/`
     }

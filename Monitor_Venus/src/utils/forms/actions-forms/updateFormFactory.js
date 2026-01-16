@@ -15,11 +15,12 @@ const UpdateTenants = defineAsyncComponent(() => import("@components/forms/updat
 const UpdateWorkspaces = defineAsyncComponent(() => import("@components/forms/update/workspaces/formUpdateWorkspaces.vue"));
 const UpdateLocations = defineAsyncComponent(() => import("@components/forms/update/locations/formUpdateLocations.vue"));
 const UpdateGateways = defineAsyncComponent(() => import("@components/forms/update/gateways/formUpdateGateways.vue"));
-const updateApplications = defineAsyncComponent(() => import("@components/forms/update/application/formUpdateApplication.vue"));
+const UpdateApplications = defineAsyncComponent(() => import("@components/forms/update/application/formUpdateApplication.vue"));
 const UpdateDevices = defineAsyncComponent(() => import("@components/forms/update/device/formUpdateDevices.vue"));
 const UpdateMachines = defineAsyncComponent(() => import("@components/forms/update/machines/formUpdateMachines.vue"));
 const UpdateMeasurements = defineAsyncComponent(() => import("@components/forms/update/measurements/formUpdateMeasurements.vue"));
 const UpdateRoles = defineAsyncComponent(() => import("@components/forms/update/roles/formUpdateRoles.vue"));
+const UpdateDeviceTypes = defineAsyncComponent(() => import("@components/forms/update/device_types/formUpdateDeviceType.vue"));
 
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
@@ -29,7 +30,7 @@ export class UpdateFormFactory extends AbstractFormFactory {
         props: {
           type: type,
           index: extraProps?.index,
-          label: 'tenant',
+          label: 'cliente',
           fields: schema.tenant,
           initialData: extraProps?.initialData || {},
         }
@@ -49,7 +50,7 @@ export class UpdateFormFactory extends AbstractFormFactory {
         props: {
           type: type,
           index: extraProps?.index,
-          label: 'location',
+          label: 'ubicación',
           fields: schema.location,
           initialData: extraProps?.initialData || {},
         }
@@ -69,17 +70,17 @@ export class UpdateFormFactory extends AbstractFormFactory {
         props: {
           type: type,
           index: extraProps?.index,
-          label: 'device_profile',
+          label: 'perfil de dispositivo',
           fields: schema.device_profile,
           initialData: extraProps?.initialData || {},
         }
       },
       application: {
-        component: updateApplications,
+        component: UpdateApplications,
         props: {
           type: type,
           index: extraProps?.index,
-          label: 'application',
+          label: 'servicio',
           fields: schema.application,
           initialData: extraProps?.initialData || {},
         }
@@ -89,8 +90,18 @@ export class UpdateFormFactory extends AbstractFormFactory {
         props: {
           type: type,
           index: extraProps?.index,
-          label: 'device',
+          label: 'dispositivo',
           fields: schema.device,
+          initialData: extraProps?.initialData || {},
+        }
+      },
+      device_type: {
+        component: UpdateDeviceTypes,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'tipo de dispositivo',
+          fields: schema.device_type,
           initialData: extraProps?.initialData || {},
         }
       },
@@ -99,7 +110,7 @@ export class UpdateFormFactory extends AbstractFormFactory {
         props: {
           type: type,
           index: extraProps?.index,
-          label: 'measurement',
+          label: 'variable',
           fields: schema.measurement,
           initialData: extraProps?.initialData || {},
         }
@@ -109,7 +120,7 @@ export class UpdateFormFactory extends AbstractFormFactory {
         props: {
           type: type,
           index: extraProps?.index,
-          label: 'machine',
+          label: 'máquina',
           fields: schema.machine,
           initialData: extraProps?.initialData || {},
         }
@@ -119,7 +130,7 @@ export class UpdateFormFactory extends AbstractFormFactory {
         props: {
           type: type,
           index: extraProps?.index,
-          label: 'role',
+          label: 'rol',
           fields: schema.role,
           initialData: extraProps?.initialData || {},
         }

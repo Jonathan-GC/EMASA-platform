@@ -125,6 +125,17 @@ export const routes = [
                 }
             },
             {
+                path: P.DEVICE_TYPES,
+                component: C.DEVICE_TYPES,
+                beforeEnter: requireRoles,
+                meta: {
+                    requiresAuth: true,
+                    requiresTenant: true,
+                    roles: ['root', 'admin', 'technician'],
+                    label: 'Device Types'
+                }
+            },
+            {
                 path: P.APPLICATIONS,
                 component: C.APPLICATIONS,
                 beforeEnter: requireRoles,

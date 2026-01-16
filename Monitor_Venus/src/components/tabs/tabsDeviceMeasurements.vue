@@ -29,7 +29,7 @@
 
         <ion-tab-button tab="measurements">
           <ion-icon :icon="icons.analytics"></ion-icon>
-          <ion-label>Mediciones</ion-label>
+          <ion-label>Variables</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
 

@@ -21,5 +21,6 @@ export const EntityTypes = [
   "manager",
   "user",
   "measurement",
-  "role"
+  "role",
+  "device_type"
 ];

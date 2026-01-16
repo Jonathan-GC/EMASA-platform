@@ -19,6 +19,7 @@ export const components = {
     RESET_PASSWORD_REQUEST: () => import('@views/auth/reset-password/request.vue'),
     RESET_PASSWORD_CONFIRM: () => import('@views/auth/reset-password/confirm.vue'),
     DEVICES: () => import('@views/infrastructure/application/devices/index.vue'),
+    DEVICE_TYPES: () => import('@views/infrastructure/deviceTypes/index.vue'),
     MACHINES: () => import('@views/infrastructure/machines/index.vue'),
     DEVICE_MEASUREMENTS: () => import('@views/infrastructure/application/devices/measurments/index.vue'),
     NOTIFICATIONS: () => import('@views/notifications/index.vue'),
