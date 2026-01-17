@@ -138,10 +138,12 @@
                   :index="role.id" 
                   :name="role.name"
                   :initial-data="setInitialData(role)"
+                  :to-view="true"
                   to-permissions
                   to-membership
                   to-edit
                   to-delete
+                  @view-clicked="openRoleMembersModal(role)"
                   @permissions-clicked="openPermissionsManager(role)"
                   @membership-clicked="openWorkspaceMembershipForm(role)"
                   @itemEdited="handleItemRefresh"
@@ -202,10 +204,12 @@
                     :index="role.id" 
                     :name="role.name"
                     :initial-data="setInitialData(role)"
+                    :to-view="true"
                     to-permissions
                     to-membership
                     to-edit
                     to-delete
+                    @view-clicked="openRoleMembersModal(role)"
                     @permissions-clicked="openPermissionsManager(role)"
                     @membership-clicked="openWorkspaceMembershipForm(role)"
                     @itemEdited="handleItemRefresh"
@@ -272,6 +276,7 @@ import QuickControl from '@components/operators/quickControl.vue'
 import QuickActions from '@components/operators/quickActions.vue'
 import RolePermissionsManager from '@components/forms/permissions/RolePermissionsManager.vue'
 import WorkspaceMembershipForm from '@components/forms/roles/WorkspaceMembershipForm.vue'
+import RoleMembersModal from '@components/forms/roles/RoleMembersModal.vue'
 import { IonAvatar, modalController } from '@ionic/vue'
 
 // Inject icons
@@ -373,6 +378,20 @@ const openPermissionsManager = async (role) => {
   modal.onDidDismiss().then(() => {
     console.log('Permissions manager closed')
     fetchRoles() // Refresh roles after permissions update
+  })
+  
+  await modal.present()
+}
+
+const openRoleMembersModal = async (role) => {
+  console.log('Opening members manager for role:', role.name)
+  
+  const modal = await modalController.create({
+    component: RoleMembersModal,
+    componentProps: {
+      role: role
+    },
+    cssClass: 'full-modal'
   })
   
   await modal.present()
