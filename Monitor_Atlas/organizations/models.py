@@ -65,10 +65,11 @@ class Workspace(models.Model):
     def __str__(self):
         return self.name
 
+
 from auditlog.registry import auditlog
+
 auditlog.register(Subscription)
-auditlog.register(Tenant)
-# Workspace is not defined in this file (based on read_file output), I should check if it exists in the file or imported.
-# Based on file structure organizations/models.py should have Workspace too.
-# Let me check the end of organizations/models.py first to be safe.
+auditlog.register(
+    Tenant, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
+)
 auditlog.register(Workspace)

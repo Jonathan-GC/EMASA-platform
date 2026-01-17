@@ -2,6 +2,7 @@ from django.db import models
 from organizations.models import Workspace
 from chirpstack.models import DeviceProfile
 from organizations.hasher import generate_id
+from auditlog.registry import auditlog
 
 
 class Machine(models.Model):
@@ -248,3 +249,19 @@ class Measurements(models.Model):
 
     def __str__(self):
         return f"{self.device.name} - {self.unit}"
+
+
+auditlog.register(
+    Device, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
+)
+auditlog.register(
+    Application, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
+)
+auditlog.register(
+    Gateway, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
+)
+auditlog.register(Machine)
+auditlog.register(Type)
+auditlog.register(Activation)
+auditlog.register(Measurements)
+auditlog.register(Location)
