@@ -62,6 +62,25 @@
   </ion-button>
 
   <!--
+    Toggler button (toToggle):
+    Opens a modal with FormDeleteGeneral to perform a delete action.
+  -->
+  <ion-button v-if="toToggle" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'toggle'" :title="$props.status ? 'desactivar' : 'activar'">
+    <ion-icon :icon="$props.status ? closeCircleOutline: checkmarkCircleOutline" slot="icon-only"></ion-icon> 
+    <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
+      <ion-content>
+        <div class="d-flex align-center justify-center" style="height: 100vh;">
+          <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
+          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemToggled="handleItemToggled" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
+        </div>
+      </ion-content>
+    </ion-modal>
+    <!--<ion-tooltip>
+      Eliminar
+    </ion-tooltip>-->
+  </ion-button>
+
+  <!--
     Delete button (toDelete):
     Opens a modal with FormDeleteGeneral to perform a delete action.
   -->
@@ -87,7 +106,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { IonButton, IonIcon, IonModal, IonContent, IonSpinner, IonButtons } from '@ionic/vue';
-import { eyeOutline, addOutline, createOutline, trashOutline, keyOutline, personAddOutline } from 'ionicons/icons';
+import { eyeOutline, addOutline, createOutline, trashOutline, keyOutline, personAddOutline, closeCircleOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from '@utils/forms/form-types/formsTypes';
 
@@ -104,7 +123,7 @@ export default defineComponent({
     //IonTooltip,
     IonButtons
   },
-  emits: ['itemCreated', 'itemDeleted', 'itemEdited', 'view-clicked', 'permissions-clicked', 'membership-clicked'],
+  emits: ['itemCreated', 'itemDeleted', 'itemEdited', 'view-clicked', 'permissions-clicked', 'membership-clicked', 'itemToggled'],
   props: {
     /**
      * The type of the item to handle (e.g. 'periodo', 'grupo', 'semillero').
@@ -112,6 +131,10 @@ export default defineComponent({
     type:
     { type: String as () => EntityType,
       required: true
+    },
+    status:
+    { type: [Boolean, String],
+      required: false,
     },
 
     /**
@@ -154,6 +177,10 @@ export default defineComponent({
       type: Boolean,
       required: false,
     },
+    toToggle: {
+      type: Boolean,
+      required: false,
+    },
     // ---[Permissions]---
     toPermissions: {
       type: Boolean,
@@ -180,7 +207,9 @@ export default defineComponent({
       createOutline,
       trashOutline,
       keyOutline,
-      personAddOutline
+      personAddOutline,
+      closeCircleOutline,
+      checkmarkCircleOutline,
     };
   },
   computed: {
@@ -189,6 +218,7 @@ export default defineComponent({
         index: this.index,
         name: this.name,
         initialData: this.initialData,
+        status: this.selectedAction === 'toggle' ? !this.status : this.status
       }
       return FormFactory.getComponentConfig(this.selectedAction, this.type, extraProps);
     }
@@ -215,6 +245,7 @@ export default defineComponent({
       // Controls the visibility of the delete modal
       overlayDelete: false,
       //----
+
       selectedAction: '' as ActionType,
 
       componentLoaded: false,
@@ -262,6 +293,14 @@ export default defineComponent({
      */
     handleItemEdited(index: any, name: any) {
       this.$emit('itemEdited', index, name);
+      this.overlayEdit = false;
+    },
+
+    /**
+     * Handles when an item is toggled in FormToggle and closes the modal.
+     */
+    handleItemToggled(index: any, name: any) {
+      this.$emit('itemToggled', index, name);
       this.overlayEdit = false;
     },
 

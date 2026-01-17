@@ -143,10 +143,12 @@
                   :index="user.id" 
                   :name="user.username"
                   to-edit
-                  to-delete
+                  to-toggle
+                  :status="user.is_active"
                   :initial-data="setInitialData(user)"
                   @item-edited="handleItemRefresh"
-                  @item-deleted="handleItemRefresh"
+                  @item-toggled="handleItemRefresh"
+
                 />
               </ion-col>
             </ion-row>

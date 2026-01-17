@@ -4,6 +4,7 @@ export const ActionTypes = [
   "create",
   "update",
   "view",
+  "toggles",
   "delete"
 ];
 

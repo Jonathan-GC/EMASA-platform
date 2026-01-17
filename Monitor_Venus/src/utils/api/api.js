@@ -27,6 +27,12 @@ class API {
     //----[USERS]----
     USER = 'users/user/'
     ME = 'users/user/me/'
+    ACTIVATE_USER(userId) {
+        return `users/user/${userId}/enable_user/`
+    }
+    DEACTIVATE_USER(userId) {
+        return `users/user/${userId}/disable_user/`
+    }
 
     //----[AUTH]----
     TOKEN = 'token/'
@@ -47,6 +53,9 @@ class API {
     //----[ROLES]----
     ROLE = 'roles/role/'
     ROLE_PERMISSION = 'roles/role-permission/'
+    ROLE_MEMBERSHIP(roleId) {
+        return `roles/role/${roleId}/get_all_role_users/`
+    }
     PERMISSION_KEY = 'roles/permission-key/'
     WORKSPACE_MEMBERSHIP = 'roles/workspace-membership/'
     ASSIGNABLE_PERMISSIONS(roleId) {
@@ -139,7 +148,6 @@ class API {
         return `infrastructure/device/${deviceId}/get_ws_link/`
     }
     //----[CHIRPSTACK]----
-
     DEVICE_PROFILE = 'chirpstack/device-profile/'
     TENANT_USER = 'chirpstack/tenant-user/'
     API_USER = 'chirpstack/api-user/'
