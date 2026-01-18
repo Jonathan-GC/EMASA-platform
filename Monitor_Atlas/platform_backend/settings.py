@@ -301,7 +301,7 @@ WS_SECRET = env("WS_SECRET", default="dummy32characterslong!!")
 
 
 # ============================================================================
-# LOGGING (Loguru)
+# LOGGING (Loguru, auditlog)
 # ============================================================================
 
 from loguru import logger
