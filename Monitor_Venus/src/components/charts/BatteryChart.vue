@@ -45,7 +45,10 @@ const props = defineProps({
   title: { type: String, default: '' },
   deviceName: { type: String, default: 'Dispositivo IoT' },
   yAxisMin: { type: Number, default: null },
-  yAxisMax: { type: Number, default: null }
+  yAxisMax: { type: Number, default: null },
+  yLeftLabel: { type: String, default: 'Voltaje (V)' },
+  yRightLabel: { type: String, default: 'Porcentaje (%)' },
+  realtimeOptions: { type: Object, default: null }
 })
 
 // Constants & State
@@ -160,8 +163,9 @@ const chartOptions = computed(() => ({
       callbacks: {
         title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS', { locale: es }) : '',
         label: (context) => {
-          const isPercent = context.dataset.label.includes('%')
-          return `${context.dataset.label}: ${context.parsed.y.toFixed(isPercent ? 1 : 3)}${isPercent ? '%' : 'V'}`
+          const isSecondary = context.datasetIndex === 1
+          const label = context.dataset.label || ''
+          return `${label}: ${context.parsed.y.toFixed(isSecondary ? 1 : 3)}`
         }
       }
     },
@@ -181,6 +185,14 @@ const chartOptions = computed(() => ({
         },
         mode: 'x',
         onZoomComplete: () => { isZoomed.value = true }
+      },
+      limits: {
+        x: {
+          minDelay: 4000,
+          maxDelay: 4000,
+          minDuration: 1000,
+          maxDuration: 120000
+        }
       }
     }
   },
@@ -193,10 +205,10 @@ const chartOptions = computed(() => ({
         }
       },
       realtime: {
-        duration: 30000,
-        refresh: 1000,
-        delay: 1000,
-        ttl: 60000,
+        duration: props.realtimeOptions?.duration ?? 30000,
+        refresh: props.realtimeOptions?.refresh ?? 1000,
+        delay: props.realtimeOptions?.delay ?? 1000,
+        ttl: props.realtimeOptions?.ttl ?? 60000,
         onRefresh: (chart) => {
           if (streamingBuffer.length > 0) {
             streamingBuffer.forEach(point => {
@@ -220,14 +232,14 @@ const chartOptions = computed(() => ({
       position: 'left',
       min: props.yAxisMin,
       max: props.yAxisMax,
-      title: { display: true, text: 'Voltaje (V)' },
+      title: { display: true, text: props.yLeftLabel },
       grid: { color: 'rgba(0, 0, 0, 0.1)' }
     },
     'y-right': {
       position: 'right',
       min: 0,
       max: 100,
-      title: { display: true, text: 'Porcentaje (%)' },
+      title: { display: true, text: props.yRightLabel },
       grid: { drawOnChartArea: false }
     }
   }

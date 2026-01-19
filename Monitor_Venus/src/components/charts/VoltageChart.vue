@@ -46,7 +46,8 @@ const props = defineProps({
   deviceName: { type: String, default: 'Dispositivo IoT' },
   yAxisMin: { type: Number, default: null },
   yAxisMax: { type: Number, default: null },
-  threshold: { type: Number, default: null }
+  threshold: { type: Number, default: null },
+  realtimeOptions: { type: Object, default: null }
 })
 
 const canvasRef = ref(null)
@@ -229,10 +230,10 @@ const chartOptions = computed(() => ({
         }
       },
       realtime: {
-        duration: 30000,
-        refresh: 1000,
-        delay: 10000,
-        ttl: 60000,
+        duration: props.realtimeOptions?.duration ?? 30000,
+        refresh: props.realtimeOptions?.refresh ?? 1000,
+        delay: props.realtimeOptions?.delay ?? 10000,
+        ttl: props.realtimeOptions?.ttl ?? 60000,
         onRefresh: (chart) => {
           if (streamingBuffer.length > 0) {
             if (chart.data.datasets[0]) {

@@ -25,7 +25,7 @@ import {
   IonSpinner,
 } from '@ionic/vue';
 import API from '@utils/api/api';
-// Assuming the previous component is named this.
+import { MEASUREMENT_PROFILES } from '@/data/measurementProfiles.js';
 
 const props = defineProps({
   label: {
@@ -76,7 +76,16 @@ const fetchDevices = async () => {
   }
 };
 
-
+// Method to populate measurement types from profiles
+const populateMeasurementTypes = () => {
+  const unitField = formFields.value.find(f => f.key === 'unit');
+  if (unitField) {
+    unitField.options = MEASUREMENT_PROFILES.map(profile => ({
+      label: profile.label,
+      value: profile.value
+    }));
+  }
+};
 
 // Method to set additional data for the form
 const setDevice = () => {
@@ -93,6 +102,7 @@ onMounted(async () => {
   //await fetchSex();
   //setAffiliation();
   setDevice();
+  populateMeasurementTypes();
   await fetchDevices();
   loaded.value = true;
   emit('loaded');

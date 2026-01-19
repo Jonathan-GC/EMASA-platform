@@ -12,11 +12,6 @@
           <ion-label>{{ capitalizeFirst(measurement.unit) }}</ion-label>
         </ion-tab-button>
 
-        <ion-tab-button tab="battery">
-          <ion-icon :icon="icons.batteryHalf"></ion-icon>
-          <ion-label>Batería</ion-label>
-        </ion-tab-button>
-
         <ion-tab-button tab="comparison">
           <ion-icon :icon="icons.git_compare"></ion-icon>
           <ion-label>Comparación</ion-label>
@@ -124,8 +119,9 @@
               </ion-card-content>
             </ion-card>
 
-            <!-- Charts grid - similar to voltage tab -->
-            <ChartsGrid 
+            <!-- Charts grid - dynamically select version based on measurement type -->
+            <component 
+              :is="getComponentForUnit(measurement.unit)"
               v-if="getMeasurementChartData(measurement.unit).length > 0"
               :chart-fragments="getMeasurementChartData(measurement.unit)" 
               :chart-key="chartKey"
@@ -134,6 +130,9 @@
               :y-axis-min="measurement.min"
               :y-axis-max="measurement.max" 
               :threshold="measurement.threshold"
+              :y-left-label="getProfileByValue(measurement.unit)?.label + ' (' + getProfileByValue(measurement.unit)?.unit + ')'"
+              :y-right-label="getProfileByValue(measurement.unit)?.secondaryUnit ? getProfileByValue(measurement.unit).secondaryUnit : ''"
+              :realtime-options="getProfileByValue(measurement.unit)?.realtime"
             />
 
             <!-- Placeholder when no chart data available -->
@@ -155,59 +154,6 @@
 
             <!-- Recent messages -->
             <RecentMessages :messages="getMeasurementRecentMessages(measurement.unit)" :measurement-type="measurement.unit?.toLowerCase()" />
-
-            <!-- Historical Measurement Chart -->
-            
-          </div>
-        </ion-content>
-      </ion-tab>
-
-      <!-- Battery Tab -->
-      <ion-tab tab="battery">
-        <ion-content class="ion-padding custom">
-          <div class="tab-content">
-            <!-- Header with connection status -->
-            <div class="header">
-              <div class="header-title">
-                <ion-back-button default-href="/home"></ion-back-button>
-                <h1>📟 Device Measurements - Battery</h1>
-              </div>
-              <div class="header-subtitle">
-                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
-              </div>
-            </div>
-
-            <!-- Device information section -->
-            <BatteryDeviceInfo :device="batteryDevice" :battery-percentage="getBatteryPercentage?.() || 0" />
-
-            <!-- Battery charts grid (multi-channel dual-axis) -->
-            <BatteryChartsGrid 
-              v-if="batteryChartDataFragments.length > 0" 
-              :chart-fragments="batteryChartDataFragments" 
-              :chart-key="batteryChartKey"
-              :latest-data-points="batteryLatestDataPoints"
-              :device-name="batteryDevice?.device_name || 'Dispositivo IoT'"
-              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.min"
-              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.max" />
-
-            <!-- Placeholder when no chart data available -->
-            <div v-else class="charts-section">
-              <h3 class="section-title">📈 Real-time Battery Data</h3>
-              <div class="waiting-data-card">
-                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
-                <p>Esperando datos en tiempo real de batería...</p>
-                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de batería</p>
-              </div>
-            </div>
-
-            <!-- Recent messages -->
-            <HistoricalMeasurementChart 
-              v-if="deviceId || (device && device.id)"
-              :device-id="deviceId || device.id"
-              :available-measurements="measurements"
-              initial-type="battery"
-            />
-            <RecentMessages :messages="batteryMessages" measurement-type="battery" />
 
             <!-- Historical Measurement Chart -->
             
@@ -553,6 +499,7 @@ import {
 } from '@ionic/vue'
 import API from '@/utils/api/api.js'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
+import { MEASUREMENT_PROFILES, getProfileByValue } from '@/data/measurementProfiles.js'
 import HistoricalMeasurementChart from '@/components/charts/HistoricalMeasurementChart.vue'
 import CombinedHistoricalChart from '@/components/charts/CombinedHistoricalChart.vue'
 import { format, subDays } from 'date-fns'
@@ -920,6 +867,19 @@ const formatValue = (value, unit) => {
   
   return `${value} ${unit || ''}`
 }
+
+// Helper function to get the appropriate chart grid component based on the unit
+const getComponentForUnit = (unit) => {
+  const profile = getProfileByValue(unit);
+  
+  // If the profile says it has 2 axes, use BatteryChartsGrid (which handles dual-axis)
+  if (profile && profile.axes === 2) {
+    return BatteryChartsGrid;
+  }
+  
+  // Default to standard ChartsGrid for single-axis or unknown types
+  return ChartsGrid;
+};
 
 // Helper function to get chart data for dynamic measurements
 const getMeasurementChartData = (measurementUnit) => {
