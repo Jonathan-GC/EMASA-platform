@@ -27,6 +27,7 @@ export const routes = [
             {
                 path: P.HOME,
                 component: C.HOME,
+                beforeEnter: requireAuth,
                 meta: { 
                     requiresAuth: true,
                     label: 'Home'
@@ -185,13 +186,12 @@ export const routes = [
             {
                 path: P.NOTIFICATIONS,
                 component: C.NOTIFICATIONS,
-                beforeEnter: requireRoles,
+                beforeEnter: requireAuth,
                 meta: { 
                     requiresAuth: true,
                     requiresTenant: true,
                     label: 'Notifications'
-                },
-                beforeEnter: requireAuth
+                }
             },
                 
 
@@ -200,8 +200,11 @@ export const routes = [
             {
             path: P.SUPPORT,
             component: C.SUPPORT,    
-            beforeEnter: allowAll,        
-            meta: { public: true },       
+            beforeEnter: requireAuth,        
+            meta: { 
+                requiresAuth: true,
+                label: 'Soporte' 
+            },       
             },
 
 
@@ -211,7 +214,7 @@ export const routes = [
                 beforeEnter: requireRoles,
                 meta: { 
                     requiresAuth: true,
-                    roles: ['root', 'support'],
+                    roles: ['root', 'support', 'admin'],
                     label: 'Inbox'
                 }
             },
@@ -220,19 +223,12 @@ export const routes = [
                 path: P.CONVERSATION,
                 alias: '/tickets', // Alias for email links
                 component: C.CONVERSATION,
+                beforeEnter: requireAuth,
                 meta: { 
-                    label: 'Inbox'
+                    requiresAuth: true,
+                    label: 'Mensajes'
                 },
-            },
-
-
-            { path: P.TENANTS, component: C.TENANTS },  
-            { path: P.TENANT_LOCATIONS, component: C.TENANT_LOCATIONS, beforeEnter: requireAuth },
-            { path: P.TENANT_WORKSPACES, component: C.TENANT_WORKSPACES, beforeEnter: requireAuth },
-            { path: P.NOTIFICATIONS, component: C.NOTIFICATIONS, beforeEnter: requireAuth }
-
-            // Catch-all 404 route (Not Found)
-            
+            }
 
         ]
     },

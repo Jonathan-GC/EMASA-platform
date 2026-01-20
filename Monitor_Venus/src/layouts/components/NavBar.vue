@@ -68,7 +68,7 @@
         </template>
         
         <!-- Enlaces de administración -->
-        <template v-if="canAccessAnyAdminRoute && !authStore.isSupportUser && !authStore.isTechnician">
+        <template v-if="canAccessManagement">
           <hr class="divider"/>
           
           <!-- Tenants: root, admin, manager -->
@@ -143,7 +143,7 @@
         </template>
 
         <!-- Enlaces de infraestructura -->
-        <template v-if="canAccessAnyInfrastructureRoute && !authStore.isSupportUser">
+        <template v-if="canAccessInfrastructure">
 
           <hr class="divider"/>
           
@@ -216,39 +216,29 @@
           </router-link>
         </template>
 
-        <!-- Support navbar !-->
+        <!-- Support and Communications -->
+        <hr class="divider"/>
         
-          <hr class="divider"/>
-          <router-link
-            v-if="!showSupportLinks"
-            :to="paths.SUPPORT"
-            class="nav-link"
-            :class="{ active: $route.path === paths.SUPPORT }"
-            @click="closeNavbar"
-          >
-            <ion-icon :icon="icons.helpBuoy"></ion-icon>
-            Soporte
-          </router-link>
-          <template v-if="authStore.isAuthenticated">
-          <router-link
-            v-if="showSupportLinks"
-            :to="paths.INBOX"
-            class="nav-link"
-            :class="{ active: $route.path === paths.INBOX }"
-            @click="closeNavbar"
-          >
-            <ion-icon :icon="icons.mail"></ion-icon>
-            Inbox
-          </router-link>
-        </template>
+        <router-link
+          :to="paths.SUPPORT"
+          class="nav-link"
+          :class="{ active: $route.path === paths.SUPPORT }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.helpBuoy"></ion-icon>
+          Soporte
+        </router-link>
 
-        <!-- Inbox navbar !-->
-
-        <template>
-
-        
-
-        </template>
+        <router-link
+          v-if="canAccessInbox"
+          :to="paths.INBOX"
+          class="nav-link"
+          :class="{ active: $route.path === paths.INBOX }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.mail"></ion-icon>
+          Inbox
+        </router-link>
 
         <hr class="divider"/>
 
@@ -305,22 +295,19 @@ const canAccessRoute = (requiredRoles) => {
   return requiredRoles.some(role => authStore.hasRole(role))
 }
 
-// Check if user can access any admin route (to show the admin section)
-const canAccessAnyAdminRoute = computed(() => {
-  return canAccessRoute(['root', 'admin', 'manager', 'viewe r', 'tenant_admin', 'tenant_user'])
+const canAccessInfrastructure = computed(() => {
+  const roles = ['technician', 'manager']
+  return authStore.isSuperUser || authStore.isGlobalUser || roles.includes(authStore.user?.role_type) || authStore.isTenantAdmin
 })
 
-// Check if user can access any infrastructure route (to show the infrastructure section)
-const canAccessAnyInfrastructureRoute = computed(() => {
-  return canAccessRoute(['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'])
+const canAccessManagement = computed(() => {
+  return authStore.isSuperUser || authStore.isGlobalUser || authStore.user?.role_type === 'manager' || authStore.isTenantAdmin
 })
+
+const canAccessInbox = computed(() => authStore.isSuperUser || authStore.isSupportUser || authStore.isGlobalUser);
 
 const showAuthLinks = computed(() => {
   return !authStore.isAuthenticated
-})
-
-const showSupportLinks = computed(() => {
-  return authStore.isSupportUser 
 })
 
 </script>

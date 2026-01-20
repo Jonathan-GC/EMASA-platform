@@ -186,6 +186,9 @@ class API {
     COMMENT_ATTACHMENT = 'support/comment-attachment/'
     COMMENT_TOKEN_VERIFICATION = 'users/auth/verify-ticket-token/'
 
+    //----[LOGS]----
+    AUDIT = 'users/audit/'
+    TENANT_AUDIT = 'users/audit/get_tenant_admin_logs/'
 
     static instance;
 

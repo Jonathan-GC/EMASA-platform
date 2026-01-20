@@ -13,7 +13,7 @@
     <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
   </ion-button>
 
-  <ion-button v-if="toCreate" fill="clear" class="mx-2 rounded-full" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
+  <ion-button v-if="toCreate && canPerformAction" fill="clear" class="mx-2 rounded-full" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
     <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
     Agregar
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
@@ -30,7 +30,7 @@
     Permissions button (toPermissions):
     Displays a key icon that emits permissions-clicked event.
   -->
-  <ion-button v-if="toPermissions" fill="clear" size="small" @click="handlePermissionsClick" title="permisos">
+  <ion-button v-if="toPermissions && canPerformAction" fill="clear" size="small" @click="handlePermissionsClick" title="permisos">
     <ion-icon :icon="keyOutline" slot="icon-only"></ion-icon>
   </ion-button>
 
@@ -38,7 +38,7 @@
     Membership button (toMembership):
     Displays a person-add icon that emits membership-clicked event.
   -->
-  <ion-button v-if="toMembership" fill="clear" size="small" @click="handleMembershipClick" title="miembros">
+  <ion-button v-if="toMembership && canPerformAction" fill="clear" size="small" @click="handleMembershipClick" title="miembros">
     <ion-icon :icon="personAddOutline" slot="icon-only"></ion-icon>
   </ion-button>
 
@@ -46,7 +46,7 @@
     Edit button (toEdit):
     Opens a modal containing FormUpdateGeneral to update the item.
   -->
-  <ion-button v-if="toEdit" fill="clear" size="small" class="action edit" @click="overlayEdit = !overlayEdit; selectedAction = 'update';" title="editar">
+  <ion-button v-if="toEdit && canPerformAction" fill="clear" size="small" class="action edit" @click="overlayEdit = !overlayEdit; selectedAction = 'update';" title="editar">
     <ion-icon :icon="createOutline" slot="icon-only"></ion-icon>
     <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
       <ion-content>
@@ -65,7 +65,7 @@
     Toggler button (toToggle):
     Opens a modal with FormDeleteGeneral to perform a delete action.
   -->
-  <ion-button v-if="toToggle" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'toggle'" :title="$props.status ? 'desactivar' : 'activar'">
+  <ion-button v-if="toToggle && canPerformAction" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'toggle'" :title="$props.status ? 'desactivar' : 'activar'">
     <ion-icon :icon="$props.status ? closeCircleOutline: checkmarkCircleOutline" slot="icon-only"></ion-icon> 
     <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
       <ion-content>
@@ -84,7 +84,7 @@
     Delete button (toDelete):
     Opens a modal with FormDeleteGeneral to perform a delete action.
   -->
-  <ion-button v-if="toDelete" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'delete'" title="eliminar">
+  <ion-button v-if="toDelete && canPerformAction" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'delete'" title="eliminar">
     <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
     <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
       <ion-content>
@@ -109,6 +109,7 @@ import { IonButton, IonIcon, IonModal, IonContent, IonSpinner, IonButtons } from
 import { eyeOutline, addOutline, createOutline, trashOutline, keyOutline, personAddOutline, closeCircleOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from '@utils/forms/form-types/formsTypes';
+import { useAuthStore } from '@/stores/authStore'
 
 
 // The 'quickActions' component centralizes quick actions (view, edit, delete).
@@ -201,6 +202,7 @@ export default defineComponent({
     }
   },
   setup() {
+    const authStore = useAuthStore()
     return {
       eyeOutline,
       addOutline,
@@ -210,6 +212,7 @@ export default defineComponent({
       personAddOutline,
       closeCircleOutline,
       checkmarkCircleOutline,
+      authStore
     };
   },
   computed: {
@@ -221,6 +224,17 @@ export default defineComponent({
         status: this.selectedAction === 'toggle' ? !this.status : this.status
       }
       return FormFactory.getComponentConfig(this.selectedAction, this.type, extraProps);
+    },
+    canPerformAction() {
+      if (this.authStore.isSuperUser || this.authStore.isGlobalUser || this.authStore.isTenantAdmin) return true;
+      
+      const isInfrastructure = ['gateway', 'application', 'machine', 'device_profile', 'device_type', 'device'].includes(this.type as string);
+      
+      if (isInfrastructure) {
+        return ['manager', 'technician'].includes(this.authStore.user?.role_type);
+      }
+      
+      return this.authStore.user?.role_type === 'manager';
     }
   },
   watch : {

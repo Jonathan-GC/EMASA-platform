@@ -4,7 +4,7 @@
     Opens a modal containing the appropriate create form component.
   -->
   
-  <ion-button color="secondary" v-if="toCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
+  <ion-button color="secondary" v-if="toCreate && canCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
     <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
@@ -16,7 +16,7 @@
     </ion-modal>
   </ion-button>
 
-  <ion-button color="primary" v-if="toInitial" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
+  <ion-button color="primary" v-if="toInitial && canCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
     <ion-icon :icon="addOutline" slot="start"></ion-icon>
     {{ text }}
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
@@ -33,7 +33,7 @@
     Edit button (toEdit):
     Opens a modal containing the appropriate edit form component.
   -->
-  <ion-button v-if="toEdit" fill="outline" class="mx-2" @click="overlayEdit = !overlayEdit; selectedAction = 'update';">
+  <ion-button v-if="toEdit && canEdit" fill="outline" class="mx-2" @click="overlayEdit = !overlayEdit; selectedAction = 'update';">
     <ion-icon :icon="pencilOutline" slot="start"></ion-icon>
     Editar
     <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
@@ -54,6 +54,7 @@ import { IonButton, IonIcon, IonModal, IonContent, IonSpinner } from '@ionic/vue
 import { addOutline, pencilOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from  '@utils/forms/form-types/formsTypes';
+import { useAuthStore } from '@/stores/authStore'
 
 // The 'quickControl' component handles create and edit actions for entities.
 export default defineComponent({
@@ -128,9 +129,11 @@ export default defineComponent({
   },
 
   setup() {
+    const authStore = useAuthStore();
     return {
       addOutline,
-      pencilOutline
+      pencilOutline,
+      authStore
     };
   },
 
@@ -142,6 +145,20 @@ export default defineComponent({
         initialData: this.initialData,
       }
       return FormFactory.getComponentConfig(this.selectedAction, this.type, extraProps);
+    },
+    canCreate() {
+      if (this.authStore.isSuperUser || this.authStore.isGlobalUser || this.authStore.isTenantAdmin) return true;
+      
+      const isManagement = ['tenant', 'user', 'workspace', 'role', 'location'].includes(this.type as string);
+      const isInfrastructure = ['gateway', 'application', 'machine', 'device_profile', 'device_type', 'device'].includes(this.type as string);
+      
+      if (isManagement) return this.authStore.user?.role_type === 'manager';
+      if (isInfrastructure) return ['manager', 'technician'].includes(this.authStore.user?.role_type);
+      
+      return false;
+    },
+    canEdit() {
+      return this.canCreate;
     }
   },
 

@@ -42,7 +42,7 @@
           </div>
           <ion-grid>
             <ion-row>
-              <ion-col size="12" size-md="6" size-lg="3" v-for="metric in metrics" :key="metric.title">
+              <ion-col size="12" size-md="6" size-lg="3" v-for="metric in visibleMetrics" :key="metric.title">
                 <ion-card class="metric-card">
                   <ion-card-content>
                     <div class="metric-content">
@@ -61,37 +61,65 @@
           </ion-grid>
         </div>
 
-        <!-- Quick Navigation & Recent Activity -->
-        <ion-grid class="section">
-          <ion-row>
+        <!-- Last Activity Table -->
+        <div class="section" v-if="canAccessManagement">
+          <div class="section-header">
+            <h2 class="section-title">
+              <ion-icon :icon="icons.list"></ion-icon>
+              Resumen de Auditoría
+            </h2>
+            <p class="section-description">Los últimos 5 movimientos procesados en el sistema</p>
+          </div>
+          <ion-card class="table-card">
+            <div class="table-wrapper">
+              <ion-grid class="data-table">
+                <ion-row class="table-header">
+                  <ion-col size="1.2">Acción</ion-col>
+                  <ion-col size="1.2">Entidad</ion-col>
+                  <ion-col size="2.5">Recurso</ion-col>
+                  <ion-col size="3.1">Cambios Realizados</ion-col>
+                  <ion-col size="2">Autor</ion-col>
+                  <ion-col size="2">Fecha</ion-col>
+                </ion-row>
+                
+                <ion-row v-for="item in activityTable" :key="item.id" class="table-row-stylized">
+                  <ion-col size="1.2">
+                    <ion-chip :color="item.color" class="action-chip">
+                      <ion-label>{{ item.actionLabel }}</ion-label>
+                    </ion-chip>
+                  </ion-col>
+                  <ion-col size="1.2">
+                    <ion-chip outline class="entity-chip">
+                      <ion-label>{{ item.entity }}</ion-label>
+                    </ion-chip>
+                  </ion-col>
+                  <ion-col size="2.5">
+                    <div class="user-info">
+                      <strong class="truncate">{{ item.object_repr }}</strong>
+                    </div>
+                  </ion-col>
+                  <ion-col size="3.1">
+                    <span class="change-log">{{ item.changes }}</span>
+                  </ion-col>
+                  <ion-col size="2">
+                    <div class="actor-info">
+                      <ion-icon :icon="icons.person" class="actor-icon"></ion-icon>
+                      <span class="user-username">{{ item.actor }}</span>
+                    </div>
+                  </ion-col>
+                  <ion-col size="2">
+                    <span class="user-email">{{ item.time }}</span>
+                  </ion-col>
+                </ion-row>
 
-            <!-- Recent Activity takes 1/3 on large screens -->
-            <ion-col size="12" size-lg="4">
-              <div class="subsection">
-                <div class="section-header">
-                  <h2 class="section-title">
-                    <ion-icon :icon="timeOutline"></ion-icon>
-                    Recent Activity
-                  </h2>
-                  <p class="section-description">Latest system events</p>
+                <div v-if="activityTable.length === 0" class="empty-state">
+                  <ion-icon :icon="icons.archive" class="empty-icon"></ion-icon>
+                  <p>No se encontró actividad reciente en el sistema.</p>
                 </div>
-                <ion-card class="activity-card">
-                  <ion-list>
-                    <ion-item v-for="activity in recentActivity" :key="activity.id" lines="full" class="activity-item">
-                      <div class="activity-icon" :class="`${activity.color}-bg`" slot="start">
-                        <ion-icon :icon="activity.icon"></ion-icon>
-                      </div>
-                      <ion-label>
-                        <h3>{{ activity.message }}</h3>
-                        <p>{{ activity.time }}</p>
-                      </ion-label>
-                    </ion-item>
-                  </ion-list>
-                </ion-card>
-              </div>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
+              </ion-grid>
+            </div>
+          </ion-card>
+        </div>
 
         <!-- Infrastructure Management -->
         <div class="section" v-if="canAccessInfrastructure">
@@ -104,7 +132,7 @@
           </div>
           <ion-grid>
             <ion-row>
-              <ion-col size="12" size-md="6" size-lg="4">
+              <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessGateways">
                 <ion-card class="nav-card" button @click="navigateTo('/infrastructure/gateways')">
                   <ion-card-content>
                     <div class="nav-card-content">
@@ -121,7 +149,7 @@
                 </ion-card>
               </ion-col>
               
-              <ion-col size="12" size-md="6" size-lg="4">
+              <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessApplications">
                 <ion-card class="nav-card" button @click="navigateTo('/infrastructure/applications')">
                   <ion-card-content>
                     <div class="nav-card-content">
@@ -138,7 +166,7 @@
                 </ion-card>
               </ion-col>
               
-              <ion-col size="12" size-md="6" size-lg="4">
+              <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessMachines">
                 <ion-card class="nav-card" button @click="navigateTo('/infrastructure/machines')">
                   <ion-card-content>
                     <div class="nav-card-content">
@@ -169,7 +197,7 @@
           </div>
           <ion-grid>
             <ion-row>
-              <ion-col size="12" size-md="6" size-lg="4">
+              <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessUsers">
                 <ion-card class="nav-card" button @click="navigateTo('/users')">
                   <ion-card-content>
                     <div class="nav-card-content">
@@ -186,7 +214,7 @@
                 </ion-card>
               </ion-col>
               
-              <ion-col size="12" size-md="6" size-lg="4">
+              <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessWorkspaces">
                 <ion-card class="nav-card" button @click="navigateTo('/workspaces')">
                   <ion-card-content>
                     <div class="nav-card-content">
@@ -251,7 +279,7 @@
                 </ion-card>
               </ion-col>
               
-              <ion-col size="12" size-md="6" size-lg="4">
+              <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessInbox">
                 <ion-card class="nav-card" button @click="navigateTo('/inbox')">
                   <ion-card-content>
                     <div class="nav-card-content">
@@ -304,16 +332,146 @@ import { isPlatform} from '@ionic/vue'
 
 import { Capacitor } from '@capacitor/core'
 
+import { statsChartOutline, timeOutline, serverOutline, peopleOutline, mailOutline, chevronForwardOutline, createOutline, addOutline, trashOutline, refreshOutline, informationCircleOutline } from 'ionicons/icons'
+
 const router = useRouter()
 const authStore = useAuthStore()
 const icons = inject('icons', {})
-const { notifications, connectionStatus, isConnected, connect, disconnect } = useNotifications()
+const { connectionStatus, connect, disconnect } = useNotifications()
+
+// Recent Activity from API (Audit logs)
+const serverActivity = ref([])
+const actorDetails = ref({}) // Cache for actor names { id: name }
+
+const activityTable = computed(() => {
+  return serverActivity.value.map(item => ({
+    id: item.id,
+    message: formatActivityMessage(item),
+    time: formatTime(item.timestamp),
+    icon: getActivityIcon(item),
+    color: getActivityColor(item),
+    actionLabel: getActionLabel(item),
+    object_repr: cleanObjectRepr(item.object_repr),
+    actor: actorDetails.value[item.actor] || 'Cargando...',
+    entity: item.model ? item.model.charAt(0).toUpperCase() + item.model.slice(1) : 'General',
+    changes: formatChanges(item.changes),
+    timestamp: item.timestamp
+  }))
+})
+
+function cleanObjectRepr(repr) {
+  if (!repr) return ''
+  // If it's something like "Activation object (10)" or "Activation object 10", simplify it
+  // This matches "Something object (Anything)" or "Something object Anything"
+  const match = repr.match(/.*object\s*\(?([^)]+)\)?/i)
+  if (match && match[1]) {
+    return match[1].trim()
+  }
+  return repr.trim()
+}
+
+function formatChanges(changes) {
+  if (!changes || Object.keys(changes).length === 0) return 'Sin cambios detectados'
+  
+  const entries = Object.entries(changes)
+  if (entries.length === 0) return 'Sin cambios detectados'
+
+  const formatValue = (val) => {
+    if (val === 'None' || val === null || val === undefined) return 'vacío'
+    if (typeof val === 'object' && val !== null) {
+      return val.id || val.name || JSON.stringify(val)
+    }
+    return val
+  }
+
+  return entries.slice(0, 2).map(([key, value]) => {
+    // Clean up key
+    const field = key.replace(/_/g, ' ')
+    const oldValue = formatValue(value[0])
+    const newValue = formatValue(value[1])
+    
+    // Friendly language based on context
+    if (oldValue === 'vacío') return `Nuevo ${field}: "${newValue}"`
+    return `Cambió ${field} de "${oldValue}" a "${newValue}"`
+  }).join(' | ') + (entries.length > 2 ? ' ...' : '')
+}
+
+function getActionLabel(item) {
+  const actionMap = {
+    '0': 'Creado',
+    '1': 'Editado',
+    '2': 'Borrado'
+  }
+  return actionMap[item.action] || 'Evento'
+}
+
+function formatActivityMessage(item) {
+  const actionMap = {
+    '0': 'Creación',
+    '1': 'Actualización',
+    '2': 'Eliminación'
+  }
+  const action = actionMap[item.action] || 'Evento'
+  const resource = cleanObjectRepr(item.object_repr)
+  return `${action}: ${resource}`
+}
+
+function getActivityIcon(item) {
+  const actionIconMap = {
+    '1': createOutline, // Updated
+    '0': addOutline,    // Created
+    '2': trashOutline   // Deleted
+  }
+  return actionIconMap[item.action] || informationCircleOutline
+}
+
+function getActivityColor(item) {
+  const actionColorMap = {
+    '1': 'warning', // Updated
+    '0': 'success', // Created
+    '2': 'danger'   // Deleted
+  }
+  return actionColorMap[item.action] || 'primary'
+}
+
+// Fetch Activity Logs
+async function fetchActivity() {
+  try {
+    const endpoint = authStore.isSuperUser ? API.AUDIT : API.TENANT_AUDIT
+    const response = await API.get(endpoint)
+    const logs = Array.isArray(response) ? response : (response?.results || [])
+    serverActivity.value = logs.slice(0, 5) // Get exactly last 5
+
+    // Fetch actor full names for the logs
+    const uniqueActors = [...new Set(serverActivity.value.map(log => log.actor).filter(id => id && !actorDetails.value[id]))]
+    
+    if (uniqueActors.length > 0) {
+      await Promise.all(uniqueActors.map(async (actorId) => {
+        try {
+          const response = await API.get(`${API.USER}${actorId}/`)
+          // API.get wraps single objects in an array: [object]
+          const userData = Array.isArray(response) ? response[0] : response
+          
+          if (userData) {
+            const fullName = (userData.name ? `${userData.name} ${userData.last_name || ''}` : '').trim()
+            actorDetails.value[actorId] = fullName || userData.username || 'Usuario desconocido'
+          }
+        } catch (e) {
+          console.warn(`Could not fetch details for actor ${actorId}`, e)
+          actorDetails.value[actorId] = 'Sistema'
+        }
+      }))
+    }
+  } catch (error) {
+    console.error('Error fetching activity logs:', error)
+  }
+}
 
 // Track if component is mounted to prevent updates during transitions
 const isMounted = ref(false)
 const pageReady = ref(false)
 // User information
-const userName = computed(() => authStore.user?.username || 'User')
+const userName = computed(() => authStore.fullName || 'User')
 const userRoleLabel = computed(() => {
   const user = authStore.user
   if (user?.is_superuser) return 'Super Administrator'
@@ -350,12 +508,13 @@ const systemStatusColor = computed(() => {
 // Real-time metrics from API
 const metrics = ref([
   {
-    title: 'Active Devices',
+    title: 'Dispositivos Activos',
     value: '...',
     change: '',
     trend: 'neutral',
     icon: null,
-    color: 'info'
+    color: 'info',
+    key: 'infrastructure'
   },
   {
     title: 'Gateways',
@@ -363,37 +522,40 @@ const metrics = ref([
     change: '',
     trend: 'neutral',
     icon: null,
-    color: 'success'
+    color: 'success',
+    key: 'infrastructure'
   },
   {
-    title: 'Tenants',
+    title: 'Clientes',
     value: '...',
     change: '',
     trend: 'neutral',
     icon: null,
-    color: 'warning'
+    color: 'warning',
+    key: 'tenants'
   },
   {
-    title: 'Total Users',
+    title: 'Usuarios Totales',
     value: '...',
     change: '',
     trend: 'neutral',
     icon: null,
-    color: 'error'
+    color: 'error',
+    key: 'management'
   }
 ])
 
-// Recent activity from notifications
-const recentActivity = computed(() => {
-  return notifications.value.slice(0, 5).map((notif, index) => ({
-    id: index,
-    type: notif.type || 'info',
-    message: notif.message || notif.title || 'No message',
-    time: formatTime(notif.timestamp),
-    icon: getIconForNotificationType(notif.type),
-    color: getColorForNotificationType(notif.type)
-  }))
+const visibleMetrics = computed(() => {
+  return metrics.value.filter(m => {
+    if (m.key === 'infrastructure') return canAccessInfrastructure.value
+    if (m.key === 'tenants') return canAccessTenants.value
+    if (m.key === 'management') return canAccessManagement.value
+    return true
+  })
 })
+
+// Recent activity from notifications
+/* Lines 427-466 removed to use combined activity logic */
 
 // Helper functions
 function formatTime(timestamp) {
@@ -411,89 +573,80 @@ function formatTime(timestamp) {
   return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
 }
 
-function getIconForNotificationType(type) {
-  const iconMap = {
-    'error': warningOutline,
-    'warning': warningOutline,
-    'success': checkmarkCircleOutline,
-    'info': notificationsOutline,
-    'alert': warningOutline
-  }
-  return iconMap[type] || notificationsOutline
-}
-
-function getColorForNotificationType(type) {
-  const colorMap = {
-    'error': 'danger',
-    'warning': 'warning',
-    'success': 'success',
-    'info': 'info',
-    'alert': 'danger'
-  }
-  return colorMap[type] || 'primary'
-}
-
 // Fetch real metrics from API
 async function fetchMetrics() {
   try {
-    // Fetch all data in parallel for better performance
-    const [devicesResponse, gatewaysResponse, tenantsResponse, usersResponse] = await Promise.all([
-      API.get(API.DEVICE),
-      API.get(API.GATEWAY),
-      API.get(API.TENANT),
-      API.get(API.USER)
-    ])
+    // Fetch only what user has access to
+    const fetchPromises = [
+      canAccessInfrastructure.value ? API.get(API.DEVICE) : Promise.resolve(null),
+      canAccessInfrastructure.value ? API.get(API.GATEWAY) : Promise.resolve(null),
+      canAccessTenants.value ? API.get(API.TENANT) : Promise.resolve(null),
+      canAccessUsers.value ? API.get(API.USER) : Promise.resolve(null),
+      canAccessManagement.value ? fetchActivity() : Promise.resolve(null)
+    ]
+    
+    const [devicesResponse, gatewaysResponse, tenantsResponse, usersResponse] = await Promise.all(fetchPromises)
     
     // Calculate device counts
-    const deviceCount = Array.isArray(devicesResponse) ? devicesResponse.length : devicesResponse?.count || 0
-    const activeDevices = Array.isArray(devicesResponse) 
-      ? devicesResponse.filter(d => d.is_active || d.status === 'active').length 
-      : deviceCount
+    let activeDevices = '0'
+    let deviceTotal = '0'
+    if (devicesResponse) {
+      const deviceCount = Array.isArray(devicesResponse) ? devicesResponse.length : devicesResponse?.count || 0
+      const activeCount = Array.isArray(devicesResponse) 
+        ? devicesResponse.filter(d => d.is_active || d.status === 'active').length 
+        : deviceCount
+      activeDevices = activeCount.toString()
+      deviceTotal = `${deviceCount} total`
+    }
     
     // Calculate gateway count
-    const gatewayCount = Array.isArray(gatewaysResponse) ? gatewaysResponse.length : gatewaysResponse?.count || 0
+    let gatewayCountStr = '0'
+    if (gatewaysResponse) {
+      const gatewayCount = Array.isArray(gatewaysResponse) ? gatewaysResponse.length : gatewaysResponse?.count || 0
+      gatewayCountStr = gatewayCount.toString()
+    }
     
     // Calculate tenant count
-    const tenantCount = Array.isArray(tenantsResponse) ? tenantsResponse.length : tenantsResponse?.count || 0
+    let tenantCountStr = '0'
+    if (tenantsResponse) {
+      const tenantCount = Array.isArray(tenantsResponse) ? tenantsResponse.length : tenantsResponse?.count || 0
+      tenantCountStr = tenantCount.toString()
+    }
     
     // Calculate user count
-    const userCount = Array.isArray(usersResponse) ? usersResponse.length : usersResponse?.count || 0
+    let userCountStr = '0'
+    if (usersResponse) {
+      const userCount = Array.isArray(usersResponse) ? usersResponse.length : usersResponse?.count || 0
+      userCountStr = userCount.toString()
+    }
     
-    // Update metrics
-    metrics.value = [
-      {
-        title: 'Active Devices',
-        value: activeDevices.toString(),
-        change: `${deviceCount} total`,
-        trend: activeDevices > 0 ? 'up' : 'neutral',
-        icon: icons.antenna,
-        color: 'info'
-      },
-      {
-        title: 'Gateways',
-        value: gatewayCount.toString(),
-        change: 'Connected',
-        trend: gatewayCount > 0 ? 'up' : 'neutral',
-        icon: icons.wifi,
-        color: 'success'
-      },
-      {
-        title: 'Tenants',
-        value: tenantCount.toString(),
-        change: 'Organizations',
-        trend: tenantCount > 0 ? 'up' : 'neutral',
-        icon: icons.business,
-        color: 'warning'
-      },
-      {
-        title: 'Total Users',
-        value: userCount.toString(),
-        change: 'Registered',
-        trend: userCount > 0 ? 'up' : 'neutral',
-        icon: icons.people,
-        color: 'danger'
+    // Update metrics values dynamically
+    metrics.value.forEach(m => {
+      if (m.title === 'Dispositivos Activos') {
+        m.value = activeDevices
+        m.change = deviceTotal
+        m.trend = parseInt(activeDevices) > 0 ? 'up' : 'neutral'
+        m.icon = icons.antenna
       }
-    ]
+      if (m.title === 'Gateways') {
+        m.value = gatewayCountStr
+        m.change = 'Conectados'
+        m.trend = parseInt(gatewayCountStr) > 0 ? 'up' : 'neutral'
+        m.icon = icons.wifi
+      }
+      if (m.title === 'Clientes') {
+        m.value = tenantCountStr
+        m.change = 'Organizaciones'
+        m.trend = parseInt(tenantCountStr) > 0 ? 'up' : 'neutral'
+        m.icon = icons.business
+      }
+      if (m.title === 'Usuarios Totales') {
+        m.value = userCountStr
+        m.change = 'Registrados'
+        m.trend = parseInt(userCountStr) > 0 ? 'up' : 'neutral'
+        m.icon = icons.people
+      }
+    })
   } catch (error) {
     console.error('Error fetching metrics:', error)
   }
@@ -501,15 +654,32 @@ async function fetchMetrics() {
 
 // Permission-based visibility
 const canAccessInfrastructure = computed(() => {
-  return authStore.isSuperUser || authStore.isGlobalUser || authStore.user?.is_tenant_admin
+  const roles = ['technician', 'tenant_admin', 'tenant_user']
+  return authStore.isSuperUser || authStore.isGlobalUser || roles.includes(authStore.user?.role_type) || authStore.isTenantAdmin
 })
 
+const canAccessGateways = computed(() => canAccessInfrastructure.value)
+const canAccessApplications = computed(() => canAccessInfrastructure.value)
+const canAccessMachines = computed(() => canAccessInfrastructure.value)
+
 const canAccessManagement = computed(() => {
-  return authStore.isSuperUser || authStore.isGlobalUser || authStore.user?.is_tenant_admin
+  const roles = ['manager', 'tenant_admin', 'tenant_user', 'viewer']
+  return authStore.isSuperUser || authStore.isGlobalUser || roles.includes(authStore.user?.role_type) || authStore.isTenantAdmin
 })
+
+const canAccessUsers = computed(() => {
+  const roles = ['manager', 'tenant_admin', 'tenant_user']
+  return authStore.isSuperUser || authStore.isGlobalUser || roles.includes(authStore.user?.role_type) || authStore.isTenantAdmin
+})
+
+const canAccessWorkspaces = computed(() => canAccessManagement.value)
 
 const canAccessTenants = computed(() => {
   return authStore.isSuperUser || authStore.isGlobalUser
+})
+
+const canAccessInbox = computed(() => {
+  return authStore.isSuperUser || authStore.isSupportUser
 })
 
 // Navigation
@@ -980,6 +1150,134 @@ ion-content {
 .primary-bg {
   background: linear-gradient(135deg, rgba(56, 128, 255, 0.15), rgba(56, 128, 255, 0.25));
   color: var(--ion-color-primary);
+}
+
+/* Base Card Style matching other tables */
+.table-card {
+  margin: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: var(--ion-background-color, #fff);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--ion-color-light);
+  border-radius: 12px;
+  margin: 16px;
+}
+
+.data-table {
+  min-width: 1100px;
+  margin: 0;
+}
+
+.table-header {
+  background: var(--ion-color-light-shade, #f4f5f8);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--ion-color-step-600);
+}
+
+.table-header ion-col {
+  padding: 16px 12px;
+}
+
+.table-row-stylized {
+  border-bottom: 1px solid var(--ion-color-light);
+  transition: background-color 0.2s ease;
+  align-items: center;
+}
+
+.table-row-stylized:hover {
+  background-color: var(--ion-color-light-tint);
+}
+
+.table-row-stylized ion-col {
+  padding: 14px 12px;
+  display: flex;
+  align-items: center;
+}
+
+.action-chip {
+  font-size: 10px;
+  height: 24px;
+  margin: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  --background: opacity(0.1);
+}
+
+.entity-chip {
+  height: 22px;
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.actor-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actor-icon {
+  font-size: 14px;
+  color: var(--ion-color-medium);
+}
+
+.change-log {
+  font-size: 0.82rem;
+  color: var(--ion-color-dark);
+  font-weight: 400;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.activity-icon-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.activity-icon-small ion-icon {
+  font-size: 16px;
+}
+
+.user-username {
+  font-weight: 500;
+  color: var(--ion-color-dark);
+}
+
+.user-email {
+  color: var(--ion-color-medium);
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  color: var(--ion-color-medium);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
 }
 
 /* Responsive adjustments */
