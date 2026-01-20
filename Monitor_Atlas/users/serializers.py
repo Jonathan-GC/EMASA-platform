@@ -419,17 +419,32 @@ class UserMeSerializer(UserSerializer):
 from auditlog.models import LogEntry
 
 class LogEntrySerializer(serializers.ModelSerializer):
+    model = serializers.SerializerMethodField()
+    app = serializers.SerializerMethodField()
+
     class Meta:
         model = LogEntry
         fields = [
-            'id', 
-            'action', 
-            'content_type', 
-            'object_pk', 
-            'object_repr', 
-            'serialized_data', 
-            'actor', 
-            'remote_addr', 
-            'timestamp', 
+            'id',
+            'action',
+            'model',
+            'app',
+            'content_type',
+            'object_pk',
+            'object_repr',
+            'serialized_data',
+            'actor',
+            'remote_addr',
+            'timestamp',
             'changes',
         ]
+
+    def get_model(self, obj):
+        if obj.content_type:
+            return obj.content_type.model
+        return None
+
+    def get_app(self, obj):
+        if obj.content_type:
+            return obj.content_type.app_label
+        return None
