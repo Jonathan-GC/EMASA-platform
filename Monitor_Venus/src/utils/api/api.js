@@ -53,6 +53,10 @@ class API {
     //----[ROLES]----
     ROLE = 'roles/role/'
     ROLE_PERMISSION = 'roles/role-permission/'
+    ROLE_REMOVE_USER(roleId) {
+        return `roles/role/${roleId}/remove_user/`
+    }
+        
     ROLE_MEMBERSHIP(roleId) {
         return `roles/role/${roleId}/get_all_role_users/`
     }

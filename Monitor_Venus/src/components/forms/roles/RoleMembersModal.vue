@@ -39,6 +39,20 @@
             <ion-chip slot="end" :color="member.is_active ? 'success' : 'medium'">
               {{ member.is_active ? 'Activo' : 'Inactivo' }}
             </ion-chip>
+            <ion-button 
+              slot="end" 
+              fill="clear" 
+              color="secondary"
+              shape="round"
+              size="default"
+              @click="handleRemoveUser(member)"
+              :disabled="removingUserId === member.id"
+            >
+              <ion-icon 
+                slot="icon-only" 
+                :icon="removingUserId === member.id ? icons.hourglass : icons.error"
+              ></ion-icon>
+            </ion-button>
           </ion-item>
         </ion-list>
       </div>
@@ -57,7 +71,8 @@ import { ref, onMounted, inject } from 'vue'
 import { 
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, 
   IonButtons, IonButton, IonIcon, IonList, IonItem, 
-  IonLabel, IonAvatar, IonBadge, IonSpinner, modalController 
+  IonLabel, IonAvatar, IonBadge, IonSpinner, modalController,
+  alertController, toastController
 } from '@ionic/vue'
 import API from '@utils/api/api'
 import Avatar from '@assets/svg/avatar.svg'
@@ -73,6 +88,7 @@ const icons = inject('icons', {})
 const members = ref([])
 const loading = ref(true)
 const error = ref(null)
+const removingUserId = ref(null)
 
 /**
  * Formats the image URL to include the backend base URL if it's a relative path.
@@ -108,6 +124,62 @@ const fetchMembers = async () => {
     error.value = 'No se pudieron cargar los miembros del rol.'
   } finally {
     loading.value = false
+  }
+}
+
+const handleRemoveUser = async (member) => {
+  const alert = await alertController.create({
+    header: 'Confirmar eliminación',
+    message: `¿Estás seguro de que deseas remover a ${member.name} ${member.last_name} de este rol?`,
+    buttons: [
+      {
+        text: 'Cancelar',
+        role: 'cancel'
+      },
+      {
+        text: 'Remover',
+        role: 'confirm',
+        handler: () => {
+          removeUserFromRole(member.id)
+        }
+      }
+    ]
+  })
+
+  await alert.present()
+}
+
+const removeUserFromRole = async (userId) => {
+  removingUserId.value = userId
+  try {
+    await API.post(API.ROLE_REMOVE_USER(props.role.id), {
+      user_id: userId
+    })
+
+    // Show success toast
+    const toast = await toastController.create({
+      message: 'Usuario removido del rol exitosamente',
+      duration: 3000,
+      color: 'success',
+      position: 'top'
+    })
+    await toast.present()
+
+    // Refresh the members list
+    await fetchMembers()
+  } catch (err) {
+    console.error('Error removing user from role:', err)
+    
+    // Show error toast
+    const toast = await toastController.create({
+      message: err.message || 'Error al remover el usuario del rol',
+      duration: 4000,
+      color: 'danger',
+      position: 'top'
+    })
+    await toast.present()
+  } finally {
+    removingUserId.value = null
   }
 }
 
