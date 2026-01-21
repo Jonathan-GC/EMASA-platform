@@ -1,9 +1,10 @@
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .permissions import HasPermission
 
 from django.db.models import Count
+from django.db import transaction
 
 from .serializers import (
     RoleSerializer,
@@ -137,6 +138,41 @@ class RoleViewSet(viewsets.ModelViewSet):
 
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
+
+    @action(
+        detail=True, methods=["post"], permission_classes=[HasPermission], scope="role"
+    )
+    def remove_user(self, request, pk=None):
+        role = self.get_object()
+        user_id = request.data.get("user_id")
+        if not user_id:
+            return Response(
+                {"detail": "user_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        workspace_membership = (
+            WorkspaceMembership.objects.select_related("user", "role", "workspace")
+            .filter(user__id=user_id, role=role, workspace=role.workspace)
+            .first()
+        )
+        if not workspace_membership:
+            return Response(
+                {"status": "user not found in this role"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user = workspace_membership.user
+        group = getattr(role, "group", None)
+        group_name = group.name if group else None
+
+        with transaction.atomic():
+            workspace_membership.delete()
+
+        logger.debug(
+            f"Removed user {user.username} from role {role.name} (group={group_name})"
+        )
+        return Response({"status": "user removed from role"}, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(
