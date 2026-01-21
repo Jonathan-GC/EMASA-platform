@@ -1,7 +1,10 @@
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .permissions import HasPermission
+
+from django.db.models import Count
+from django.db import transaction
 
 from .serializers import (
     RoleSerializer,
@@ -22,6 +25,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from loguru import logger
 from guardian.shortcuts import get_objects_for_user
+
+from users.models import User
+from users.serializers import UserSerializer
 
 
 @extend_schema_view(
@@ -47,11 +53,13 @@ class RoleViewSet(viewsets.ModelViewSet):
         user_tenant = user.tenant
 
         if user.is_superuser:
-            return Role.objects.all()
+            queryset = Role.objects.all()
         else:
-            return get_objects_for_user(user, "roles.view_role", Role).filter(
+            queryset = get_objects_for_user(user, "roles.view_role", Role).filter(
                 workspace__tenant=user_tenant
             )
+
+        return queryset.annotate(users_count=Count("group__user"))
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -82,6 +90,21 @@ class RoleViewSet(viewsets.ModelViewSet):
             f"Assigned base role permissions to user {user.username} for role {instance.name}"
         )
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+
+        workspace = request.query_params.get("workspace")
+        if workspace:
+            queryset = queryset.filter(workspace__id=workspace)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=["get"])
     def get_assignable_permissions(self, request, pk=None):
         user = request.user
@@ -96,6 +119,60 @@ class RoleViewSet(viewsets.ModelViewSet):
         permissions = request.data.get("permissions", {})
         bulk_assign_permissions(permissions, role)
         return Response({"status": "permissions updated"})
+
+    @extend_schema(responses=UserSerializer(many=True))
+    @action(detail=True, methods=["get"])
+    def get_all_role_users(self, request, pk=None):
+        role = self.get_object()
+        group = role.group
+
+        if not group:
+            return Response([])
+
+        users = User.objects.filter(groups=group).select_related("tenant", "address")
+
+        page = self.paginate_queryset(users)
+        if page is not None:
+            serializer = UserSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True, methods=["post"], permission_classes=[HasPermission], scope="role"
+    )
+    def remove_user(self, request, pk=None):
+        role = self.get_object()
+        user_id = request.data.get("user_id")
+        if not user_id:
+            return Response(
+                {"detail": "user_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        workspace_membership = (
+            WorkspaceMembership.objects.select_related("user", "role", "workspace")
+            .filter(user__id=user_id, role=role, workspace=role.workspace)
+            .first()
+        )
+        if not workspace_membership:
+            return Response(
+                {"status": "user not found in this role"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user = workspace_membership.user
+        group = getattr(role, "group", None)
+        group_name = group.name if group else None
+
+        with transaction.atomic():
+            workspace_membership.delete()
+
+        logger.debug(
+            f"Removed user {user.username} from role {role.name} (group={group_name})"
+        )
+        return Response({"status": "user removed from role"}, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(
