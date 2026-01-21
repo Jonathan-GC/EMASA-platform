@@ -1,18 +1,17 @@
 <template>
   <ion-page>
+    <ion-header class="form-header-sticky ion-no-border">
+      <ion-toolbar>
+        <ion-title>Crear Rol</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="closeModal">
+            <ion-icon :icon="icons.close" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
     <ion-content class="ion-padding">
-      <ion-card-header class="custom">
-        <ion-toolbar>
-          <ion-title>Crear Rol</ion-title>
-          <ion-buttons slot="end">
-            <ion-button @click="closeModal">
-              <ion-icon :icon="icons.close" slot="icon-only"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-card-header>
-      <hr class="divider" />
-      
       <ion-card-content class="role-form-container">
         <form @submit.prevent="createRole">
           <!-- Role Preview Section -->
@@ -130,29 +129,33 @@
           </div>
 
           
-
-          <!-- Action Buttons -->
-          <div class="form-actions">
-            <ion-button 
-              type="button" 
-              fill="outline" 
-              @click="closeModal"
-              :disabled="loading"
-            >
-              Cancelar
-            </ion-button>
-            <ion-button 
-              type="submit" 
-              :disabled="loading || !formValues.name"
-              color="primary"
-            >
-              <ion-spinner v-if="loading" slot="start"></ion-spinner>
-              {{ loading ? 'Creando...' : 'Crear Rol' }}
-            </ion-button>
-          </div>
         </form>
       </ion-card-content>
     </ion-content>
+    
+    <ion-footer class="form-footer-sticky ion-no-border">
+      <ion-toolbar>
+        <div class="form-actions">
+          <ion-button 
+            type="button" 
+            fill="outline" 
+            @click="closeModal"
+            :disabled="loading"
+          >
+            Cancelar
+          </ion-button>
+          <ion-button 
+            type="submit"
+            @click="createRole"
+            :disabled="loading || !formValues.name"
+            color="primary"
+          >
+            <ion-spinner v-if="loading" slot="start"></ion-spinner>
+            {{ loading ? 'Creando...' : 'Crear Rol' }}
+          </ion-button>
+        </div>
+      </ion-toolbar>
+    </ion-footer>
   </ion-page>
 </template>
 
@@ -160,6 +163,8 @@
 import { ref, inject, onMounted } from 'vue'
 import {
   IonPage,
+  IonHeader,
+  IonFooter,
   IonContent,
   IonCard,
   IonCardContent,
@@ -593,9 +598,8 @@ onMounted( async () => {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--ion-color-light-shade);
+  padding: 0.5rem 1rem;
+  width: 100%;
 }
 
 /* Responsive */

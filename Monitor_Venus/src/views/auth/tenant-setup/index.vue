@@ -110,6 +110,7 @@
                   ></ion-textarea>
                 </ion-item>     
                 
+                <!-- TEMPORARILY COMMENTED - Will be auto-filled with "Pro" subscription
                 <ion-item class="custom">
                   <ion-label position="stacked" class="!mb-2">subscription</ion-label>
                   <ion-input
@@ -120,6 +121,7 @@
                     :disabled="loading"
                   ></ion-input>
                 </ion-item>
+                -->
               </ion-list>
 
               <!-- Error Alert -->
@@ -171,7 +173,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore.js';
 import API from '@/utils/api/index.js';
@@ -226,10 +228,43 @@ const loading = ref(false);
 const error = ref(null);
 const success = ref(null);
 const imageUploadRef = ref(null);
+const proSubscriptionId = ref(null); // Store the "Pro" subscription ID
 
 // Check if in development mode
 const isDevelopment = computed(() => {
   return import.meta.env.DEV;
+});
+
+/**
+ * Fetch subscriptions and find the "Pro" subscription ID
+ * TEMPORARY FIX: Auto-select "Pro" subscription
+ */
+const fetchProSubscription = async () => {
+  try {
+    console.log('🔍 Fetching subscriptions to find "Pro" plan...');
+    const response = await API.get(API.SUBSCRIPTION);
+    const subscriptions = Array.isArray(response) ? response : (response?.data || []);
+    
+    // Find the subscription with name "Pro"
+    const proSubscription = subscriptions.find(sub => sub.name === 'Pro');
+    
+    if (proSubscription) {
+      proSubscriptionId.value = proSubscription.id;
+      console.log('✅ Found "Pro" subscription:', proSubscription.id);
+    } else {
+      console.warn('⚠️ "Pro" subscription not found, using fallback');
+      proSubscriptionId.value = 'CO'; // Fallback to default
+    }
+  } catch (err) {
+    console.error('❌ Error fetching subscriptions:', err);
+    // Use fallback on error
+    proSubscriptionId.value = 'CO';
+  }
+};
+
+// Lifecycle hook to fetch Pro subscription on component mount
+onMounted(() => {
+  fetchProSubscription();
 });
 
 /**
@@ -262,6 +297,9 @@ const handleCreateTenant = async () => {
     // Get file info from ImageUpload component
     const fileInfo = imageUploadRef.value?.getFileInfo();
     
+    // TEMPORARY FIX: Use "Pro" subscription ID instead of manual input
+    const subscriptionIdToUse = proSubscriptionId.value || tenantForm.value.subcription_id || 'CO';
+    
     // Prepare payload - use FormData if there's a file, otherwise JSON
     let payload;
     
@@ -271,7 +309,7 @@ const handleCreateTenant = async () => {
       const formData = new FormData();
       formData.append('name', tenantForm.value.name);
       formData.append('description', tenantForm.value.description || '');
-      formData.append('subscription_id', tenantForm.value.subcription_id || 'CO');
+      formData.append('subscription_id', subscriptionIdToUse); // Use Pro subscription
       formData.append('img', fileInfo.file);
       payload = formData;
     } else {
@@ -280,7 +318,7 @@ const handleCreateTenant = async () => {
       payload = {
         name: tenantForm.value.name,
         description: tenantForm.value.description || '',
-        subscription_id: tenantForm.value.subcription_id || 'CO',
+        subscription_id: subscriptionIdToUse, // Use Pro subscription
         img: null
       };
     }

@@ -87,7 +87,7 @@
                 </div>
               </ion-col>
               <ion-col size="2">
-                <div class="gateway-id">{{ tenant.cs_tenant_id }}</div>
+                <div class="gateway-id">{{ tenant.id }}</div>
               </ion-col>
 
               <ion-col size="2">
@@ -145,7 +145,7 @@
                   </ion-avatar>
                   <div class="card-title-section">
                     <h3 class="card-title">{{ tenant.name }}</h3>
-                    <p class="card-subtitle">ID: {{ tenant.cs_tenant_id }}</p>
+                    <p class="card-subtitle">ID: {{ tenant.id }}</p>
                   </div>
                   <ion-chip :color="getStatusColor(tenant.state)" class="card-chip">
                     {{ tenant.group }}

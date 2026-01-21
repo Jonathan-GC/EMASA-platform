@@ -4,6 +4,7 @@ export const ActionTypes = [
   "create",
   "update",
   "view",
+  "toggles",
   "delete"
 ];
 
@@ -21,5 +22,6 @@ export const EntityTypes = [
   "manager",
   "user",
   "measurement",
-  "role"
+  "role",
+  "device_type"
 ];

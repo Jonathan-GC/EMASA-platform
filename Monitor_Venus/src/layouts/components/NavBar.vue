@@ -25,6 +25,17 @@
           <img src="../../assets/monitor_logo.svg" alt="Logo" class="nav-logo" />
         </div>
       </div>
+
+      <!-- User Profile Avatar -->
+      <UserAvatar 
+        v-if="authStore.isAuthenticated"
+        size="medium"
+        :show-name="true"
+        :show-role="true"
+        :clickable="true"
+        :show-tenant-badge="true"
+        @click="handleProfileClick"
+      />
       
       <!-- Links del navegador -->
       <div class="nav-links">
@@ -39,17 +50,6 @@
               :icon="icons.home"
           ></ion-icon>
           Inicio
-        </router-link>
-        <router-link 
-          to="/about" 
-          class="nav-link"
-          :class="{ active: $route.path === '/about' }"
-          @click="closeNavbar"
-        >
-          <ion-icon
-              :icon="icons.info"
-          ></ion-icon>
-           Acerca de
         </router-link>
 
         <!-- Enlaces para usuarios autenticados -->
@@ -68,7 +68,7 @@
         </template>
         
         <!-- Enlaces de administración -->
-        <template v-if="canAccessAnyAdminRoute && !authStore.isSupportUser && !authStore.isTechnician">
+        <template v-if="canAccessManagement">
           <hr class="divider"/>
           
           <!-- Tenants: root, admin, manager -->
@@ -97,20 +97,6 @@
                 :icon="icons.layers"
             ></ion-icon>
             Workspaces
-          </router-link>
-
-          <!-- Managers: root, admin, manager (commented out in routes) -->
-          <router-link
-              v-if="canAccessRoute(['root', 'admin'])"
-              :to="paths.TENANT_MANAGERS"
-              class="nav-link"
-              :class="{ active: $route.path === paths.TENANT_MANAGERS }"
-              @click="closeNavbar"
-          >
-            <ion-icon
-                :icon="icons.people"
-            ></ion-icon>
-            Administradores
           </router-link>
 
           <!-- Users: root, admin, manager, tenant_admin, tenant_user -->
@@ -157,7 +143,7 @@
         </template>
 
         <!-- Enlaces de infraestructura -->
-        <template v-if="canAccessAnyInfrastructureRoute && !authStore.isSupportUser">
+        <template v-if="canAccessInfrastructure">
 
           <hr class="divider"/>
           
@@ -189,6 +175,20 @@
             Perfiles de nodos
           </router-link>
 
+          <router-link
+              v-if="canAccessRoute(['root', 'admin', 'technician'])"
+              :to=paths.DEVICE_TYPES
+              class="nav-link"
+              :class="{ active: $route.path === paths.DEVICE_TYPES }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.shapes"
+            ></ion-icon>
+            Tipos de nodo
+          </router-link>
+
+
           <!-- Applications: root, admin, technician, tenant_admin, tenant_user -->
           <router-link
               v-if="canAccessRoute(['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'])"
@@ -216,39 +216,29 @@
           </router-link>
         </template>
 
-        <!-- Support navbar !-->
+        <!-- Support and Communications -->
+        <hr class="divider"/>
         
-          <hr class="divider"/>
-          <router-link
-            v-if="!showSupportLinks"
-            :to="paths.SUPPORT"
-            class="nav-link"
-            :class="{ active: $route.path === paths.SUPPORT }"
-            @click="closeNavbar"
-          >
-            <ion-icon :icon="icons.helpBuoy"></ion-icon>
-            Soporte
-          </router-link>
-          <template v-if="authStore.isAuthenticated">
-          <router-link
-            v-if="showSupportLinks"
-            :to="paths.INBOX"
-            class="nav-link"
-            :class="{ active: $route.path === paths.INBOX }"
-            @click="closeNavbar"
-          >
-            <ion-icon :icon="icons.mail"></ion-icon>
-            Inbox
-          </router-link>
-        </template>
+        <router-link
+          :to="paths.SUPPORT"
+          class="nav-link"
+          :class="{ active: $route.path === paths.SUPPORT }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.helpBuoy"></ion-icon>
+          Soporte
+        </router-link>
 
-        <!-- Inbox navbar !-->
-
-        <template>
-
-        
-
-        </template>
+        <router-link
+          v-if="canAccessInbox"
+          :to="paths.INBOX"
+          class="nav-link"
+          :class="{ active: $route.path === paths.INBOX }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.mail"></ion-icon>
+          Inbox
+        </router-link>
 
         <hr class="divider"/>
 
@@ -271,13 +261,15 @@
 
 <script setup>
 import {inject, ref, computed} from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { paths } from "@/plugins/router/paths"
 import BtnLogout from "@layouts/components/BtnLogout.vue";
+import UserAvatar from "@/components/common/UserAvatar.vue";
 import { useAuthStore } from '@/stores/authStore'
 
 const icons = inject('icons', {})
 const authStore = useAuthStore()
+const router = useRouter()
 
 const $route = useRoute()
 const isOpen = ref(false)
@@ -290,28 +282,32 @@ const closeNavbar = () => {
   isOpen.value = false
 }
 
+// Handle profile avatar click
+const handleProfileClick = () => {
+  console.log('Profile clicked - you can navigate to profile page here')
+  // router.push('/profile') // Uncomment when profile route exists
+  closeNavbar()
+}
+
 // Helper function to check if user can access route with any of the required roles
 const canAccessRoute = (requiredRoles) => {
   if (!authStore.isAuthenticated) return false
   return requiredRoles.some(role => authStore.hasRole(role))
 }
 
-// Check if user can access any admin route (to show the admin section)
-const canAccessAnyAdminRoute = computed(() => {
-  return canAccessRoute(['root', 'admin', 'manager', 'viewe r', 'tenant_admin', 'tenant_user'])
+const canAccessInfrastructure = computed(() => {
+  const roles = ['technician', 'manager']
+  return authStore.isSuperUser || authStore.isGlobalUser || roles.includes(authStore.user?.role_type) || authStore.isTenantAdmin
 })
 
-// Check if user can access any infrastructure route (to show the infrastructure section)
-const canAccessAnyInfrastructureRoute = computed(() => {
-  return canAccessRoute(['root', 'admin', 'technician', 'tenant_admin', 'tenant_user'])
+const canAccessManagement = computed(() => {
+  return authStore.isSuperUser || authStore.isGlobalUser || authStore.user?.role_type === 'manager' || authStore.isTenantAdmin
 })
+
+const canAccessInbox = computed(() => authStore.isSuperUser || authStore.isSupportUser || authStore.isGlobalUser);
 
 const showAuthLinks = computed(() => {
   return !authStore.isAuthenticated
-})
-
-const showSupportLinks = computed(() => {
-  return authStore.isSupportUser 
 })
 
 </script>

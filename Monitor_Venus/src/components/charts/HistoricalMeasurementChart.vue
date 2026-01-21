@@ -19,6 +19,11 @@
             <div class="filter-item">
               <input type="number" v-model.number="stepValue" @change="fetchData" min="1" max="300" placeholder="Steps" style="width: 80px;" />
             </div>
+            <ion-button size="small" fill="outline" @click="exportPDF" :disabled="loading || exportingPDF" class="export-button">
+              <ion-icon slot="start" :icon="exportingPDF ? '' : (icons.download || icons.save)"></ion-icon>
+              <ion-spinner v-if="exportingPDF" name="crescent" size="small"></ion-spinner>
+              <span v-else>PDF</span>
+            </ion-button>
           </div>
         </div>
       </div>
@@ -28,7 +33,14 @@
       <div v-if="loading" class="loading-overlay">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
-      <div class="chart-container">
+
+      <div v-else-if="rawHistoricalData.length === 0" class="no-data-overlay">
+        <ion-icon :icon="icons.analytics" size="large" color="medium"></ion-icon>
+        <p>No hay datos históricos para este periodo</p>
+        <small>Intenta ampliar el rango de fechas.</small>
+      </div>
+
+      <div class="chart-container" v-show="!loading && rawHistoricalData.length > 0">
         <canvas ref="canvasRef"></canvas>
       </div>
     </ion-card-content>
@@ -38,7 +50,9 @@
   <ion-card v-if="showDetailedTable" class="detailed-points-table">
     <ion-card-header>
       <div class="table-header">
-        <ion-card-title>📊 Datos Detallados</ion-card-title>
+        <ion-card-title>
+          <ion-icon :icon="icons.bar_chart" size="small"class="ms-2"></ion-icon>
+          Datos Detallados</ion-card-title>
         <ion-button size="small" fill="clear" @click="closeDetailedTable">
           ✕
         </ion-button>
@@ -132,11 +146,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, reactive, computed } from 'vue'
-import { 
-  IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, 
-  IonCardContent, IonSpinner, IonButton 
-} from '@ionic/vue'
+import { ref, onMounted, watch, reactive, computed, inject } from 'vue'
+import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonSpinner, IonButton, IonIcon } from '@ionic/vue'
 import { Chart, registerables } from 'chart.js'
 import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
@@ -144,6 +155,9 @@ import API from '@/utils/api/api.js'
 import { format, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import logoImage from '@/assets/monitor_logo.png'
 
 Chart.register(...registerables, annotationPlugin)
 
@@ -165,12 +179,17 @@ const props = defineProps({
 const { isMobile } = useResponsiveView()
 const canvasRef = ref(null)
 let chartInstance = null
+const icons = inject('icons')
 
 const loading = ref(false)
-const title = ref('Total Visitors')
-const subtitle = ref('Total for the last 3 months')
+const title = ref('')
+const subtitle = ref('')
 const today = format(new Date(), "yyyy-MM-dd'T'HH:mm")
 const yesterday = format(subDays(new Date(), 89), "yyyy-MM-dd'T'HH:mm")
+
+// Export state
+const exportingPDF = ref(false)
+const rawHistoricalData = ref([])
 
 // Detailed points table state
 const showDetailedTable = ref(false)
@@ -192,7 +211,7 @@ const measurementTypes = computed(() => {
 })
 
 const filters = reactive({
-  start: format(subDays(new Date(), 89), "yyyy-MM-dd'T'HH:mm"),
+  start: format(subDays(new Date(), 1), "yyyy-MM-dd'T'HH:mm"),
   end: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   measurement_type: props.initialType,
   step: 100
@@ -234,6 +253,134 @@ const closeDetailedTable = () => {
   if (chartInstance && chartInstance.options.plugins.annotation) {
     chartInstance.options.plugins.annotation.annotations.clickLine.display = false
     chartInstance.update('none')
+  }
+}
+
+const exportPDF = async () => {
+  if (!chartInstance || exportingPDF.value) return
+  
+  exportingPDF.value = true
+  try {
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    })
+    
+    const timestamp = format(new Date(), 'yyyyMMdd_HHmm')
+    const fileName = `Export_${filters.measurement_type}_${props.deviceId}_${timestamp}.pdf`
+    
+    // Get threshold info for the current measurement
+    const currentMeasurementInfo = props.availableMeasurements.find(
+      m => m.unit?.toLowerCase() === filters.measurement_type?.toLowerCase()
+    )
+    
+    const mMin = currentMeasurementInfo?.min
+    const mMax = currentMeasurementInfo?.max
+    const mThreshold = currentMeasurementInfo?.threshold
+
+    // 1. Header with Logo
+    try {
+      doc.addImage(logoImage, 'PNG', doc.internal.pageSize.getWidth() - 45, 10, 30, 9)
+    } catch (e) {
+      console.warn('Logo not loaded:', e)
+    }
+    
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(33, 33, 33)
+    doc.text(title.value, 15, 20)
+    
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
+    doc.text(subtitle.value, 15, 28)
+    doc.text(`Dispositivo: ${props.deviceId} | Generado: ${format(new Date(), 'PPpp', { locale: es })}`, 15, 34)
+    
+    // 2. Chart
+    const chartImage = chartInstance.toBase64Image('png', 1)
+    const imgWidth = 260
+    const imgHeight = (chartInstance.height * imgWidth) / chartInstance.width
+    doc.addImage(chartImage, 'PNG', 15, 40, imgWidth, imgHeight)
+    
+    // 3. Table
+    let exportData = []
+    let tableHeaders = []
+    
+    if (detailedTableData.value && detailedTableData.value.length > 0) {
+      exportData = detailedTableData.value.map(row => [
+        row.time,
+        row.channel,
+        row.value,
+        row.device
+      ])
+      tableHeaders = [['Hora', 'Canal', 'Valor', 'Dispositivo']]
+    } else {
+      exportData = rawHistoricalData.value.map(item => {
+        let rawTime = item.timestamp || item.time || item.arrival_date
+        let timeStr = ''
+        try {
+          const ms = typeof rawTime === 'number' ? (rawTime < 1e12 ? rawTime * 1000 : rawTime) : new Date(rawTime).getTime()
+          timeStr = format(new Date(ms), 'MMM dd, HH:mm:ss', { locale: es })
+        } catch (e) { timeStr = 'N/A' }
+        
+        return [
+          timeStr,
+          item.channel || 'default',
+          item.avg?.toFixed(2) || item.value?.toFixed(2) || 'N/A',
+          item.device_name || 'N/A'
+        ]
+      })
+      tableHeaders = [['Hora', 'Canal', 'Valor', 'Dispositivo']]
+    }
+    
+    if (exportData.length > 0) {
+      autoTable(doc, {
+        startY: imgHeight + 50,
+        head: tableHeaders,
+        body: exportData,
+        theme: 'striped',
+        headStyles: { 
+          fillColor: [45, 45, 45],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        styles: { fontSize: 8 },
+        margin: { top: 20 },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 2) {
+            const val = parseFloat(data.cell.raw)
+            if (!isNaN(val) && mMin !== undefined && mMax !== undefined && mThreshold !== undefined) {
+              // Condition 1: Below min or Above max -> Pale Red
+              if (val < mMin || val > mMax) {
+                Object.values(data.row.cells).forEach(cell => {
+                  cell.styles.fillColor = [255, 230, 230]
+                  cell.styles.textColor = [120, 20, 20]
+                })
+              } 
+              // Condition 2: "In between the threshold" -> Pale Amber
+              // This means it's in the warning range (near min or near max)
+              else if ((val >= mMin && val < mMin + mThreshold) || (val <= mMax && val > mMax - mThreshold)) {
+                Object.values(data.row.cells).forEach(cell => {
+                  cell.styles.fillColor = [255, 245, 220]
+                  cell.styles.textColor = [150, 90, 10]
+                })
+              }
+            }
+          }
+        },
+        didDrawPage: (data) => {
+          doc.setFontSize(8)
+          doc.text(`Página ${data.pageNumber}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 10)
+        }
+      })
+    }
+    
+    doc.save(fileName)
+  } catch (error) {
+    console.error('❌ Error exporting PDF:', error)
+  } finally {
+    exportingPDF.value = false
   }
 }
 
@@ -339,14 +486,28 @@ const fetchData = async () => {
       data = response
     }
     
-    updateChart(data)
+    rawHistoricalData.value = data
     
-    // Update title based on measurement type
-    title.value = `Historico de ${capitalize(filters.measurement_type)}`
-    subtitle.value = `Datos desde ${format(new Date(filters.start), 'MMM dd', { locale: es })} hasta ${format(new Date(filters.end), 'MMM dd', { locale: es })}`
+    if (filters.measurement_type) {
+      title.value = `Histórico de ${capitalize(filters.measurement_type)}`
+      subtitle.value = `Datos desde ${format(new Date(filters.start), 'MMM dd', { locale: es })} hasta ${format(new Date(filters.end), 'MMM dd', { locale: es })}`
+    } else {
+      title.value = 'Histórico de Datos'
+      subtitle.value = 'Selecciona una variable para ver los datos'
+    }
+    
+    updateChart(data)
   } catch (error) {
     console.error('Error fetching historical data:', error)
-  } finally {
+    if (error.status === 404) {
+      title.value = filters.measurement_type ? `Sin datos: ${capitalize(filters.measurement_type)}` : 'Sin datos'
+      subtitle.value = 'No se han encontrado registros en este periodo'
+      rawHistoricalData.value = []
+    } else {
+      title.value = 'Error de Conexión'
+      subtitle.value = 'No se pudo obtener la información histórica'
+      } 
+    }finally {
     loading.value = false
   }
 }
@@ -398,8 +559,9 @@ const updateChart = (data) => {
     // Create datasets for each channel
     Object.keys(channelGroups).forEach((ch, index) => {
       const color = getChartColor(index)
+      const channelLabel = ch === 'default' ? '' : ` ${ch}`
       datasets.push({
-        label: ch === 'default' ? capitalize(filters.measurement_type) : `Channel ${ch}`,
+        label: `${capitalize(filters.measurement_type)}${channelLabel}`,
         data: channelGroups[ch],
         parsing: false,
         borderColor: color,
@@ -428,11 +590,11 @@ const updateChart = (data) => {
 
 const getChartColor = (index) => {
   const colors = [
-    'rgba(59, 130, 246, 1)', // Blue
-    'rgba(16, 185, 129, 1)', // Green
-    'rgba(246, 59, 59, 1)',  // Red
-    'rgba(234, 179, 8, 1)',   // Yellow
-    'rgba(139, 92, 246, 1)'  // Purple
+    '#3b82f6', // Blue
+    '#10b981', // Emerald
+    '#8b5cf6', // Violet
+    '#f59e0b', // Amber
+    '#6366f1'  // Indigo
   ]
   return colors[index % colors.length]
 }
@@ -682,6 +844,12 @@ watch(() => props.deviceId, () => {
   min-width: 0;
 }
 
+.export-button {
+  margin-left: 8px;
+  font-weight: 600;
+  --border-radius: 8px;
+}
+
 .filter-item input:focus, .filter-item select:focus {
   border-color: #3b82f6;
   background: rgba(59, 130, 246, 0.05);
@@ -714,6 +882,29 @@ watch(() => props.deviceId, () => {
   justify-content: center;
   align-items: center;
   z-index: 10;
+}
+
+.no-data-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 350px;
+  text-align: center;
+  color: var(--ion-color-medium);
+  gap: 0.5rem;
+}
+
+.no-data-overlay p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--ion-color-step-600);
+}
+
+.no-data-overlay small {
+  font-size: 0.85rem;
+  opacity: 0.7;
 }
 
 /* Detailed Points Table Styles */

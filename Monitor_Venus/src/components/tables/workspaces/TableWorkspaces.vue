@@ -83,7 +83,7 @@
 
               <ion-col size="3">
                 <ion-chip class="p-2.5 rounded-full">
-                  {{ workspace.tenant }}
+                  {{ workspace.tenant_name }}
                 </ion-chip>
               </ion-col>
 
@@ -134,7 +134,7 @@
                   
                   <div class="card-detail-row">
                     <span class="detail-label">Cliente:</span>
-                    <span class="detail-value">{{ workspace.tenant }}</span>
+                    <span class="detail-value">{{ workspace.tenant_name }}</span>
                   </div>
                 </div>
 

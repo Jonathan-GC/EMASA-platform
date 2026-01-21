@@ -25,3 +25,4 @@ examples
 *.sln
 *.sw?
 .env
+components.d.ts

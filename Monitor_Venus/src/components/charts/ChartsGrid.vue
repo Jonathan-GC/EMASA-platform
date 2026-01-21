@@ -13,6 +13,8 @@
       :device-name="deviceName"
       :y-axis-min="yAxisMin"
       :y-axis-max="yAxisMax"
+      :threshold="threshold"
+      :realtime-options="realtimeOptions"
     />
   </div>
 </template>
@@ -32,7 +34,9 @@ const props = defineProps({
   chartKey: { type: Number, default: 0 },
   deviceName: { type: String, default: 'Dispositivo IoT' },
   yAxisMin: { type: Number, default: null },
-  yAxisMax: { type: Number, default: null }
+  yAxisMax: { type: Number, default: null },
+  threshold: { type: Number, default: null },
+  realtimeOptions: { type: Object, default: null }
 })
 
 const gridColumns = computed(() => Math.min(props.chartFragments.length, 3))

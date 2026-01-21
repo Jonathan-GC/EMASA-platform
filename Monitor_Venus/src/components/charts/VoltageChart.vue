@@ -45,7 +45,9 @@ const props = defineProps({
   title: { type: String, default: '' },
   deviceName: { type: String, default: 'Dispositivo IoT' },
   yAxisMin: { type: Number, default: null },
-  yAxisMax: { type: Number, default: null }
+  yAxisMax: { type: Number, default: null },
+  threshold: { type: Number, default: null },
+  realtimeOptions: { type: Object, default: null }
 })
 
 const canvasRef = ref(null)
@@ -98,11 +100,11 @@ watch(() => props.latestDataPoints, (points) => {
 
 onMounted(() => {
   if (canvasRef.value) {
-    chartInstance.value = new Chart(canvasRef.value, {
+    chartInstance.value = markRaw(new Chart(canvasRef.value, {
       type: 'line',
       data: toRaw(localChartData.value),
       options: chartOptions.value
-    })
+    }))
     updateSampleCount()
   }
 })
@@ -154,6 +156,44 @@ const chartOptions = computed(() => ({
         label: (context) => `Voltaje: ${context.parsed.y.toFixed(3)}V`
       }
     },
+    annotation: {
+      annotations: (props.threshold && props.threshold > 0) ? {
+        line1: {
+          type: 'line',
+          yMin: props.yAxisMax - props.threshold,
+          yMax: props.yAxisMax - props.threshold,
+          borderColor: 'rgba(239, 68, 68, 0.7)',
+          borderWidth: 2,
+          borderDash: [6, 6],
+          label: {
+            display: true,
+            content: 'Umbral Superior',
+            position: 'end',
+            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+            color: 'white',
+            font: { size: 10, weight: 'bold' },
+            padding: 4
+          }
+        },
+        line2: {
+          type: 'line',
+          yMin: props.yAxisMin + props.threshold,
+          yMax: props.yAxisMin + props.threshold,
+          borderColor: 'rgba(239, 68, 68, 0.7)',
+          borderWidth: 2,
+          borderDash: [6, 6],
+          label: {
+            display: true,
+            content: 'Umbral Inferior',
+            position: 'end',
+            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+            color: 'white',
+            font: { size: 10, weight: 'bold' },
+            padding: 4
+          }
+        }
+      } : {}
+    },
     zoom: {
       pan: {
         enabled: true,
@@ -190,10 +230,10 @@ const chartOptions = computed(() => ({
         }
       },
       realtime: {
-        duration: 30000,
-        refresh: 1000,
-        delay: 4000,
-        ttl: 60000,
+        duration: props.realtimeOptions?.duration ?? 30000,
+        refresh: props.realtimeOptions?.refresh ?? 1000,
+        delay: props.realtimeOptions?.delay ?? 10000,
+        ttl: props.realtimeOptions?.ttl ?? 60000,
         onRefresh: (chart) => {
           if (streamingBuffer.length > 0) {
             if (chart.data.datasets[0]) {
