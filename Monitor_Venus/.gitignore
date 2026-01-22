@@ -26,3 +26,4 @@ examples
 *.sw?
 .env
 components.d.ts
+**/certs/
