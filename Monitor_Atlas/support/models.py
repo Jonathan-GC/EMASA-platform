@@ -258,3 +258,11 @@ class Notification(models.Model):
 
     def __str__(self):
         return self.title
+
+
+from auditlog.registry import auditlog
+
+auditlog.register(Ticket, exclude_fields=["updated_at", "is_read"])
+auditlog.register(Comment)
+auditlog.register(Attachment)
+auditlog.register(CommentAttachment)

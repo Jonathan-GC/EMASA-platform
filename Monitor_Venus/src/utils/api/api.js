@@ -26,6 +26,13 @@ class API {
     //====[ENDPOINTS]====
     //----[USERS]----
     USER = 'users/user/'
+    ME = 'users/user/me/'
+    ACTIVATE_USER(userId) {
+        return `users/user/${userId}/enable_user/`
+    }
+    DEACTIVATE_USER(userId) {
+        return `users/user/${userId}/disable_user/`
+    }
 
     //----[AUTH]----
     TOKEN = 'token/'
@@ -46,6 +53,13 @@ class API {
     //----[ROLES]----
     ROLE = 'roles/role/'
     ROLE_PERMISSION = 'roles/role-permission/'
+    ROLE_REMOVE_USER(roleId) {
+        return `roles/role/${roleId}/remove_user/`
+    }
+        
+    ROLE_MEMBERSHIP(roleId) {
+        return `roles/role/${roleId}/get_all_role_users/`
+    }
     PERMISSION_KEY = 'roles/permission-key/'
     WORKSPACE_MEMBERSHIP = 'roles/workspace-membership/'
     ASSIGNABLE_PERMISSIONS(roleId) {
@@ -63,6 +77,7 @@ class API {
     APPLICATION = 'infrastructure/application/'
     LOCATION = 'infrastructure/location/'
     DEVICE_PROFILE_TEMPLATE = '/device-profile-template/'
+    DEVICE_TYPES = 'infrastructure/type/'
     DEVICE_SET_ACTIVATION_KEYS(deviceId) {
         return `infrastructure/device/${deviceId}/set_activation/`
     }
@@ -137,7 +152,6 @@ class API {
         return `infrastructure/device/${deviceId}/get_ws_link/`
     }
     //----[CHIRPSTACK]----
-
     DEVICE_PROFILE = 'chirpstack/device-profile/'
     TENANT_USER = 'chirpstack/tenant-user/'
     API_USER = 'chirpstack/api-user/'
@@ -176,6 +190,9 @@ class API {
     COMMENT_ATTACHMENT = 'support/comment-attachment/'
     COMMENT_TOKEN_VERIFICATION = 'users/auth/verify-ticket-token/'
 
+    //----[LOGS]----
+    AUDIT = 'users/audit/'
+    TENANT_AUDIT = 'users/audit/get_tenant_admin_logs/'
 
     static instance;
 
@@ -496,6 +513,11 @@ class API {
             if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
                 // Si es FormData, enviarlo tal cual; si no, convertir a JSON
                 requestConfig.body = isFormData ? data : JSON.stringify(data);
+            }
+
+            // Add signal from options if provided (for request cancellation)
+            if (options.signal) {
+                requestConfig.signal = options.signal;
             }
 
             // Agregar timeout si está especificado

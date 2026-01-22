@@ -41,7 +41,7 @@
 import { ref, onMounted } from 'vue'
 import { inject } from 'vue';
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
-import TableRoles from '@components/tables/roles/TableRoles.vue'
+
 
 const pageReady = ref(false)
 const icons = inject('icons', {})

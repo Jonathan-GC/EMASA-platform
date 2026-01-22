@@ -2,10 +2,11 @@
   <ion-page>
 
 
-    <ion-content :fullscreen="true">
-      <div v-if="pageReady" class="current-dashboard">
+    <ion-content :fullscreen="true" class="custom">
+      <div v-if="pageReady && dataReady" class="current-dashboard">
         <!-- Main applications table with fetch data -->
         <TabsDeviceMeasurements
+          :key="deviceId"
           :device-id="deviceId"
           :is-connected="isConnected"
           :reconnect-attempts="reconnectAttempts"
@@ -172,6 +173,7 @@ const measurementMessages = computed(() => {
 
 // State for page readiness
 const pageReady = ref(false)
+const dataReady = ref(false)
 const measurements = ref([])
 
 /**
@@ -235,6 +237,7 @@ onMounted(async () => {
   console.log('🔧 Measurements page mounted')
   // Fetch measurements first to register all processors
   await fetchAndRegisterMeasurements()
+  dataReady.value = true
   // Preload historical data before starting WebSocket
   preloadLastMeasurements()
   // Set up WebSocket message handler for all data types

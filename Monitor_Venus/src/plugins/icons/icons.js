@@ -22,6 +22,7 @@ import {
   logOutOutline,
   shieldOutline,
   syncOutline,
+  gitCompareOutline,
 
   // Communication icons
   mailOutline,
@@ -65,6 +66,7 @@ import {
   micOutline,
   batteryFullOutline,
   batteryHalfOutline,
+  radioOutline,
 
   // Location icons
   locationOutline,
@@ -105,6 +107,8 @@ import {
   lockOpenOutline,
 
   // UI icons
+  checkmarkCircle,
+  personCircleOutline,
   searchOutline,
   filterOutline,
   menuOutline,
@@ -122,6 +126,10 @@ import {
   close,
   ellipseOutline,
   paperPlaneOutline,
+  statsChartOutline,
+  barChartOutline,
+  locateOutline,
+  shapesOutline,
 } from 'ionicons/icons'
 
 // Custom SVG icon
@@ -129,6 +137,9 @@ import plugOutline from '@assets/icons/plug.svg'
 import enginesOutline from '@assets/icons/engines.svg'
 import packageOutline from '@assets/icons/package.svg'
 import deviceCard from '@assets/icons/device_card.svg'
+import antenna from '@assets/icons/antenna.svg'
+import functionIco from '@assets/icons/function.svg'
+import target from '@assets/icons/target.svg'
 
 export const icons = {
   // Action icons
@@ -153,6 +164,7 @@ export const icons = {
   'shield': shieldOutline,
   'cube': cube,
   'sync': syncOutline,
+  'git_compare': gitCompareOutline,
 
   // Communication icons
   'mail': mailOutline,
@@ -185,7 +197,7 @@ export const icons = {
 
   // Hardware icons
   'hardwareChip': hardwareChipOutline,
-  'phonePortrait': phonePortraitOutline,
+  'phone_portrait': phonePortraitOutline,
   'server': serverOutline,
   'cloud': cloudOutline,
   'wifi': wifiOutline,
@@ -201,6 +213,8 @@ export const icons = {
   'plug': plugOutline,
   'engines': enginesOutline,
   'deviceCard': deviceCard,
+  'antenna': antenna,
+  'radio': radioOutline,
 
   // Location icons
   'location': locationOutline,
@@ -231,6 +245,7 @@ export const icons = {
   'alert': alertCircleOutline,
   'alertCircle': alertCircleOutline,
   'success': checkmarkCircleOutline,
+  'checkmark': checkmarkCircle,
   'warning': warningOutline,
   'info': informationCircleOutline,
   'error': closeCircleOutline,
@@ -241,8 +256,10 @@ export const icons = {
   'lock_closed': lockClosedOutline,
   'lock-open': lockOpenOutline,
   'flash': flashOutline,
+  'stats': statsChartOutline,
 
   // UI icons
+  'person_circle': personCircleOutline,
   'search': searchOutline,
   'filter': filterOutline,
   'menu': menuOutline,
@@ -259,6 +276,11 @@ export const icons = {
   'ellipse': ellipseOutline,
   'person_add': personAddOutline,
   'paper_plane': paperPlaneOutline,
+  'function': functionIco,
+  'target': target,
+  'bar_chart': barChartOutline,
+  'locate': locateOutline,
+  'shapes': shapesOutline, 
 }
 
 // Helper function to get icon by name

@@ -13,7 +13,7 @@
     
     <!-- Create Button -->
     <QuickControl 
-      v-if="showCreate"
+      v-if="showCreate && canCreate"
       :toCreate="true" 
       :type="entityType" 
       @itemCreated="$emit('itemCreated')" 
@@ -22,15 +22,17 @@
 </template>
 
 <script setup>
-import { inject } from 'vue'
+import { inject, computed } from 'vue'
 import { IonButton, IonIcon } from '@ionic/vue'
 import QuickControl from './quickControl.vue'
+import { useAuthStore } from '@/stores/authStore'
 
 // Access icons from the plugin
 const icons = inject('icons', {})
+const authStore = useAuthStore()
 
 // Props
-defineProps({
+const props = defineProps({
   /**
    * The entity type for QuickControl (e.g., 'tenant', 'gateway', 'device')
    */
@@ -56,6 +58,18 @@ defineProps({
 
 // Emits
 defineEmits(['refresh', 'itemCreated'])
+
+const canCreate = computed(() => {
+  if (authStore.isSuperUser || authStore.isGlobalUser || authStore.isTenantAdmin) return true
+  
+  const isManagement = ['tenant', 'user', 'workspace', 'role', 'location'].includes(props.entityType)
+  const isInfrastructure = ['gateway', 'application', 'machine', 'device_profile', 'device_type', 'device'].includes(props.entityType)
+  
+  if (isManagement) return authStore.user?.role_type === 'manager'
+  if (isInfrastructure) return ['manager', 'technician'].includes(authStore.user?.role_type)
+  
+  return false
+})
 </script>
 
 <style scoped>

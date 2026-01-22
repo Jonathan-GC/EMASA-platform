@@ -7,6 +7,8 @@ from . import views
 routers = routers.DefaultRouter()
 
 routers.register(r"user", views.UserViewSet)
+routers.register(r"logs", views.LogLogsViewSet, basename="logs")
+routers.register(r"audit", views.AuditLogViewSet, basename="audit")
 
 urlpatterns = [
     path("", include(routers.urls)),

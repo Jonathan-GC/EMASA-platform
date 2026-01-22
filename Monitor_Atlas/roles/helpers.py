@@ -39,6 +39,25 @@ def get_user_group(user):
         pass
 
 
+def get_tenant_default_workspace(tenant):
+    """
+    Returns the default workspace for a given tenant.
+    If no default workspace exists, returns None.
+
+    Args:
+        tenant (Tenant): The tenant object to get the default workspace for.
+    Returns:
+        Workspace or None: The default workspace if exists, else None.
+    """
+    try:
+        default_workspace = Workspace.objects.filter(tenant=tenant).first()
+
+        return default_workspace
+    except Workspace.DoesNotExist:
+        logger.debug(f"No default workspace found for tenant {tenant.name}")
+        return None
+
+
 def assign_new_user_base_permissions(user):
     """
     Assign base permissions to a new user.

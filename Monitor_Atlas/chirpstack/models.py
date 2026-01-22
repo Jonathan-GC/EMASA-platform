@@ -1,6 +1,7 @@
 from django.db import models
 from organizations.models import Workspace
 from organizations.hasher import generate_id
+from auditlog.registry import auditlog
 
 # Create your models here.
 
@@ -124,3 +125,11 @@ class DeviceProfile(models.Model):
 
     def __str__(self):
         return self.name
+
+
+auditlog.register(
+    ApiUser, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
+)
+auditlog.register(
+    DeviceProfile, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
+)

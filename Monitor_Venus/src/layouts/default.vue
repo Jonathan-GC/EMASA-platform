@@ -8,9 +8,7 @@
       
       <!-- Contenido principal en la derecha -->
       <div class="main-content">
-        <ion-content>
-          <ion-router-outlet />
-        </ion-content>
+        <ion-router-outlet :animation="customPushAnimation" />
       </div>
     </div>
   </ion-page>
@@ -19,6 +17,7 @@
 <script setup>
 import { provide } from 'vue'
 import { useNotifications } from '@/composables/useNotifications'
+import { createAnimation } from '@ionic/vue'
 
 /**
  * Initialize global notification system
@@ -27,6 +26,31 @@ import { useNotifications } from '@/composables/useNotifications'
  */
 const notificationSystem = useNotifications()
 provide('notifications', notificationSystem)
+
+/**
+ * Custom smooth push animation for page transitions
+ */
+const customPushAnimation = (baseEl, opts) => {
+  const DURATION = 250
+
+  const enteringAnimation = createAnimation()
+    .addElement(opts.enteringEl)
+    .duration(DURATION)
+    .easing('ease-out')
+    .fromTo('opacity', '0', '1')
+    .fromTo('transform', 'translateX(30px)', 'translateX(0)')
+
+  const leavingAnimation = createAnimation()
+    .addElement(opts.leavingEl)
+    .duration(DURATION)
+    .easing('ease-out')
+    .fromTo('opacity', '1', '0.3')
+
+  const animation = createAnimation()
+    .addAnimation([enteringAnimation, leavingAnimation])
+
+  return animation
+}
 </script>
 
 <style scoped>
@@ -55,10 +79,23 @@ provide('notifications', notificationSystem)
 .main-content {
   flex: 1; /* Toma el resto del espacio */
   height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: var(--ion-background-color, #f4f5f8);
 }
 
-.main-content ion-content {
-  --background: var(--ion-color-light, #f4f5f8);
+/* Ensure ion-router-outlet fills the container properly */
+.main-content :deep(ion-router-outlet) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Ensure child pages have solid backgrounds */
+.main-content :deep(ion-page) {
+  background: var(--ion-background-color, #f4f5f8);
 }
 
 /* Responsive: En móviles, el sidebar se convierte en overlay */

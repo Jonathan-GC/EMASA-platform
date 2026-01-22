@@ -75,3 +75,9 @@ class WorkspaceMembership(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.role}"
+
+
+from auditlog.registry import auditlog
+
+auditlog.register(Role)
+auditlog.register(WorkspaceMembership)

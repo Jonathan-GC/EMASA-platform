@@ -2,6 +2,7 @@ import requests
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models import Count
 
 from .serializers import (
     GatewaySerializer,
@@ -124,8 +125,12 @@ class GatewayViewSet(viewsets.ModelViewSet):
         returning the response.
 
         """
+        workspace = request.query_params.get("workspace", None)
 
-        queryset = self.filter_queryset(self.get_queryset())
+        if workspace:
+            queryset = self.queryset.filter(workspace__id=workspace)
+        else:
+            queryset = self.filter_queryset(self.get_queryset())
 
         for gateway in queryset:
             sync_gateway_get(gateway)
@@ -220,6 +225,22 @@ class MachineViewSet(viewsets.ModelViewSet):
             klass=Machine,
             accept_global_perms=False,
         )
+
+    def list(self, request, *args, **kwargs):
+        workspace = request.query_params.get("workspace", None)
+
+        if workspace:
+            queryset = self.queryset.filter(workspace__id=workspace)
+        else:
+            queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -482,7 +503,12 @@ class DeviceViewSet(viewsets.ModelViewSet):
         instance.delete()
 
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+        workspace = request.query_params.get("workspace", None)
+
+        if workspace:
+            queryset = self.queryset.filter(workspace__id=workspace)
+        else:
+            queryset = self.filter_queryset(self.get_queryset())
 
         for device in queryset:
             sync_device_get(device)
@@ -1055,7 +1081,18 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        return Response(response.json())
+        try:
+            response_json = response.json()
+        except ValueError:
+            logger.error(
+                f"Invalid JSON response from Hermes for device {device.dev_eui}: {response.text}"
+            )
+            return Response(
+                {"message": "Invalid response from Hermes service"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response_json)
 
     @action(
         detail=True,
@@ -1125,7 +1162,18 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        return Response(response.json())
+        try:
+            response_json = response.json()
+        except ValueError:
+            logger.error(
+                f"Invalid JSON response from Hermes for device {device.dev_eui}: {response.text}"
+            )
+            return Response(
+                {"message": "Invalid response from Hermes service"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(response_json)
 
 
 @extend_schema_view(
@@ -1146,13 +1194,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Application.objects.all()
-        return get_objects_for_user(
-            user,
-            "infrastructure.view_application",
-            klass=Application,
-            accept_global_perms=False,
-        )
+            queryset = Application.objects.all()
+        else:
+            queryset = get_objects_for_user(
+                user,
+                "infrastructure.view_application",
+                klass=Application,
+                accept_global_perms=False,
+            )
+        return queryset.annotate(devices_count=Count("device"))
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -1213,7 +1263,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             )
 
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+        workspace = request.query_params.get("workspace", None)
+
+        if workspace:
+            queryset = self.queryset.filter(workspace__id=workspace)
+        else:
+            queryset = self.filter_queryset(self.get_queryset())
 
         for application in queryset:
             logger.debug(f"Syncing application {application.name}")

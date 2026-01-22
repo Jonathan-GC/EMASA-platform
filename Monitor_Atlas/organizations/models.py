@@ -64,3 +64,12 @@ class Workspace(models.Model):
 
     def __str__(self):
         return self.name
+
+
+from auditlog.registry import auditlog
+
+auditlog.register(Subscription)
+auditlog.register(
+    Tenant, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
+)
+auditlog.register(Workspace)

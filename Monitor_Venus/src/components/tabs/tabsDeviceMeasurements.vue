@@ -2,16 +2,6 @@
   <div v-if="loaded" class="tabs-device-measurements">
     <ion-tabs>
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="voltage">
-          <ion-icon :icon="icons.flash"></ion-icon>
-          <ion-label>Voltaje</ion-label>
-        </ion-tab-button>
-
-        <ion-tab-button tab="current">
-          <ion-icon :icon="icons.plug"></ion-icon>
-          <ion-label>Corriente</ion-label>
-        </ion-tab-button>
-
         <!-- Dynamic measurement tabs -->
         <ion-tab-button 
           v-for="measurement in measurements" 
@@ -22,9 +12,9 @@
           <ion-label>{{ capitalizeFirst(measurement.unit) }}</ion-label>
         </ion-tab-button>
 
-        <ion-tab-button tab="battery">
-          <ion-icon :icon="icons.batteryHalf"></ion-icon>
-          <ion-label>Batería</ion-label>
+        <ion-tab-button tab="comparison">
+          <ion-icon :icon="icons.git_compare"></ion-icon>
+          <ion-label>Comparación</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="activation">
@@ -34,114 +24,9 @@
 
         <ion-tab-button tab="measurements">
           <ion-icon :icon="icons.analytics"></ion-icon>
-          <ion-label>Mediciones</ion-label>
+          <ion-label>Variables</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
-
-      <!-- Voltage Tab -->
-      <ion-tab tab="voltage">
-        <ion-content class="ion-padding custom">
-          <div class="tab-content">
-            <!-- Header with connection status -->
-            <div class="header flex">
-              <div class="header-title">
-                <ion-back-button default-href="/home"></ion-back-button>
-                <h1>📟 Device Measurements - Voltage</h1>
-              </div>
-              <div class="header-subtitle connection-status">
-                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
-              </div>
-
-            </div>
-
-            <!-- Device information section -->
-            <DeviceInfo :device="device" />
-
-            <!-- Charts grid -->
-            <ChartsGrid 
-              v-if="chartDataFragments.length > 0"
-              :chart-fragments="chartDataFragments" 
-              :chart-key="chartKey"
-              :latest-data-points="latestDataPoints"
-              :device-name="device?.device_name || deviceName"
-              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.min"
-              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'voltage')?.max" />
-
-            <!-- Placeholder when no chart data available -->
-            <div v-else class="charts-section">
-              <h3 class="section-title">📈 Real-time Voltage Data</h3>
-              <div class="waiting-data-card">
-                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
-                <p>Esperando datos en tiempo real de voltaje...</p>
-                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de voltaje</p>
-              </div>
-            </div>
-
-            <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" measurement-type="voltage" />
-
-            <!-- Historical Measurement Chart -->
-            <HistoricalMeasurementChart 
-              v-if="deviceId || (device && device.id)"
-              :device-id="deviceId || device.id"
-              :available-measurements="measurements"
-              initial-type="voltage"
-            />
-          </div>
-        </ion-content>
-      </ion-tab>
-
-      <!-- Current Tab -->
-      <ion-tab tab="current">
-        <ion-content class="ion-padding">
-          <div class="tab-content">
-            <!-- Header with connection status -->
-            <div class="header">
-              <div class="header-title">
-                <ion-back-button default-href="/home"></ion-back-button>
-                <h1>📟 Device Measurements - Current</h1>
-              </div>
-              <div class="header-subtitle">
-                <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
-              </div>
-            </div>
-
-            <!-- Device information section -->
-            <CurrentDeviceInfo :device="currentDevice" />
-
-            <!-- Current charts grid (multi-channel) -->
-            <ChartsGrid 
-              v-if="currentChartDataFragments.length > 0" 
-              :chart-fragments="currentChartDataFragments" 
-              :chart-key="currentChartKey"
-              :latest-data-points="currentLatestDataPoints"
-              :device-name="currentDevice?.device_name || 'Dispositivo IoT'"
-              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.min"
-              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'current')?.max" />
-
-            <!-- Placeholder when no chart data available -->
-            <div v-else class="charts-section">
-              <h3 class="section-title">📈 Real-time Current Data</h3>
-              <div class="waiting-data-card">
-                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
-                <p>Esperando datos en tiempo real de corriente...</p>
-                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de corriente</p>
-              </div>
-            </div>
-
-            <!-- Recent messages -->
-            <RecentMessages :messages="currentMessages" measurement-type="current" />
-
-            <!-- Historical Measurement Chart -->
-            <HistoricalMeasurementChart 
-              v-if="deviceId || (device && device.id)"
-              :device-id="deviceId || device.id"
-              :available-measurements="measurements"
-              initial-type="current"
-            />
-          </div>
-        </ion-content>
-      </ion-tab>
 
       <!-- Dynamic Measurement Tabs -->
       <ion-tab 
@@ -157,7 +42,7 @@
                 <ion-back-button default-href="/home"></ion-back-button>
                 <h1>
                   <ion-icon :icon="icons[measurement.icon] || icons.analytics" size="large"></ion-icon>
-                  Device Measurements - {{ capitalizeFirst(measurement.unit) }}</h1>
+                  {{ capitalizeFirst(measurement.unit) }}</h1>
               </div>
               <div class="header-subtitle connection-status">
                 <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
@@ -234,8 +119,9 @@
               </ion-card-content>
             </ion-card>
 
-            <!-- Charts grid - similar to voltage tab -->
-            <ChartsGrid 
+            <!-- Charts grid - dynamically select version based on measurement type -->
+            <component 
+              :is="getComponentForUnit(measurement.unit)"
               v-if="getMeasurementChartData(measurement.unit).length > 0"
               :chart-fragments="getMeasurementChartData(measurement.unit)" 
               :chart-key="chartKey"
@@ -243,6 +129,10 @@
               :device-name="getMeasurementDevice(measurement)?.device_name || deviceName"
               :y-axis-min="measurement.min"
               :y-axis-max="measurement.max" 
+              :threshold="measurement.threshold"
+              :y-left-label="getProfileByValue(measurement.unit)?.label + ' (' + getProfileByValue(measurement.unit)?.unit + ')'"
+              :y-right-label="getProfileByValue(measurement.unit)?.secondaryUnit ? getProfileByValue(measurement.unit).secondaryUnit : ''"
+              :realtime-options="getProfileByValue(measurement.unit)?.realtime"
             />
 
             <!-- Placeholder when no chart data available -->
@@ -271,71 +161,144 @@
         </ion-content>
       </ion-tab>
 
-      <!-- Battery Tab -->
-      <ion-tab tab="battery">
-        <ion-content class="ion-padding">
+      <!-- Comparison Tab -->
+      <ion-tab tab="comparison">
+        <ion-content class="ion-padding custom">
           <div class="tab-content">
-            <!-- Header with connection status -->
+            <!-- Header -->
             <div class="header">
               <div class="header-title">
-                <ion-back-button default-href="/home"></ion-back-button>
-                <h1>📟 Device Measurements - Battery</h1>
+                <h1>
+                  <ion-icon :icon="icons.git_compare" size="large"></ion-icon>
+                   Comparación de Variables
+                </h1>
               </div>
-              <div class="header-subtitle">
+              <div class="header-subtitle connection-status">
                 <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
               </div>
             </div>
 
-            <!-- Device information section -->
-            <BatteryDeviceInfo :device="batteryDevice" :battery-percentage="getBatteryPercentage?.() || 0" />
 
-            <!-- Battery charts grid (multi-channel dual-axis) -->
-            <BatteryChartsGrid 
-              v-if="batteryChartDataFragments.length > 0" 
-              :chart-fragments="batteryChartDataFragments" 
-              :chart-key="batteryChartKey"
-              :latest-data-points="batteryLatestDataPoints"
-              :device-name="batteryDevice?.device_name || 'Dispositivo IoT'"
-              :y-axis-min="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.min"
-              :y-axis-max="measurements?.find(m => m.unit?.toLowerCase() === 'battery' || m.unit?.toLowerCase() === 'batería')?.max" />
+            <!-- Measurement Selection Card -->
+            <ion-card class="measurement-selector-card">
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon :icon="icons.target" size="small"></ion-icon>
+                  Seleccionar Variables
+                </ion-card-title>
+                <ion-card-subtitle>Elige dos variables diferentes para comparar</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <div class="selector-grid" :class="{ 'is-mobile': isMobile }">
+                  <!-- Measurement 1 Selector -->
+                  <div class="selector-item">
+                    <label class="selector-label">Primera Variable</label>
+                    <select v-model="selectedMeasurement1" class="measurement-select" @change="onMeasurementSelectionChange">
+                      <option value="" disabled>Selecciona una variable</option>
+                      <option 
+                        v-for="measurement in getAvailableMeasurements()"
+                        :key="'m1-' + measurement.id"
+                        :value="measurement.unit.toLowerCase()"
+                        :disabled="measurement.unit.toLowerCase() === selectedMeasurement2"
+                      >
+                        {{ capitalizeFirst(measurement.unit) }} ({{ measurement.ref || 'N/A' }})
+                      </option>
+                    </select>
+                    
+                    <!-- Channel selector for measurement 1 -->
+                    <div class="channel-selector-inline">
+                      <label class="channel-label">Canal</label>
+                      <select v-model="selectedChannel1" class="channel-select-inline" @change="onMeasurementSelectionChange">
+                        <option value="">Todos</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                      </select>
+                    </div>
+                  </div>
 
-            <!-- Placeholder when no chart data available -->
-            <div v-else class="charts-section">
-              <h3 class="section-title">📈 Real-time Battery Data</h3>
-              <div class="waiting-data-card">
-                <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
-                <p>Esperando datos en tiempo real de batería...</p>
-                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de batería</p>
-              </div>
-            </div>
+                  <!-- VS Divider -->
+                  <div class="vs-divider" v-if="!isMobile">
+                    <span>VS</span>
+                  </div>
 
-            <!-- Recent messages -->
-            <HistoricalMeasurementChart 
-              v-if="deviceId || (device && device.id)"
+                  <!-- Measurement 2 Selector -->
+                  <div class="selector-item">
+                    <label class="selector-label">Segunda Variable</label>
+                    <select v-model="selectedMeasurement2" class="measurement-select" @change="onMeasurementSelectionChange">
+                      <option value="" disabled>Selecciona una variable</option>
+                      <option 
+                        v-for="measurement in getAvailableMeasurements()"
+                        :key="'m2-' + measurement.id"
+                        :value="measurement.unit.toLowerCase()"
+                        :disabled="measurement.unit.toLowerCase() === selectedMeasurement1"
+                      >
+                        {{ capitalizeFirst(measurement.unit) }} ({{ measurement.ref || 'N/A' }})
+                      </option>
+                    </select>
+                    
+                    <!-- Channel selector for measurement 2 -->
+                    <div class="channel-selector-inline">
+                      <label class="channel-label">Canal</label>
+                      <select v-model="selectedChannel2" class="channel-select-inline" @change="onMeasurementSelectionChange">
+                        <option value="">Todos</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Info message -->
+                <div class="info-message" v-if="selectedMeasurement1 || selectedMeasurement2">
+                  <ion-icon :icon="icons.info"></ion-icon>
+                  <span>Selecciona dos variables diferentes para ver la comparación</span>
+                </div>
+              </ion-card-content>
+            </ion-card>
+
+            <!-- Combined Historical Chart -->
+            <CombinedHistoricalChart 
+              v-if="device && selectedMeasurement1 && selectedMeasurement2 && selectedMeasurement1 !== selectedMeasurement2"
+              :key="`${selectedMeasurement1}-${selectedMeasurement2}-${selectedChannel1}-${selectedChannel2}`"
               :device-id="deviceId || device.id"
+              :measurement1-type="selectedMeasurement1"
+              :measurement2-type="selectedMeasurement2"
+              :channel1="selectedChannel1"
+              :channel2="selectedChannel2"
               :available-measurements="measurements"
-              initial-type="battery"
+              :initial-filters="comparisonFilters"
+              @filters-changed="handleComparisonFiltersChange"
             />
-            <RecentMessages :messages="batteryMessages" measurement-type="battery" />
 
-            <!-- Historical Measurement Chart -->
-            
+            <!-- No measurements warning -->
+            <ion-card v-else-if="!measurements || measurements.length < 2" class="warning-card">
+              <ion-card-content>
+                <div class="warning-content">
+                  <ion-icon :icon="icons.warning" size="large"></ion-icon>
+                  <p>Se necesitan al menos dos tipos de mediciones diferentes para comparar.</p>
+                  <p v-if="!measurements || measurements.length === 0">No hay mediciones registradas para este dispositivo.</p>
+                  <p v-else-if="measurements.length === 1">Solo hay una medición registrada. Registra más mediciones para usar esta función.</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
           </div>
         </ion-content>
       </ion-tab>
 
       <!-- Activation Tab -->
       <ion-tab tab="activation">
-        <ion-content class="ion-padding">
+        <ion-content class="ion-padding custom">
           <div class="tab-content">
             <!-- Header -->
             <div class="header">
               <div class="header-title">
                 <ion-back-button default-href="/home"></ion-back-button>
-                <h1>🔑 Device Activation</h1>
-              </div>
-              <div class="header-subtitle">
-                Configure activation keys for your device
+                <h1>
+                  <ion-icon :icon="icons.key" size="large"></ion-icon>
+                  Activación del dispositivo
+                </h1>
               </div>
             </div>
 
@@ -353,25 +316,22 @@
               <FormActivationDevice type="device_activation" label="device activation" :device="deviceDetails ? { ...deviceDetails } : device"
                 @item-created="handleActivationCreated" @field-changed="handleActivationFieldChanged" />
             </div>
-
-            <!-- Recent messages -->
-            <RecentMessages :messages="recentMessages" />
           </div>
         </ion-content>
       </ion-tab>
 
       <!-- Measurements Tab -->
       <ion-tab tab="measurements">
-        <ion-content class="ion-padding">
+        <ion-content class="ion-padding custom">
           <div class="tab-content">
             <!-- Header -->
             <div class="header">
               <div class="header-title">
                 <ion-back-button default-href="/home"></ion-back-button>
-                <h1>📊 Device Measurements</h1>
-              </div>
-              <div class="header-subtitle">
-                View measurement thresholds and limits
+                <h1>
+                  <ion-icon :icon="icons.analytics" size="large"></ion-icon>
+                  Variables del dispositivo
+                </h1>
               </div>
             </div>
 
@@ -384,18 +344,23 @@
             <!-- Loading state -->
             <div v-if="measurementsLoading" class="loading-container">
               <ion-spinner name="crescent" color="primary"></ion-spinner>
-              <p>Loading measurements...</p>
+              <p>Cargando variables...</p>
             </div>
 
             <!-- Error state -->
-            <div v-else-if="measurementsError" class="error-container">
-              <ion-icon :icon="icons.alertCircle" color="danger" size="large"></ion-icon>
-              <p class="text-red-600">{{ measurementsError }}</p>
-              <ion-button @click="fetchMeasurements" shape="round">
-                <ion-icon :icon="icons.refresh" slot="start"></ion-icon>
-                Retry
-              </ion-button>
-            </div>
+            <ion-card v-else-if="measurementsError" class="error-card">
+              <ion-card-content>
+                <div class="error-container">
+                  <ion-icon :icon="icons.alertCircle" color="danger" size="large"></ion-icon>
+                  <h2>Error al cargar variables</h2>
+                  <p class="error-message">{{ measurementsError }}</p>
+                  <ion-button @click="fetchMeasurements" shape="round" fill="outline" color="danger">
+                    <ion-icon :icon="icons.refresh" slot="start"></ion-icon>
+                    Reintentar
+                  </ion-button>
+                </div>
+              </ion-card-content>
+            </ion-card>
 
             <!-- Measurements Summary -->
             <div 
@@ -490,10 +455,14 @@
             </div>
 
             <!-- No data state -->
-            <div v-else class="no-data">
-              <ion-icon :icon="icons.analytics" size="large" color="medium"></ion-icon>
-              <h2>No measurement data available</h2>
-              <p>Measurement data will appear here once available</p>
+            <div v-else class="no-data-empty-state">
+              <ion-icon :icon="icons.analytics" class="empty-icon"></ion-icon>
+              <h2>Sin variables registradas</h2>
+              <p>No se ha registrado Variables para este nodo</p>
+              <ion-button fill="clear" @click="fetchMeasurements" color="medium">
+                <ion-icon :icon="icons.refresh" slot="start"></ion-icon>
+                Actualizar
+              </ion-button>
             </div>
           </div>
 
@@ -530,7 +499,10 @@ import {
 } from '@ionic/vue'
 import API from '@/utils/api/api.js'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
+import { MEASUREMENT_PROFILES, getProfileByValue } from '@/data/measurementProfiles.js'
 import HistoricalMeasurementChart from '@/components/charts/HistoricalMeasurementChart.vue'
+import CombinedHistoricalChart from '@/components/charts/CombinedHistoricalChart.vue'
+import { format, subDays } from 'date-fns'
 
 // Chart.js imports and registration
 import {
@@ -698,10 +670,31 @@ const loading = ref(false)
 const error = ref(null)
 const deviceDetails = ref(null) // store fetched device details (used by activation form)
 
+// Comparison tab state
+const selectedMeasurement1 = ref('')
+const selectedMeasurement2 = ref('')
+const selectedChannel1 = ref('')
+const selectedChannel2 = ref('')
+
+// Comparison chart filters state (persisted)
+const comparisonFilters = ref({
+  start: format(subDays(new Date(), 1), "yyyy-MM-dd'T'HH:mm"),
+  end: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+  step: 100
+})
+
 // Watch for props.measurements changes
 watch(() => props.measurements, (newVal) => {
   if (newVal && newVal.length > 0) {
     measurements.value = newVal
+    initializeDefaultSelections()
+  }
+})
+
+// Watch for measurements changes to initialize selections
+watch(measurements, (newVal) => {
+  if (newVal && newVal.length > 0) {
+    initializeDefaultSelections()
   }
 })
 
@@ -730,7 +723,19 @@ const fetchMeasurements = async () => {
     console.log('✅ Measurements fetched:', measurements.value)
   } catch (error) {
     console.error('❌ Error fetching measurements:', error)
-    measurementsError.value = error.message || 'Failed to load measurements'
+    
+    // Check if it's a 404 error (No data found)
+    const is404 = error.message?.includes('404') || 
+                  error.status === 404 || 
+                  error.response?.status === 404;
+
+    if (is404) {
+      // Treat 404 as "Success but empty" to show the friendly No Data state
+      measurements.value = []
+      measurementsError.value = null
+    } else {
+      measurementsError.value = error.message || 'Error al cargar las mediciones'
+    }
   } finally {
     measurementsLoading.value = false
   }
@@ -863,6 +868,19 @@ const formatValue = (value, unit) => {
   return `${value} ${unit || ''}`
 }
 
+// Helper function to get the appropriate chart grid component based on the unit
+const getComponentForUnit = (unit) => {
+  const profile = getProfileByValue(unit);
+  
+  // If the profile says it has 2 axes, use BatteryChartsGrid (which handles dual-axis)
+  if (profile && profile.axes === 2) {
+    return BatteryChartsGrid;
+  }
+  
+  // Default to standard ChartsGrid for single-axis or unknown types
+  return ChartsGrid;
+};
+
 // Helper function to get chart data for dynamic measurements
 const getMeasurementChartData = (measurementUnit) => {
   // This function maps measurement units to their corresponding chart data
@@ -948,7 +966,10 @@ onMounted(() => {
 
   // then fetch device / measurements
   fetchDevice()
-  fetchMeasurements()
+  fetchMeasurements().then(() => {
+    // Initialize default selections after measurements are loaded
+    initializeDefaultSelections()
+  })
   loaded.value = true
 })
 
@@ -990,9 +1011,108 @@ const setMeasurementInitialData = (measurement) => {
   }
   console.log('Initial data for measurement:', measurement)
 }
+
+// Helper functions for measurement comparison
+const getAvailableMeasurements = () => {
+  if (!measurements.value || measurements.value.length === 0) return []
+  return measurements.value
+}
+
+const initializeDefaultSelections = () => {
+  if (!measurements.value || measurements.value.length < 2) return
+  
+  // Auto-select first two measurements if nothing selected
+  if (!selectedMeasurement1.value && !selectedMeasurement2.value) {
+    // Try to find voltage and temperature first
+    const voltage = measurements.value.find(m => 
+      m.unit?.toLowerCase() === 'voltage' || m.unit?.toLowerCase() === 'voltaje'
+    )
+    const temperature = measurements.value.find(m => 
+      m.unit?.toLowerCase() === 'temperature' || m.unit?.toLowerCase() === 'temperatura'
+    )
+    
+    if (voltage && temperature) {
+      selectedMeasurement1.value = voltage.unit.toLowerCase()
+      selectedMeasurement2.value = temperature.unit.toLowerCase()
+    } else {
+      // Just use the first two available
+      selectedMeasurement1.value = measurements.value[0].unit?.toLowerCase() || ''
+      if (measurements.value.length > 1) {
+        selectedMeasurement2.value = measurements.value[1].unit?.toLowerCase() || ''
+      }
+    }
+  }
+}
+
+const onMeasurementSelectionChange = () => {
+  console.log('📊 Measurement selection changed:', {
+    measurement1: selectedMeasurement1.value,
+    measurement2: selectedMeasurement2.value
+  })
+}
+
+const handleComparisonFiltersChange = (newFilters) => {
+  console.log('📅 Comparison filters updated:', newFilters)
+  comparisonFilters.value = { ...newFilters }
+}
 </script>
 
 <style scoped>
+/* Scrollable Tab Bar */
+.tabs-device-measurements ion-tab-bar {
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ion-color-medium) transparent;
+  padding: 0;
+}
+
+/* Mobile: align tabs to start for proper scrolling */
+@media (max-width: 768px) {
+  .tabs-device-measurements ion-tab-bar {
+    justify-content: flex-start;
+  }
+}
+
+/* Desktop: center tabs when they fit */
+@media (min-width: 769px) {
+  .tabs-device-measurements ion-tab-bar {
+    justify-content: center;
+    gap: 12px;
+  }
+}
+
+.tabs-device-measurements ion-tab-bar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-device-measurements ion-tab-bar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabs-device-measurements ion-tab-bar::-webkit-scrollbar-thumb {
+  background-color: var(--ion-color-medium);
+  border-radius: 2px;
+}
+
+.tabs-device-measurements ion-tab-button {
+  flex: 0 0 auto;
+  min-width: 80px;
+  max-width: 150px;
+  margin: 0;
+}
+
+.tabs-device-measurements ion-tab-button:first-child {
+  margin-left: 0;
+}
+
+.tabs-device-measurements ion-tab-button:last-child {
+  margin-right: 0;
+}
+
 .tab-content {
   width: 100%;
   max-width: 100%;
@@ -1004,29 +1124,34 @@ const setMeasurementInitialData = (measurement) => {
 
 /* Measurements Tab Styles */
 .measurements-container {
+  width: 100%;
   max-width: 1400px;
   margin: 1.5rem auto;
   padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 .measurements-container.desktop-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
   gap: 1.5rem;
 }
 
 .measurements-container.mobile-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  padding: 0 0.5rem;
 }
 
 .measurement-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   margin-bottom: 0;
 }
 
@@ -1037,7 +1162,7 @@ const setMeasurementInitialData = (measurement) => {
 
 .measurement-card ion-card-header {
   padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.05) 0%, rgba(var(--ion-color-primary-rgb), 0.02) 100%);
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.15) 0%, rgba(var(--ion-color-primary-rgb), 0.05) 100%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -1225,20 +1350,34 @@ const setMeasurementInitialData = (measurement) => {
 
 
 
-.error-message {
-  color: var(--ion-color-danger);
-  margin: 0.5rem 0 1rem;
+.error-container h2 {
+  color: var(--ion-color-dark);
+  font-size: 1.25rem;
+  margin: 1rem 0 0.5rem;
+  font-weight: 600;
 }
 
-.no-data ion-icon {
-  margin-bottom: 1rem;
-  opacity: 0.5;
+.error-message {
+  color: var(--ion-color-danger);
+  background: rgba(var(--ion-color-danger-rgb), 0.05);
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  margin: 1rem 0 2rem;
+  font-size: 0.9rem;
+  max-width: 90%;
+  line-height: 1.4;
+  border: 1px dashed rgba(var(--ion-color-danger-rgb), 0.3);
+}
+
+.error-container ion-icon {
+  font-size: 3rem;
+  opacity: 0.8;
 }
 
 .no-data h2 {
   color: var(--ion-color-dark);
   font-size: 1.25rem;
-  margin-bottom: 0.5rem;
+  margin: 1rem 0 0.5rem;
 }
 
 .no-data p {
@@ -1263,77 +1402,134 @@ const setMeasurementInitialData = (measurement) => {
 @media (max-width: 768px) {
   .tab-content {
     padding: 0;
-    gap: 15px;
+    gap: 1rem;
+    width: 100%;
   }
 
   .measurements-container {
-    margin: 1rem auto;
-    padding: 0 0.5rem;
+    margin: 0;
+    padding: 0.5rem;
+    width: 100%;
   }
 
-  .measurements-grid {
-    grid-template-columns: 1fr;
+  .measurements-container.mobile-stack,
+  .measurements-container.desktop-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .measurement-card {
+    border-radius: 12px;
+    margin-bottom: 0;
+    width: 100%;
   }
 
   .measurement-card ion-card-header {
-    padding: 1rem;
+    padding: 0.875rem;
   }
 
   .card-header-content {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     gap: 0.75rem;
   }
 
+  .card-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+  }
+
+  .card-icon-wrapper ion-icon {
+    font-size: 24px;
+  }
+
   .card-title-section {
-    width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
+    width: auto;
+    flex: 1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
     gap: 0.5rem;
   }
 
   .measurement-card ion-card-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    font-weight: 600;
   }
 
-  .measurement-icon {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+  .measurement-card ion-card-content {
+    padding: 0.875rem;
   }
 
-  .measurement-icon ion-icon {
-    font-size: 20px;
-  }
-
-  .measurement-value {
-    font-size: 1.1rem;
-  }
-
-  .range-visualization {
-    padding: 1rem;
-  }
-
-  .range-header {
+  .measurements-grid {
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
     gap: 0.5rem;
   }
 
-  .range-legend {
-    flex-wrap: wrap;
+  .measurement-item {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .measurement-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 8px;
+  }
+
+  .measurement-icon ion-icon {
+    font-size: 18px;
+  }
+
+  .measurement-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .measurement-label {
+    font-size: 0.7rem;
+  }
+
+  .measurement-value {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .unit-text {
+    font-size: 0.75rem;
+  }
+
+  .range-visualization {
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .range-bar {
+    height: 6px;
+    margin-bottom: 0.75rem;
   }
 
   .range-labels {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+    height: 20px;
   }
 
-  .range-label-start,
-  .range-label-warning,
-  .range-label-threshold,
-  .range-label-end {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.7rem;
+  .range-label {
+    font-size: 0.65rem;
+    top: 6px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .measurements-container.desktop-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 1rem;
   }
 }
 
@@ -1442,6 +1638,250 @@ const setMeasurementInitialData = (measurement) => {
 
 .action-buttons ion-button {
   margin-bottom: 0.5rem;
+}
+
+/* Comparison Tab Styles */
+.measurement-selector-card {
+  margin: 1rem 0;
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.05) 0%, rgba(var(--ion-color-primary-rgb), 0.02) 100%);
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.measurement-selector-card ion-card-header {
+  padding-bottom: 0.5rem;
+}
+
+.measurement-selector-card ion-card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.measurement-selector-card ion-card-subtitle {
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.selector-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.selector-grid.is-mobile {
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.selector-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.channel-selector-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.channel-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+  min-width: 45px;
+}
+
+.channel-select-inline {
+  padding: 0.5rem;
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  color: var(--ion-color-dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.channel-select-inline:hover {
+  border-color: var(--ion-color-primary);
+}
+
+.channel-select-inline:focus {
+  outline: none;
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.selector-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 0.25rem;
+}
+
+.measurement-select {
+  padding: 0.75rem;
+  border: 2px solid var(--ion-color-light-shade);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  color: var(--ion-color-dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.measurement-select:hover {
+  border-color: var(--ion-color-primary);
+}
+
+.measurement-select:focus {
+  outline: none;
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.measurement-select option:disabled {
+  color: var(--ion-color-medium);
+}
+
+.vs-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+  padding: 0 1rem;
+  align-self: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.vs-divider span {
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.info-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(var(--ion-color-primary-rgb), 0.05);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--ion-color-medium);
+}
+
+.info-message ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 1.25rem;
+}
+
+.instructions-card {
+  margin: 1rem 0;
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.05) 0%, rgba(var(--ion-color-primary-rgb), 0.02) 100%);
+}
+
+.instructions-card ion-card-header {
+  padding-bottom: 0.5rem;
+}
+
+.instructions-card ion-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.instructions-card p {
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.instructions-card strong {
+  color: var(--ion-color-primary);
+  font-weight: 600;
+}
+
+.warning-card {
+  margin: 2rem 0;
+  background: var(--ion-color-step-50, #f9f9f9);
+  border-left: 6px solid var(--ion-color-warning);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.error-card {
+  margin: 2rem 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(var(--ion-color-danger-rgb), 0.08);
+}
+
+.no-data-card {
+  margin: 2rem 0;
+  background: var(--ion-color-step-50, #f9f9f9);
+  border-left: 6px solid var(--ion-color-medium);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.no-data-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+  text-align: center;
+  background: var(--ion-color-light, #f4f5f8);
+  border-radius: 20px;
+  margin: 2rem 0;
+  border: 2px dashed var(--ion-color-step-200, #cccccc);
+}
+
+.empty-icon {
+  font-size: 5rem;
+  color: var(--ion-color-medium);
+  margin-bottom: 1.5rem;
+  opacity: 0.4;
+}
+
+.no-data-empty-state h2 {
+  color: var(--ion-color-dark);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.no-data-empty-state p {
+  color: var(--ion-color-step-600, #666666);
+  font-size: 1.1rem;
+  margin: 0 0 2rem 0;
+  max-width: 300px;
+}
+
+.warning-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  gap: 1rem;
+}
+
+.warning-content ion-icon {
+  color: var(--ion-color-warning);
+  font-size: 48px;
+}
+
+.warning-content p {
+  color: var(--ion-color-dark);
+  font-size: 1rem;
+  margin: 0;
 }
 </style>
 
