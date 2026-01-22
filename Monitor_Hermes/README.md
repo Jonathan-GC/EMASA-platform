@@ -1,6 +1,16 @@
 # Monitor Hermes 🪽
 
-Microservice with MQTT and WebSockets 
+Microservice with MQTT and WebSockets (WS/WSS)
+
+## 🔐 WebSocket Security
+
+Monitor Hermes supports both:
+- **WS** (WebSocket) - Unsecured connection for development
+- **WSS** (WebSocket Secure) - Encrypted connection for production
+
+For WSS configuration, SSL certificates, and production deployment, see **[WSS Configuration Guide](docs/WSS_CONFIGURATION.md)**.
+
+## Architecture
 
 ```bash
 Monitor_Hermes/
