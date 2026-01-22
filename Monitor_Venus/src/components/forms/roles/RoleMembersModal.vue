@@ -75,7 +75,7 @@ import {
   alertController, toastController
 } from '@ionic/vue'
 import API from '@utils/api/api'
-import Avatar from '@assets/svg/avatar.svg'
+import Avatar from '@assets/svg/Avatar.svg'
 
 const props = defineProps({
   role: {
