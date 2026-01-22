@@ -20,7 +20,7 @@ import websockets
 import ssl
 import argparse
 import json
-import loguru
+from loguru import logger
 
 
 async def test_websocket_connection(
@@ -36,14 +36,14 @@ async def test_websocket_connection(
     protocol = "wss" if use_wss else "ws"
     url = f"{protocol}://{host}:{port}/ws/notifications?token={token}"
 
-    loguru.logger.info(f"Testing {protocol.upper()} connection to {url}")
+    logger.info(f"Testing {protocol.upper()} connection to {url}")
 
     # Configure SSL context if using WSS
     ssl_context = None
     if use_wss:
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         if skip_verify:
-            loguru.logger.warning(
+            logger.warning(
                 "⚠️  SSL verification disabled (only for development/testing)"
             )
             ssl_context.check_hostname = False
@@ -56,61 +56,61 @@ async def test_websocket_connection(
     try:
         # Connect to WebSocket
         async with websockets.connect(url, ssl=ssl_context) as websocket:
-            loguru.logger.success(
+            logger.success(
                 f"✅ Successfully connected to {protocol.upper()} endpoint"
             )
 
             # Send a ping
             ping_message = json.dumps({"action": "ping"})
             await websocket.send(ping_message)
-            loguru.logger.debug(f"Sent: {ping_message}")
+            logger.debug(f"Sent: {ping_message}")
 
             # Wait for response (with timeout)
             try:
                 response = await asyncio.wait_for(websocket.recv(), timeout=5.0)
                 data = json.loads(response)
-                loguru.logger.success(f"Received: {data}")
+                logger.success(f"Received: {data}")
 
                 if data.get("action") == "pong":
-                    loguru.logger.success("✅ Ping/Pong test successful")
+                    logger.success("✅ Ping/Pong test successful")
                 else:
-                    loguru.logger.info(f"📨 Received message: {data}")
+                    logger.info(f"📨 Received message: {data}")
 
             except asyncio.TimeoutError:
-                loguru.logger.warning("⏱️  Timeout waiting for response")
-                loguru.logger.info(
+                logger.warning("⏱️  Timeout waiting for response")
+                logger.info(
                     "Connection is established but no immediate response received"
                 )
-                loguru.logger.info("This is expected if no notifications are pending")
+                logger.info("This is expected if no notifications are pending")
 
             # Keep connection open for a few more seconds to receive any notifications
-            loguru.logger.info("Listening for notifications for 10 seconds...")
+            logger.info("Listening for notifications for 10 seconds...")
             try:
                 while True:
                     message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
                     data = json.loads(message)
-                    loguru.logger.info(f"📬 Notification received: {data}")
+                    logger.info(f"📬 Notification received: {data}")
             except asyncio.TimeoutError:
-                loguru.logger.info("No notifications received in 10 seconds")
+                logger.info("No notifications received in 10 seconds")
 
     except websockets.exceptions.InvalidStatusCode as e:
-        loguru.logger.error(f"❌ Connection failed with status code: {e.status_code}")
+        logger.error(f"❌ Connection failed with status code: {e.status_code}")
         if e.status_code == 1008:
-            loguru.logger.error(
+            logger.error(
                 "Authentication failed. Check your JWT token and ensure it's valid."
             )
     except websockets.exceptions.WebSocketException as e:
-        loguru.logger.error(f"❌ WebSocket error: {e}")
+        logger.error(f"❌ WebSocket error: {e}")
     except ssl.SSLError as e:
-        loguru.logger.error(f"❌ SSL/TLS error: {e}")
-        loguru.logger.error(
+        logger.error(f"❌ SSL/TLS error: {e}")
+        logger.error(
             "This might be due to invalid or self-signed certificates."
         )
-        loguru.logger.error(
+        logger.error(
             "For self-signed certificates, use --skip-verify flag (development only)"
         )
     except Exception as e:
-        loguru.logger.exception(f"❌ Unexpected error: {e}")
+        logger.exception(f"❌ Unexpected error: {e}")
 
 
 def main():
