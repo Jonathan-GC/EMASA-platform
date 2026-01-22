@@ -30,6 +30,7 @@ const CreateManagers = defineAsyncComponent(() => import("@components/forms/crea
 const CreateUsers = defineAsyncComponent(() => import("@components/forms/create/users/formCreateUsers.vue"));
 const CreateMeasurements = defineAsyncComponent(() => import("@components/forms/create/measurements/formCreateMeasurements.vue"));
 const CreateRoles = defineAsyncComponent(() => import("@components/forms/create/roles/formCreateRoles.vue"));
+const CreateDeviceTypes = defineAsyncComponent(() => import("@components/forms/create/deviceTypes/formCreateDeviceTypes.vue"));
 
 
 export class CreateFormFactory extends AbstractFormFactory {
@@ -40,7 +41,7 @@ export class CreateFormFactory extends AbstractFormFactory {
                 component: CreateTenants,
                 props: {
                     type: type,
-                    label: 'tenant',
+                    label: 'cliente',
                     fields: schema.tenant,
                 }
             },
@@ -56,7 +57,7 @@ export class CreateFormFactory extends AbstractFormFactory {
                 component: CreateLocations,
                 props: {
                     type: type,
-                    label: 'location',
+                    label: 'ubicación',
                     fields: schema.location,
                 }
             },
@@ -64,15 +65,24 @@ export class CreateFormFactory extends AbstractFormFactory {
                 component: CreateDeviceProfiles,
                 props: {
                     type: type,
-                    label: 'device profile',
+                    label: 'perfil de dispositivo',
                     fields: schema.device_profile,
                 }
             },
+            device_type: {
+                component: CreateDeviceTypes,
+                props: {
+                    type: type,
+                    label: 'tipo de dispositivo',
+                    fields: schema.device_type,
+                }
+            },
+
             device: {
                 component: CreateDevices,
                 props: {
                     type: type,
-                    label: 'device',
+                    label: 'dispositivo',
                     fields: schema.device,
                 }
             },
@@ -80,7 +90,7 @@ export class CreateFormFactory extends AbstractFormFactory {
                 component: CreateDeviceActivation,
                 props: {
                     type: type,
-                    label: 'device activation',
+                    label: 'activación de dispositivo',
                     fields: schema.device_activation,
                 }
             },
@@ -88,7 +98,7 @@ export class CreateFormFactory extends AbstractFormFactory {
                 component: CreateMachines,
                 props: {
                     type: type,
-                    label: 'machine',
+                    label: 'máquina',
                     fields: schema.machine,
                 }
             },
@@ -96,7 +106,7 @@ export class CreateFormFactory extends AbstractFormFactory {
                 component: CreateApplications,
                 props: {
                     type: type,
-                    label: 'application',
+                    label: 'aplicación',
                     fields: schema.application,
                 }
             },
@@ -128,7 +138,7 @@ export class CreateFormFactory extends AbstractFormFactory {
                 component: CreateMeasurements,
                 props: {
                     type: type,
-                    label: 'measurement',
+                    label: 'variable',
                     fields: schema.measurement,
                 }
             },
@@ -136,7 +146,7 @@ export class CreateFormFactory extends AbstractFormFactory {
                 component: CreateRoles,
                 props: {
                     type: type,
-                    label: 'role',
+                    label: 'rol',
                     fields: schema.role,
                 }
             },   

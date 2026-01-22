@@ -4,7 +4,6 @@ export const paths = {
     ROOT: '/',
     ADMIN: '/admin',
     HOME: '/home',
-    ABOUT: '/about',
     VOLTAGE: '/voltage',
     CURRENT: '/current',
     BATTERY: '/battery',
@@ -28,6 +27,7 @@ export const paths = {
     MACHINES: '/machines',
     NOTIFICATIONS: '/notifications',
     EMAIL_VERIFICATION: '/verify-email',
+    DEVICE_TYPES: '/device-types',
 
     // Support and inbox paths
     SUPPORT: '/support',

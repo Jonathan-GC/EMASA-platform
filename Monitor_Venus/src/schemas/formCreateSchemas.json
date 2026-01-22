@@ -22,9 +22,10 @@
 
   "location": [
     { "key": "name", "label": "Nombre", "type": "text" },
-    { "key": "accuracy", "label":  "Presición", "type": "text" },
+    { "key": "coords", "label": "Seleccionar ubicación en mapa", "type": "map" },
     { "key": "latitude", "label":"Latitud", "type": "text" },
     { "key": "longitude", "label": "Longitud", "type": "text" },
+    { "key": "accuracy", "label":  "Presición", "type": "text" },
     { "key": "altitude", "label": "Altitud", "type": "text" },
     { "key": "source", "label": "Fuente", "type": "text" }
   ],
@@ -69,6 +70,11 @@
     { "key": "machine", "label": "Máquina", "type": "select" }
   ],
 
+  "device_type": [
+    { "key": "name", "label": "Nombre", "type": "text" },
+    { "key": "description", "label":  "Descripción", "type": "textarea" }
+  ],
+
   "device_activation": [
     { "key": "dev_addr", "label": "Device Address", "type": "text", "required": true },
     { "key": "app_s_key", "label": "Application Session Key", "type": "text", "required": true },
@@ -80,6 +86,7 @@
     { "key": "afcntdown", "label": "Application Downlink Counter", "type": "text" }
   ],
   "machine": [
+    { "key": "img", "label": "Imagen", "type": "image" },
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "Descripción", "type": "textarea" },
     { "key": "workspace_id", "label": "Workspace", "type": "select" }
@@ -99,7 +106,7 @@
     { "key": "address.zipcode", "label": "Código postal", "type": "text" }
   ],
   "measurement": [
-    { "key": "unit", "label": "Nombre de variable", "type": "text" },
+    { "key": "unit", "label": "Nombre de variable", "type": "select" },
     { "key": "ref", "label": "Unidad de medida", "type": "text" },
     { "key": "min", "label": "Valor mínimo", "type": "text" },
     { "key": "max", "label": "Valor máximo", "type": "text" },

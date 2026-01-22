@@ -123,7 +123,7 @@
               
               <ion-col size="1">
                 <ion-chip size="small">
-                  {{ user.tenant }}
+                  {{ user.tenant_name }}
                 </ion-chip>
               </ion-col>
               
@@ -142,12 +142,13 @@
                   type="user"
                   :index="user.id" 
                   :name="user.username"
-                  :toView="`/users/${user.id}`"
                   to-edit
-                  to-delete
+                  to-toggle
+                  :status="user.is_active"
                   :initial-data="setInitialData(user)"
                   @item-edited="handleItemRefresh"
-                  @item-deleted="handleItemRefresh"
+                  @item-toggled="handleItemRefresh"
+
                 />
               </ion-col>
             </ion-row>
@@ -167,7 +168,7 @@
                 <!-- Header with avatar and name -->
                 <div class="card-header">
                   <ion-avatar class="card-avatar">
-                    <img :alt="user.username" :src="user.img || '/default-avatar.png'" />
+                    <img :alt="user.username" :src="user.img || Avatar" />
                   </ion-avatar>
                   <div class="card-title-section">
                     <h3 class="card-title">{{ `${user.name} ${user.last_name}` }}</h3>
@@ -198,7 +199,7 @@
                   <div class="card-detail-row">
                     <span class="detail-label">Tenant:</span>
                     <span class="detail-value">
-                      <ion-chip size="small" color="primary">{{ user.tenant }}</ion-chip>
+                      <ion-chip size="small" color="primary">{{ user.tenant_name }}</ion-chip>
                     </span>
                   </div>
                 </div>
@@ -209,7 +210,6 @@
                     type="user"
                     :index="user.id" 
                     :name="user.username"
-                    :toView="`/users/${user.id}`"
                     to-edit
                     to-delete
                     :initial-data="setInitialData(user)"

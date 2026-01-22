@@ -1,10 +1,13 @@
 from .serializers import (
     UserSerializer,
+    UserMeSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
+    LogEntrySerializer,
 )
 from .models import User
 from roles.permissions import HasPermission
+from auditlog.models import LogEntry
 
 from rest_framework.viewsets import ModelViewSet
 from guardian.shortcuts import get_objects_for_user
@@ -20,9 +23,9 @@ from datetime import timedelta
 from functools import wraps
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -50,6 +53,8 @@ from roles.helpers import (
 )
 
 from support.serializers import SupportMembershipSerializer
+
+from roles.permissions import IsAnAdminUser, IsTenantAdminUser
 
 # User ViewSet
 
@@ -152,6 +157,23 @@ class UserViewSet(ModelViewSet):
             accept_global_perms=False,
         )
 
+    def list(self, request, *args, **kwargs):
+        """Filter users by workspace if 'workspace' query param is provided.
+        It checks the workspace membership of the users."""
+        workspace = request.query_params.get("workspace", None)
+        queryset = self.get_queryset()
+        if workspace:
+            queryset = queryset.filter(
+                workspacemembership__workspace__id=workspace
+            ).distinct()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def perform_create(self, serializer):
         user = self.request.user
         instance = serializer.save()
@@ -218,11 +240,21 @@ class UserViewSet(ModelViewSet):
                 {"error": "This user does not have a support membership."}, status=404
             )
 
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="user",
+    )
+    def me(self, request):
+        user = request.user
+        serializer = UserMeSerializer(user)
+        return Response(serializer.data)
+
 
 # Authentication
 REFRESH_COOKIE_NAME = settings.REFRESH_COOKIE_NAME
 REFRESH_COOKIE_PATH = settings.REFRESH_COOKIE_PATH
-
 
 # ============================================================================
 # Custom CSRF Protection for Native Apps
@@ -752,3 +784,74 @@ class VerifyTicketToken(APIView):
 @permission_classes([AllowAny])
 def csrf_setup(request):
     return Response({"detail": "CSRF cookie set."}, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        description="Get system logs", responses={200: OpenApiTypes.OBJECT}
+    )
+)
+class LogLogsViewSet(viewsets.ViewSet):
+    permission_classes = [IsAnAdminUser]
+
+    def list(self, request):
+        """
+        Return the last 100 lines of the system log.
+        """
+        limit = request.query_params.get("limit", 100)
+        try:
+            limit = int(limit)
+        except ValueError:
+            limit = 100
+
+        if limit <= 0 or limit > 1000:
+            limit = 100
+
+        log_file = settings.BASE_DIR / "logs/system.log"
+        if not log_file.exists():
+            return Response({"error": "Log file not found"}, status=404)
+
+        try:
+            with open(log_file, "r") as f:
+                # Read all lines and take the last 100
+                lines = f.readlines()[-limit:]
+            return Response({"logs": lines})
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+
+@extend_schema_view(
+    list=extend_schema(description="Audit Log List"),
+    retrieve=extend_schema(description="Audit Log Retrieve"),
+)
+class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing audit logs.
+    """
+
+    queryset = LogEntry.objects.all().order_by("-timestamp")
+    serializer_class = LogEntrySerializer
+    permission_classes = [IsAnAdminUser]
+
+    @action(detail=False, methods=["get"], permission_classes=[IsTenantAdminUser])
+    def get_tenant_admin_logs(self, request):
+        """
+        Return audit logs for tenant admins.
+        Filters logs where the actor belongs to the same tenant as the requester.
+        """
+        user = request.user
+
+        if user.is_superuser:
+            queryset = LogEntry.objects.all().order_by("-timestamp")
+        else:
+            queryset = LogEntry.objects.filter(actor__tenant=user.tenant).order_by(
+                "-timestamp"
+            )
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

@@ -85,6 +85,42 @@ export const theme = {
     dark: '#4338ca',
   },
   
+  // Cyan (Tailwind Palette)
+  cyan: {
+    50: '#ecfeff',
+    100: '#cffafe',
+    200: '#a5f3fc',
+    300: '#67e8f9',
+    400: '#22d3ee',
+    500: '#06b6d4',
+    600: '#0891b2',
+    700: '#0e7490',
+    800: '#155e75',
+    900: '#164e63',
+    950: '#083344',
+    DEFAULT: '#06b6d4',
+    light: '#22d3ee',
+    dark: '#0891b2',
+  },
+  
+  // Orange (Tailwind Palette)
+  orange: {
+    50: '#fff7ed',
+    100: '#ffedd5',
+    200: '#fed7aa',
+    300: '#fdba74',
+    400: '#fb923c',
+    500: '#f97316',
+    600: '#ea580c',
+    700: '#c2410c',
+    800: '#9a3412',
+    900: '#7c2d12',
+    950: '#431407',
+    DEFAULT: '#f97316',
+    light: '#fb923c',
+    dark: '#ea580c',
+  },
+  
   // Spacing scale (similar to Tailwind)
   spacing: {
     xs: '4px',
@@ -167,6 +203,24 @@ export const generateCSSVariables = () => {
     } else {
       variables[`--color-magic-${key}`] = value
       variables[`--color-indigo-${key}`] = value
+    }
+  })
+  
+  // Cyan colors
+  Object.entries(theme.cyan).forEach(([key, value]) => {
+    if (key === 'DEFAULT' || key === 'light' || key === 'dark') {
+      variables[`--color-cyan-${key}`] = value
+    } else {
+      variables[`--color-cyan-${key}`] = value
+    }
+  })
+  
+  // Orange colors
+  Object.entries(theme.orange).forEach(([key, value]) => {
+    if (key === 'DEFAULT' || key === 'light' || key === 'dark') {
+      variables[`--color-orange-${key}`] = value
+    } else {
+      variables[`--color-orange-${key}`] = value
     }
   })
   
@@ -318,6 +372,32 @@ export const applyIonicColors = (root = document.documentElement) => {
   createIonicColor(root, 'indigo-700', theme.magic[700])
   createIonicColor(root, 'indigo-800', theme.magic[800])
   createIonicColor(root, 'indigo-900', theme.magic[900])
+  
+  // Cyan shades (Tailwind palette)
+  createIonicColor(root, 'cyan-50', theme.cyan[50])
+  createIonicColor(root, 'cyan-100', theme.cyan[100])
+  createIonicColor(root, 'cyan-200', theme.cyan[200])
+  createIonicColor(root, 'cyan-300', theme.cyan[300])
+  createIonicColor(root, 'cyan-400', theme.cyan[400])
+  createIonicColor(root, 'cyan-500', theme.cyan[500])
+  createIonicColor(root, 'cyan-600', theme.cyan[600])
+  createIonicColor(root, 'cyan-700', theme.cyan[700])
+  createIonicColor(root, 'cyan-800', theme.cyan[800])
+  createIonicColor(root, 'cyan-900', theme.cyan[900])
+  createIonicColor(root, 'cyan-950', theme.cyan[950])
+  
+  // Orange shades (Tailwind palette)
+  createIonicColor(root, 'orange-50', theme.orange[50])
+  createIonicColor(root, 'orange-100', theme.orange[100])
+  createIonicColor(root, 'orange-200', theme.orange[200])
+  createIonicColor(root, 'orange-300', theme.orange[300])
+  createIonicColor(root, 'orange-400', theme.orange[400])
+  createIonicColor(root, 'orange-500', theme.orange[500])
+  createIonicColor(root, 'orange-600', theme.orange[600])
+  createIonicColor(root, 'orange-700', theme.orange[700])
+  createIonicColor(root, 'orange-800', theme.orange[800])
+  createIonicColor(root, 'orange-900', theme.orange[900])
+  createIonicColor(root, 'orange-950', theme.orange[950])
 }
 
 // Helper function to create Ionic color variables

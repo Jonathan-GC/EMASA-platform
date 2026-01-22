@@ -102,6 +102,7 @@ body a{
   }
   .table-card{
     background: #f8f9fa;
+    box-shadow: none;
   }
 }
 

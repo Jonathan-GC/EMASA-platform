@@ -7,16 +7,16 @@ class TokenManager {
     this.REFRESH_BUFFER = 5 * 60 * 1000; // 5 minutos buffer para refresh
   }
 
-  // Guardar access token en sessionStorage
+  // Guardar access token en localStorage (compartido entre tabs)
   saveAccessToken(token) {
     if (!token) return false;
     
     try {
-      sessionStorage.setItem(this.ACCESS_TOKEN_KEY, token);
+      localStorage.setItem(this.ACCESS_TOKEN_KEY, token);
       const expirationTime = Date.now() + this.ACCESS_TOKEN_DURATION;
-      sessionStorage.setItem(this.ACCESS_TOKEN_EXPIRY_KEY, expirationTime.toString());
+      localStorage.setItem(this.ACCESS_TOKEN_EXPIRY_KEY, expirationTime.toString());
       
-      console.log('💾 Access token guardado, expira en 60 minutos');
+      console.log('💾 Access token guardado en localStorage, expira en 60 minutos');
       return true;
     } catch (error) {
       console.error('❌ Error guardando access token:', error);
@@ -27,8 +27,8 @@ class TokenManager {
   // Obtener access token válido
   getAccessToken() {
     try {
-      const token = sessionStorage.getItem(this.ACCESS_TOKEN_KEY);
-      const expiry = sessionStorage.getItem(this.ACCESS_TOKEN_EXPIRY_KEY);
+      const token = localStorage.getItem(this.ACCESS_TOKEN_KEY);
+      const expiry = localStorage.getItem(this.ACCESS_TOKEN_EXPIRY_KEY);
       
       if (!token || !expiry) return null;
       
@@ -51,7 +51,7 @@ class TokenManager {
   // Verificar si el token expira pronto
   shouldRefreshToken() {
     try {
-      const expiry = sessionStorage.getItem(this.ACCESS_TOKEN_EXPIRY_KEY);
+      const expiry = localStorage.getItem(this.ACCESS_TOKEN_EXPIRY_KEY);
       if (!expiry) return false;
       
       const now = Date.now();
@@ -69,7 +69,7 @@ class TokenManager {
   // Obtener tiempo restante en minutos
   getTimeRemaining() {
     try {
-      const expiry = sessionStorage.getItem(this.ACCESS_TOKEN_EXPIRY_KEY);
+      const expiry = localStorage.getItem(this.ACCESS_TOKEN_EXPIRY_KEY);
       if (!expiry) return 0;
       
       const now = Date.now();
@@ -86,9 +86,9 @@ class TokenManager {
   // Limpiar access token
   clearAccessToken() {
     try {
-      sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
-      sessionStorage.removeItem(this.ACCESS_TOKEN_EXPIRY_KEY);
-      console.log('🗑️ Access token eliminado');
+      localStorage.removeItem(this.ACCESS_TOKEN_KEY);
+      localStorage.removeItem(this.ACCESS_TOKEN_EXPIRY_KEY);
+      console.log('🗑️ Access token eliminado de localStorage');
     } catch (error) {
       console.error('❌ Error limpiando access token:', error);
     }
@@ -110,7 +110,7 @@ class TokenManager {
       token: token ? token.substring(0, 20) + '...' : null,
       timeRemaining,
       shouldRefresh,
-      isExpired: timeRemaining === 0 && sessionStorage.getItem(this.ACCESS_TOKEN_KEY)
+      isExpired: timeRemaining === 0 && localStorage.getItem(this.ACCESS_TOKEN_KEY)
     };
   }
 }

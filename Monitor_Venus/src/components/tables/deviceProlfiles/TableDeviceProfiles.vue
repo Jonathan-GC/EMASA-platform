@@ -85,7 +85,7 @@
                 </div>
               </ion-col>
               <ion-col size="3">
-                <div class="deviceProfile-id">{{ deviceProfile.cs_device_profile_id }}</div>
+                <div class="deviceProfile-id">{{ deviceProfile.id }}</div>
               </ion-col>
 
               <ion-col size="2">
@@ -112,7 +112,6 @@
                   type="device_profile"
                   :index="deviceProfile.id" 
                   :name="deviceProfile.name"
-                  :to-view="`/tenants/${deviceProfile.id}`"
                   to-edit
                   to-delete
                   :initial-data="setInitialData(deviceProfile)"
@@ -132,7 +131,7 @@
                 <div class="card-header">
                   <div class="card-title-section">
                     <h3 class="card-title">{{ deviceProfile.name }}</h3>
-                    <p class="card-subtitle">{{ deviceProfile.cs_device_profile_id }}</p>
+                    <p class="card-subtitle">{{ deviceProfile.id }}</p>
                   </div>
                   <ion-chip :color="getStatusColor(deviceProfile.state)" class="card-chip-status">
                     <ion-icon :icon="icons.globe" size="small"></ion-icon>
@@ -159,7 +158,6 @@
                     type="device_profile"
                     :index="deviceProfile.id" 
                     :name="deviceProfile.name"
-                    :to-view="`/tenants/${deviceProfile.id}`"
                     to-edit
                     to-delete
                     :initial-data="setInitialData(deviceProfile)"

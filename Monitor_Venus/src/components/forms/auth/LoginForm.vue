@@ -212,6 +212,11 @@ const handleLogin = async () => {
             admin: authStore.isAdmin,
             normal: authStore.isNormalUser
           });
+          
+          // Fetch user profile data after successful login
+          authStore.fetchUserProfile().catch(err => {
+            console.warn('⚠️ Could not fetch user profile:', err);
+          });
         } else {
           console.error('❌ Error procesando token');
           error.value = 'Error procesando autenticación';

@@ -274,6 +274,24 @@ class TenantViewSet(viewsets.ModelViewSet):
         except Tenant.DoesNotExist:
             return Response({"detail": "Tenant not found."}, status=404)
 
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="tenant",
+    )
+    def workspaces(self, request, pk=None):
+        """
+        Custom action to get all workspaces associated with a tenant.
+        """
+        try:
+            tenant = self.get_object()
+            workspaces = Workspace.objects.filter(tenant=tenant)
+            serializer = WorkspaceSerializer(workspaces, many=True)
+            return Response(serializer.data)
+        except Tenant.DoesNotExist:
+            return Response({"detail": "Tenant not found."}, status=404)
+
 
 @extend_schema_view(
     list=extend_schema(description="Subscription List"),

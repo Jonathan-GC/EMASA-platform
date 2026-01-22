@@ -2,6 +2,7 @@
 import { AbstractFormFactory } from "./abstractFormsFactory.js";
 import { CreateFormFactory } from "./actions-forms/createFormFactory.js";
 import { UpdateFormFactory } from "./actions-forms/updateFormFactory.js";
+import { ToggleFormFactory } from "./actions-forms/toggleFormFactory.js";
 import { DeleteFormFactory } from "./actions-forms/deleteFormFactory.js";
 
 export class FormFactory {
@@ -10,7 +11,8 @@ export class FormFactory {
       create: new CreateFormFactory(),
       update: new UpdateFormFactory(),
       view: new CreateFormFactory(), // Using create as fallback for view
-      delete: new DeleteFormFactory()
+      delete: new DeleteFormFactory(),
+      toggle: new ToggleFormFactory(), // Using update as fallback for toggle
     };
 
     return factoryMap[action] || new CreateFormFactory(); // Fallback to "create"

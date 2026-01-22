@@ -7,7 +7,10 @@
         <div class="header">
           <div class="header-title">
             <ion-back-button default-href="/home"></ion-back-button>
-            <h1>📟 Devices </h1>
+            <h1>
+              <ion-icon slot="start" :icon="icons.antenna" />
+               Nodos
+            </h1>
           </div>
         </div>
         <!-- Main applications table with fetch data -->
@@ -24,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted , inject} from 'vue'
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import TableGateways from '@components/tables/gateways/TableGateways.vue'
@@ -33,6 +36,7 @@ import TableGateways from '@components/tables/gateways/TableGateways.vue'
 const isConnected = ref(true)
 const reconnectAttempts = ref(0)
 const pageReady = ref(false)
+const icons = inject('icons', {})
 
 // Ionic lifecycle hooks
 onIonViewWillEnter(() => {
