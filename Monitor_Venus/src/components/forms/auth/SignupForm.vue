@@ -315,6 +315,7 @@ import API from '@/utils/api/api.js'
 import { paths } from '@/plugins/router/paths.js'
 import { countries } from '@/data/countries.js'
 import { cities } from '@/data/cities.js'
+import { commonPasswords } from '@/data/commonPasswords.js'
 import ModalSelector from '@/components/ui/ModalSelector.vue'
 import ImageUpload from '@/components/common/ImageUpload.vue'
 import PasswordInput from '@/components/common/PasswordInput.vue'
@@ -469,14 +470,6 @@ const passwordValidation = ref({
   notCommon: false,
   notNumeric: false
 })
-
-// Common passwords list
-const commonPasswords = [
-  'password', 'password123', '12345678', '123456789', '1234567890',
-  'qwerty', 'qwerty123', 'abc123', 'password1', 'admin', 'admin123',
-  'letmein', 'welcome', 'monkey', '1234', '12345', '123456', '1234567',
-  'password12', 'passw0rd', 'iloveyou', 'princess', 'rockyou', 'abc12345'
-]
 
 // Credenciales del usuario
 const credentials = ref({
