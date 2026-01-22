@@ -11,6 +11,7 @@ __pycache__/
 *.so
 
 .env.*
+!.env.example
 
 # Distribution / packaging
 .Python
@@ -174,5 +175,13 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
+
+# SSL/TLS Certificates (security sensitive)
+*.key
+*.crt
+*.pem
+*.p12
+*.pfx
+certs/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
