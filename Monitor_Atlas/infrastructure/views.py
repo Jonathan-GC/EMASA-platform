@@ -846,7 +846,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
         users_queryset = get_users_with_perms(device)
         for user in users_queryset:
             payload["assigned_users"].append(
-                {"user_id": user[0].id, "username": user[0].username}
+                {"user_id": user.id, "username": user.username}
             )
 
         return Response(payload)
