@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     # External Services
     SERVICE_API_KEY: str
     ATLAS_HOST_URL: str = "http://localhost:8000"
+    ATLAS_VERIFY_SSL: bool = True
 
     # SSL/TLS Configuration for WSS (WebSocket Secure)
     SSL_KEYFILE: str | None = None

@@ -10,16 +10,25 @@ class AtlasClient:
     Automatically handles authentication via X-API-Key.
     """
 
-    def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
+        verify_ssl: Optional[bool] = None,
+    ):
         """
         Initialize the Atlas client.
 
         Args:
             base_url: Base URL of the Atlas API. If not provided, uses ATLAS_HOST_URL from settings.
             api_key: API Key for authentication. If not provided, uses SERVICE_API_KEY from settings.
+            verify_ssl: Whether to verify SSL certificates (default: None, uses ATLAS_VERIFY_SSL from settings).
         """
         self.base_url = base_url or settings.ATLAS_HOST_URL
         self.api_key = api_key or settings.SERVICE_API_KEY
+        self.verify_ssl = (
+            verify_ssl if verify_ssl is not None else settings.ATLAS_VERIFY_SSL
+        )
         self.headers = {"X-API-Key": self.api_key, "Content-Type": "application/json"}
 
     def _get_full_url(self, endpoint: str) -> str:
@@ -59,7 +68,7 @@ class AtlasClient:
         url = self._get_full_url(endpoint)
         request_headers = {**self.headers, **(headers or {})}
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=self.verify_ssl) as client:
             loguru.logger.debug(f"GET request to {url} with params: {params}")
             response = await client.get(url, params=params, headers=request_headers)
             response.raise_for_status()
@@ -92,7 +101,7 @@ class AtlasClient:
         url = self._get_full_url(endpoint)
         request_headers = {**self.headers, **(headers or {})}
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=self.verify_ssl) as client:
             loguru.logger.debug(f"POST request to {url}")
             response = await client.post(
                 url, data=data, json=json, headers=request_headers
@@ -127,7 +136,7 @@ class AtlasClient:
         url = self._get_full_url(endpoint)
         request_headers = {**self.headers, **(headers or {})}
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=self.verify_ssl) as client:
             loguru.logger.debug(f"PUT request to {url}")
             response = await client.put(
                 url, data=data, json=json, headers=request_headers
@@ -162,7 +171,7 @@ class AtlasClient:
         url = self._get_full_url(endpoint)
         request_headers = {**self.headers, **(headers or {})}
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=self.verify_ssl) as client:
             loguru.logger.debug(f"PATCH request to {url}")
             response = await client.patch(
                 url, data=data, json=json, headers=request_headers
@@ -195,7 +204,7 @@ class AtlasClient:
         url = self._get_full_url(endpoint)
         request_headers = {**self.headers, **(headers or {})}
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=self.verify_ssl) as client:
             loguru.logger.debug(f"DELETE request to {url}")
             response = await client.delete(url, params=params, headers=request_headers)
             response.raise_for_status()
