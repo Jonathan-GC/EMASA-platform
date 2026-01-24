@@ -1,4 +1,4 @@
-package com.example.proofoconcept;
+package com.mtr.online;
 
 import com.getcapacitor.BridgeActivity;
 
