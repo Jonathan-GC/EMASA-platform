@@ -354,21 +354,14 @@ const refreshUserData = async () => {
   try {
     console.log('🔄 Refrescando token para obtener tenant_id actualizado...');
     
-    // Call refresh token endpoint - no body needed, reads from httpOnly cookie
-    const response = await API.post(API.REFRESH_TOKEN, {});
+    // Usar authStore para refrescar (maneja cookies y body fallback)
+    const newAccessToken = await authStore.refreshAccessToken();
     
-    // The API returns an array, get first element
-    const data = Array.isArray(response) ? response[0] : response;
-    
-    if (!data || !data.access) {
-      throw new Error('No se recibió access token en la respuesta');
+    if (!newAccessToken) {
+      throw new Error('No se pudo obtener nuevo access token');
     }
     
     console.log('✅ Token refrescado exitosamente');
-    
-    // Update token in authStore (which also updates sessionStorage)
-    authStore.refreshToken(data.access);
-    
     console.log('✅ Usuario actualizado con nuevo tenant_id:', authStore.tenantId);
     
   } catch (err) {
