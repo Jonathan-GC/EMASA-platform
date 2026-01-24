@@ -1,6 +1,6 @@
 {
   "appId": "com.mtr.online",
-  "appName": "MTR online",
+  "appName": "Monitor",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",
@@ -10,5 +10,10 @@
   },
   "android": {
     "allowMixedContent": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }
