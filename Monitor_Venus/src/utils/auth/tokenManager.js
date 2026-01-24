@@ -3,6 +3,7 @@ class TokenManager {
   constructor() {
     this.ACCESS_TOKEN_KEY = 'access_token';
     this.ACCESS_TOKEN_EXPIRY_KEY = 'access_token_expiry';
+    this.REFRESH_TOKEN_KEY = 'refresh_token';
     this.ACCESS_TOKEN_DURATION = 60 * 60 * 1000; // 60 minutos
     this.REFRESH_BUFFER = 5 * 60 * 1000; // 5 minutos buffer para refresh
   }
@@ -20,6 +21,20 @@ class TokenManager {
       return true;
     } catch (error) {
       console.error('❌ Error guardando access token:', error);
+      return false;
+    }
+  }
+
+  // Guardar refresh token en localStorage
+  saveRefreshToken(token) {
+    if (!token) return false;
+    
+    try {
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
+      console.log('💾 Refresh token guardado en localStorage');
+      return true;
+    } catch (error) {
+      console.error('❌ Error guardando refresh token:', error);
       return false;
     }
   }
@@ -94,6 +109,27 @@ class TokenManager {
     }
   }
 
+  // Limpiar refresh token
+  clearRefreshToken() {
+    try {
+      localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+      console.log('🗑️ Refresh token eliminado de localStorage');
+    } catch (error) {
+      console.error('❌ Error limpiando refresh token:', error);
+    }
+  }
+
+  // Limpiar todos los tokens
+  clearAllTokens() {
+    this.clearAccessToken();
+    this.clearRefreshToken();
+  }
+
+  // Obtener refresh token
+  getRefreshToken() {
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  }
+
   // Verificar si hay token válido
   hasValidToken() {
     return this.getAccessToken() !== null;
@@ -102,11 +138,13 @@ class TokenManager {
   // Obtener información del token
   getTokenInfo() {
     const token = this.getAccessToken();
+    const refreshToken = this.getRefreshToken();
     const timeRemaining = this.getTimeRemaining();
     const shouldRefresh = this.shouldRefreshToken();
     
     return {
       hasToken: !!token,
+      hasRefreshToken: !!refreshToken,
       token: token ? token.substring(0, 20) + '...' : null,
       timeRemaining,
       shouldRefresh,

@@ -266,9 +266,10 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Hace login del usuario
    * @param {string} accessToken - Token JWT del backend
+   * @param {string} refreshToken - Token de refresco (opcional)
    * @returns {boolean} - true si login exitoso
    */
-  const login = (accessToken) => {
+  const login = (accessToken, refreshToken = null) => {
     console.log('🔐 Procesando login...');
     
     if (!accessToken) {
@@ -276,8 +277,13 @@ export const useAuthStore = defineStore('auth', () => {
       return false;
     }
 
-    // Guardar token en sessionStorage
+    // Guardar access token
     const saved = tokenManager.saveAccessToken(accessToken);
+    
+    // Guardar refresh token si se proporciona (útil para móvil/Capacitor)
+    if (refreshToken) {
+      tokenManager.saveRefreshToken(refreshToken);
+    }
     
     if (!saved) {
       console.error('❌ Error guardando token');
@@ -308,8 +314,8 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = () => {
     console.log('👋 Cerrando sesión...');
     
-    // Limpiar token
-    tokenManager.clearAccessToken();
+    // Limpiar todos los tokens (access + refresh)
+    tokenManager.clearAllTokens();
     
     // Limpiar cookies
     document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
@@ -433,12 +439,12 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
-   * Refresca el access token usando el refresh token de la cookie httpOnly
-   * El backend lee el refresh_token de la cookie automáticamente
+   * Refresca el access token usando el refresh token guardado
+   * Intenta primero usando cookies (HttpOnly) y luego usando body (para móvil/Capacitor)
    * @returns {Promise<string>} - Nuevo access token
    */
   const refreshAccessToken = async () => {
-    console.log('🔄 Intentando refresh token desde cookie httpOnly...');
+    console.log('🔄 Intentando refresh token...');
     
     try {
       // Get API base URL
@@ -447,24 +453,34 @@ export const useAuthStore = defineStore('auth', () => {
       
       console.log('🔗 Refresh URL:', refreshUrl);
       
-      // NO enviamos refresh_token en el body, el backend lo lee de la cookie
+      // Obtener refresh token de localStorage por si las cookies no funcionan (móvil)
+      const storedRefreshToken = tokenManager.getRefreshToken();
+      
+      // Configuración de la petición
+      const requestBody = {};
+      if (storedRefreshToken) {
+        requestBody.refresh = storedRefreshToken;
+        console.log('📦 Refresh token incluido en el body (fallback móvil)');
+      }
+
+      // Intentar el refresh
       const response = await fetch(refreshUrl, {
         method: 'POST',
-        credentials: 'include', // ← Crucial: Envía la cookie httpOnly
+        credentials: 'include', // Envía cookies si están disponibles
         headers: { 
           'Content-Type': 'application/json',
-          // Agregar CSRF token si existe
           'X-CSRFToken': document.cookie
             .split('; ')
             .find(row => row.startsWith('csrftoken='))
             ?.split('=')[1] || ''
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Refresh falló:', response.status, errorData);
-        throw new Error('REFRESH_FAILED');
+        const errorText = await response.text().catch(() => 'No error body');
+        console.error('❌ Refresh falló:', response.status, errorText);
+        throw new Error(`REFRESH_FAILED: ${response.status}`);
       }
       
       const data = await response.json();
@@ -476,17 +492,20 @@ export const useAuthStore = defineStore('auth', () => {
       // Guardar nuevo access token
       tokenManager.saveAccessToken(data.access);
       
+      // Si el backend devolvió un nuevo refresh token, guardarlo también
+      if (data.refresh) {
+        tokenManager.saveRefreshToken(data.refresh);
+      }
+      
       // Actualizar store con nuevo token decodificado
       const userData = getUserFromToken(data.access);
       user.value = userData;
       
-      console.log('✅ Token refrescado exitosamente desde cookie httpOnly');
+      console.log('✅ Token refrescado exitosamente');
       return data.access;
       
     } catch (error) {
       console.error('❌ Error refrescando token:', error.message);
-      // No llamar logout aquí - dejar que el caller decida qué hacer
-      // El API class tiene mejor lógica para manejar fallos de refresh
       throw error;
     }
   };

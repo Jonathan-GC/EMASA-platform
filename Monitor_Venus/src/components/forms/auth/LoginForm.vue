@@ -201,17 +201,16 @@ const handleLogin = async () => {
       const loginData = response[0]; // API.handleResponse retorna array
       
       if (loginData.access) {
-        // Usar authStore para guardar token y decodificar info del usuario
-        const loginSuccess = authStore.login(loginData.access);
+        // Usar authStore para guardar tokens y decodificar info del usuario
+        // Pasamos tanto access como refresh para asegurar compatibilidad con móvil
+        const loginSuccess = authStore.login(loginData.access, loginData.refresh);
         
         if (loginSuccess) {
-          console.log('💾 Token guardado y usuario autenticado');
+          console.log('💾 Tokens guardados y usuario autenticado');
           console.log('👤 Usuario:', authStore.username);
-          console.log('🔑 Rol:', {
-            superuser: authStore.isSuperUser,
-            admin: authStore.isAdmin,
-            normal: authStore.isNormalUser
-          });
+          if (loginData.refresh) {
+            console.log('🔄 Refresh token también guardado en localStorage');
+          }
           
           // Fetch user profile data after successful login
           authStore.fetchUserProfile().catch(err => {
@@ -362,15 +361,8 @@ const logout = async () => {
   try {
     console.log('🚪 Cerrando sesión...')
     
-    // Limpiar tokens de sessionStorage
-    sessionStorage.removeItem('access_token');
-    sessionStorage.removeItem('access_token_expiry');
-    console.log('🗑️ Tokens eliminados de sessionStorage');
-    
-    // Limpiar cookies manualmente
-    document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
-    document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
-    document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    // Limpiar tokens y estado usando el store
+    authStore.logout()
     
     // Limpiar credenciales
     credentials.value = { username: '', password: '' }
