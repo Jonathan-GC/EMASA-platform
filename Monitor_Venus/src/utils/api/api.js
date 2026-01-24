@@ -221,15 +221,16 @@ class API {
 
         // 2. Si no hay en memoria, intentar desde storage (fallback)
         if (this.USE_PERSISTENT_STORAGE) {
-            const token = sessionStorage.getItem('access_token');
-            const expiry = sessionStorage.getItem('access_token_expiry');
+            // Unificar con tokenManager (usa localStorage)
+            const token = localStorage.getItem('access_token');
+            const expiry = localStorage.getItem('access_token_expiry');
             
             if (token && expiry) {
                 const expiryTime = parseInt(expiry);
                 const now = Date.now();
                 
                 if (now < expiryTime) {
-                    console.log('💾 Token recuperado desde sessionStorage');
+                    console.log('💾 Token recuperado desde localStorage');
                     // Cargar a memoria para futuras llamadas
                     this._accessToken = token;
                     this._tokenExpiry = expiryTime;
@@ -245,7 +246,7 @@ class API {
         return null;
     }
 
-    // Guardar solo access token (refresh token está en httpOnly cookie)
+    // Guardar solo access token (refresh token está en httpOnly cookie y localStorage)
     saveAccessToken(accessToken, expiryInMs) {
         const expirationTime = Date.now() + expiryInMs;
         
@@ -255,11 +256,11 @@ class API {
         
         // 2. Guardar en storage si está habilitado (backup)
         if (this.USE_PERSISTENT_STORAGE) {
-            sessionStorage.setItem('access_token', accessToken);
-            sessionStorage.setItem('access_token_expiry', expirationTime.toString());
+            localStorage.setItem('access_token', accessToken);
+            localStorage.setItem('access_token_expiry', expirationTime.toString());
         }
         
-        console.log('✅ Access token guardado en memoria y storage');
+        console.log('✅ Access token guardado en memoria y localStorage');
     }
 
     // Limpiar access token de memoria
@@ -271,15 +272,17 @@ class API {
 
     // Limpiar access token de storage
     _clearStorageTokens() {
-        sessionStorage.removeItem('access_token');
-        sessionStorage.removeItem('access_token_expiry');
-        console.log('🧹 Access token eliminado de storage');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('access_token_expiry');
+        console.log('🧹 Access token eliminado de localStorage');
     }
 
     // Limpiar todos los tokens
     clearAllTokens() {
         this._clearMemoryTokens();
         this._clearStorageTokens();
+        // También limpiar refresh token de localStorage
+        localStorage.removeItem('refresh_token');
         console.log('🗑️ Todos los tokens eliminados');
     }
 
@@ -356,9 +359,9 @@ class API {
         return {
             mode: this.USE_PERSISTENT_STORAGE ? 'hybrid' : 'memory-only',
             hasMemoryTokens: !!this._accessToken,
-            hasStorageTokens: !!sessionStorage.getItem('access_token'),
+            hasStorageTokens: !!localStorage.getItem('access_token'),
             description: this.USE_PERSISTENT_STORAGE ? 
-                'Memoria (rápido) + SessionStorage (persistente)' : 
+                'Memoria (rápido) + LocalStorage (persistente)' : 
                 'Solo memoria (máxima seguridad)'
         };
     }

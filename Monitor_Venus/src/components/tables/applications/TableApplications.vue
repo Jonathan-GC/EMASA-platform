@@ -187,7 +187,7 @@
                     <span class="detail-label">Dispositivos:</span>
                     <span class="detail-value">
                       <ion-icon :icon="icons.deviceCard" size="small"></ion-icon>
-                      {{ app.connectedDevices || 0 }}
+                      {{ app.devices_count || 0 }}
                     </span>
                   </div>
                 </div>

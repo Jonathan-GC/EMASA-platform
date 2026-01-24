@@ -1,6 +1,6 @@
 {
-  "appId": "com.example.proofoconcept",
-  "appName": "proof-o-concept",
+  "appId": "com.mtr-online",
+  "appName": "MTR online",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",
