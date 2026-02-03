@@ -242,11 +242,11 @@ export const routes = [
                 beforeEnter: allowAll,
                 meta: { public: true, guest: true }
             },
-            { 
+            /*{ 
                 path: P.SIGNUP, 
                 component: C.REGISTER,
                 meta: { public: true, guest: true }
-            },
+            },*/
             { 
                 path: P.EMAIL_VERIFICATION, 
                 component: C.EMAIL_VERIFICATION, 
