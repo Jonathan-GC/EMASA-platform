@@ -36,6 +36,7 @@ jobs:
           --exclude '**/*.pem' \
           --exclude '**/*.crt' \
           --exclude '.env.db.prod' \
+          --exclude 'media' \
           -e "ssh -o StrictHostKeyChecking=no" \
           ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.PROJECT_PATH }}
 
