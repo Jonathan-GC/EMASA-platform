@@ -90,7 +90,7 @@
             </ion-button>
 
             
-            <p class="text-center">¿No tienes cuenta? <router-link :to="paths.SIGNUP">Regístrate</router-link></p>
+            <!--<p class="text-center">¿No tienes cuenta? <router-link :to="paths.SIGNUP">Regístrate</router-link></p>-->
           </div>
           </form>
         </div>
