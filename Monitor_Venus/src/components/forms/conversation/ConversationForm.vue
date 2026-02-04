@@ -13,297 +13,180 @@
       <ion-button @click="loadConversation">Retry</ion-button>
     </div>
 
-    <!-- Conversation loaded -->
     <div v-else-if="conversationData" class="conversation-content">
-      <!-- Ticket header -->
-      <div class="ticket-header">
-        <div class="header-top">
-          <h2>{{ conversationData.title }}</h2>
-          <div class="header-actions">
-            <div class="ticket-badges">
-              <ion-badge :color="priorityColor(conversationData.priority)">
-                {{ conversationData.priority }}
-              </ion-badge>
-              <ion-badge :color="statusColor(conversationData.status)">
-                {{ conversationData.status }}
-              </ion-badge>
+      <!-- Expanded Ticket Header -->
+      <div class="ticket-header-compact">
+        <div class="header-inner">
+          <div class="header-main">
+            <div class="title-section">
+              <span class="ticket-id">#{{ conversationData.id.toString().substring(0, 8) }}</span>
+              <h2>{{ conversationData.title }}</h2>
             </div>
-            <!-- Scroll to bottom button -->
-            <ion-button class="scroll-to-bottom-btn" fill="clear" @click="scrollToBottom">
-              <ion-icon :icon="icons.arrowDown || icons.chevronDown" />
+            <div class="header-meta">
+              <ion-badge :color="priorityColor(conversationData.priority)">{{ conversationData.priority }}</ion-badge>
+              <ion-badge :color="statusColor(conversationData.status)">{{ conversationData.status }}</ion-badge>
+            </div>
+          </div>
+          
+          <div class="header-details-grid">
+            <div class="detail-item">
+              <ion-icon :icon="icons.calendar" />
+              <span>Created: {{ formatDate(conversationData.created_at) }}</span>
+            </div>
+            <div class="detail-item" v-if="conversationData.category">
+              <ion-icon :icon="icons.pricetag" />
+              <span>Category: {{ conversationData.category }}</span>
+            </div>
+            <div class="detail-item" v-if="conversationData.organization">
+              <ion-icon :icon="icons.business" />
+              <span>Org: {{ conversationData.organization }}</span>
+            </div>
+            <div class="detail-item" v-if="conversationData.user_email || conversationData.guest_email">
+              <ion-icon :icon="icons.mail" />
+              <span>{{ conversationData.user_email || conversationData.guest_email }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Container -->
+      <div class="chat-container">
+        <!-- Chat Header (like a group chat header) -->
+        <div class="chat-internal-header">
+          <div class="user-info-bar">
+            <ion-icon :icon="icons.personCircle || icons.person" class="header-avatar" />
+            <div class="header-text">
+              <span class="header-name">{{ conversationData.user_name || conversationData.guest_name }}</span>
+              <span class="header-status">Ticket #{{ conversationData.id.toString().substring(0, 8) }}</span>
+            </div>
+          </div>
+          <ion-button class="scroll-to-bottom-btn" fill="clear" @click="scrollToBottom">
+            <ion-icon :icon="icons.chevronDown" />
+          </ion-button>
+        </div>
+
+        <div class="chat-window">
+          <!-- Comments list (cascade) -->
+          <div class="comments-section">
+            <div class="comments-cascade">
+              <template v-for="(item, index) in groupedComments" :key="item.type === 'date' ? 'date-' + index : item.id">
+                <!-- Date Separator -->
+                <div v-if="item.type === 'date'" class="date-separator">
+                  <span>{{ item.value }}</span>
+                </div>
+
+                <!-- Message Row -->
+                <div
+                  v-else
+                  class="message-row"
+                  :class="{ 'message-mine': isCurrentUserComment(item), 'message-theirs': !isCurrentUserComment(item) }"
+                >
+                  <div class="message-bubble">
+                    <div class="message-sender" v-if="!isCurrentUserComment(item)">
+                      {{ item.guest_name || item.user_name || 'User' }}
+                      <span v-if="item.response" class="support-tag">Support</span>
+                    </div>
+                    <div class="message-text">
+                      <span v-if="item.isOriginal" class="original-tag">Initial Request</span>
+                      {{ item.content || item.text || '' }}
+                    </div>
+                    
+                    <!-- Comment attachments if any -->
+                    <div v-if="item.attachments && item.attachments.length" class="message-attachments">
+                      <a
+                        v-for="att in item.attachments"
+                        :key="att.id"
+                        :href="getAttachmentUrl(att.file)"
+                        target="_blank"
+                        rel="noopener"
+                        class="attachment-link"
+                      >
+                        <ion-icon :icon="documentAttachOutline" />
+                        <span>{{ getAttachmentName(att.file) }}</span>
+                      </a>
+                    </div>
+
+                    <div class="message-footer">
+                      <span class="message-time">{{ formatTime(item.created_at) }}</span>
+                      <ion-icon v-if="isCurrentUserComment(item)" :icon="checkmarkCircleOutline" class="status-icon" />
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticky Footer Area (Moved outside of Card) -->
+      <footer class="conversation-sticky-footer">
+        <!-- Sticky input area -->
+        <div class="chat-input-bar">
+          <div v-if="commentError" class="error-line">{{ commentError }}</div>
+          <div v-if="commentSuccess" class="success-line">{{ commentSuccess }}</div>
+          
+          <div v-if="isTicketResolved" class="ticket-resolved-banner">
+            <ion-icon :icon="icons.checkmarkCircle" />
+            <span>Ticket Resolved</span>
+          </div>
+
+          <div class="input-container" v-else>
+            <textarea
+              v-model="newComment"
+              placeholder="Type a message..."
+              rows="1"
+              class="message-textarea"
+              :disabled="sendingComment"
+              @keydown.ctrl.enter="sendComment"
+              @keydown.meta.enter="sendComment"
+            ></textarea>
+
+            <div class="action-buttons">
+              <ion-button 
+                fill="clear"
+                class="icon-btn"
+                @click="triggerFilePicker"
+                :disabled="sendingComment"
+              >
+                <ion-icon :icon="attachOutline" slot="icon-only" />
+              </ion-button>
+
+              <ion-button 
+                class="send-btn"
+                @click="sendComment" 
+                :disabled="!newComment.trim() || sendingComment"
+              >
+                <ion-spinner v-if="sendingComment" name="dots" color="light" />
+                <ion-icon v-else :icon="sendOutline" slot="icon-only" color="light" />
+              </ion-button>
+            </div>
+          </div>
+
+          <div v-if="selectedFile" class="file-preview-bar">
+            <ion-icon :icon="documentAttachOutline" />
+            <span class="file-name">{{ selectedFile.name }}</span>
+            <ion-button fill="clear" size="small" class="remove-file-btn" @click="removeFile">
+              <ion-icon :icon="closeCircleOutline" slot="icon-only" />
             </ion-button>
           </div>
-        </div>
-        <div class="header-subtitle">
-          <span class="ticket-date">Created {{ formatDate(conversationData.created_at) }}</span>
-          <span v-if="conversationData.updated_at !== conversationData.created_at" class="ticket-date"> • Updated {{ formatDate(conversationData.updated_at) }}</span>
-        </div>
-      </div>
-
-      <!-- Original ticket message -->
-      <div class="original-ticket">
-        <div class="message-header">
-          <div class="user-info">
-            <ion-icon :icon="icons.personCircle" class="avatar-icon" />
-            <div class="user-details">
-              <div class="user-name-row">
-                <strong>{{ conversationData.user_name }}</strong>
-                <span class="badge-original">Original Ticket</span>
-              </div>
-              <div class="message-date">{{ formatDate(conversationData.created_at) }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Ticket Description -->
-        <div class="message-content">
-          <p>{{ conversationData.description }}</p>
-        </div>
-
-        <!-- Ticket Metadata Grid -->
-        <div class="ticket-metadata">
-          <div class="metadata-item" v-if="conversationData.organization">
-            <ion-icon :icon="icons.business || icons.briefcase" />
-            <div>
-              <span class="metadata-label">Organization</span>
-              <span class="metadata-value">{{ conversationData.organization }}</span>
-            </div>
-          </div>
           
-          <div class="metadata-item" v-if="conversationData.assigned_to_name">
-            <ion-icon :icon="icons.personAdd || icons.person" />
-            <div>
-              <span class="metadata-label">Assigned to</span>
-              <span class="metadata-value">{{ conversationData.assigned_to_name }}</span>
-            </div>
-          </div>
-
-          <div class="metadata-item" v-if="conversationData.category">
-            <ion-icon :icon="icons.pricetag || icons.bookmark" />
-            <div>
-              <span class="metadata-label">Category</span>
-              <span class="metadata-value">{{ conversationData.category }}</span>
-            </div>
-          </div>
-
-          <div class="metadata-item" v-if="conversationData.infrastructure_category">
-            <ion-icon :icon="icons.hardware || icons.construct" />
-            <div>
-              <span class="metadata-label">Infrastructure</span>
-              <span class="metadata-value">{{ conversationData.infrastructure_category }}</span>
-            </div>
-          </div>
-
-          <div class="metadata-item" v-if="conversationData.machine_type">
-            <ion-icon :icon="icons.cog || icons.settings" />
-            <div>
-              <span class="metadata-label">Machine Type</span>
-              <span class="metadata-value">{{ conversationData.machine_type }}</span>
-            </div>
-          </div>
-
-          <div class="metadata-item" v-if="conversationData.electric_machine_subtype">
-            <ion-icon :icon="icons.flash || icons.bolt" />
-            <div>
-              <span class="metadata-label">Electric Subtype</span>
-              <span class="metadata-value">{{ conversationData.electric_machine_subtype }}</span>
-            </div>
-          </div>
-
-          <div class="metadata-item" v-if="conversationData.mechanical_machine_subtype">
-            <ion-icon :icon="icons.construct || icons.build" />
-            <div>
-              <span class="metadata-label">Mechanical Subtype</span>
-              <span class="metadata-value">{{ conversationData.mechanical_machine_subtype }}</span>
-            </div>
-          </div>
-
-          <div class="metadata-item" v-if="conversationData.guest_name">
-            <ion-icon :icon="icons.personCircle || icons.person" />
-            <div>
-              <span class="metadata-label">Guest Name</span>
-              <span class="metadata-value">{{ conversationData.guest_name }}</span>
-            </div>
-          </div>
-
-          <div class="metadata-item" v-if="conversationData.guest_email">
-            <ion-icon :icon="icons.mail || icons.mailOutline" />
-            <div>
-              <span class="metadata-label">Guest Email</span>
-              <span class="metadata-value">{{ conversationData.guest_email }}</span>
-            </div>
-          </div>
+          <div v-if="fileError" class="error-text small">{{ fileError }}</div>
         </div>
 
-        <!-- Attachments -->
-        <div v-if="conversationData.attachments && conversationData.attachments.length" class="ticket-attachments">
-          <div class="attachments-header">
-            <ion-icon :icon="icons.attach || icons.document" />
-            <strong>Attachments ({{ conversationData.attachments.length }})</strong>
-          </div>
-          <div class="attachments-grid">
-            <a
-              v-for="att in conversationData.attachments"
-              :key="att.id"
-              :href="getAttachmentUrl(att.file)"
-              target="_blank"
-              rel="noopener"
-              class="attachment-card"
-            >
-              <ion-icon :icon="icons.documentText || icons.document" class="attachment-icon" />
-              <div class="attachment-info">
-                <span class="attachment-name">{{ getAttachmentName(att.file) }}</span>
-                <span class="attachment-date">{{ formatDate(att.uploaded_at) }}</span>
-              </div>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Conversation divider -->
-      <div class="conversation-divider">
-        <span>─── Conversation ───</span>
-      </div>
-
-      <!-- Comments list (cascade) -->
-      <div class="comments-section">
-        <div v-if="!conversationData.comments || conversationData.comments.length === 0" class="no-comments">
-          <ion-icon :icon="icons.chatbubbles || icons.chatboxEllipses" class="empty-icon" />
-          <p>No responses yet. Start the conversation!</p>
-        </div>
-        
-        <div v-else class="comments-cascade">
-          <div
-            v-for="(comment, index) in sortedComments"
-            :key="comment.id"
-            class="comment-bubble"
-            :class="{ 'comment-current-user': isCurrentUserComment(comment), 'comment-other-user': !isCurrentUserComment(comment) }"
-          >
-            <div class="bubble-header">
-              <ion-icon :icon="icons.personCircle || icons.person" class="bubble-avatar" />
-              <div class="bubble-info">
-                <strong class="bubble-user-name">{{ comment.guest_name || comment.user_name || 'Unknown User' }}</strong>
-                <span class="bubble-date">{{ formatDate(comment.created_at) }}</span>
-              </div>
-            </div>
-            <div class="bubble-content">
-              <p>{{ comment.content || comment.text || '' }}</p>
-            </div>
-            <!-- Comment attachments if any -->
-            <div v-if="comment.attachments && comment.attachments.length" class="bubble-attachments">
-              <div class="bubble-attachments-header">
-                <ion-icon :icon="icons.attach || icons.document" />
-                <span>{{ comment.attachments.length }} file(s)</span>
-              </div>
-              <div class="bubble-attachments-list">
-                <a
-                  v-for="att in comment.attachments"
-                  :key="att.id"
-                  :href="getAttachmentUrl(att.file)"
-                  target="_blank"
-                  rel="noopener"
-                  class="bubble-attachment-item"
-                >
-                  <ion-icon :icon="icons.documentText || icons.document" />
-                  <span>{{ getAttachmentName(att.file) }}</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- New comment input -->
-      <div class="comment-input-section">
-        <div v-if="commentError" class="error-line">{{ commentError }}</div>
-        <div v-if="commentSuccess" class="success-line">{{ commentSuccess }}</div>
-        
-        <!-- Ticket resolved message -->
-        <div v-if="isTicketResolved" class="ticket-resolved-message">
-          <ion-icon :icon="icons.checkmarkCircle || icons.checkmark" class="resolved-icon" />
-          <div class="resolved-text">
-            <strong>This conversation has been resolved</strong>
-            <p>If you need further assistance, please create a new support ticket.</p>
-          </div>
-        </div>
-        
-        <!-- Comment input (disabled if resolved) -->
-        <textarea
-          v-model="newComment"
-          placeholder="Write your response..."
-          rows="3"
-          class="comment-textarea"
-          :disabled="isTicketResolved || sendingComment"
-          @keydown.ctrl.enter="sendComment"
-          @keydown.meta.enter="sendComment"
-        ></textarea>
-        
-        <!-- File preview (if selected) -->
-        <div v-if="selectedFile" class="file-preview-compact">
-          <ion-icon :icon="icons.documentText || icons.document" />
-          <span class="file-name">{{ selectedFile.name }}</span>
-          <span class="file-size">({{ formatFileSize(selectedFile.size) }})</span>
-          <ion-button
-            fill="clear"
-            size="small"
-            color="danger"
-            @click="removeFile"
-            :disabled="sendingComment"
-          >
-            <ion-icon :icon="icons.close" slot="icon-only" />
-          </ion-button>
-        </div>
-        
-        <div v-if="fileError" class="file-error-compact">{{ fileError }}</div>
-        
-        <div v-if="statusError" class="error-line">{{ statusError }}</div>
-        
-        <!-- Actions row with attachment, send, and resolve -->
-        <div class="comment-actions">
-          <input
-            ref="fileInputRef"
-            type="file"
-            class="hidden-input"
-            accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.txt"
-            @change="handleFileChange"
-          />
+        <!-- Support Actions -->
+        <div class="support-actions" v-if="auth.isSupportUser && normalizedStatus !== 'resolved'">
           <ion-button 
-            fill="clear"
-            size="small"
-            color="medium"
-            @click="triggerFilePicker"
-            :disabled="isTicketResolved || sendingComment"
-          >
-            <ion-icon :icon="icons.attach || icons.document" slot="icon-only" />
-          </ion-button>
-          
-          <ion-button 
-            color="warning"
-            @click="sendComment" 
-            :disabled="isTicketResolved || !newComment.trim() || sendingComment"
-            expand="block"
-            class="send-button"
-          >
-            <ion-spinner v-if="sendingComment" name="dots" />
-            <ion-icon v-else :icon="icons.send" slot="start" />
-            {{ sendingComment ? 'Sending...' : 'Send' }}
-          </ion-button>
-          
-          <!-- Resolve button (only for support agents and if ticket is not already resolved) -->
-          <ion-button 
-            v-if="auth.isSupportUser && normalizedStatus !== 'resolved'"
             color="success"
-            fill="outline"
+            fill="clear"
+            size="small"
             @click="resolveTicket"
             :disabled="updatingStatus"
-            class="resolve-button"
           >
-            <ion-spinner v-if="updatingStatus" name="dots" />
-            <ion-icon v-else :icon="icons.checkmarkCircle || icons.checkmark" slot="start" />
-            {{ updatingStatus ? 'Resolving...' : 'Resolve' }}
+            <ion-icon :icon="checkmarkCircleOutline" slot="start" />
+            Mark as Resolved
           </ion-button>
         </div>
-      </div>
+      </footer>
     </div>
 
     <!-- Empty state -->
@@ -318,7 +201,8 @@
 import { ref, inject, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { IonSpinner, IonIcon, IonBadge, IonButton, IonTextarea } from '@ionic/vue';
+import { IonSpinner, IonIcon, IonBadge, IonButton, IonTextarea, onIonViewWillEnter } from '@ionic/vue';
+import { attachOutline, sendOutline, checkmarkCircleOutline, documentAttachOutline, closeCircleOutline } from 'ionicons/icons';
 import API from '@/utils/api/api';
 
 // Icons
@@ -327,6 +211,10 @@ const icons = inject('icons', {});
 // Route
 const route = useRoute();
 const ticketId = ref(null);
+
+// Profile: 'dev' (default) or 'prod' - read from env (Vite)
+// Use VITE_PROFILE or VITE_APP_PROFILE to set. Defaults to 'dev'.
+const PROFILE = (import.meta.env.VITE_APP_PROFILE || 'dev').toLowerCase();
 
 // Auth store
 const auth = useAuthStore();
@@ -357,12 +245,53 @@ const fileInputRef = ref(null);
 const fileError = ref('');
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// Computed: Sort comments by date (oldest first)
-const sortedComments = computed(() => {
-  if (!conversationData.value?.comments) return [];
-  return [...conversationData.value.comments].sort((a, b) => {
-    return new Date(a.created_at) - new Date(b.created_at);
+// Computed: Grouped comments with date separators
+const groupedComments = computed(() => {
+  const groups = [];
+  
+  if (!conversationData.value) return [];
+
+  const allMessages = [];
+  
+  // Add original ticket as the first message
+  allMessages.push({
+    id: 'original',
+    content: conversationData.value.description,
+    created_at: conversationData.value.created_at,
+    user_name: conversationData.value.user_name,
+    guest_name: conversationData.value.guest_name,
+    guest_email: conversationData.value.guest_email,
+    attachments: conversationData.value.attachments || [],
+    isOriginal: true,
+    user: conversationData.value.user
   });
+
+  // Add all comments
+  if (conversationData.value.comments) {
+    const sorted = [...conversationData.value.comments].sort((a, b) => {
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+    allMessages.push(...sorted);
+  }
+  
+  let lastDate = null;
+  
+  allMessages.forEach(item => {
+    const date = new Date(item.created_at).toLocaleDateString(undefined, { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    if (date !== lastDate) {
+      groups.push({ type: 'date', value: date });
+      lastDate = date;
+    }
+    groups.push({ type: 'message', ...item });
+  });
+  
+  return groups;
 });
 
 // Computed: Normalized ticket status (lowercase)
@@ -493,64 +422,99 @@ const ensureCSRFToken = async () => {
   return csrfToken;
 };
 
+// Helper: returns a mock conversation object used in dev profile for UI work without backend access
+function getMockConversation() {
+  const now = new Date().toISOString();
+  return {
+    id: 'dev-0001',
+    title: 'Sample Ticket (Dev Mode)',
+    priority: 'Medium',
+    status: 'Open',
+    created_at: now,
+    updated_at: now,
+    user_name: 'Dev User',
+    description: 'This is mock conversation data used in development mode to allow UI tweaks without backend access.',
+    organization: 'Dev Org',
+    assigned_to_name: 'Support Agent',
+    category: 'General',
+    infrastructure_category: 'N/A',
+    machine_type: 'N/A',
+    electric_machine_subtype: null,
+    mechanical_machine_subtype: null,
+    guest_name: 'Guest Dev',
+    guest_email: 'dev@example.com',
+    attachments: [],
+    comments: [
+      {
+        id: 'c-dev-1',
+        content: 'This is a mock comment from the user.',
+        created_at: now,
+        user_name: 'Dev User',
+        guest_name: null,
+        attachments: [],
+        response: false
+      },
+      {
+        id: 'c-dev-2',
+        content: 'This is a mock response from support.',
+        created_at: now,
+        user_name: null,
+        guest_name: 'Support',
+        attachments: [],
+        response: true
+      }
+    ]
+  };
+}
+
 // Get ticket ID from query params or verify token
-onMounted(async () => {
-  console.log('ConversationForm mounted');
-  console.log('Route query params:', route.query);
-  console.log('Route path:', route.path);
-  
-  // Check if we have a token (from email link)
+const initializeConversation = async () => {
+  console.log('🔄 Initializing/Reloading conversation...');
   const token = route.query.token;
-  
-  console.log('Token from URL:', token);
-  
+  const id = route.query.id;
+
+  // Dev profile shortcut: skip token/id verification to allow UI-only work
+  if (PROFILE === 'dev' && !id && !token) {
+    console.log('⚙️ Dev profile: Loading mock conversation');
+    conversationData.value = getMockConversation();
+    loading.value = false;
+    setTimeout(() => scrollToBottom(), 500);
+    return;
+  }
+
   if (token) {
     // Verify token and get ticket_id
     loading.value = true;
     try {
-      // Ensure CSRF token exists
       await ensureCSRFToken();
-      
-      console.log('🔍 Verifying ticket access token...');
-      console.log('📧 Token:', token);
       const headers = getHeadersWithCSRF();
       const response = await API.post(API.COMMENT_TOKEN_VERIFICATION, { token }, headers);
-      console.log('📨 Token verification response:', response);
-      
-      // La respuesta puede venir como array o como objeto
       const responseData = Array.isArray(response) ? response[0] : response;
-      console.log('📦 Response data:', responseData);
-      
       const verifiedTicketId = responseData?.ticket_id;
       
       if (verifiedTicketId) {
-        console.log('✅ Token verified, ticket_id:', verifiedTicketId);
         ticketId.value = verifiedTicketId;
         await loadConversation();
       } else {
-        console.error('❌ No ticket_id in response:', responseData);
         error.value = 'Invalid or expired token';
       }
     } catch (err) {
-      console.error('❌ Error verifying token:', err);
-      console.error('📋 Error details:', err.message);
+      console.error('Error verifying token:', err);
       error.value = err?.message || 'Failed to verify access token';
     } finally {
       loading.value = false;
     }
+  } else if (id) {
+    ticketId.value = id;
+    await loadConversation();
   } else {
-    // Normal flow: get ticket ID directly from query params
-    console.log('No token, trying direct ID from query');
-    ticketId.value = route.query.id;
-    if (ticketId.value) {
-      console.log('Loading conversation with ID:', ticketId.value);
-      loadConversation();
-    } else {
-      console.error('No ticket ID or token provided');
-      error.value = 'No ticket ID or access token provided';
-    }
+    error.value = 'No ticket ID or access token provided';
   }
-  
+};
+
+onMounted(async () => {
+  await initializeConversation();
+
   // Store current scroll position to prevent movement
   let scrollPosition = window.scrollY;
   
@@ -567,31 +531,15 @@ onMounted(async () => {
   window.addEventListener('focusin', handleFocus);
 });
 
-// Watch for changes in ticket ID or token
-watch(() => [route.query.id, route.query.token], async ([newId, newToken]) => {
-  if (newToken) {
-    // If token changes, verify it
-    loading.value = true;
-    try {
-      console.log('Token changed, verifying...');
-      const response = await API.post(API.COMMENT_TOKEN_VERIFICATION, { token: newToken });
-      const verifiedTicketId = response?.ticket_id;
-      
-      if (verifiedTicketId && verifiedTicketId !== ticketId.value) {
-        ticketId.value = verifiedTicketId;
-        await loadConversation();
-      }
-    } catch (err) {
-      console.error('Error verifying token:', err);
-      error.value = err?.message || 'Failed to verify access token';
-    } finally {
-      loading.value = false;
-    }
-  } else if (newId && newId !== ticketId.value) {
-    // Normal flow: ticket ID changed directly
-    ticketId.value = newId;
-    loadConversation();
-  }
+// Ensure reload when entering view (crucial for Ionic/Mobile app caching)
+onIonViewWillEnter(() => {
+  console.log('📱 Page entering view - triggering refresh');
+  initializeConversation();
+});
+
+// Watch for changes in ticket ID or token (handles internal navigation)
+watch(() => [route.query.id, route.query.token], async () => {
+  await initializeConversation();
 });
 
 // Load conversation data
@@ -625,7 +573,7 @@ async function loadConversation() {
     // Auto-scroll to bottom after conversation loads
     setTimeout(() => {
       scrollToBottom();
-    }, 300);
+    }, 500);
   } catch (err) {
     console.error('Error loading conversation:', err);
     error.value = err?.message || 'Failed to load conversation';
@@ -893,6 +841,12 @@ function statusColor(status) {
   return colors[status?.toLowerCase()] || 'medium';
 }
 
+function formatTime(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 function formatDate(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -938,6 +892,15 @@ function getAttachmentName(filePath) {
 // Scroll to bottom (comment input section)
 function scrollToBottom() {
   setTimeout(() => {
+    const chatWindow = document.querySelector('.chat-window');
+    if (chatWindow) {
+      chatWindow.scrollTo({
+        top: chatWindow.scrollHeight,
+        behavior: 'smooth'
+      });
+      return;
+    }
+
     const commentSection = document.querySelector('.comment-input-section');
     if (commentSection) {
       commentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -953,11 +916,356 @@ function scrollToBottom() {
 
 <style scoped>
 .conversation-form {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f3f4f6;
+  width: 100%;
+  padding: 0;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.conversation-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0;
+  padding-bottom: 160px; /* Space for the floating footer */
+  width: 100%;
+}
+
+.ticket-header-compact {
+  width: 100%;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 24px 0;
+  margin: 0;
+}
+
+.header-inner {
+  max-width: 1400px;
+  width: calc(100% - 48px);
+  margin: 0 auto;
+}
+
+.header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ticket-id {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f57c00;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.header-main h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.header-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.detail-item ion-icon {
+  font-size: 1rem;
+  color: #f57c00;
+}
+
+.header-meta {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  margin-top: 0;
+  flex: 1;
+  width: 100%;
+}
+
+.chat-internal-header {
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.user-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1400px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.header-avatar {
+  font-size: 2.2rem;
+  color: #f57c00;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.header-status {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 0;
+  background-color: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.comments-section {
+  max-width: 1400px;
+  width: calc(100% - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+.date-separator {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.date-separator span {
+  background: #e2e8f0;
+  color: #475569;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.comments-cascade {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message-row {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Original Request Special Styling */
+.message-row:first-child .message-bubble {
+  border-left: 5px solid #f57c00;
+  background: white !important;
+  color: #1e293b !important;
+  border-radius: 12px;
+  max-width: 95%;
+  box-shadow: 0 4px 12px rgba(245, 124, 0, 0.08);
+}
+
+.message-row:first-child .message-sender {
+  color: #f57c00 !important;
+}
+
+.message-bubble {
+  max-width: 85%;
+  padding: 14px 18px;
+  border-radius: 18px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.message-mine {
+  align-items: flex-end;
+}
+
+.message-mine .message-bubble {
+  background: #f57c00;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message-theirs {
+  align-items: flex-start;
+}
+
+.message-theirs .message-bubble {
+  background: white;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-bottom-left-radius: 4px;
+}
+
+.message-sender {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f57c00;
+  margin-bottom: 4px;
+}
+
+.message-mine .message-sender {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.message-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+  gap: 4px;
+  align-items: center;
+}
+
+.message-time {
+  font-size: 0.65rem;
+  color: #64748b;
+}
+
+.message-mine .message-time {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.status-icon {
+  font-size: 0.9rem;
+  color: white;
+}
+
+.support-tag, .original-tag {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+.support-tag {
+  background: #0ea5e9;
+  color: white;
+}
+
+.original-tag {
+  background: #f57c00;
+  color: white;
+}
+
+.chat-input-bar {
+  padding: 0;
+  background: transparent;
+  width: 100%;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.message-textarea {
+  flex: 1;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  max-height: 120px;
+  resize: none;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.message-textarea:focus {
+  border-color: #f57c00;
+  background: white;
+  box-shadow: 0 0 0 2px rgba(245, 124, 0, 0.1);
+}
+
+.send-btn {
+  --background: #f57c00;
+  --background-hover: #e67600;
+  --border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Floating Footer for conversation actions */
+.conversation-sticky-footer {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 48px);
+  max-width: 1400px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 12px 20px;
 }
 
 .loading-container,
@@ -973,79 +1281,20 @@ function scrollToBottom() {
 
 .error-icon,
 .empty-icon {
-  font-size: 4rem;
-  color: #9ca3af;
-  margin-bottom: 16px;
+  font-size: 3rem;
+  color: #cbd5e1;
+  margin-bottom: 12px;
 }
 
 .error-text {
   color: #ef4444;
-  margin-bottom: 16px;
 }
 
-.ticket-header {
-  margin-bottom: 32px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.header-top {
+.support-actions {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.ticket-header h2 {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #111827;
-  flex: 1;
-  line-height: 1.3;
-}
-
-.ticket-badges {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-/* Scroll to bottom button */
-.scroll-to-bottom-btn {
-  --color: #f57c00;
-  --background: transparent;
-  --background-hover: rgba(245, 124, 0, 0.1);
-  --background-activated: rgba(245, 124, 0, 0.2);
-  --padding-start: 8px;
-  --padding-end: 8px;
-  --border-radius: 8px;
-  margin: 0;
-  height: 36px;
-  min-width: 36px;
-}
-
-.scroll-to-bottom-btn ion-icon {
-  font-size: 24px;
-  color: #f57c00;
-}
-
-.scroll-to-bottom-btn:hover ion-icon {
-  color: #ef6c00;
-}
-
-.header-subtitle {
-  font-size: 0.9rem;
-  color: #6b7280;
+  justify-content: center;
+  padding: 8px 0 0 0;
+  background: transparent;
 }
 
 .ticket-date {
@@ -1065,792 +1314,110 @@ function scrollToBottom() {
   margin-bottom: 16px;
 }
 
-.user-info {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.avatar-icon {
-  font-size: 3rem;
-  color: #f57c00;
-  flex-shrink: 0;
-}
-
-.user-details {
-  flex: 1;
-}
-
-.user-name-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-
-.user-name-row strong {
-  font-size: 1.1rem;
-  color: #1f2937;
-}
-
-.badge-original {
-  display: inline-block;
-  background: #f57c00;
-  color: white;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.message-date {
-  font-size: 0.85rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.message-content {
-  margin-bottom: 20px;
-  padding-left: 60px;
-  color: #374151;
-  line-height: 1.7;
-  font-size: 1rem;
-}
-
-.message-content p {
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-/* Ticket Metadata Grid */
-.ticket-metadata {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
-  padding-left: 60px;
-}
-
-.metadata-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
-  border: 1px solid rgba(245, 124, 0, 0.3);
-}
-
-.metadata-item ion-icon {
-  font-size: 1.4rem;
-  color: #f57c00;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.metadata-item > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.metadata-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-}
-
-.metadata-value {
-  font-size: 0.95rem;
-  color: #1f2937;
-  font-weight: 500;
-  word-wrap: break-word;
-}
-
-/* Attachments in ticket */
-.ticket-attachments {
-  padding-left: 60px;
-}
-
-.attachments-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  color: #374151;
-  font-size: 1rem;
-}
-
-.attachments-header ion-icon {
-  font-size: 1.3rem;
-  color: #f57c00;
-}
-
-.attachments-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-}
-
-.attachment-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  text-decoration: none;
-  color: #fdaf66;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.attachment-card:hover {
-  background: #f9fafb;
-  border-color: #f57c00;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.attachment-icon {
-  font-size: 2rem;
-  color: #f57c00;
-  flex-shrink: 0;
-}
-
-.attachment-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.attachment-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #1f2937;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.attachment-date {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.conversation-divider {
-  text-align: center;
-  margin: 40px 0;
-  color: #9ca3af;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 600;
-  position: relative;
-}
-
-.conversation-divider span {
-  background: #f3f4f6;
-  padding: 0 20px;
-  position: relative;
-  z-index: 0;
-}
-
-.conversation-divider::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(to right, transparent, #d1d5db 20%, #d1d5db 80%, transparent);
-  z-index: 0;
-}
-
-/* Comments Section */
-.comments-section {
-  margin-bottom: 32px;
-}
-
-.no-comments {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 20px;
-  text-align: center;
-  color: #9ca3af;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 2px dashed #e5e7eb;
-}
-
-.no-comments .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 16px;
-  color: #d1d5db;
-}
-
-.no-comments p {
-  font-size: 1.1rem;
-  margin: 0;
-}
-
-.comments-cascade {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Chat Bubbles */
-.comment-bubble {
-  display: flex;
-  flex-direction: column;
-  max-width: 75%;
-  animation: fadeInUp 0.3s ease;
-}
-
-/* Other user comments (left side - gray) */
-.comment-other-user {
-  align-self: flex-start;
-}
-
-.comment-other-user .bubble-header {
-  justify-content: flex-start;
-}
-
-.comment-other-user .bubble-content {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 18px 18px 18px 4px;
-}
-
-/* Current user comments (right side - orange) */
-.comment-current-user {
-  align-self: flex-end;
-}
-
-.comment-current-user .bubble-header {
-  justify-content: flex-end;
-}
-
-.comment-current-user .bubble-content {
-  background: linear-gradient(135deg, #f57c00, #ef6c00);
-  color: white;
-  border-radius: 18px 18px 4px 18px;
-}
-
-.bubble-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding: 0 4px;
-}
-
-.bubble-avatar {
-  font-size: 1.8rem;
-  color: #6b7280;
-  flex-shrink: 0;
-}
-
-.comment-current-user .bubble-avatar {
-  color: #f57c00;
-}
-
-.bubble-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.bubble-user-name {
-  font-size: 0.9rem;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.comment-current-user .bubble-user-name {
-  color: #ef6c00;
-}
-
-.bubble-date {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  font-weight: 500;
-}
-
-.bubble-content {
-  padding: 12px 16px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.bubble-content p {
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  line-height: 1.5;
-  font-size: 0.95rem;
-}
-
-.comment-other-user .bubble-content p {
-  color: #374151;
-}
-
-.comment-current-user .bubble-content p {
-  color: white;
-}
-
-/* Bubble attachments */
-.bubble-attachments {
+.message-attachments {
   margin-top: 8px;
-  padding: 8px 12px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.comment-current-user .bubble-attachments {
-  background: rgba(245, 124, 0, 0.1);
-  border-color: rgba(245, 124, 0, 0.3);
-}
-
-.bubble-attachments-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: #6b7280;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.bubble-attachments-header ion-icon {
-  font-size: 1rem;
-}
-
-.bubble-attachments-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.bubble-attachment-item {
+.attachment-link {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
   text-decoration: none;
-  color: #f57c00;
-  font-size: 0.85rem;
-  transition: all 0.2s ease;
+  font-size: 0.8rem;
+  color: #0284c7;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  transition: background 0.2s;
 }
 
-.bubble-attachment-item:hover {
-  background: #f3f4f6;
-  border-color: #f57c00;
-  transform: translateX(2px);
+.attachment-link:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
-.bubble-attachment-item ion-icon {
-  font-size: 1.2rem;
-  flex-shrink: 0;
+.action-buttons {
+  display: flex;
+  align-items: center;
 }
 
-.bubble-attachment-item span {
+.icon-btn {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  margin: 0;
+  color: #64748b;
+  font-size: 1.4rem;
+}
+
+.file-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 12px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+.file-name {
+  flex: 1;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.remove-file-btn {
+  --color: #ef4444;
+  margin: 0;
+  height: 24px;
+  font-size: 0.8rem;
+}
+
+.ticket-resolved-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: #ecfdf5;
+  color: #065f46;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin: 10px;
+}
+
+.error-line, .success-line {
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  text-align: center;
+}
+
+.error-line { color: #ef4444; }
+.success-line { color: #10b981; }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.comment-input-section {
-  background: white;
-  border-top: 2px solid #f57c00;
-  border-radius: 12px;
-  padding: 20px;
-  margin-top: 32px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
-}
-
-.ticket-resolved-message {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-radius: 12px;
-  margin-bottom: 20px;
-  color: white;
-  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
-}
-
-.resolved-icon {
-  font-size: 2.5rem;
-  color: white;
-  flex-shrink: 0;
-}
-
-.resolved-text {
-  flex: 1;
-}
-
-.resolved-text strong {
-  display: block;
-  font-size: 1.1rem;
-  margin-bottom: 6px;
-  color: white;
-}
-
-.resolved-text p {
-  margin: 0;
-  font-size: 0.95rem;
-  opacity: 0.95;
-  line-height: 1.5;
-}
-
-.comment-textarea {
-  width: 100%;
-  margin-bottom: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 12px 16px;
-  border: 1px solid #e5e7eb;
-  font-family: inherit;
-  font-size: 1rem;
-  line-height: 1.5;
-  resize: vertical;
-  min-height: 80px;
-  transition: all 0.2s ease;
-}
-
-.comment-textarea:disabled {
-  background: #f3f4f6;
-  color: #9ca3af;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.comment-textarea:focus {
-  outline: none;
-  background: white;
-  border-color: #f57c00;
-  box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.1);
-}
-
-/* Compact file preview and actions */
-.file-preview-compact {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #fff7ed;
-  border: 1px solid #fdba74;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  font-size: 0.85rem;
-}
-
-.file-preview-compact ion-icon {
-  font-size: 1.2rem;
-  color: #f57c00;
-  flex-shrink: 0;
-}
-
-.file-preview-compact .file-name {
-  flex: 1;
-  font-weight: 500;
-  color: #1f2937;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.file-preview-compact .file-size {
-  color: #6b7280;
-  font-size: 0.75rem;
-  flex-shrink: 0;
-}
-
-.file-error-compact {
-  color: #ef4444;
-  font-size: 0.85rem;
-  padding: 8px 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  margin-bottom: 12px;
-}
-
-.hidden-input {
-  display: none;
-}
-
-.comment-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.send-button {
-  flex: 1;
-  min-width: 120px;
-}
-
-.resolve-button {
-  flex-shrink: 0;
-  min-width: 120px;
-}
-
-.error-line {
-  color: #ef4444;
-  font-size: 0.875rem;
-  margin-bottom: 10px;
-  padding: 8px 12px;
-  background: #fef2f2;
-  border-radius: 6px;
-  border-left: 4px solid #ef4444;
-}
-
-.success-line {
-  color: #10b981;
-  font-size: 0.875rem;
-  margin-bottom: 10px;
-  padding: 8px 12px;
-  background: #f0fdf4;
-  border-radius: 6px;
-  border-left: 4px solid #10b981;
-}
-
-/* Mobile responsiveness */
 @media (max-width: 768px) {
-  .conversation-form {
-    padding: 12px;
-    min-height: 100vh;
+  .chat-container {
+    height: calc(100vh - 80px);
+    margin-top: 0;
+    border-radius: 0;
+    border: none;
   }
 
-  .header-top {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  .ticket-header h2 {
-    font-size: 1.4rem;
-    line-height: 1.3;
-  }
-
-  .ticket-badges {
-    align-self: flex-start;
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .header-subtitle {
-    font-size: 0.85rem;
-  }
-
-  .original-ticket {
-    padding: 16px;
-    border-radius: 12px;
-  }
-
-  .message-content {
-    padding-left: 0;
-    font-size: 0.95rem;
-  }
-
-  /* Ticket metadata grid - stack on mobile */
-  .ticket-metadata {
-    grid-template-columns: 1fr;
-    padding-left: 0;
-    gap: 10px;
-  }
-
-  .metadata-item {
-    padding: 10px;
-  }
-
-  .metadata-item ion-icon {
-    font-size: 1.2rem;
-  }
-
-  /* Attachments in ticket */
-  .ticket-attachments {
-    padding-left: 0;
-  }
-
-  .attachments-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .attachment-card {
-    padding: 10px;
-  }
-
-  /* Conversation divider */
-  .conversation-divider {
-    margin: 30px 0;
-    font-size: 0.8rem;
-  }
-
-  /* Chat bubbles responsive */
-  .comment-bubble {
-    max-width: 90%;
-  }
-
-  .bubble-avatar {
-    font-size: 1.6rem;
-  }
-
-  .bubble-user-name {
-    font-size: 0.85rem;
-  }
-
-  .bubble-date {
-    font-size: 0.7rem;
-  }
-
-  .bubble-content {
-    padding: 10px 12px;
-  }
-
-  .bubble-content p {
-    font-size: 0.9rem;
-  }
-
-  /* Comment input section */
-  .comment-input-section {
-    padding: 12px;
-    margin-top: 20px;
-    border-radius: 12px;
-  }
-
-  .comment-textarea {
-    font-size: 0.95rem;
-    min-height: 70px;
-  }
-
-  .comment-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .comment-actions ion-button {
-    width: 100%;
-    margin: 0;
-  }
-
-  .send-button,
-  .resolve-button {
-    min-width: 100%;
-    flex: 1 1 100%;
-  }
-
-  /* File preview on mobile */
-  .file-preview-compact {
-    flex-wrap: wrap;
-    padding: 10px;
-  }
-
-  .file-preview-compact .file-name {
-    max-width: 100%;
-  }
-
-  /* Empty state */
-  .no-comments {
-    padding: 40px 16px;
-  }
-
-  .no-comments .empty-icon {
-    font-size: 3rem;
-  }
-
-  .no-comments p {
-    font-size: 1rem;
-  }
-}
-
-/* Tablet breakpoint */
-@media (max-width: 1024px) and (min-width: 769px) {
-  .conversation-form {
-    padding: 18px;
-  }
-
-  .ticket-metadata {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .comment-bubble {
-    max-width: 80%;
-  }
-}
-
-/* Small mobile devices */
-@media (max-width: 480px) {
-  .conversation-form {
-    padding: 8px;
-  }
-
-  .ticket-header h2 {
-    font-size: 1.2rem;
-  }
-
-  .header-subtitle {
-    font-size: 0.8rem;
-  }
-
-  .original-ticket {
-    padding: 12px;
-  }
-
-  .metadata-item {
-    padding: 8px;
-  }
-
-  .comment-bubble {
-    max-width: 95%;
-  }
-
-  .bubble-avatar {
-    font-size: 1.4rem;
-  }
-
-  .bubble-content {
-    padding: 8px 10px;
-  }
-
-  .comment-input-section {
-    padding: 10px;
-  }
-
-  .comment-textarea {
-    min-height: 60px;
-    font-size: 0.9rem;
+  .message-bubble {
+    max-width: 92%;
   }
 }
 </style>
