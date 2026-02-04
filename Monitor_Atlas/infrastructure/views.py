@@ -1175,6 +1175,34 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
         return Response(response_json)
 
+    @action(
+        detail=False,
+        methods=["delete"],
+        permission_classes=[HasPermission],
+        scope="device",
+    )
+    def delete_measurement(self, request):
+        measurement_id = request.query_params.get("measurement_id", None)
+
+        if not measurement_id:
+            return Response(
+                {"message": "No measurement_id provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            measurement = Measurements.objects.get(id=measurement_id)
+            measurement.delete()
+            return Response(
+                {"message": "Measurement deleted successfully"},
+                status=status.HTTP_200_OK,
+            )
+        except Measurements.DoesNotExist:
+            return Response(
+                {"message": "Measurement not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
 
 @extend_schema_view(
     list=extend_schema(description="Application List (ChirpStack)"),
