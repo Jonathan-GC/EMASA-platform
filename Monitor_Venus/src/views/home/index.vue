@@ -749,7 +749,7 @@ ion-content {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--ion-color-orange-500);
+  background: rgba(var(--ion-color-orange-500-rgb), 0.1);
   z-index: 0;
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -1381,10 +1381,6 @@ ion-content {
 
   .nav-card:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  .gradient-bg {
-    opacity: 0.08;
   }
 
   .role-chip,
