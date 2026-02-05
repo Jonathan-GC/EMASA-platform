@@ -21,6 +21,7 @@ const UpdateMachines = defineAsyncComponent(() => import("@components/forms/upda
 const UpdateMeasurements = defineAsyncComponent(() => import("@components/forms/update/measurements/formUpdateMeasurements.vue"));
 const UpdateRoles = defineAsyncComponent(() => import("@components/forms/update/roles/formUpdateRoles.vue"));
 const UpdateDeviceTypes = defineAsyncComponent(() => import("@components/forms/update/device_types/formUpdateDeviceType.vue"));
+const UpdateUsers = defineAsyncComponent(() => import("@components/forms/update/users/formUpdateUsers.vue"));
 
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
@@ -132,6 +133,16 @@ export class UpdateFormFactory extends AbstractFormFactory {
           index: extraProps?.index,
           label: 'rol',
           fields: schema.role,
+          initialData: extraProps?.initialData || {},
+        }
+      },
+      user: {
+        component: UpdateUsers,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'usuario',
+          fields: schema.user,
           initialData: extraProps?.initialData || {},
         }
       },
