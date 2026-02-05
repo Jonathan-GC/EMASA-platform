@@ -58,6 +58,18 @@
                 </ModalSelector>
               </ion-item>
 
+              <ion-item v-else-if="field.type === 'icon'" class="custom">
+                <ion-label position="stacked" class="!mb-2">{{ field.label }}</ion-label>
+                <IconPicker
+                  v-model="formValues[field.key]"
+                  :title="field.label || 'Seleccionar Icono'"
+                  :placeholder="field.placeholder || 'Seleccionar icono...'"
+                  :disabled="field.disabled || false"
+                  :searchable="field.searchable !== false"
+                  @update:modelValue="handleFieldChange(field.key, $event)"
+                />
+              </ion-item>
+
               <ion-item v-else-if="field.type === 'multiple-select'">
                 <ion-select multiple="true" v-model="formValues[field.key]" :label="field.label"
                   label-placement="floating">

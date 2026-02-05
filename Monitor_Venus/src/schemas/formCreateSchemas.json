@@ -106,6 +106,7 @@
     { "key": "address.zipcode", "label": "Código postal", "type": "text" }
   ],
   "measurement": [
+    { "key": "icon", "label": "Icono", "type": "icon" },
     { "key": "unit", "label": "Nombre de variable", "type": "select" },
     { "key": "ref", "label": "Unidad de medida", "type": "text" },
     { "key": "min", "label": "Valor mínimo", "type": "text" },

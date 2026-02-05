@@ -114,8 +114,7 @@
                 <QuickActions 
                   type="tenant"
                   :index="tenant.id" 
-                  :name="tenant.name"
-                  :to-view="`/tenants/${tenant.id}`"
+                  :name="tenant.name" 
                   to-edit
                   to-delete
                   :initial-data="setInitialData(tenant)"
@@ -135,7 +134,6 @@
               :key="tenant.id" 
               class="tenant-card"
               :class="getCardClass(true)"
-              @click="(event) => getCardClickHandler(`/tenants/${tenant.id}`)(event)"
             >
               <ion-card-content>
                 <!-- Header with avatar and name -->
@@ -179,7 +177,6 @@
                     type="tenant"
                     :index="tenant.id" 
                     :name="tenant.name"
-                    :to-view="`/tenants/${tenant.id}`"
                     to-edit
                     to-delete
                     :initial-data="setInitialData(tenant)"

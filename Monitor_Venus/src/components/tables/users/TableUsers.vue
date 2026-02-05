@@ -325,6 +325,7 @@ const setInitialData = (user) => {
     last_name: user.last_name,
     phone: user.phone,
     phone_code: user.phone_code,
+    country: user.country,
     tenant: user.tenant,
     is_active: user.is_active,
     img: user.img,
