@@ -14,6 +14,15 @@
     <ion-content class="ion-padding">
       <ion-card-content>
         <form @submit.prevent="updateUser">
+          <!-- Image Upload -->
+          <ImageUpload
+            ref="imageUploadRef"
+            :model-value="formValues.img"
+            @update:model-value="(value) => formValues.img = value"
+            placeholder-text="Haz clic para seleccionar una imagen de perfil"
+            :max-size="2 * 1024 * 1024"
+          />
+
           <ion-list>
             <!-- Name and Last Name -->
             <div :class="isMobile ? 'flex-column' : 'flex'">
@@ -234,6 +243,7 @@ import {
 } from '@ionic/vue';
 import API from '@utils/api/api';
 import ModalSelector from '@/components/ui/ModalSelector.vue';
+import ImageUpload from '@/components/common/ImageUpload.vue';
 import { countries } from '@/data/countries.js';
 import { cities } from '@/data/cities.js';
 import { useResponsiveView } from '@/composables/useResponsiveView.js';
@@ -272,6 +282,7 @@ const icons = inject('icons', {});
 // Form state
 const loading = ref(false);
 const loaded = ref(false);
+const imageUploadRef = ref(null);
 
 // Initialize form values with initialData
 const formValues = ref({
@@ -283,6 +294,7 @@ const formValues = ref({
   phone: props.initialData?.phone || '',
   phone_code: props.initialData?.phone_code || '+57',
   country: props.initialData?.country || '',
+  img: props.initialData?.img || null,
   address: {
     address: props.initialData?.address?.address || '',
     city: props.initialData?.address?.city || '',
@@ -359,7 +371,7 @@ const getChangedFields = () => {
   const changes = {};
   
   // Compare top-level fields
-  const topLevelFields = ['name', 'last_name', 'code', 'username', 'email', 'phone', 'phone_code', 'country'];
+  const topLevelFields = ['name', 'last_name', 'code', 'username', 'email', 'phone', 'phone_code', 'country', 'img'];
   topLevelFields.forEach(field => {
     if (formValues.value[field] !== initialValues.value[field]) {
       changes[field] = formValues.value[field];
@@ -397,7 +409,32 @@ const updateUser = async () => {
       return;
     }
 
-    const response = await API.patch(`${API.USER}${props.index}/`, changedFields);
+    let payload;
+    const imageInfo = imageUploadRef.value?.getFileInfo();
+    
+    // Use FormData if image was changed
+    if (changedFields.img && imageInfo?.file) {
+      payload = new FormData();
+      
+      // Add all changed fields to FormData
+      Object.keys(changedFields).forEach(key => {
+        if (key === 'img') {
+          payload.append('img', imageInfo.file);
+        } else if (key === 'address' && typeof changedFields[key] === 'object') {
+          // Handle nested address object
+          Object.keys(changedFields[key]).forEach(addressKey => {
+            payload.append(`address.${addressKey}`, changedFields[key][addressKey]);
+          });
+        } else {
+          payload.append(key, changedFields[key]);
+        }
+      });
+    } else {
+      // Use JSON for non-image updates
+      payload = changedFields;
+    }
+
+    const response = await API.patch(`${API.USER}${props.index}/`, payload);
     
     if (!response.error) {
       emit('itemEdited', formValues.value.name);

@@ -14,6 +14,14 @@
     <ion-content class="ion-padding">
       <ion-card-content>
         <form @submit.prevent="createUser">
+          <!-- Image Upload -->
+          <ImageUpload
+            ref="imageUploadRef"
+            v-model="formValues.img"
+            placeholder-text="Haz clic para seleccionar una imagen de perfil"
+            :max-size="2 * 1024 * 1024"
+          />
+
           <ion-list>
             <!-- Name and Last Name -->
             <div :class="isMobile ? 'flex-column' : 'flex'">
@@ -228,6 +236,7 @@ import {
 } from '@ionic/vue';
 import API from '@utils/api/api';
 import ModalSelector from '@/components/ui/ModalSelector.vue';
+import ImageUpload from '@/components/common/ImageUpload.vue';
 import { countries } from '@/data/countries.js';
 import { cities } from '@/data/cities.js';
 import { useResponsiveView } from '@/composables/useResponsiveView.js';
@@ -258,6 +267,7 @@ const icons = inject('icons', {});
 // Form state
 const loading = ref(false);
 const loaded = ref(false);
+const imageUploadRef = ref(null);
 
 // Reactive form values
 const formValues = ref({
@@ -269,6 +279,7 @@ const formValues = ref({
   phone: '',
   phone_code: '+57',
   country: '',
+  img: null,
   address: {
     address: '',
     city: '',
@@ -342,23 +353,44 @@ const createUser = async () => {
   try {
     console.log('🔑 Creating user with data:', formValues.value);
 
-    // Prepare payload with nested address object
-    const payload = {
-      name: formValues.value.name,
-      last_name: formValues.value.last_name,
-      code: formValues.value.code,
-      username: formValues.value.username,
-      email: formValues.value.email,
-      phone: formValues.value.phone,
-      phone_code: formValues.value.phone_code,
-      country: formValues.value.country,
-      address: {
-        address: formValues.value.address.address,
-        city: formValues.value.address.city,
-        state: formValues.value.address.state,
-        zip_code: formValues.value.address.zip_code
-      }
-    };
+    const imageInfo = imageUploadRef.value?.getFileInfo();
+    let payload;
+
+    // Use FormData if image is present
+    if (imageInfo?.file) {
+      payload = new FormData();
+      payload.append('name', formValues.value.name);
+      payload.append('last_name', formValues.value.last_name);
+      payload.append('code', formValues.value.code);
+      payload.append('username', formValues.value.username);
+      payload.append('email', formValues.value.email);
+      payload.append('phone', formValues.value.phone);
+      payload.append('phone_code', formValues.value.phone_code);
+      payload.append('country', formValues.value.country);
+      payload.append('img', imageInfo.file);
+      payload.append('address.address', formValues.value.address.address);
+      payload.append('address.city', formValues.value.address.city);
+      payload.append('address.state', formValues.value.address.state);
+      payload.append('address.zip_code', formValues.value.address.zip_code);
+    } else {
+      // Use JSON when no image
+      payload = {
+        name: formValues.value.name,
+        last_name: formValues.value.last_name,
+        code: formValues.value.code,
+        username: formValues.value.username,
+        email: formValues.value.email,
+        phone: formValues.value.phone,
+        phone_code: formValues.value.phone_code,
+        country: formValues.value.country,
+        address: {
+          address: formValues.value.address.address,
+          city: formValues.value.address.city,
+          state: formValues.value.address.state,
+          zip_code: formValues.value.address.zip_code
+        }
+      };
+    }
 
     const response = await API.post(API.USER, payload);
     
