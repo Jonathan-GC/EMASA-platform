@@ -111,7 +111,6 @@
               :key="workspace.id" 
               class="workspace-card"
               :class="getCardClass(true)"
-              @click="(event) => getCardClickHandler(`/tenants/${workspace.id}`)(event)"
             >
               <ion-card-content>
                 <!-- Header with name -->
@@ -144,7 +143,6 @@
                     type="workspace"
                     :index="workspace.id" 
                     :name="workspace.name"
-                    :to-view="`/tenants/${workspace.id}`"
                     to-edit
                     to-delete
                     :initial-data="setInitialData(workspace)"

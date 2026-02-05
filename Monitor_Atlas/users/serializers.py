@@ -237,6 +237,7 @@ class UserSerializer(serializers.ModelSerializer):
             "address_city",
             "address_state",
             "address_zip_code",
+            "country",
         ]
 
     def validate_password(self, value):
@@ -416,7 +417,9 @@ class UserMeSerializer(UserSerializer):
             }
         return None
 
+
 from auditlog.models import LogEntry
+
 
 class LogEntrySerializer(serializers.ModelSerializer):
     model = serializers.SerializerMethodField()
@@ -425,18 +428,18 @@ class LogEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = LogEntry
         fields = [
-            'id',
-            'action',
-            'model',
-            'app',
-            'content_type',
-            'object_pk',
-            'object_repr',
-            'serialized_data',
-            'actor',
-            'remote_addr',
-            'timestamp',
-            'changes',
+            "id",
+            "action",
+            "model",
+            "app",
+            "content_type",
+            "object_pk",
+            "object_repr",
+            "serialized_data",
+            "actor",
+            "remote_addr",
+            "timestamp",
+            "changes",
         ]
 
     def get_model(self, obj):

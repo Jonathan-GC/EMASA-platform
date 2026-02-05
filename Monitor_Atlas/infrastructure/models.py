@@ -258,7 +258,8 @@ auditlog.register(
     Application, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
 )
 auditlog.register(
-    Gateway, exclude_fields=["last_synced_at", "sync_error", "sync_status"]
+    Gateway,
+    exclude_fields=["last_synced_at", "last_seen_at", "sync_error", "sync_status"],
 )
 auditlog.register(Machine)
 auditlog.register(Type)

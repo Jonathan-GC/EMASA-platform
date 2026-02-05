@@ -31,11 +31,11 @@
           <div class="header-details-grid">
             <div class="detail-item">
               <ion-icon :icon="icons.calendar" />
-              <span>Created: {{ formatDate(conversationData.created_at) }}</span>
+              <span>Creado: {{ formatDate(conversationData.created_at) }}</span>
             </div>
             <div class="detail-item" v-if="conversationData.category">
               <ion-icon :icon="icons.pricetag" />
-              <span>Category: {{ conversationData.category }}</span>
+              <span>Categoria: {{ conversationData.category }}</span>
             </div>
             <div class="detail-item" v-if="conversationData.organization">
               <ion-icon :icon="icons.business" />
@@ -317,64 +317,55 @@ const currentUserDisplayName = computed(() => {
 });
 
 // Function: Check if a comment is from current user
-// Logic:
-// - If comment is from current logged user (compare IDs) -> RIGHT
-// - If comment is from ticket owner (via token access) -> RIGHT
-// - If comment is from current guest (compare guest info) -> RIGHT  
-// - Otherwise -> LEFT
-// Note: 'response' field indicates if author is support (true) or regular user (false)
 const isCurrentUserComment = (comment) => {
-  console.log('🔍 Checking comment:', {
-    commentId: comment.id,
-    commentResponse: comment.response,
-    commentUser: comment.user,
-    commentGuestName: comment.guest_name,
-    commentGuestEmail: comment.guest_email,
-    currentUserId: currentUserId.value,
-    ticketUserId: ticketUserId.value,
-    guestUserName: guestUserName.value,
-    guestUserEmail: guestUserEmail.value
-  });
-  
+  // If we are in dev mode and it's mock data, we use names as a fallback
+  if (PROFILE === 'dev' && !currentUserId.value) {
+    // In mock data, "Dev User" is the "owner"
+    if (comment.user_name === 'Dev User' || (comment.isOriginal && !comment.response)) {
+      return true;
+    }
+    return false;
+  }
+
   // Priority 1: Authenticated users (logged in) - compare with currentUserId
   if (currentUserId.value && comment.user) {
-    const commentUserId = typeof comment.user === 'number' ? comment.user : parseInt(comment.user);
-    const currentUserIdNum = typeof currentUserId.value === 'number' ? currentUserId.value : parseInt(currentUserId.value);
-    const isMatch = commentUserId === currentUserIdNum;
-    console.log('   ✓ User ID comparison (logged in):', { 
-      commentUserId, 
-      currentUserIdNum, 
-      isMatch,
-      commentIsSupport: comment.response === true
-    });
-    return isMatch;
+    const commentUserId = typeof comment.user === 'object' ? comment.user.id : comment.user;
+    const currentUserIdVal = currentUserId.value;
+    
+    if (String(commentUserId) === String(currentUserIdVal)) {
+      return true;
+    }
   }
   
-  // Priority 2: User accessing via token (not logged in) - compare with ticketUserId
-  // This handles the case where a user accesses the conversation through an email link
+  // Priority 2: Match by Support status (if agent is viewing)
+  if (auth.isSupportUser && comment.response === true) {
+    // If the comment is a support response and current user is support,
+    // we check if the name matches to avoid putting other agents' messages on the right
+    if (comment.user_name === auth.username) return true;
+  }
+
+  // Priority 3: User accessing via token (not logged in) - compare with ticketUserId
   if (!currentUserId.value && ticketUserId.value && comment.user) {
-    const commentUserId = typeof comment.user === 'number' ? comment.user : parseInt(comment.user);
-    const ticketUserIdNum = typeof ticketUserId.value === 'number' ? ticketUserId.value : parseInt(ticketUserId.value);
-    const isMatch = commentUserId === ticketUserIdNum;
-    console.log('   ✓ User ID comparison (token access):', { 
-      commentUserId, 
-      ticketUserIdNum, 
-      isMatch,
-      commentIsSupport: comment.response === true
-    });
-    return isMatch;
+    const commentUserId = typeof comment.user === 'object' ? comment.user.id : comment.user;
+    if (String(commentUserId) === String(ticketUserId.value)) return true;
   }
   
-  // Priority 3: Guest users - compare guest info
-  if (guestUserName.value && guestUserEmail.value && 
-      comment.guest_name && comment.guest_email) {
-    const isMatch = comment.guest_name === guestUserName.value && 
-           comment.guest_email === guestUserEmail.value;
-    console.log('   ✓ Guest comparison:', { isMatch });
-    return isMatch;
+  // Priority 4: Guest users - compare guest info
+  if (!currentUserId.value && guestUserEmail.value && comment.guest_email) {
+    if (comment.guest_email === guestUserEmail.value) return true;
+  }
+
+  // Priority 5: Original ticket logic
+  if (comment.isOriginal) {
+    if (currentUserId.value && conversationData.value?.user) {
+      const tid = typeof conversationData.value.user === 'object' ? conversationData.value.user.id : conversationData.value.user;
+      if (String(tid) === String(currentUserId.value)) return true;
+    }
+    if (guestUserEmail.value && conversationData.value?.guest_email === guestUserEmail.value) {
+      return true;
+    }
   }
   
-  console.log('   ✗ No match - showing on LEFT');
   return false;
 };
 
@@ -963,7 +954,7 @@ function scrollToBottom() {
 .ticket-id {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #f57c00;
+  color: var(--ion-color-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -994,7 +985,7 @@ function scrollToBottom() {
 
 .detail-item ion-icon {
   font-size: 1rem;
-  color: #f57c00;
+  color: var(--ion-color-primary);
 }
 
 .header-meta {
@@ -1039,7 +1030,7 @@ function scrollToBottom() {
 
 .header-avatar {
   font-size: 2.2rem;
-  color: #f57c00;
+  color: var(--ion-color-primary);
 }
 
 .header-text {
@@ -1107,18 +1098,24 @@ function scrollToBottom() {
   width: 100%;
 }
 
+.message-mine {
+  align-items: flex-end;
+}
+
+.message-theirs {
+  align-items: flex-start;
+}
+
 /* Original Request Special Styling */
 .message-row:first-child .message-bubble {
-  border-left: 5px solid #f57c00;
-  background: white !important;
-  color: #1e293b !important;
+  border-left: 5px solid var(--ion-color-primary);
   border-radius: 12px;
   max-width: 95%;
-  box-shadow: 0 4px 12px rgba(245, 124, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.08);
 }
 
 .message-row:first-child .message-sender {
-  color: #f57c00 !important;
+  color: var(--ion-color-primary);
 }
 
 .message-bubble {
@@ -1129,20 +1126,18 @@ function scrollToBottom() {
   line-height: 1.5;
   position: relative;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-
-.message-mine {
-  align-items: flex-end;
+  margin-bottom: 4px;
 }
 
 .message-mine .message-bubble {
-  background: #f57c00;
+  background: var(--ion-color-primary);
   color: white;
   border-bottom-right-radius: 4px;
 }
 
-.message-theirs {
-  align-items: flex-start;
+.message-mine .message-sender {
+  color: rgba(255, 255, 255, 0.9);
+  text-align: right;
 }
 
 .message-theirs .message-bubble {
@@ -1155,7 +1150,7 @@ function scrollToBottom() {
 .message-sender {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #f57c00;
+  color: var(--ion-color-primary);
   margin-bottom: 4px;
 }
 
@@ -1205,7 +1200,7 @@ function scrollToBottom() {
 }
 
 .original-tag {
-  background: #f57c00;
+  background: var(--ion-color-primary);
   color: white;
 }
 
@@ -1237,14 +1232,14 @@ function scrollToBottom() {
 }
 
 .message-textarea:focus {
-  border-color: #f57c00;
+  border-color: var(--ion-color-primary);
   background: white;
-  box-shadow: 0 0 0 2px rgba(245, 124, 0, 0.1);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
 }
 
 .send-btn {
-  --background: #f57c00;
-  --background-hover: #e67600;
+  --background: var(--ion-color-primary);
+  --background-hover: var(--ion-color-primary-shade);
   --border-radius: 12px;
   width: 48px;
   height: 48px;
@@ -1307,7 +1302,7 @@ function scrollToBottom() {
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 32px;
-  box-shadow: 0 4px 6px -1px rgba(245, 124, 0, 0.1), 0 2px 4px -1px rgba(245, 124, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.1), 0 2px 4px -1px rgba(249, 115, 22, 0.06);
 }
 
 .message-header {

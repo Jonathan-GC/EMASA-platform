@@ -112,6 +112,7 @@ class API {
         return `infrastructure/device/${deviceId}/historic_metrics/`
     }
     DEVICE_UPDATE_MEASUREMENTS='infrastructure/device/update_measurement/'
+    DEVICE_DELETE_MEASUREMENTS='infrastructure/device/delete_measurement/'
 
 
     //----[WEBSOCKET]----

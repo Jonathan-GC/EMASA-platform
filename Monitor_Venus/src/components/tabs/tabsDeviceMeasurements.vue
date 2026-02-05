@@ -391,7 +391,8 @@
                         type="measurement"
                         to-edit
                         to-delete
-                        :index:="measurement.id"
+                        :name="measurement.unit"
+                        :index="measurement.id"
                         :initial-data="setMeasurementInitialData(measurement)"
                         @item-edited="handleMeasurementCreated"
                         @item-deleted="handleMeasurementCreated"
@@ -469,7 +470,7 @@
           <!-- Floating Action Buttons -->
           <FloatingActionButtons 
             entity-type="measurement"
-            @refresh="fetchMeasurements"
+            @refresh="fetchMeasurements(true)"
             @itemCreated="handleMeasurementCreated"
           />
         </ion-content>
@@ -699,8 +700,8 @@ watch(measurements, (newVal) => {
 })
 
 // Fetch measurements from API
-const fetchMeasurements = async () => {
-  if (measurements.value && measurements.value.length > 0) return
+const fetchMeasurements = async (force = false) => {
+  if (!force && measurements.value && measurements.value.length > 0) return
   
   const deviceId = route.params.device_id
   
@@ -976,7 +977,9 @@ onMounted(() => {
 // Watch for device ID changes and refetch
 watch(() => route.params.device_id, (newId, oldId) => {
   if (newId && newId !== oldId) {
-    fetchMeasurements()
+    measurements.value = []
+    fetchDevice()
+    fetchMeasurements(true)
   }
 })
 
@@ -995,7 +998,7 @@ function handleActivationFieldChanged(fieldKey, value) {
 // Event handler for measurement creation
 function handleMeasurementCreated() {
   console.log('Measurement created, refreshing data...')
-  fetchMeasurements()
+  fetchMeasurements(true)
 }
 
 // Set initial data for measurement editing (like TableApplications.vue)

@@ -852,7 +852,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
         return Response(payload)
 
     @action(
-        detail=False,
+        detail=True,
         methods=["patch"],
         permission_classes=[HasPermission],
         scope="device",
@@ -1174,6 +1174,34 @@ class DeviceViewSet(viewsets.ModelViewSet):
             )
 
         return Response(response_json)
+
+    @action(
+        detail=False,
+        methods=["delete"],
+        permission_classes=[HasPermission],
+        scope="device",
+        url_path="delete_measurement/(?P<measurement_id>[^/.]+)",
+    )
+    def delete_measurement(self, request, measurement_id=None):
+
+        if not measurement_id:
+            return Response(
+                {"message": "No measurement_id provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            measurement = Measurements.objects.get(id=measurement_id)
+            measurement.delete()
+            return Response(
+                {"message": "Measurement deleted successfully"},
+                status=status.HTTP_200_OK,
+            )
+        except Measurements.DoesNotExist:
+            return Response(
+                {"message": "Measurement not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 @extend_schema_view(

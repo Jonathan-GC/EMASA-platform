@@ -131,6 +131,7 @@ async function deleteItem() {  // Renamed function
     return;
   }
   try {
+    const deviceId = props.additionalData?.device_id;
     let response;
     // Map of types to API endpoints
     const apiEndpoints = {
@@ -157,6 +158,7 @@ async function deleteItem() {  // Renamed function
       'group_profile': API.INVESTIGATION_GRUOPS_PROFILES,
       'seedbed_profile': API.RESEARCH_SEEDBEDS_PROFILES,
       'seedbed_member': API.RESEARCH_SEEDBEDS_MEMBERS,
+      'measurement': API.DEVICE_DELETE_MEASUREMENTS,
     };
     const endpoint = apiEndpoints[props.type];
     if (endpoint) {
