@@ -98,6 +98,15 @@ export class DeleteFormFactory extends AbstractFormFactory {
           index: extraProps?.index,
         }
       },
+      measurement: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "variable",
+          index: extraProps?.index,
+        }
+      },
     };
 
     if (!(type in componentMap) || !EntityTypes.includes(type)) {

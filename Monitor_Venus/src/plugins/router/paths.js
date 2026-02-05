@@ -24,7 +24,7 @@ export const paths = {
 
     // Relative paths
     DEVICES: '/devices',
-    MACHINES: '/machines',
+    MACHINES: '/infrastructure/machines',
     NOTIFICATIONS: '/notifications',
     EMAIL_VERIFICATION: '/verify-email',
     DEVICE_TYPES: '/device-types',

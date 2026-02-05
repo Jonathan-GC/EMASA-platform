@@ -18,7 +18,7 @@ Goal: Provide a secure, accessible chat-style interface for viewing and respondi
 - **Auto-Scroll**: Automatic scroll to bottom on load + manual scroll button
 - **Dynamic Response Field**: Uses `auth.isSupportUser` for role-based comment flagging
 - **Status Normalization**: Handles backend/API format differences ("Open" vs "open")
-- **Orange Theme**: Consistent orange color scheme throughout (#f57c00 primary, #ef6c00 dark)
+- **Orange Theme**: Consistent orange color scheme throughout (#f97316 primary, #ea580c dark)
 
 ---
 ## Core Endpoints
@@ -433,7 +433,7 @@ function isCurrentUserComment(comment) {
 
 **Visual Result**:
 - **Current User Comments** (right-aligned):
-  - Orange gradient background (#f57c00 → #ef6c00)
+  - Orange gradient background (#f97316 → #ea580c)
   - White text
   - Rounded corners (left side more rounded)
   - Avatar and username on right
@@ -454,7 +454,7 @@ function isCurrentUserComment(comment) {
 
 .comment-bubble.right {
   align-self: flex-end;
-  background: linear-gradient(135deg, #f57c00 0%, #ef6c00 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   border-radius: 0.75rem 0.75rem 0.25rem 0.75rem;
 }
 ```
@@ -490,12 +490,12 @@ Replaced original blue (#3b82f6) with orange throughout:
 
 | Element | Color |
 |---------|-------|
-| Primary (borders, icons, buttons) | #f57c00 |
-| Dark (gradients, hover states) | #ef6c00 |
+| Primary (borders, icons, buttons) | #f97316 |
+| Dark (gradients, hover states) | #ea580c |
 | Light borders | #fdba74 |
 | Light backgrounds | #fff7ed, #ffedd5 |
-| Staff response bubbles | Linear gradient (#f57c00 → #ef6c00) |
-| Focus states | Box shadow rgba(245, 124, 0, 0.1) |
+| Staff response bubbles | Linear gradient (#f97316 → #ea580c) |
+| Focus states | Box shadow rgba(249, 115, 22, 0.1) |
 
 ---
 ## UI Layout & Components

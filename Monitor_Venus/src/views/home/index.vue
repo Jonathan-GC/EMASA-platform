@@ -133,7 +133,7 @@
           <ion-grid>
             <ion-row>
               <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessGateways">
-                <ion-card class="nav-card" button @click="navigateTo('/infrastructure/gateways')">
+                <ion-card class="nav-card" button @click="navigateTo(P.GATEWAYS)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container info-bg">
@@ -150,7 +150,7 @@
               </ion-col>
               
               <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessApplications">
-                <ion-card class="nav-card" button @click="navigateTo('/infrastructure/applications')">
+                <ion-card class="nav-card" button @click="navigateTo(P.APPLICATIONS)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container tertiary-bg">
@@ -167,7 +167,7 @@
               </ion-col>
               
               <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessMachines">
-                <ion-card class="nav-card" button @click="navigateTo('/infrastructure/machines')">
+                <ion-card class="nav-card" button @click="navigateTo(P.MACHINES)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container medium-bg">
@@ -198,7 +198,7 @@
           <ion-grid>
             <ion-row>
               <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessUsers">
-                <ion-card class="nav-card" button @click="navigateTo('/users')">
+                <ion-card class="nav-card" button @click="navigateTo(P.USERS)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container warning-bg">
@@ -215,7 +215,7 @@
               </ion-col>
               
               <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessWorkspaces">
-                <ion-card class="nav-card" button @click="navigateTo('/workspaces')">
+                <ion-card class="nav-card" button @click="navigateTo(P.TENANT_WORKSPACES)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container secondary-bg">
@@ -232,7 +232,7 @@
               </ion-col>
               
               <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessTenants">
-                <ion-card class="nav-card" button @click="navigateTo('/tenants')">
+                <ion-card class="nav-card" button @click="navigateTo(P.TENANTS)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container tertiary-bg">
@@ -263,7 +263,7 @@
           <ion-grid>
             <ion-row>
               <ion-col size="12" size-md="6" size-lg="4">
-                <ion-card class="nav-card" button @click="navigateTo('/notifications')">
+                <ion-card class="nav-card" button @click="navigateTo(P.NOTIFICATIONS)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container danger-bg">
@@ -280,7 +280,7 @@
               </ion-col>
               
               <ion-col size="12" size-md="6" size-lg="4" v-if="canAccessInbox">
-                <ion-card class="nav-card" button @click="navigateTo('/inbox')">
+                <ion-card class="nav-card" button @click="navigateTo(P.INBOX)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container info-bg">
@@ -297,7 +297,7 @@
               </ion-col>
               
               <ion-col size="12" size-md="6" size-lg="4">
-                <ion-card class="nav-card" button @click="navigateTo('/support')">
+                <ion-card class="nav-card" button @click="navigateTo(P.SUPPORT)">
                   <ion-card-content>
                     <div class="nav-card-content">
                       <div class="icon-container success-bg">
@@ -327,6 +327,7 @@ import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore.js'
 import { useNotifications } from '@/composables/useNotifications.js'
 import API from '@/utils/api/api.js'
+import { paths as P } from '@/plugins/router/paths.js'
 
 import { isPlatform} from '@ionic/vue'
 
@@ -749,7 +750,7 @@ ion-content {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--ion-color-orange-500);
+  background: rgba(var(--ion-color-orange-500-rgb), 0.1);
   z-index: 0;
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -1381,10 +1382,6 @@ ion-content {
 
   .nav-card:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  .gradient-bg {
-    opacity: 0.08;
   }
 
   .role-chip,

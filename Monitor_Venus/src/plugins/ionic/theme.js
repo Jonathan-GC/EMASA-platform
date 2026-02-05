@@ -2,18 +2,18 @@
 // CSS Variables for colors, spacing, and styling
 
 export const theme = {
-  // Primary color palette (Amber - based on your current design)
+  // Primary color palette (Orange - based on your current request)
   primary: {
-    50: '#fffbeb',
-    100: '#fef3c7',
-    200: '#fde68a',
-    300: '#fcd34d',
-    400: '#fbbf24',
-    500: '#f59e0b',
-    600: '#d97706',
-    700: '#b45309',
-    800: '#92400e',
-    900: '#78350f',
+    50: '#fff7ed',
+    100: '#ffedd5',
+    200: '#fed7aa',
+    300: '#fdba74',
+    400: '#fb923c',
+    500: '#f97316',
+    600: '#ea580c',
+    700: '#c2410c',
+    800: '#9a3412',
+    900: '#7c2d12',
   },
   
   // Secondary colors (Zinc)
@@ -255,13 +255,13 @@ export const applyTheme = () => {
 export const applyIonicColors = (root = document.documentElement) => {
   // Override default Ionic colors
   
-  // Primary = Amber 700
-  root.style.setProperty('--ion-color-primary', theme.primary[600])
-  root.style.setProperty('--ion-color-primary-rgb', '180, 83, 9')
+  // Primary = Orange 500
+  root.style.setProperty('--ion-color-primary', theme.primary[500])
+  root.style.setProperty('--ion-color-primary-rgb', '249, 115, 22')
   root.style.setProperty('--ion-color-primary-contrast', '#ffffff')
   root.style.setProperty('--ion-color-primary-contrast-rgb', '255, 255, 255')
-  root.style.setProperty('--ion-color-primary-shade', theme.primary[800])
-  root.style.setProperty('--ion-color-primary-tint', theme.primary[600])
+  root.style.setProperty('--ion-color-primary-shade', theme.primary[600])
+  root.style.setProperty('--ion-color-primary-tint', theme.primary[400])
   
   // Secondary = Zinc 600
   root.style.setProperty('--ion-color-secondary', theme.secondary[600])
