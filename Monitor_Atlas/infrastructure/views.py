@@ -852,7 +852,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
         return Response(payload)
 
     @action(
-        detail=False,
+        detail=True,
         methods=["patch"],
         permission_classes=[HasPermission],
         scope="device",
@@ -1180,9 +1180,9 @@ class DeviceViewSet(viewsets.ModelViewSet):
         methods=["delete"],
         permission_classes=[HasPermission],
         scope="device",
+        url_path="delete_measurement/(?P<measurement_id>[^/.]+)",
     )
-    def delete_measurement(self, request):
-        measurement_id = request.query_params.get("measurement_id", None)
+    def delete_measurement(self, request, measurement_id=None):
 
         if not measurement_id:
             return Response(
