@@ -168,7 +168,7 @@
                 <!-- Header with avatar and name -->
                 <div class="card-header">
                   <ion-avatar class="card-avatar">
-                    <img :alt="user.username" :src="user.img || Avatar" />
+                    <img :alt="user.username" :src="user.img || AvatarSVG" />
                   </ion-avatar>
                   <div class="card-title-section">
                     <h3 class="card-title">{{ `${user.name} ${user.last_name}` }}</h3>
