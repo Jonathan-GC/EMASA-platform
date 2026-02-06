@@ -12,7 +12,7 @@
         <a href="/support" class="footer-link">Support</a>
       </div>
       <p class="footer-version">
-        Version 1.1.1
+        Version 1.1.2
       </p>
     </div>
   </div>
