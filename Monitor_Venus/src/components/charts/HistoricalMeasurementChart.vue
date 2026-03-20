@@ -148,6 +148,7 @@
 <script setup>
 import { ref, onMounted, watch, reactive, computed, inject } from 'vue'
 import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonSpinner, IonButton, IonIcon } from '@ionic/vue'
+import { toastController } from '@ionic/vue'
 import { Chart, registerables } from 'chart.js'
 import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
@@ -157,6 +158,9 @@ import { es } from 'date-fns/locale'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { Capacitor } from '@capacitor/core'
+import { Filesystem, Directory } from '@capacitor/filesystem'
+import { FileOpener } from '@capacitor-community/file-opener'
 import logoImage from '@/assets/monitor_logo.png'
 
 Chart.register(...registerables, annotationPlugin)
@@ -376,7 +380,52 @@ const exportPDF = async () => {
       })
     }
     
-    doc.save(fileName)
+    if (Capacitor.isNativePlatform()) {
+      const pdfDataUri = doc.output('datauristring')
+      const base64Data = pdfDataUri.split(',')[1]
+
+      try {
+        const savedFile = await Filesystem.writeFile({
+          path: `Monitor_Reports/${fileName}`,
+          data: base64Data,
+          directory: Directory.Documents,
+          recursive: true
+        })
+
+        console.log('✅ PDF saved to Documents:', savedFile.uri)
+        
+        // Trigger Android/iOS file opener chooser for PDF apps
+        try {
+          await FileOpener.open({
+            filePath: savedFile.uri,
+            contentType: 'application/pdf',
+            openWithDefault: false
+          })
+          console.log('✅ File opener chooser shown')
+        } catch (openError) {
+          // Opening failed or user canceled chooser; file remains saved
+          console.log('File opener closed/cancelled, but PDF saved at:', savedFile.uri)
+          const toast = await toastController.create({
+            message: `✅ PDF guardado en Documentos/Monitor_Reports`,
+            duration: 3000,
+            position: 'bottom',
+            color: 'success'
+          })
+          await toast.present()
+        }
+      } catch (error) {
+        console.error('❌ Error saving PDF:', error)
+        const errorToast = await toastController.create({
+          message: 'Error al guardar el PDF',
+          duration: 2000,
+          position: 'bottom',
+          color: 'danger'
+        })
+        await errorToast.present()
+      }
+    } else {
+      doc.save(fileName)
+    }
   } catch (error) {
     console.error('❌ Error exporting PDF:', error)
   } finally {
