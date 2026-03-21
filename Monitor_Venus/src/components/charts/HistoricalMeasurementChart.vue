@@ -260,6 +260,143 @@ const closeDetailedTable = () => {
   }
 }
 
+const renderDesktopChartImageForPDF = async () => {
+  if (!chartInstance || !canvasRef.value) return null
+
+  const exportCanvas = document.createElement('canvas')
+  exportCanvas.width = 1600
+  exportCanvas.height = 900
+  exportCanvas.style.position = 'fixed'
+  exportCanvas.style.left = '-99999px'
+  exportCanvas.style.top = '0'
+  document.body.appendChild(exportCanvas)
+
+  let exportChart = null
+  const exportBackgroundPlugin = {
+    id: 'exportBackground',
+    beforeDraw: (chart, _args, pluginOptions) => {
+      const { ctx, canvas } = chart
+      ctx.save()
+      ctx.globalCompositeOperation = 'destination-over'
+      ctx.fillStyle = pluginOptions?.color || '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.restore()
+    }
+  }
+
+  try {
+    const clonedDatasets = (chartInstance.data.datasets || []).map((dataset) => ({
+      ...dataset,
+      data: Array.isArray(dataset.data)
+        ? dataset.data.map((point) => (point && typeof point === 'object' ? { ...point } : point))
+        : []
+    }))
+
+    exportChart = new Chart(exportCanvas.getContext('2d'), {
+      type: 'line',
+      plugins: [exportBackgroundPlugin],
+      data: {
+        datasets: clonedDatasets
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        scales: {
+          x: {
+            type: 'time',
+            adapters: {
+              date: {
+                locale: es
+              }
+            },
+            time: {
+              displayFormats: {
+                minute: 'HH:mm',
+                hour: 'HH:mm',
+                day: 'MMM dd',
+                month: 'MMM yyyy'
+              }
+            },
+            grid: {
+              display: true,
+              drawBorder: false
+            },
+            ticks: {
+              color: '#9ca3af',
+              font: {
+                size: 18
+              },
+              maxRotation: 0,
+              autoSkip: true
+            }
+          },
+          y: {
+            grid: {
+              drawBorder: false,
+              display: true
+            },
+            ticks: {
+              color: '#9ca3af',
+              font: {
+                size: 18
+              }
+            }
+          }
+        },
+        plugins: {
+          exportBackground: {
+            color: '#ffffff'
+          },
+          legend: {
+            display: false
+          },
+          tooltip: {
+            enabled: false
+          }
+        }
+      }
+    })
+
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    return exportChart.toBase64Image('image/jpeg', 0.82)
+  } catch (error) {
+    console.warn('Could not render desktop-like chart for PDF export, using current chart instead:', error)
+    return null
+  } finally {
+    if (exportChart) {
+      exportChart.destroy()
+    }
+    exportCanvas.remove()
+  }
+}
+
+const writeBase64FileInChunks = async ({ path, base64Data, directory }) => {
+  const chunkSize = 700000
+  if (!base64Data || !base64Data.length) {
+    throw new Error('No PDF data to write')
+  }
+
+  await Filesystem.writeFile({
+    path,
+    data: base64Data.slice(0, chunkSize),
+    directory,
+    recursive: true
+  })
+
+  for (let i = chunkSize; i < base64Data.length; i += chunkSize) {
+    await Filesystem.appendFile({
+      path,
+      data: base64Data.slice(i, i + chunkSize),
+      directory
+    })
+  }
+}
+
 const exportPDF = async () => {
   if (!chartInstance || exportingPDF.value) return
   
@@ -301,11 +438,14 @@ const exportPDF = async () => {
     doc.text(subtitle.value, 15, 28)
     doc.text(`Dispositivo: ${props.deviceId} | Generado: ${format(new Date(), 'PPpp', { locale: es })}`, 15, 34)
     
-    // 2. Chart
-    const chartImage = chartInstance.toBase64Image('png', 1)
-    const imgWidth = 260
-    const imgHeight = (chartInstance.height * imgWidth) / chartInstance.width
-    doc.addImage(chartImage, 'PNG', 15, 40, imgWidth, imgHeight)
+    // 2. Chart (fixed export box so mobile and desktop PDFs share the same wide layout)
+    const chartImage = await renderDesktopChartImageForPDF() || chartInstance.toBase64Image('image/jpeg', 0.82)
+    const chartY = 40
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const maxChartWidth = pageWidth - 30
+    const imgWidth = maxChartWidth
+    const imgHeight = 95
+    doc.addImage(chartImage, 'JPEG', 15, chartY, imgWidth, imgHeight)
     
     // 3. Table
     let exportData = []
@@ -340,7 +480,7 @@ const exportPDF = async () => {
     
     if (exportData.length > 0) {
       autoTable(doc, {
-        startY: imgHeight + 50,
+        startY: chartY + imgHeight + 10,
         head: tableHeaders,
         body: exportData,
         theme: 'striped',
@@ -385,11 +525,17 @@ const exportPDF = async () => {
       const base64Data = pdfDataUri.split(',')[1]
 
       try {
-        const savedFile = await Filesystem.writeFile({
-          path: `Monitor_Reports/${fileName}`,
-          data: base64Data,
-          directory: Directory.Documents,
-          recursive: true
+        const savePath = `Monitor_Reports/${fileName}`
+
+        await writeBase64FileInChunks({
+          path: savePath,
+          base64Data,
+          directory: Directory.Documents
+        })
+
+        const savedFile = await Filesystem.getUri({
+          path: savePath,
+          directory: Directory.Documents
         })
 
         console.log('✅ PDF saved to Documents:', savedFile.uri)
