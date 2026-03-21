@@ -16,12 +16,15 @@
     "run:ios": "npm run build && npx cap sync ios && npx cap run ios"
   },
   "dependencies": {
+    "@capacitor-community/file-opener": "^7.0.1",
     "@capacitor/android": "^7.4.0",
     "@capacitor/cli": "^7.4.0",
     "@capacitor/core": "^7.4.0",
+    "@capacitor/filesystem": "^7.1.8",
     "@capacitor/haptics": "^7.0.1",
     "@capacitor/ios": "^7.4.0",
     "@capacitor/local-notifications": "^7.0.1",
+    "@capacitor/share": "^7.0.4",
     "@ionic/vue": "^8.6.2",
     "@ionic/vue-router": "^8.6.2",
     "@tailwindcss/vite": "^4.1.12",
