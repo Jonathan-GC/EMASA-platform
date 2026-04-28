@@ -1059,7 +1059,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
         if channel:
             params["channel"] = channel
         try:
-            response = requests.get(url, headers=headers, timeout=5, params=params)
+            response = requests.get(url, headers=headers, timeout=15, params=params)
             logger.debug(
                 f"Request: {response.request.method} {response.request.url} - Status: {response.status_code} {response.text}"
             )
