@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 32px;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <path fill="currentColor" d="M256,48c-64,0-128,32-128,96,0,64,64,128,128,192,64-64,128-128,128-192C384,80,320,48,256,48Z"/>
+    <path fill="currentColor" d="M256,112c-48,0-96,24-96,72,0,48,48,96,96,144,48-48,96-96,96-144C352,136,304,112,256,112Z"/>
+  </g>
+</svg>
