@@ -67,6 +67,10 @@ import {
   batteryFullOutline,
   batteryHalfOutline,
   radioOutline,
+  speedometerOutline,
+  bulbOutline,
+  sunnyOutline,
+  waterOutline,
 
   // Location icons
   locationOutline,
@@ -142,6 +146,8 @@ import deviceCard from '@assets/icons/device_card.svg'
 import antenna from '@assets/icons/antenna.svg'
 import functionIco from '@assets/icons/function.svg'
 import target from '@assets/icons/target.svg'
+import voltage from '@assets/icons/voltage.svg'
+
 
 export const icons = {
   // Action icons
@@ -217,7 +223,7 @@ export const icons = {
   'deviceCard': deviceCard,
   'antenna': antenna,
   'radio': radioOutline,
-
+  'speedometer': speedometerOutline,
   // Location icons
   'location': locationOutline,
   'map': mapOutline,
@@ -230,6 +236,9 @@ export const icons = {
   'train': trainOutline,
   'airplane': airplaneOutline,
   'building': businessOutline,
+  'voltage': voltage,
+  'water': waterOutline,
+  'sunny': sunnyOutline,
 
   // Navigation icons
   'chevronUp': chevronUpOutline,

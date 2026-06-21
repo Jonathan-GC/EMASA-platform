@@ -852,7 +852,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
         return Response(payload)
 
     @action(
-        detail=True,
+        detail=False,
         methods=["patch"],
         permission_classes=[HasPermission],
         scope="device",
