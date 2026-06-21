@@ -29,6 +29,30 @@
           :get-battery-percentage="getBatteryPercentage"
           :measurement-devices="measurementDevices"
           :measurement-messages="measurementMessages"
+          
+          :power-chart-data-fragments="powerChartDataFragments"
+          :power-latest-data-points="powerLatestDataPoints"
+          :power-messages="powerMessages"
+          
+          :energy-chart-data-fragments="energyChartDataFragments"
+          :energy-latest-data-points="energyLatestDataPoints"
+          :energy-messages="energyMessages"
+         
+          :pressure-chart-data-fragments="pressureChartDataFragments"
+          :pressure-latest-data-points="pressureLatestDataPoints"
+          :pressure-messages="pressureMessages"
+          
+          :humidity-chart-data-fragments="humidityChartDataFragments"
+          :humidity-latest-data-points="humidityLatestDataPoints"
+          :humidity-messages="humidityMessages"
+          
+          :luminosity-chart-data-fragments="luminosityChartDataFragments"
+          :luminosity-latest-data-points="luminosityLatestDataPoints"
+          :luminosity-messages="luminosityMessages"
+          
+          :power-factor-chart-data-fragments="powerFactorChartDataFragments"
+          :power-factor-latest-data-points="powerFactorLatestDataPoints"
+          :power-factor-messages="powerFactorMessages"
         />
       </div>
 
@@ -95,6 +119,85 @@ const {
   processIncomingData: processBatteryData
 } = useBatteryDataProcessor()
 
+// Use measurement data processors for new measurement types
+const {
+  chartDataFragments: powerChartDataFragments,
+  latestDataPoints: powerLatestDataPoints,
+  lastDevice: powerDevice,
+  recentMessages: powerMessages,
+  chartKey: powerChartKey,
+  processIncomingData: processPowerData
+} = useMeasurementDataProcessor({
+  measurementType: 'power',
+  chartLabel: 'Potencia',
+  unit: 'W'
+})
+
+const {
+  chartDataFragments: energyChartDataFragments,
+  latestDataPoints: energyLatestDataPoints,
+  lastDevice: energyDevice,
+  recentMessages: energyMessages,
+  chartKey: energyChartKey,
+  processIncomingData: processEnergyData
+} = useMeasurementDataProcessor({
+  measurementType: 'energy',
+  chartLabel: 'Energía',
+  unit: 'kWh'
+})
+
+const {
+  chartDataFragments: pressureChartDataFragments,
+  latestDataPoints: pressureLatestDataPoints,
+  lastDevice: pressureDevice,
+  recentMessages: pressureMessages,
+  chartKey: pressureChartKey,
+  processIncomingData: processPressureData
+} = useMeasurementDataProcessor({
+  measurementType: 'pressure',
+  chartLabel: 'Presión',
+  unit: 'Psi'
+})
+
+const {
+  chartDataFragments: humidityChartDataFragments,
+  latestDataPoints: humidityLatestDataPoints,
+  lastDevice: humidityDevice,
+  recentMessages: humidityMessages,
+  chartKey: humidityChartKey,
+  processIncomingData: processHumidityData
+} = useMeasurementDataProcessor({
+  measurementType: 'humidity',
+  chartLabel: 'Humedad',
+  unit: '%'
+})
+
+const {
+  chartDataFragments: luminosityChartDataFragments,
+  latestDataPoints: luminosityLatestDataPoints,
+  lastDevice: luminosityDevice,
+  recentMessages: luminosityMessages,
+  chartKey: luminosityChartKey,
+  processIncomingData: processLuminosityData
+} = useMeasurementDataProcessor({
+  measurementType: 'luminosity',
+  chartLabel: 'Luminosidad',
+  unit: 'lx'
+})
+
+const {
+  chartDataFragments: powerFactorChartDataFragments,
+  latestDataPoints: powerFactorLatestDataPoints,
+  lastDevice: powerFactorDevice,
+  recentMessages: powerFactorMessages,
+  chartKey: powerFactorChartKey,
+  processIncomingData: processPowerFactorData
+} = useMeasurementDataProcessor({
+  measurementType: 'power_factor',
+  chartLabel: 'Factor de Potencia',
+  unit: ''
+})
+
 // Map of active measurement processors
 const measurementProcessors = new Map()
 
@@ -110,6 +213,32 @@ measurementProcessors.set('current', {
 measurementProcessors.set('battery', { 
   processor: { processIncomingData: processBatteryData, recentMessages: batteryMessages }, 
   device: batteryDevice 
+})
+
+// Register new measurement processors
+measurementProcessors.set('power', { 
+  processor: { processIncomingData: processPowerData, recentMessages: powerMessages }, 
+  device: powerDevice 
+})
+measurementProcessors.set('energy', { 
+  processor: { processIncomingData: processEnergyData, recentMessages: energyMessages }, 
+  device: energyDevice 
+})
+measurementProcessors.set('pressure', { 
+  processor: { processIncomingData: processPressureData, recentMessages: pressureMessages }, 
+  device: pressureDevice 
+})
+measurementProcessors.set('humidity', { 
+  processor: { processIncomingData: processHumidityData, recentMessages: humidityMessages }, 
+  device: humidityDevice 
+})
+measurementProcessors.set('luminosity', { 
+  processor: { processIncomingData: processLuminosityData, recentMessages: luminosityMessages }, 
+  device: luminosityDevice 
+})
+measurementProcessors.set('power_factor', { 
+  processor: { processIncomingData: processPowerFactorData, recentMessages: powerFactorMessages }, 
+  device: powerFactorDevice 
 })
 
 // Function to create and register custom measurement processor
@@ -187,7 +316,19 @@ const fetchAndRegisterMeasurements = async () => {
     
     measurements.value.forEach(m => {
       const type = m.unit?.toLowerCase()
-      if (type && !['voltage', 'voltaje', 'current', 'corriente', 'battery', 'batería', 'bateria'].includes(type)) {
+      const excludedTypes = [
+        'voltage', 'voltaje', 
+        'current', 'corriente', 
+        'battery', 'batería', 'bateria',
+        'power', 'potencia',
+        'energy', 'energía',
+        'pressure', 'presión',
+        'humidity', 'humedad',
+        'luminosity', 'luminosidad',
+        'power_factor', 'factor de potencia'
+      ]
+      
+      if (type && !excludedTypes.includes(type)) {
         registerMeasurementProcessor(type, {
           unit: m.ref,
           chartLabel: m.unit,
