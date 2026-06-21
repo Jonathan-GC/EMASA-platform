@@ -45,6 +45,84 @@ export const MEASUREMENT_PROFILES = [
       delay: 70000
     }
   },
+  {
+    value: 'energy',
+    label: 'Energía',
+    unit: 'kWh',
+    description: 'Medición de energía consumida o generada en kilovatios-hora.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
+    },
+  },
+  {
+    value: 'power',
+    label: 'Potencia',
+    unit: 'W',
+    description: 'Medición de potencia eléctrica en vatios.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
+    }
+  },
+  {
+    value: 'power_factor',
+    label: 'Factor de Potencia',
+    unit: '',
+    description: 'Medición del factor de potencia, sin unidad específica.',
+    axes: 1,
+    realtime: {
+      ttl: 120000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 30000
+    }
+  },
+  {
+    value: 'pressure',
+    label: 'Presión',
+    unit: 'Psi',
+    description: 'Medición de presión en pascales.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
+    }
+  },
+  {
+    value: 'humidity',
+    label: 'Humedad',
+    unit: '%',
+    description: 'Medición de humedad relativa en porcentaje.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
+    }
+  },
+  {
+    value: 'luminosity',
+    label: 'Luminosidad',
+    unit: 'lx',
+    description: 'Medición de luminosidad en lux.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
+    }
+  }
   /*
   {
     value: 'temperature',

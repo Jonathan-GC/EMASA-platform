@@ -649,6 +649,79 @@ const props = defineProps({
   measurementMessages: {
     type: Object,
     default: () => ({})
+  },
+  // Additional chart data props for new measurement types
+  powerChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  powerLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  powerMessages: {
+    type: Array,
+    default: () => []
+  },
+  energyChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  energyLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  energyMessages: {
+    type: Array,
+    default: () => []
+  },
+  pressureChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  pressureLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  pressureMessages: {
+    type: Array,
+    default: () => []
+  },
+  humidityChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  humidityLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  humidityMessages: {
+    type: Array,
+    default: () => []
+  },
+  luminosityChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  luminosityLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  luminosityMessages: {
+    type: Array,
+    default: () => []
+  },
+  powerFactorChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  powerFactorLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  powerFactorMessages: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -901,6 +974,19 @@ const getMeasurementChartData = (measurementUnit) => {
     'battery': props.batteryChartDataFragments || [],
     'batería': props.batteryChartDataFragments || [],
     'bateria': props.batteryChartDataFragments || [],
+    // Additional measurement types
+    'power': props.powerChartDataFragments || [],
+    'potencia': props.powerChartDataFragments || [],
+    'energy': props.energyChartDataFragments || [],
+    'energía': props.energyChartDataFragments || [],
+    'pressure': props.pressureChartDataFragments || [],
+    'presión': props.pressureChartDataFragments || [],
+    'humidity': props.humidityChartDataFragments || [],
+    'humedad': props.humidityChartDataFragments || [],
+    'luminosity': props.luminosityChartDataFragments || [],
+    'luminosidad': props.luminosityChartDataFragments || [],
+    'power_factor': props.powerFactorChartDataFragments || [],
+    'factor de potencia': props.powerFactorChartDataFragments || [],
   }
   
   // Return matching chart data or empty array for new measurement types
@@ -921,6 +1007,19 @@ const getMeasurementLatestDataPoints = (measurementUnit) => {
     'battery': props.batteryLatestDataPoints || {},
     'batería': props.batteryLatestDataPoints || {},
     'bateria': props.batteryLatestDataPoints || {},
+    // Additional measurement types
+    'power': props.powerLatestDataPoints || {},
+    'potencia': props.powerLatestDataPoints || {},
+    'energy': props.energyLatestDataPoints || {},
+    'energía': props.energyLatestDataPoints || {},
+    'pressure': props.pressureLatestDataPoints || {},
+    'presión': props.pressureLatestDataPoints || {},
+    'humidity': props.humidityLatestDataPoints || {},
+    'humedad': props.humidityLatestDataPoints || {},
+    'luminosity': props.luminosityLatestDataPoints || {},
+    'luminosidad': props.luminosityLatestDataPoints || {},
+    'power_factor': props.powerFactorLatestDataPoints || {},
+    'factor de potencia': props.powerFactorLatestDataPoints || {},
   }
   
   return latestDataMap[unitLower] || {}
@@ -940,6 +1039,19 @@ const getMeasurementRecentMessages = (measurementUnit) => {
     'battery': props.batteryMessages || [],
     'batería': props.batteryMessages || [],
     'bateria': props.batteryMessages || [],
+    // Additional measurement types
+    'power': props.powerMessages || [],
+    'potencia': props.powerMessages || [],
+    'energy': props.energyMessages || [],
+    'energía': props.energyMessages || [],
+    'pressure': props.pressureMessages || [],
+    'presión': props.pressureMessages || [],
+    'humidity': props.humidityMessages || [],
+    'humedad': props.humidityMessages || [],
+    'luminosity': props.luminosityMessages || [],
+    'luminosidad': props.luminosityMessages || [],
+    'power_factor': props.powerFactorMessages || [],
+    'factor de potencia': props.powerFactorMessages || [],
   }
   
   return messagesMap[unitLower] || props.measurementMessages[unitLower] || []
