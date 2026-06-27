@@ -277,6 +277,17 @@ GOOGLE_SCOPE = "openid email profile"
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
+_web_default = config("APP_URL", default="http://localhost:5173") + "/auth/callback"
+GOOGLE_ALLOWED_REDIRECT_URIS = env.list(
+    "GOOGLE_ALLOWED_REDIRECT_URIS",
+    default=[
+        _web_default,
+        GOOGLE_REDIRECT_URI,
+        "postmessage",
+        "",
+    ],
+)
+
 
 # ============================================================================
 # EMAIL CONFIGURATION

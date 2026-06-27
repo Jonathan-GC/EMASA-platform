@@ -393,6 +393,22 @@ class LogoutView(APIView):
         return response
 
 
+def _resolve_redirect_uri(value):
+    """
+    Validate and return a redirect_uri against the server's allow-list.
+
+    Returns the sanitised URI on success, or ``None`` when *value* is
+    empty/``None`` (the caller should fall back to the default).
+    Raises ``ValueError`` if *value* is not in the allowed set.
+    """
+    if not value:
+        return None
+    allowed = settings.GOOGLE_ALLOWED_REDIRECT_URIS
+    if value not in allowed:
+        raise ValueError(f"redirect_uri is not allowed: {value!r}")
+    return value
+
+
 class GoogleLoginUrlView(APIView):
     """
     Returns the Google OAuth2 authorization URL for the frontend
@@ -407,11 +423,29 @@ class GoogleLoginUrlView(APIView):
             "Returns the Google OAuth2 consent-page URL that the frontend "
             "should redirect the user to.  The URL includes the required "
             "`client_id`, `redirect_uri`, `response_type=code` and `scope` "
-            "parameters."
+            "parameters.\n\n"
+            "An optional **query parameter** ``?redirect_uri=…`` can be "
+            "supplied to override the default web callback.  The value must "
+            "be listed in ``GOOGLE_ALLOWED_REDIRECT_URIS``."
         ),
+        parameters=[
+            {
+                "name": "redirect_uri",
+                "in_": "query",
+                "description": (
+                    "Optional override for the OAuth redirect URI. "
+                    "Must belong to ``GOOGLE_ALLOWED_REDIRECT_URIS``."
+                ),
+                "schema": {"type": "string"},
+            }
+        ],
         responses={
             200: OpenApiResponse(
                 description="Authorization URL ready for redirect.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(
+                description="The supplied `redirect_uri` is not allowed.",
                 response=OpenApiTypes.OBJECT,
             ),
             501: OpenApiResponse(
@@ -421,7 +455,7 @@ class GoogleLoginUrlView(APIView):
         },
         examples=[
             OpenApiExample(
-                "Success",
+                "Success (web fallback)",
                 value={
                     "url": "https://accounts.google.com/o/oauth2/v2/auth"
                     "?client_id=xxx&redirect_uri=http://localhost:5173/auth/callback"
@@ -430,6 +464,23 @@ class GoogleLoginUrlView(APIView):
                 },
                 response_only=True,
                 status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Success (native app)",
+                value={
+                    "url": "https://accounts.google.com/o/oauth2/v2/auth"
+                    "?client_id=xxx&redirect_uri=com.example.app%3A%2Foauth2redirect"
+                    "&response_type=code&scope=openid+email+profile"
+                    "&access_type=offline&prompt=consent"
+                },
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Invalid redirect_uri",
+                value={"detail": "redirect_uri is not allowed: ..."},
+                response_only=True,
+                status_codes=["400"],
             ),
             OpenApiExample(
                 "Not configured",
@@ -446,9 +497,17 @@ class GoogleLoginUrlView(APIView):
                 status=status.HTTP_501_NOT_IMPLEMENTED,
             )
 
+        raw_uri = request.query_params.get("redirect_uri")
+        try:
+            resolved = _resolve_redirect_uri(raw_uri)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+
         params = {
             "client_id": settings.GOOGLE_CLIENT_ID,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "redirect_uri": redirect_uri,
             "response_type": "code",
             "scope": settings.GOOGLE_SCOPE,
             "access_type": "offline",
@@ -483,7 +542,18 @@ class GoogleCallbackView(APIView):
         request={
             "application/json": {
                 "type": "object",
-                "properties": {"code": {"type": "string"}},
+                "properties": {
+                    "code": {"type": "string"},
+                    "redirect_uri": {
+                        "type": "string",
+                        "description": (
+                            "Optional.  The redirect URI that was used to "
+                            "obtain the authorization code.  Must belong to "
+                            "``GOOGLE_ALLOWED_REDIRECT_URIS``.  Defaults to "
+                            "the web ``GOOGLE_REDIRECT_URI`` if omitted."
+                        ),
+                    },
+                },
                 "required": ["code"],
             }
         },
@@ -497,7 +567,10 @@ class GoogleCallbackView(APIView):
                 response=OpenApiTypes.OBJECT,
             ),
             400: OpenApiResponse(
-                description="Missing `code`, invalid payload, or token exchange failure.",
+                description=(
+                    "Missing `code`, invalid payload, unsupported "
+                    "`redirect_uri`, or token exchange failure."
+                ),
                 response=OpenApiTypes.OBJECT,
             ),
             401: OpenApiResponse(
@@ -515,8 +588,13 @@ class GoogleCallbackView(APIView):
         },
         examples=[
             OpenApiExample(
-                "Request body",
+                "Request body — web",
                 value={"code": "4/0AanRRr..."},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Request body — native app",
+                value={"code": "4/0AanRRr...", "redirect_uri": ""},
                 request_only=True,
             ),
             OpenApiExample(
@@ -561,7 +639,14 @@ class GoogleCallbackView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        idinfo = self._exchange_and_verify(code)
+        raw_uri = request.data.get("redirect_uri")
+        try:
+            resolved = _resolve_redirect_uri(raw_uri)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+
+        idinfo = self._exchange_and_verify(code, redirect_uri)
         if isinstance(idinfo, Response):
             return idinfo
 
@@ -603,12 +688,12 @@ class GoogleCallbackView(APIView):
 
         return self._issue_tokens(user)
 
-    def _exchange_and_verify(self, code):
+    def _exchange_and_verify(self, code, redirect_uri):
         token_data = {
             "code": code,
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_SECRET,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "redirect_uri": redirect_uri,
             "grant_type": "authorization_code",
         }
 
@@ -731,7 +816,18 @@ class GoogleLinkView(APIView):
         request={
             "application/json": {
                 "type": "object",
-                "properties": {"code": {"type": "string"}},
+                "properties": {
+                    "code": {"type": "string"},
+                    "redirect_uri": {
+                        "type": "string",
+                        "description": (
+                            "Optional.  The redirect URI that was used to "
+                            "obtain the authorization code.  Must belong to "
+                            "``GOOGLE_ALLOWED_REDIRECT_URIS``.  Defaults to "
+                            "the web ``GOOGLE_REDIRECT_URI`` if omitted."
+                        ),
+                    },
+                },
                 "required": ["code"],
             }
         },
@@ -741,7 +837,10 @@ class GoogleLinkView(APIView):
                 response=OpenApiTypes.OBJECT,
             ),
             400: OpenApiResponse(
-                description="Missing `code`, invalid payload, or token exchange failure.",
+                description=(
+                    "Missing `code`, invalid payload, unsupported "
+                    "`redirect_uri`, or token exchange failure."
+                ),
                 response=OpenApiTypes.OBJECT,
             ),
             401: OpenApiResponse(
@@ -758,8 +857,13 @@ class GoogleLinkView(APIView):
         },
         examples=[
             OpenApiExample(
-                "Request body",
+                "Request body — web",
                 value={"code": "4/0AanRRr..."},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Request body — native app",
+                value={"code": "4/0AanRRr...", "redirect_uri": ""},
                 request_only=True,
             ),
             OpenApiExample(
@@ -792,11 +896,18 @@ class GoogleLinkView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        raw_uri = request.data.get("redirect_uri")
+        try:
+            resolved = _resolve_redirect_uri(raw_uri)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+
         token_data = {
             "code": code,
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_SECRET,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "redirect_uri": redirect_uri,
             "grant_type": "authorization_code",
         }
 
