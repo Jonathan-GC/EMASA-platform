@@ -269,6 +269,13 @@ SPECTACULAR_SETTINGS = {
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default=None)
 GOOGLE_SECRET = env("GOOGLE_SECRET", default=None)
 GOOGLE_ISS = env("GOOGLE_ISS", default=None)
+GOOGLE_REDIRECT_URI = env(
+    "GOOGLE_REDIRECT_URI",
+    default=config("APP_URL", default="http://localhost:5173") + "/auth/callback",
+)
+GOOGLE_SCOPE = "openid email profile"
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 
 # ============================================================================
@@ -297,6 +304,10 @@ MTR_LOGO_URL = env("MTR_LOGO_URL", default="https://placehold.co/500x200")
 
 HERMES_WS_URL = env("HERMES_WS_URL", default="ws://localhost:5000")
 HERMES_API_URL = env("HERMES_API_URL", default="http://localhost:5000")
+
+# Normalize to avoid double slashes when building URLs.
+HERMES_WS_URL = HERMES_WS_URL.rstrip("/")
+HERMES_API_URL = HERMES_API_URL.rstrip("/")
 WS_SECRET = env("WS_SECRET", default="dummy32characterslong!!")
 
 
@@ -316,3 +327,11 @@ logger.add(
     level="INFO",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
 )
+
+if HERMES_API_URL.startswith("https://") and ":5000" in HERMES_API_URL:
+    logger.warning(
+        "HERMES_API_URL is configured with https on port 5000. "
+        "Port 5000 commonly serves plain HTTP; if Hermes is not terminating TLS on 5000, "
+        "use http://...:5000 or a https URL without :5000 behind a reverse proxy. "
+        f"Current value: {HERMES_API_URL}"
+    )

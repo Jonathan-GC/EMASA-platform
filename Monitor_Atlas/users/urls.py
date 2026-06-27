@@ -12,7 +12,17 @@ routers.register(r"audit", views.AuditLogViewSet, basename="audit")
 
 urlpatterns = [
     path("", include(routers.urls)),
-    path("auth/google/", views.GoogleLoginView.as_view(), name="google-login"),
+    path("auth/google/url/", views.GoogleLoginUrlView.as_view(), name="google-login-url"),
+    path(
+        "auth/google/callback/",
+        views.GoogleCallbackView.as_view(),
+        name="google-callback",
+    ),
+    path(
+        "auth/google/link/",
+        views.GoogleLinkView.as_view(),
+        name="google-link",
+    ),
     path("auth/register/", views.RegisterView.as_view(), name="register"),
     path(
         "auth/verify-account/",
