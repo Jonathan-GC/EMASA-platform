@@ -771,7 +771,7 @@ class GoogleCallbackView(APIView):
         return user
 
     def _issue_tokens(self, user):
-        refresh = RefreshToken.for_user(user)
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
         access = str(refresh.access_token)
 
         refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
