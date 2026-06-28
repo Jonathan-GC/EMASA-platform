@@ -1,0 +1,15 @@
+# pnpm 11+ reads workspace settings from this file.
+# exFAT (F: drive on this machine) does not support symlinks,
+# so we use the hoisted linker to behave like npm.
+nodeLinker: hoisted
+shamefullyHoist: true
+
+# Whitelist trusted postinstall scripts (pnpm 11 blocks them by default).
+# esbuild is required by Vite; core-js is used by many transitive deps.
+onlyBuiltDependencies:
+  - core-js
+  - esbuild
+
+allowBuilds:
+  core-js: true
+  esbuild: true

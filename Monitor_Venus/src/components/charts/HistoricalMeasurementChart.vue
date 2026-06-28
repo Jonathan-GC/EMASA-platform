@@ -201,7 +201,7 @@ const loadingDetails = ref(false)
 const detailedTableData = ref([])
 const detailedPointsInfo = ref('')
 const currentPage = ref(1)
-const itemsPerPage = 10
+const itemsPerPage = ref(10)
 const clickedPointX = ref(null)
 
 const measurementTypes = computed(() => {
@@ -239,11 +239,11 @@ const stepValue = computed({
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
 
 // Computed properties for pagination
-const totalPages = computed(() => Math.ceil(detailedTableData.value.length / itemsPerPage))
+const totalPages = computed(() => Math.ceil(detailedTableData.value.length / itemsPerPage.value))
 
 const paginatedTableData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
   return detailedTableData.value.slice(start, end)
 })
 
