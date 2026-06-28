@@ -15,6 +15,7 @@ export const components = {
     USERS: () => import('@views/users/index.vue'),
     ROLES: () => import('@views/roles/index.vue'),
     LOGIN: () => import('@views/auth/login/index.vue'),
+    GOOGLE_AUTH: () => import('@views/auth/google/callback/index.vue'),
     REGISTER: () => import('@views/auth/signup/index.vue'),
     RESET_PASSWORD_REQUEST: () => import('@views/auth/reset-password/request.vue'),
     RESET_PASSWORD_CONFIRM: () => import('@views/auth/reset-password/confirm.vue'),

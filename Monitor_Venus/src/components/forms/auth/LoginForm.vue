@@ -79,17 +79,24 @@
               Iniciar Sesión
             </ion-button>
 
-            <ion-button 
-              expand="block" 
-              fill="clear" 
-              color="medium" 
+            <ion-button
+              expand="block"
+              fill="clear"
+              color="medium"
               @click="checkCookies"
             >
               <ion-icon :icon="icons.eye" slot="start"></ion-icon>
               Ver Cookies
             </ion-button>
 
-            
+            <!-- Google Sign-In divider -->
+            <div class="google-divider">
+              <span>o</span>
+            </div>
+
+            <!-- Google Sign-In button -->
+            <GoogleLoginButton />
+
             <!--<p class="text-center">¿No tienes cuenta? <router-link :to="paths.SIGNUP">Regístrate</router-link></p>-->
           </div>
           </form>
@@ -106,6 +113,7 @@ import { useAuthStore } from '@/stores/authStore.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import API from '@utils/api/index.js'
 import {paths}  from '@/plugins/router/paths.js'
+import GoogleLoginButton from '@/components/common/GoogleLoginButton.vue'
 
 // Router instance
 const router = useRouter()
@@ -383,5 +391,25 @@ const logout = async () => {
 // Verificar cookies al montar el componente
 checkCookies()
 </script>
+
+<style scoped>
+.google-divider {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0 0.5rem;
+  color: #888;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.google-divider::before,
+.google-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.15);
+  margin: 0 0.75rem;
+}
+</style>
 
 
