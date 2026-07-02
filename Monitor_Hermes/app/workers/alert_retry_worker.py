@@ -39,7 +39,7 @@ async def retry_pending_alerts():
 
                 try:
                     response = await atlas_client.post(
-                        "/api/v1/support/notification/alert/",
+                        "/api/v1/notifications/notifications/alert/",
                         json=alert_data,
                         timeout=10.0,
                     )

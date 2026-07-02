@@ -17,7 +17,6 @@ import os
 import environ
 from decouple import config
 
-
 # ============================================================================
 # BASE CONFIGURATION
 # ============================================================================
@@ -55,6 +54,7 @@ INSTALLED_APPS = [
     "infrastructure",
     "chirpstack",
     "support",
+    "notifications",
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
@@ -346,3 +346,10 @@ if HERMES_API_URL.startswith("https://") and ":5000" in HERMES_API_URL:
         "use http://...:5000 or a https URL without :5000 behind a reverse proxy. "
         f"Current value: {HERMES_API_URL}"
     )
+
+
+# ============================================================================
+# FIREBASE ADMIN SDK CONFIGURATION
+# ============================================================================
+
+FIREBASE_ADMIN_CREDENTIALS = env("FIREBASE_ADMIN_CREDENTIALS", default=None)

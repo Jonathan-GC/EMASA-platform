@@ -43,3 +43,4 @@ sqlparse==0.5.3
 typing_extensions==4.14.1
 uritemplate==4.2.0
 urllib3==2.5.0
+firebase-admin==7.4.0
