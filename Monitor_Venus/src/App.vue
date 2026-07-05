@@ -11,6 +11,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore.js'
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
+import API from '@/utils/api/api.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -56,6 +57,18 @@ function handleDeepLink(url) {
 onMounted(async () => {
   console.log('🚀 App montada - Inicializando autenticación...')
   authStore.initializeAuth()
+
+  // 🔐 Fetch CSRF token on app load (required by backend for POST/PUT/PATCH/DELETE)
+  // This ensures the csrftoken cookie is set before any component makes a request.
+  try {
+    console.log('🔐 Fetching CSRF token on app load...')
+    await API.get(API.CSRF_TOKEN)
+    console.log('✅ CSRF token obtained and stored in cookies')
+  } catch (error) {
+    console.error('❌ Failed to fetch CSRF token on app load:', error)
+    // Non-blocking: components like SignupForm / verification view have fallback
+    // CSRF fetching logic, so we don't crash the app if this initial fetch fails.
+  }
 
   // Listen for deep links on Android (when Capacitor.Browser finishes the
   // OAuth flow and redirects back to com.mtr.online://...). On iOS the

@@ -12,15 +12,40 @@ Email verification was failing for new users because the backend requires a CSRF
 ## Solution Implemented
 **Solution 3: Fetch CSRF Token Before Requests**
 
-We implemented proactive CSRF token fetching in both:
-1. Email verification view
-2. Signup form component
+We implemented proactive CSRF token fetching in:
+1. **App.vue** — Global fetch on app load (centralized, runs once for the whole app)
+2. Email verification view — Fallback safety net
+3. Signup form component — Fallback safety net
 
 ---
 
 ## Changes Made
 
-### 1. Verification View (`src/views/auth/verification/index.vue`)
+### 1. App.vue (`src/App.vue`) — Global fetch on app load
+
+**Added onMounted Hook:**
+```javascript
+// 🔐 Fetch CSRF token on app load (required by backend for POST/PUT/PATCH/DELETE)
+// This ensures the csrftoken cookie is set before any component makes a request.
+try {
+  console.log('🔐 Fetching CSRF token on app load...')
+  await API.get(API.CSRF_TOKEN)
+  console.log('✅ CSRF token obtained and stored in cookies')
+} catch (error) {
+  console.error('❌ Failed to fetch CSRF token on app load:', error)
+  // Non-blocking: components like SignupForm / verification view have fallback
+  // CSRF fetching logic, so we don't crash the app if this initial fetch fails.
+}
+```
+
+**Why this is the right place:**
+- `App.vue` is the root component and its `onMounted()` runs exactly once per app session.
+- Running it here means **every route** (login, signup, dashboard, verification, etc.) starts with a fresh CSRF token in cookies.
+- Non-blocking: if the fetch fails, the app still loads — the existing per-component fallback logic in `SignupForm` and the verification view will catch it on demand.
+
+---
+
+### 2. Verification View (`src/views/auth/verification/index.vue`)
 
 **Before:**
 ```javascript
@@ -64,7 +89,7 @@ onMounted(async () => {
 
 ---
 
-### 2. Signup Form (`src/components/forms/auth/SignupForm.vue`)
+### 3. Signup Form (`src/components/forms/auth/SignupForm.vue`)
 
 **Added onMounted Hook:**
 ```javascript
@@ -274,8 +299,9 @@ await API.get(API.CSRF_TOKEN)
 
 ## Related Files
 
-- **Verification View:** `src/views/auth/verification/index.vue`
-- **Signup Form:** `src/components/forms/auth/SignupForm.vue`
+- **App.vue:** `src/App.vue` — Global CSRF token fetch on app load (primary)
+- **Verification View:** `src/views/auth/verification/index.vue` — Per-page fallback
+- **Signup Form:** `src/components/forms/auth/SignupForm.vue` — Per-page fallback
 - **API Class:** `src/utils/api/api.js`
 - **CSRF Endpoint:** Defined in `API.CSRF_TOKEN = 'csrf/'`
 

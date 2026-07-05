@@ -1,8 +1,13 @@
 # pnpm 11+ reads workspace settings from this file.
 # exFAT (F: drive on this machine) does not support symlinks,
-# so we use the hoisted linker to behave like npm.
+# so we use npm-like hoisting and copy packages instead of linking/cloning.
 nodeLinker: hoisted
 shamefullyHoist: true
+packageImportMethod: copy
+preferSymlinkedExecutables: false
+storeDir: .pnpm-store
+virtualStoreDir: .pnpm
+childConcurrency: 1
 
 # Whitelist trusted postinstall scripts (pnpm 11 blocks them by default).
 # esbuild is required by Vite; core-js is used by many transitive deps.
@@ -11,5 +16,7 @@ onlyBuiltDependencies:
   - esbuild
 
 allowBuilds:
+  '@firebase/util': true
   core-js: true
   esbuild: true
+  protobufjs: true

@@ -39,6 +39,7 @@
     "chartjs-plugin-streaming": "^2.0.0",
     "chartjs-plugin-zoom": "^1.2.1",
     "date-fns": "^4.1.0",
+    "firebase": "^12.15.0",
     "flag-icons": "^7.5.0",
     "ionicons": "^8.0.9",
     "jspdf": "^4.0.0",
