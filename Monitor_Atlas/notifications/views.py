@@ -2,7 +2,12 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiParameter
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_view,
+    OpenApiExample,
+    OpenApiParameter,
+)
 from loguru import logger
 
 from .models import FCMDevice, Notification, NotificationSettings
@@ -26,15 +31,15 @@ _PARAM_USER_ID = OpenApiParameter(
 
 @extend_schema_view(
     list=extend_schema(
-        description="List user's registered FCM devices",
+        description="List FCM Devices",
         parameters=[_PARAM_USER_ID],
     ),
-    create=extend_schema(description="Register a new FCM device"),
-    retrieve=extend_schema(description="Retrieve an FCM device"),
-    partial_update=extend_schema(description="Partial update of an FCM device"),
-    destroy=extend_schema(description="Unregister an FCM device"),
+    create=extend_schema(description="Create FCM Device"),
+    retrieve=extend_schema(description="Retrieve FCM Device"),
+    partial_update=extend_schema(description="Patch FCM Device"),
+    destroy=extend_schema(description="Unregister FCM Device"),
     register=extend_schema(
-        description="Register an FCM device token for the current user",
+        description="Register FCM Device",
         examples=[
             OpenApiExample(
                 "Register device",
@@ -44,7 +49,7 @@ _PARAM_USER_ID = OpenApiParameter(
         ],
     ),
     unregister=extend_schema(
-        description="Unregister (deactivate) an FCM device token",
+        description="Unregister (deactivate) FCM Device",
     ),
 )
 class FCMDeviceViewSet(viewsets.ModelViewSet):
@@ -90,14 +95,16 @@ class FCMDeviceViewSet(viewsets.ModelViewSet):
 
 @extend_schema_view(
     list=extend_schema(
-        description="Get current user's notification settings",
+        description="List notification settings",
         parameters=[_PARAM_USER_ID],
     ),
     partial_update=extend_schema(description="Update notification settings"),
 )
-class NotificationSettingsViewSet(viewsets.mixins.ListModelMixin,
-                                  viewsets.mixins.UpdateModelMixin,
-                                  viewsets.GenericViewSet):
+class NotificationSettingsViewSet(
+    viewsets.mixins.ListModelMixin,
+    viewsets.mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
     serializer_class = NotificationSettingsSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
@@ -116,6 +123,7 @@ class NotificationSettingsViewSet(viewsets.mixins.ListModelMixin,
             if user_id:
                 from django.shortcuts import get_object_or_404
                 from users.models import User
+
                 target_user = get_object_or_404(User, id=user_id)
                 obj, _created = NotificationSettings.objects.get_or_create(
                     user=target_user,
@@ -156,14 +164,14 @@ class NotificationSettingsViewSet(viewsets.mixins.ListModelMixin,
         description="List user's notifications",
         parameters=[_PARAM_USER_ID],
     ),
-    retrieve=extend_schema(description="Retrieve a notification"),
-    partial_update=extend_schema(description="Partial update of a notification"),
+    retrieve=extend_schema(description="Retrieve notification"),
+    partial_update=extend_schema(description="Patch notification"),
     destroy=extend_schema(description="Delete a notification"),
     my_notifications=extend_schema(
-        description="Get user's notifications",
+        description="My notifications",
         parameters=[_PARAM_USER_ID],
     ),
-    mark_as_read=extend_schema(description="Mark notification as read"),
+    mark_as_read=extend_schema(description="Mark as read"),
     alert=extend_schema(
         description="Alert endpoint for external services (Hermes)",
         examples=[
@@ -238,7 +246,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
         if not results["notified"]:
             return Response(
-                {"status": "alert_processed", "notified": 0, "skipped": results["skipped"]},
+                {
+                    "status": "alert_processed",
+                    "notified": 0,
+                    "skipped": results["skipped"],
+                },
                 status=200,
             )
 

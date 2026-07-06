@@ -255,9 +255,9 @@ REFRESH_COOKIE_PATH = env("REFRESH_COOKIE_PATH", default="/")
 # ============================================================================
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Monitor Atlas API V1.1",
+    "TITLE": "Monitor Atlas API V1.2",
     "DESCRIPTION": "API para la plataforma de monitorización Monitor Atlas - Powered by Weedo",
-    "VERSION": "1.1.0",
+    "VERSION": "1.2.0",
     "SCHEMA_PATH_PREFIX": "/api/v1/",
 }
 
