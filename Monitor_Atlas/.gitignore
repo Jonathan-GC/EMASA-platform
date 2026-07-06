@@ -185,3 +185,4 @@ cython_debug/
 
 .vscode
 monitor-platform-*.json
+._*
