@@ -16,9 +16,9 @@ export function useVoltageDataProcessor() {
   ]
 
   return useMeasurementDataProcessor({
-    measurementType: 'voltage',
+    ref: 'voltage',
     chartColors,
-    chartLabel: 'Voltaje',
+    label: 'Voltaje',
     unit: 'V'
   })
 }

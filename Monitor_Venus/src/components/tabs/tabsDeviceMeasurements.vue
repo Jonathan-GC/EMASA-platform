@@ -42,7 +42,7 @@
                 <ion-back-button default-href="/home"></ion-back-button>
                 <h1>
                   <ion-icon :icon="icons[measurement.icon] || icons.analytics" size="large"></ion-icon>
-                  {{ capitalizeFirst(measurement.unit) }}</h1>
+                  {{ capitalizeFirst(measurement.label) }}</h1>
               </div>
               <div class="header-subtitle connection-status">
                 <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
@@ -57,7 +57,7 @@
               <ion-card-header>
                 <div class="card-header-content">
                   <div class="card-title-section">
-                    <ion-card-title>Configuración - {{ capitalizeFirst(measurement.unit) }}</ion-card-title>
+                    <ion-card-title>Configuración - {{ capitalizeFirst(measurement.ref) }}</ion-card-title>
                     <ion-badge 
                       :color="getThresholdStatus(measurement)" 
                       class="status-badge"
@@ -722,7 +722,56 @@ const props = defineProps({
   powerFactorMessages: {
     type: Array,
     default: () => []
+  },
+  realPowerChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  realPowerLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  realPowerMessages: {
+    type: Array,
+    default: () => []
+  },
+  reactivePowerChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  reactivePowerLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  reactivePowerMessages: {
+    type: Array,
+    default: () => []
+  },
+  apparentPowerChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  apparentPowerLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  apparentPowerMessages: {
+    type: Array,
+    default: () => []
+  },
+  frequencyChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  frequencyLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  frequencyMessages: {  
+    type: Array,
+    default: () => []
   }
+
 })
 
 // Inject icons
@@ -968,25 +1017,18 @@ const getMeasurementChartData = (measurementUnit) => {
   // You can extend this mapping as needed
   const chartDataMap = {
     'voltage': props.chartDataFragments || [],
-    'voltaje': props.chartDataFragments || [],
     'current': props.currentChartDataFragments || [],
-    'corriente': props.currentChartDataFragments || [],
     'battery': props.batteryChartDataFragments || [],
-    'batería': props.batteryChartDataFragments || [],
-    'bateria': props.batteryChartDataFragments || [],
-    // Additional measurement types
     'power': props.powerChartDataFragments || [],
-    'potencia': props.powerChartDataFragments || [],
     'energy': props.energyChartDataFragments || [],
-    'energía': props.energyChartDataFragments || [],
     'pressure': props.pressureChartDataFragments || [],
-    'presión': props.pressureChartDataFragments || [],
     'humidity': props.humidityChartDataFragments || [],
-    'humedad': props.humidityChartDataFragments || [],
     'luminosity': props.luminosityChartDataFragments || [],
-    'luminosidad': props.luminosityChartDataFragments || [],
     'power_factor': props.powerFactorChartDataFragments || [],
-    'factor de potencia': props.powerFactorChartDataFragments || [],
+    'real_power': props.RealPowerChartDataFragments || [],
+    'reactive_power': props.ReactivePowerChartDataFragments || [],
+    'apparent_power': props.ApparentPowerChartDataFragments || [],
+    'frequency': props.frequencyChartDataFragments || [],
   }
   
   // Return matching chart data or empty array for new measurement types
@@ -1001,25 +1043,18 @@ const getMeasurementLatestDataPoints = (measurementUnit) => {
   
   const latestDataMap = {
     'voltage': props.latestDataPoints || {},
-    'voltaje': props.latestDataPoints || {},
     'current': props.currentLatestDataPoints || {},
-    'corriente': props.currentLatestDataPoints || {},
     'battery': props.batteryLatestDataPoints || {},
-    'batería': props.batteryLatestDataPoints || {},
-    'bateria': props.batteryLatestDataPoints || {},
-    // Additional measurement types
     'power': props.powerLatestDataPoints || {},
-    'potencia': props.powerLatestDataPoints || {},
     'energy': props.energyLatestDataPoints || {},
-    'energía': props.energyLatestDataPoints || {},
     'pressure': props.pressureLatestDataPoints || {},
-    'presión': props.pressureLatestDataPoints || {},
     'humidity': props.humidityLatestDataPoints || {},
-    'humedad': props.humidityLatestDataPoints || {},
     'luminosity': props.luminosityLatestDataPoints || {},
-    'luminosidad': props.luminosityLatestDataPoints || {},
     'power_factor': props.powerFactorLatestDataPoints || {},
-    'factor de potencia': props.powerFactorLatestDataPoints || {},
+    'real_power': props.RealPowerLatestDataPoints || {},
+    'reactive_power': props.ReactivePowerLatestDataPoints || {},
+    'apparent_power': props.ApparentPowerLatestDataPoints || {},
+    'frequency': props.frequencyLatestDataPoints || {},
   }
   
   return latestDataMap[unitLower] || {}
@@ -1033,25 +1068,18 @@ const getMeasurementRecentMessages = (measurementUnit) => {
   
   const messagesMap = {
     'voltage': props.recentMessages || [],
-    'voltaje': props.recentMessages || [],
     'current': props.currentMessages || [],
-    'corriente': props.currentMessages || [],
     'battery': props.batteryMessages || [],
-    'batería': props.batteryMessages || [],
-    'bateria': props.batteryMessages || [],
-    // Additional measurement types
     'power': props.powerMessages || [],
-    'potencia': props.powerMessages || [],
     'energy': props.energyMessages || [],
-    'energía': props.energyMessages || [],
     'pressure': props.pressureMessages || [],
-    'presión': props.pressureMessages || [],
     'humidity': props.humidityMessages || [],
-    'humedad': props.humidityMessages || [],
     'luminosity': props.luminosityMessages || [],
-    'luminosidad': props.luminosityMessages || [],
     'power_factor': props.powerFactorMessages || [],
-    'factor de potencia': props.powerFactorMessages || [],
+    'real_power': props.RealPowerMessages || [],
+    'reactive_power': props.ReactivePowerMessages || [],
+    'apparent_power': props.ApparentPowerMessages || [],
+    'frequency': props.frequencyMessages || [],
   }
   
   return messagesMap[unitLower] || props.measurementMessages[unitLower] || []
@@ -1138,17 +1166,13 @@ const initializeDefaultSelections = () => {
   
   // Auto-select first two measurements if nothing selected
   if (!selectedMeasurement1.value && !selectedMeasurement2.value) {
-    // Try to find voltage and temperature first
-    const voltage = measurements.value.find(m => 
-      m.unit?.toLowerCase() === 'voltage' || m.unit?.toLowerCase() === 'voltaje'
-    )
-    const temperature = measurements.value.find(m => 
-      m.unit?.toLowerCase() === 'temperature' || m.unit?.toLowerCase() === 'temperatura'
-    )
-    
-    if (voltage && temperature) {
+    // Try to find voltage and battery first (most common pair to compare)
+    const voltage = measurements.value.find(m => m.unit?.toLowerCase() === 'voltage')
+    const battery = measurements.value.find(m => m.unit?.toLowerCase() === 'battery')
+
+    if (voltage && battery) {
       selectedMeasurement1.value = voltage.unit.toLowerCase()
-      selectedMeasurement2.value = temperature.unit.toLowerCase()
+      selectedMeasurement2.value = battery.unit.toLowerCase()
     } else {
       // Just use the first two available
       selectedMeasurement1.value = measurements.value[0].unit?.toLowerCase() || ''

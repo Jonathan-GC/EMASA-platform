@@ -387,7 +387,7 @@ async function createItem() {
       } else {
         // Use JSON if no files
         console.log('📄 Using JSON payload (no files)');
-        payload = { ...formValues.value } as any;
+        payload = { ...formValues.value, ...additionalData.value } as any;
         // Convert dev_eui to lowercase
         if (payload.dev_eui && typeof payload.dev_eui === 'string') {
           payload.dev_eui = payload.dev_eui.toLowerCase();

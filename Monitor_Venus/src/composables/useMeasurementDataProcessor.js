@@ -7,7 +7,7 @@ import { ref, shallowRef, toRaw, computed } from 'vue'
  * @param {string} config.measurementType - Type of measurement (e.g., 'voltage', 'current', 'battery')
  * @param {Array} config.chartColors - Array of colors for chart channels
  * @param {Function} config.specialProcessing - Optional function for custom processing
- * @param {string} config.chartLabel - Label prefix for chart datasets
+ * @param {string} config.label - Label prefix for chart datasets
  * @param {string} config.unit - Unit of measurement (e.g., 'V', 'A', '%')
  */
 export function useMeasurementDataProcessor(config) {
@@ -23,7 +23,7 @@ export function useMeasurementDataProcessor(config) {
             'rgba(14, 165, 233, 1)'
         ],
         specialProcessing = null,
-        chartLabel = null,
+        label = null,
         unit = ''
     } = config
 
@@ -279,7 +279,7 @@ export function useMeasurementDataProcessor(config) {
 
         // Build fragments using accumulated data
         const fragments = []
-        const label = chartLabel || measurementType.charAt(0).toUpperCase() + measurementType.slice(1)
+        const label = label || measurementType.charAt(0).toUpperCase() + measurementType.slice(1)
         
         for (let i = 1; i <= Math.max(1, maxChannelIndex.value); i++) {
             const matchKey = accumulatedKeys.find(k => getChannelIndex(k) === i) || null
