@@ -53,6 +53,22 @@
           :power-factor-chart-data-fragments="powerFactorChartDataFragments"
           :power-factor-latest-data-points="powerFactorLatestDataPoints"
           :power-factor-messages="powerFactorMessages"
+
+          :real-power-chart-data-fragments="realPowerChartDataFragments"
+          :real-power-latest-data-points="realPowerLatestDataPoints"
+          :real-power-messages="realPowerMessages"
+
+          :apparent-power-chart-data-fragments="apparentPowerChartDataFragments"
+          :apparent-power-latest-data-points="apparentPowerLatestDataPoints"
+          :apparent-power-messages="apparentPowerMessages"
+
+          :reactive-power-chart-data-fragments="reactivePowerChartDataFragments"
+          :reactive-power-latest-data-points="reactivePowerLatestDataPoints"
+          :reactive-power-messages="reactivePowerMessages"
+
+          :frequency-chart-data-fragments="frequencyChartDataFragments"
+          :frequency-latest-data-points="frequencyLatestDataPoints"
+          :frequency-messages="frequencyMessages"
         />
       </div>
 
@@ -198,6 +214,58 @@ const {
   unit: ''
 })
 
+const {
+  chartDataFragments: realPowerChartDataFragments,
+  latestDataPoints: realPowerLatestDataPoints,
+  lastDevice: realPowerDevice,
+  recentMessages: realPowerMessages,
+  chartKey: realPowerChartKey,
+  processIncomingData: processRealPowerData
+} = useMeasurementDataProcessor({
+  measurementType: 'real_power',
+  chartLabel: 'Potencia Real',
+  unit: 'W'
+})  
+
+const {
+  chartDataFragments: apparentPowerChartDataFragments,
+  latestDataPoints: apparentPowerLatestDataPoints,
+  lastDevice: apparentPowerDevice,
+  recentMessages: apparentPowerMessages,
+  chartKey: apparentPowerChartKey,
+  processIncomingData: processApparentPowerData
+} = useMeasurementDataProcessor({
+  measurementType: 'apparent_power',
+  chartLabel: 'Potencia Aparente',
+  unit: 'VA'
+})
+
+const {
+  chartDataFragments: reactivePowerChartDataFragments,
+  latestDataPoints: reactivePowerLatestDataPoints,
+  lastDevice: reactivePowerDevice,
+  recentMessages: reactivePowerMessages,
+  chartKey: reactivePowerChartKey,
+  processIncomingData: processReactivePowerData
+} = useMeasurementDataProcessor({
+  measurementType: 'reactive_power',
+  chartLabel: 'Potencia Reactiva',
+  unit: 'VAr'
+})
+
+const {
+  chartDataFragments: frequencyChartDataFragments,
+  latestDataPoints: frequencyLatestDataPoints,
+  lastDevice: frequencyDevice,
+  recentMessages: frequencyMessages,
+  chartKey: frequencyChartKey,
+  processIncomingData: processFrequencyData
+} = useMeasurementDataProcessor({
+  measurementType: 'frequency',
+  chartLabel: 'Frecuencia',
+  unit: 'Hz'
+})
+
 // Map of active measurement processors
 const measurementProcessors = new Map()
 
@@ -240,17 +308,36 @@ measurementProcessors.set('power_factor', {
   processor: { processIncomingData: processPowerFactorData, recentMessages: powerFactorMessages }, 
   device: powerFactorDevice 
 })
+measurementProcessors.set('real_power', { 
+  processor: { processIncomingData: processRealPowerData, recentMessages: realPowerMessages }, 
+  device: realPowerDevice 
+})
+measurementProcessors.set('apparent_power', { 
+  processor: { processIncomingData: processApparentPowerData, recentMessages: apparentPowerMessages }, 
+  device: apparentPowerDevice 
+})
+measurementProcessors.set('reactive_power', { 
+  processor: { processIncomingData: processReactivePowerData, recentMessages: reactivePowerMessages }, 
+  device: reactivePowerDevice 
+})
+measurementProcessors.set('frequency', { 
+  processor: { processIncomingData: processFrequencyData, recentMessages: frequencyMessages }, 
+  device: frequencyDevice 
+})
 
 // Function to create and register custom measurement processor
 const registerMeasurementProcessor = (measurementType, config = {}) => {
+  // Avoid overwriting existing processors (e.g., defaults like voltage, current)
   if (measurementProcessors.has(measurementType)) {
     console.log(`⚠️ Processor for ${measurementType} already exists, skipping registration`)
     return measurementProcessors.get(measurementType)
   }
 
+  // Fallback label: use provided label, otherwise a title‑cased version of the type
+  const fallbackLabel = measurementType.charAt(0).toUpperCase() + measurementType.slice(1)
   const processor = useMeasurementDataProcessor({
     measurementType,
-    chartLabel: config.chartLabel || measurementType.charAt(0).toUpperCase() + measurementType.slice(1),
+    chartLabel: config.label || fallbackLabel,
     unit: config.unit || '',
     chartColors: config.chartColors,
     specialProcessing: config.specialProcessing
@@ -315,23 +402,28 @@ const fetchAndRegisterMeasurements = async () => {
     measurements.value = Array.isArray(response) ? response : [response]
     
     measurements.value.forEach(m => {
-      const type = m.unit?.toLowerCase()
+      const type = m.ref?.toLowerCase()
       const excludedTypes = [
-        'voltage', 'voltaje', 
-        'current', 'corriente', 
-        'battery', 'batería', 'bateria',
-        'power', 'potencia',
-        'energy', 'energía',
-        'pressure', 'presión',
-        'humidity', 'humedad',
-        'luminosity', 'luminosidad',
-        'power_factor', 'factor de potencia'
+        'voltage', 
+        'current', 
+        'battery',
+        'power',
+        'energy',
+        'pressure',
+        'humidity',
+        'luminosity',
+        'power_factor',
+        'real_power',
+        'apparent_power',
+        'reactive_power',
+        'frequency',
       ]
       
       if (type && !excludedTypes.includes(type)) {
         registerMeasurementProcessor(type, {
-          unit: m.ref,
-          chartLabel: m.unit,
+          unit: m.unit,
+          charLlabel: m.ref,
+          //ref: m.ref,
           icon: m.icon
         })
       }

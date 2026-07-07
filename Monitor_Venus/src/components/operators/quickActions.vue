@@ -20,7 +20,7 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
+          <component :is="ComponentToRender.component" :key="`create-${type}-${modalKey}`" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
         </div>
       </ion-content>
     </ion-modal>
@@ -52,7 +52,7 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true" @closed="overlayEdit = false"/>
+          <component :is="ComponentToRender.component" :key="`edit-${type}-${index}-${modalKey}`" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true" @closed="overlayEdit = false"/>
         </div>
       </ion-content>
     </ion-modal>
@@ -71,7 +71,7 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemToggled="handleItemToggled" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
+          <component :is="ComponentToRender.component" :key="`toggle-${type}-${index}-${modalKey}`" v-bind="ComponentToRender.props" @itemToggled="handleItemToggled" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
         </div>
       </ion-content>
     </ion-modal>
@@ -90,7 +90,7 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemDeleted="handleItemDeleted" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
+          <component :is="ComponentToRender.component" :key="`delete-${type}-${index}-${modalKey}`" v-bind="ComponentToRender.props" @itemDeleted="handleItemDeleted" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
         </div>
       </ion-content>
     </ion-modal>
@@ -240,13 +240,22 @@ export default defineComponent({
   watch : {
     // Watch for changes in the selectedAction to load the component
     overlayCreate(newVal) {
-      if (newVal) this.componentLoaded = false;
+      if (newVal) {
+        this.componentLoaded = false;
+        this.modalKey++;
+      }
     },
     overlayEdit(newVal) {
-      if (newVal) this.componentLoaded = false;
+      if (newVal) {
+        this.componentLoaded = false;
+        this.modalKey++;
+      }
     },
     overlayDelete(newVal) {
-      if (newVal) this.componentLoaded = false;
+      if (newVal) {
+        this.componentLoaded = false;
+        this.modalKey++;
+      }
     }
   },
   data() {
@@ -263,6 +272,11 @@ export default defineComponent({
       selectedAction: '' as ActionType,
 
       componentLoaded: false,
+      // Increments every time the edit/create modal is opened, used as part
+      // of the dynamic component :key to force a fresh instance and avoid
+      // stale state (e.g. additionalData, formValues) leaking from a previous
+      // open of the same form.
+      modalKey: 0,
 
     };
   },

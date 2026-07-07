@@ -14,6 +14,14 @@
   "plugins": {
     "CapacitorHttp": {
       "enabled": true
+    },
+    "App": {
+      "handlerUrl": "com.mtr.online://auth/google/callback"
+    },
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "YOUR_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
     }
   }
 }

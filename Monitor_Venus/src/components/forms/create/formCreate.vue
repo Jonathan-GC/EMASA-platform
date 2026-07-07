@@ -349,21 +349,26 @@ async function createItem() {
 
       let payload;
       if (hasImageFiles) {
-        // Use FormData if there are image files
-        console.log('📦 Using FormData for file upload');
+        // Use FormData if there are image files – also merge additionalData (unit, etc.)
+        console.log('📦 Using FormData for file upload – merging additionalData');
+        console.log('🔧 formValues before merge:', formValues.value);
+        console.log('🔧 additionalData:', additionalData.value);
         const formData = new FormData();
-        
-        // Add all form values
+        // Add explicit form fields
         Object.keys(formValues.value).forEach(key => {
           if (!key.endsWith('_file') && formValues.value[key] !== null && formValues.value[key] !== undefined) {
-            // Convert dev_eui to lowercase
             const value = key === 'dev_eui' && typeof formValues.value[key] === 'string' 
               ? formValues.value[key].toLowerCase() 
               : formValues.value[key];
             formData.append(key, value);
           }
         });
-        
+        // Merge hidden data (unit, etc.)
+        Object.entries(additionalData.value).forEach(([k, v]) => {
+          if (v !== null && v !== undefined) {
+            formData.append(k, v);
+          }
+        });
         // Add image files
         Object.keys(imageUploadRefs.value).forEach(key => {
           const fileInfo = imageUploadRefs.value[key]?.getFileInfo();
@@ -371,12 +376,15 @@ async function createItem() {
             formData.append(key, fileInfo.file);
           }
         });
-        
         payload = formData;
+        console.log('🔧 final FormData payload:', payload);
       } else {
-        // Use JSON if no files
-        console.log('📄 Using JSON payload (no files)');
-        payload = { ...formValues.value } as any;
+        // Use JSON if no files; merge additionalData (unit, etc.)
+        console.log('📄 Using JSON payload (no files) – merging additionalData');
+        console.log('🔧 formValues before merge:', formValues.value);
+        console.log('🔧 additionalData:', additionalData.value);
+        payload = { ...formValues.value, ...additionalData.value } as any;
+        console.log('🔧 final payload:', payload);
         // Convert dev_eui to lowercase
         if (payload.dev_eui && typeof payload.dev_eui === 'string') {
           payload.dev_eui = payload.dev_eui.toLowerCase();

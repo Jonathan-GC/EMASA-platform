@@ -242,6 +242,12 @@ export const routes = [
                 beforeEnter: allowAll,
                 meta: { public: true, guest: true }
             },
+            {
+                path: P.GOOGLE_AUTH,
+                component: C.GOOGLE_AUTH,
+                beforeEnter: allowAll,
+                meta: { public: true, guest: true }
+            },
             /*{ 
                 path: P.SIGNUP, 
                 component: C.REGISTER,

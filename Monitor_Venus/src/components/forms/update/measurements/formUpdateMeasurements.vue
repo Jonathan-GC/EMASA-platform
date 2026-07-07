@@ -11,6 +11,7 @@
           :reqIndex="false"
           @itemEdited="handleItemEdited"
           @closed="emit('closed')"
+          @fieldChanged="onFieldChanged"
       />
     </ion-content>
   </ion-page>
@@ -19,102 +20,78 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonSpinner,
-} from '@ionic/vue';
+import { IonPage, IonContent } from '@ionic/vue';
 import API from '@utils/api/api';
-// Assuming the previous component is named this.
+import { MEASUREMENT_PROFILES } from '@/data/measurementProfiles.js';
 
 const props = defineProps({
-  label: {
-    type: String,
-    required: true,
-  },
-  fields: {
-    type: Array,
-    default: () => [],
-  },
-  type: {
-    type: String,
-    required: true,
-  },
-  index: {
-    type: Number,
-  }, 
-  initialData: {
-    type: Object,
-    default: () => ({}),
-  } 
+  label: { type: String, required: true },
+  fields: { type: Array, default: () => [] },
+  type:  { type: String, required: true },
+  index: { type: Number },
+  initialData: { type: Object, default: () => ({}) },
 });
 
-const emit = defineEmits(['itemCreated', 'loaded', 'closed']);
+const emit = defineEmits(['itemEdited', 'loaded', 'closed']);
 
-// Get route to access deviceId from params
 const route = useRoute();
+const additionalData = ref<Record<string, any>>({});
+const formFields = ref([...props.fields]);
+const deviceId = computed(() => route.params.device_id);
 
-const loaded = ref(false);
-const additionalData = ref({});
-const formFields = ref([...props.fields]); // Use a ref to make a copy of the fields prop
+const getRefField = () => formFields.value.find(f => f.key === 'ref');
 
-// Get deviceId from route params and set as additional data
-const deviceId = computed(() => route.params.deviceId || route.params.device_id);
-
-// Set device_id in additionalData for the form endpoint
-onMounted(() => {
-  if (deviceId.value) {
-    additionalData.value = {
-      ...additionalData.value,
-      device_id: deviceId.value
-    };
-    console.log('Device ID set for measurements:', deviceId.value);
+const populateMeasurementTypes = () => {
+  const refField = getRefField();
+  if (refField) {
+    refField.options = MEASUREMENT_PROFILES.map(p => ({
+      label: p.label,
+      value: p.value,
+    }));
   }
-});
-
-// Method to handle item creation success
-const handleItemEdited = () => {
-  emit('itemEdited');
 };
 
-// Method to fetch user types from the API
+const setDevice = () => {
+  additionalData.value = { ...additionalData.value, device: deviceId.value };
+};
+
+function onFieldChanged(key: string, value: any) {
+  if (key === 'ref') {
+    const profile = MEASUREMENT_PROFILES.find(p => p.value === value);
+    if (profile) {
+      additionalData.value = {
+        ...additionalData.value,
+        unit: profile.unit,
+        label: profile.label,
+      };
+    } else {
+      const { unit, label, ...rest } = additionalData.value;
+      additionalData.value = rest;
+    }
+  }
+}
+
 const fetchDevices = async () => {
   try {
     const devices = await API.get(API.DEVICE);
     const devicesField = formFields.value.find(f => f.key === 'device');
     if (devicesField) {
-      devicesField.options = devices.map((intType: string) => ({
-        label: intType.name,
-        value: intType.id,
+      devicesField.options = devices.map((d: any) => ({
+        label: d.name,
+        value: d.id,
       }));
     }
   } catch (error) {
-    console.error('Error fetching user types:', error);
+    console.error('Error fetching devices:', error);
   }
 };
 
+const handleItemEdited = () => emit('itemEdited');
 
-
-// Method to set additional data for the form
-const setDevice = () => {
-  additionalData.value = {
-    ...additionalData.value,
-    device: route.params.device_id
-  };
-  console.log("Additional Data Set:", additionalData.value);
-};
-
-// Run the data fetching and setup logic when the component is mounted
 onMounted(async () => {
-  //await fetchTypes();
-  //await fetchSex();
-  //setAffiliation();
   setDevice();
   await fetchDevices();
-  loaded.value = true;
+  populateMeasurementTypes();
   emit('loaded');
 });
 </script>

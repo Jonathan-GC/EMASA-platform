@@ -39,6 +39,9 @@ class API {
     REFRESH_TOKEN = 'token/refresh/'
     CSRF_TOKEN = 'csrf/'
     LOGOUT = 'logout/';
+    GOOGLE_LOGIN_URL = 'users/auth/google/url/';
+    GOOGLE_CALLBACK = 'users/auth/google/callback/';
+    GOOGLE_LINK = 'users/auth/google/link/';
     REGISTER = 'users/auth/register/';
     VERIFY_ACCOUNT = 'users/auth/verify-account/'
     RESEND_VERIFICATION = 'users/auth/re-send-verification/'
