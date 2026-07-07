@@ -31,10 +31,13 @@ jobs:
       - name: Copy files to server
         run: |
           rsync -avz --delete \
+          --exclude 'monitor-platform-*.json' \
           --exclude '.env.prod' \
           --exclude '**/.env.prod' \
           --exclude '**/*.pem' \
           --exclude '**/*.crt' \
+          --exclude '.env.db.prod' \
+          --exclude 'media' \
           -e "ssh -o StrictHostKeyChecking=no" \
           ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.PROJECT_PATH }}
 
@@ -45,5 +48,5 @@ jobs:
             git pull origin main
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up --build -d
+            docker compose -f docker-compose.prod.yml --env-file ./.env.prod up --build -d
           EOF

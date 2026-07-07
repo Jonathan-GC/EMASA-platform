@@ -7,10 +7,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy-frontend:
+
+  deploy-backend-atlas:
     uses: ./.github/workflows/deploy_component.yml
     with:
-      component-path: 'frontend'
+      component-path: 'Monitor_Atlas'
+    secrets: inherit
+
+  deploy-backend-hermes:
+    uses: ./.github/workflows/deploy_component.yml
+    with:
+      component-path: 'Monitor_Hermes'
+    secrets: inherit
+    
+  deploy-venus:
+    uses: ./.github/workflows/deploy_component.yml
+    with:
+      component-path: 'Monitor_Venus'
     secrets: inherit
 
   cleanup-volumes:
