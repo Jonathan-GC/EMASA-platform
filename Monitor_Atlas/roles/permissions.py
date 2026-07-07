@@ -229,19 +229,29 @@ class IsAdminOrIsAuthenticatedReadOnly(BasePermission):
         return request.method in SAFE_METHODS
 
 
-# Support permissions can be added here in the future
+class IsOwnerOrAdmin(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.user and (request.user.is_staff or request.user.is_superuser):
+            return True
+        return obj.user == request.user
 
 
 class IsServiceOrHasPermission(BasePermission):
+    @staticmethod
+    def _get_service_api_key(request):
+        return request.headers.get("X-API-Key") or request.headers.get(
+            "X-Service-API-Key"
+        )
+
     def has_permission(self, request, view):
-        api_key = request.headers.get("X-API-Key")
+        api_key = self._get_service_api_key(request)
         if api_key and api_key == settings.SERVICE_API_KEY:
             return True
         has_perm_checker = HasPermission()
         return has_perm_checker.has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
-        api_key = request.headers.get("X-Service-API-Key")
+        api_key = self._get_service_api_key(request)
         if api_key and api_key == settings.SERVICE_API_KEY:
             return True
         has_perm_checker = HasPermission()

@@ -24,6 +24,7 @@ examples
 *.njsproj
 *.sln
 *.sw?
+._*
 .env
 components.d.ts
 **/certs/
