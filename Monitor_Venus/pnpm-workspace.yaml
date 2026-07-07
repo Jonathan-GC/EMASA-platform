@@ -12,8 +12,10 @@ childConcurrency: 1
 # Whitelist trusted postinstall scripts (pnpm 11 blocks them by default).
 # esbuild is required by Vite; core-js is used by many transitive deps.
 onlyBuiltDependencies:
+  - "@firebase/util"
   - core-js
   - esbuild
+  - protobufjs
 
 allowBuilds:
   '@firebase/util': true
