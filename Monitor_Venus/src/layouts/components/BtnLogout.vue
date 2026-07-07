@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, inject } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore.js'
 import API from '@/utils/api/api.js'
 
 // Router instance
 const router = useRouter()
+
+// Auth store
+const authStore = useAuthStore()
 
 // Icons from plugin
 const icons = inject('icons', {})
@@ -19,29 +23,31 @@ const handleLogout = async () => {
   try {
     console.log('🚪 Iniciando proceso de logout...')
 
-    // 1. Clear all tokens from API instance FIRST (immediate)
+    // 1. Make logout request to backend first (optional, can be fire and forget)
+    API.post(API.LOGOUT).catch(error => {
+      console.warn('⚠️ Error en logout request:', error.message)
+    })
+
+    // 2. Clear auth store (this clears sessionStorage and cookies)
+    authStore.logout()
+
+    // 3. Clear all tokens from API instance
     API.clearAllTokens()
 
-    // 2. Clear additional cookies manually (immediate)
-    document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
-    document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
-    document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
-    document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    console.log('🧹 Sesión cerrada, redirigiendo...')
 
-    console.log('🧹 Tokens y cookies eliminados')
-
-    // 3. Redirect immediately (don't wait for backend)
+    // 4. Force full page reload to reset everything
+    // This ensures:
+    // - All Vue components are destroyed and recreated
+    // - All stores are reset to initial state
+    // - Router is completely reinitialized
+    // - No stale data remains in memory
     router.push('/home')
-    console.log('🏠 Redirigido a /home')
-
-    // 4. Make logout request to backend (non-blocking, fire and forget)
-    API.post(API.LOGOUT).catch(error => {
-      console.warn('⚠️ Error en logout request (ya redirigido):', error.message)
-    })
 
   } catch (error) {
     console.error('❌ Error durante logout:', error)
-    // Even if there's an error, clear tokens and redirect
+    // Even if there's an error, clear everything and reload
+    authStore.logout()
     API.clearAllTokens()
     router.push('/home')
   } finally {

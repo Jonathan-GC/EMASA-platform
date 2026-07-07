@@ -3,54 +3,108 @@ import { AbstractFormFactory } from "../abstractFormsFactory.js";
 import { defineAsyncComponent } from "vue";
 import { EntityTypes } from '../form-types/formsTypes.js';
 
-/*const DeleteComponent = defineAsyncComponent(() => import("@/components/forms/delete/formDeleteGeneral.vue"));
-*/
+const DeleteComponent = defineAsyncComponent(() => import("@/components/forms/delete/formDelete.vue"));
+
 export class DeleteFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
     const componentMap = {
-      period: {
+      tenant: {
         component: DeleteComponent,
         props: {
-          name: extraProps.name,
+          name: extraProps?.name,
           type: type,
-          label: "periodo",
-          index: extraProps.index,
+          label: "cliente",
+          index: extraProps?.index,
         }
       },
-      group: {
+      workspace: {
         component: DeleteComponent,
         props: {
-          name: extraProps.name,
+          name: extraProps?.name,
           type: type,
-          label: "grupo",
-          index: extraProps.index,
+          label: "workspace",
+          index: extraProps?.index,
         }
       },
-      seedbed: {
+      location: {
         component: DeleteComponent,
         props: {
-          name: extraProps.name,
+          name: extraProps?.name,
           type: type,
-          label: "semillero",
-          index: extraProps.index,
+          label: "ubicación",
+          index: extraProps?.index,
         }
       },
-      group_profile: {
+      gateway: {
         component: DeleteComponent,
         props: {
-          name: extraProps.name,
+          name: extraProps?.name,
           type: type,
-          label: "perfil de grupo",
-          index: extraProps.index,
+          label: "gateway",
+          index: extraProps?.index,
         }
       },
-      seedbed_profile: {
+      device_profile: {
         component: DeleteComponent,
         props: {
-          name: extraProps.name,
+          name: extraProps?.name,
           type: type,
-          label: "perfil de semillero",
-          index: extraProps.index,
+          label: "perfil de dispositivo",
+          index: extraProps?.index,
+        }
+      },
+      application: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "servicio",
+          index: extraProps?.index,
+        }
+      },
+      device: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "dispositivo",
+          index: extraProps?.index,
+        }
+      },
+      device_type: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name, 
+          type: type,
+          label: "tipo de dispositivo",
+          index: extraProps?.index,
+        }
+      },
+      machine: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "máquina",
+          index: extraProps?.index,
+        }
+      },
+      role: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "rol",
+          index: extraProps?.index,
+        }
+      },
+      measurement: {
+        component: DeleteComponent,
+        props: {
+          name: extraProps?.name,
+          type: type,
+          label: "variable",
+          index: extraProps?.index,
         }
       },
     };

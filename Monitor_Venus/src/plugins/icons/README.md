@@ -1,25 +1,17 @@
-# 🎨 Sistema de Iconos Modular
+# 🎨 Consolidated Icon System
 
-Un sistema de iconos escalable y modular para el proyecto EMASA Platform Frontend.
-
-## 📁 Estructura
+A unified and scalable icon system for the EMASA Platform Frontend project.
 
 ```
 src/plugins/icons/
-├── index.js                 # Plugin principal y exportaciones
-├── navigationIcons.js       # Iconos de navegación
-├── actionIcons.js          # Iconos de acciones
-├── statusIcons.js          # Iconos de estado e información
-├── hardwareIcons.js        # Iconos de hardware y tecnología
-├── locationIcons.js        # Iconos de ubicación y mapas
-├── uiIcons.js              # Iconos de interfaz de usuario
-├── dataIcons.js            # Iconos de datos y archivos
-└── communicationIcons.js   # Iconos de comunicación y social
+├── index.js          # Main plugin and exports
+├── icons.js          # Consolidated file with all icons
+└── README.md         # This documentation
 ```
 
-## 🚀 Instalación
+## 🚀 Installation
 
-### 1. Instalar el plugin (main.js)
+### 1. Install the plugin (main.js)
 ```javascript
 import { createApp } from 'vue'
 import App from './App.vue'
@@ -27,100 +19,73 @@ import IconsPlugin from '@plugins/icons'
 
 const app = createApp(App)
 
-// Instalar con configuración por defecto
+// Install with default configuration
 app.use(IconsPlugin)
-
-// O con configuración personalizada
-app.use(IconsPlugin, {
-  prefix: '$icon',        // Prefijo para propiedades globales
-  globalProperty: true,   // Habilitar propiedades globales
-  provide: true          // Habilitar provide/inject
-})
 
 app.mount('#app')
 ```
 
-## 📖 Uso
+## 📖 Usage
 
-### 1. Usando el Composable (Recomendado)
+### 1. Using Global Properties (Recommended)
 ```vue
 <script setup>
-import { useCommonIcons } from '@composables/useCommonIcons'
-
-const icons = useCommonIcons()
+// Icons are available globally
 </script>
 
 <template>
-  <ion-icon :icon="icons.chevronUp" />
+  <ion-icon :icon="icons.eye" />
   <ion-icon :icon="icons.refresh" />
   <ion-icon :icon="icons.location" />
 </template>
 ```
 
-### 2. Usando el Composable Avanzado
+### 2. Using the getIcon Helper
 ```vue
 <script setup>
-import { useIcons } from '@composables/useIcons'
-
-const { getIcon, hasIcon, getIconsByCategory } = useIcons()
-
-// Obtener icono específico
-const refreshIcon = getIcon('refresh')
-
-// Verificar si existe
-const exists = hasIcon('custom-icon')
-
-// Obtener iconos por categoría
-const navIcons = getIconsByCategory('navigation')
-</script>
-```
-
-### 3. Usando Propiedades Globales
-```vue
-<script setup>
-// Acceso directo desde el componente
-const refreshIcon = this.$icon('refresh')
-const hasRefresh = this.$hasIcon('refresh')
+// Direct access from component
+const refreshIcon = getCurrentInstance().proxy.$icon('refresh')
 </script>
 
 <template>
-  <ion-icon :icon="$icon('refresh')" />
+  <ion-icon :icon="refreshIcon" />
 </template>
 ```
 
-### 4. Importación Directa de Módulos
+### 3. Using the Name Attribute (Requires Global Registration)
 ```vue
-<script setup>
-import { navigationIcons, actionIcons } from '@plugins/icons'
-
-// Uso directo
-const chevronUp = navigationIcons['chevron-up']
-const refreshIcon = actionIcons['refresh']
-</script>
+<template>
+  <!-- Only works if you enable global icon registration -->
+  <ion-icon name="eye-outline" />
+  <ion-icon name="refresh-outline" />
+  <ion-icon name="people-outline" />
+</template>
 ```
 
-## 🎯 Categorías Disponibles
+## 🎯 Available Icons
 
 ### Navigation Icons
-- `chevron-up`, `chevron-down`, `chevron-back`, `chevron-forward`
-- `arrow-back`, `arrow-forward`, `caret-up`, `caret-down`
+- `chevronUp`, `chevronDown`, `chevronBack`, `chevronForward`
+- `arrowBack`, `arrowForward`, `caretUp`, `caretDown`
 
 ### Action Icons
 - `eye`, `refresh`, `add`, `edit`, `delete`
 - `download`, `upload`, `copy`, `save`, `print`, `share`
-- `play`, `pause`, `stop`
+- `play`, `pause`, `stop`, `key`, `logOut`, `shield`
 
 ### Status Icons
-- `alert`, `success`, `warning`, `info`, `error`, `help`
-- `time`, `flash`, `shield`, `lock-closed`, `lock-open`
+- `alert`, `alertCircle`, `success`, `warning`, `info`, `error`, `help`
+- `time`, `power`, `shield`, `lock-closed`, `lock-open`, `flash`
+- `lock-closed-outline`, `lock-open-outline`, `flash-outline`
 
 ### Hardware Icons
-- `chip`, `device`, `server`, `cloud`, `wifi`, `bluetooth`
+- `hardwareChip`, `phonePortrait`, `server`, `cloud`, `wifi`, `bluetooth`
 - `desktop`, `laptop`, `tablet`, `camera`, `video`, `microphone`
+- `batteryFull`, `batteryHalf`, `plug` (custom SVG)
 
 ### Location Icons
 - `location`, `map`, `navigate`, `compass`, `globe`
-- `home`, `business`, `car`, `train`, `airplane`
+- `home`, `business`, `car`, `train`, `airplane`, `building`
 
 ### UI Icons
 - `search`, `filter`, `menu`, `settings`, `options`
@@ -129,93 +94,81 @@ const refreshIcon = actionIcons['refresh']
 ### Data Icons
 - `document`, `folder`, `folder-open`, `archive`
 - `cloud-download`, `cloud-upload`, `attach`, `link`
-- `code`, `terminal`, `library`, `bookmark`
+- `code`, `terminal`, `library`, `bookmark`, `analytics`
 
 ### Communication Icons
 - `mail`, `chat`, `call`, `video-call`, `share`
 - `heart`, `thumbs-up`, `thumbs-down`, `star`
 - `person`, `people`, `notifications`
 
-## ✨ Características
+## ✨ Features
 
-### 🔧 Modular
-- Cada categoría en su propio archivo
-- Importación selectiva para mejor performance
-- Fácil mantenimiento y extensión
+### 🔧 Consolidated
+- All icons in a single `icons.js` file
+- Easier maintenance and search
+- Consistent naming (camelCase)
 
 ### 🚀 Performance
-- Tree-shaking automático
-- Solo se importan los iconos que se usan
-- Sin importaciones innecesarias
+- Automatic tree-shaking
+- Only icons that are used get included
+- Optional global registration for using `name` attribute
 
 ### 🎨 Flexible
-- Múltiples formas de uso
-- Configuración personalizable
-- Compatible con composables y Options API
+- Three ways to use: `:icon` prop, `name` attribute, or helper functions
+- Compatible with composables and Options API
+- Descriptive and consistent names
 
 ### 📱 Responsive
-- Todos los iconos son vectoriales
+- All icons are vectorial
 - Soporte completo para Ionic
-- Escalables sin pérdida de calidad
+- Scalable without quality loss
 
-## 🛠 Extensión
+## 🛠 Extension
 
-### Agregar nuevos iconos a una categoría existente
+### Adding new icons
 ```javascript
-// En actionIcons.js
-import { newActionIcon } from 'ionicons/icons'
+// In icons.js
+import { newIconOutline } from 'ionicons/icons'
 
-export const actionIcons = {
-  // ... iconos existentes
-  'new-action': newActionIcon
+export const icons = {
+  // ... existing icons
+  'newIcon': newIconOutline
 }
 ```
 
-### Crear nueva categoría
-```javascript
-// Crear categoryIcons.js
-import { icon1, icon2 } from 'ionicons/icons'
+## 🎯 Best Practices
 
-export const categoryIcons = {
-  'icon-1': icon1,
-  'icon-2': icon2
-}
+1. **Use the `:icon` prop** for direct and reliable access
+2. **Maintain consistency** in icon names (camelCase)
+3. **Document new icons** when you add them
+4. **Group related icons** in comments in `icons.js`
+5. **Use the `getIcon()` helper** for programmatic access
 
-// Agregar a index.js
-import { categoryIcons } from './categoryIcons.js'
-// ... resto de imports
-
-const allIcons = {
-  // ... otros iconos
-  ...categoryIcons
-}
-```
-
-## 🎯 Mejores Prácticas
-
-1. **Usa el composable `useCommonIcons`** para iconos frecuentes
-2. **Usa `useIcons`** para funcionalidades avanzadas
-3. **Importa directamente** solo cuando necesites optimización extrema
-4. **Mantén consistencia** en nombres de iconos
-5. **Documenta nuevos iconos** cuando los agregues
-
-## 🔄 Migración desde el sistema anterior
+## 🔄 Migration from Previous System
 
 ```vue
-<!-- Antes -->
+<!-- Previous system (separate files) -->
 <script setup>
-import { refreshOutline, eyeOutline } from 'ionicons/icons'
+import { navigationIcons, actionIcons } from '@plugins/icons'
+const chevronUp = navigationIcons['chevronUp']
+const refreshIcon = actionIcons['refresh']
 </script>
 
-<!-- Después -->
+<!-- Consolidated system (single file) -->
 <script setup>
-import { useCommonIcons } from '@composables/useCommonIcons'
-const icons = useCommonIcons()
+// Icons are available globally
 </script>
 
 <template>
-  <!-- Cambiar de refreshOutline a icons.refresh -->
+  <ion-icon :icon="icons.chevronUp" />
   <ion-icon :icon="icons.refresh" />
-  <ion-icon :icon="icons.eye" />
 </template>
 ```
+
+## 📋 Migration Checklist
+
+- [x] Consolidate all icons in `icons.js`
+- [x] Update `index.js` to import from consolidated file
+- [x] Verify all components work with new names
+- [ ] Optional: Enable global registration to use `name` attribute
+- [ ] Remove old category files when everything works

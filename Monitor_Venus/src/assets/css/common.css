@@ -1,0 +1,33 @@
+.tenant-warning-card {
+  margin: 1rem 0;
+  border-left: 4px solid var(--ion-color-warning-shade);
+}
+
+.warning-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.warning-icon {
+  font-size: 32px;
+  color: var(--ion-color-warning-contrast);
+  flex-shrink: 0;
+}
+
+.warning-text {
+  flex: 1;
+}
+
+.warning-text h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-warning-contrast);
+}
+
+.warning-text p {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: var(--ion-color-warning-contrast);
+}

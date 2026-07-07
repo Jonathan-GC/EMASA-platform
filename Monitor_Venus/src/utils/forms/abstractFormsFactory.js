@@ -10,8 +10,20 @@ export class AbstractFormFactory {
     return {
       component: defineComponent({
         render() {
-          return h('div', 'Formulario no encontrado');
+          this.$emit('loaded');
+          return h('div', {
+            style: {
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '200px',
+              textAlign: 'center',
+              color: 'var(--ion-color-medium, #666)'
+            }
+          }, 'Formulario no encontrado');
         }
+        
       }),
       props: {}
     };

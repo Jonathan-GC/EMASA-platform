@@ -1,22 +1,20 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/home"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Monitor Applications</ion-title>
-      </ion-toolbar>
-    </ion-header>
 
     <ion-content :fullscreen="true">
       <div v-if="pageReady" class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>📦 Services </h1>
+          <div class="header-title">
+            <ion-back-button default-href="/home"></ion-back-button>
+            <h1>
+              <ion-icon :icon="icons.package"></ion-icon>
+              Servicios
+            </h1>
+          </div>
         </div>
         <!-- Main applications table with fetch data -->
-        <TableApplication />
+        <TableApplications />
       </div>
 
       <!-- Loading state while page is preparing -->
@@ -29,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, inject } from 'vue'
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import TableGateways from '@components/tables/gateways/TableGateways.vue'
@@ -38,6 +36,7 @@ import TableGateways from '@components/tables/gateways/TableGateways.vue'
 const isConnected = ref(true)
 const reconnectAttempts = ref(0)
 const pageReady = ref(false)
+const icons = inject('icons', {})
 
 // Ionic lifecycle hooks
 onIonViewWillEnter(() => {
@@ -58,9 +57,6 @@ onMounted(() => {
 <style scoped>
 @import '@assets/css/dashboard.css';
 
-.current-dashboard {
-  padding: 20px;
-}
 
 .header {
   text-align: center;
@@ -102,9 +98,7 @@ onMounted(() => {
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-  .current-dashboard {
-    padding: 15px;
-  }
+
 
   .header h1 {
     font-size: 1.5rem;

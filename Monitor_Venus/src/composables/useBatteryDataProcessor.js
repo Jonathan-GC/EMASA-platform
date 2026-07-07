@@ -1,55 +1,23 @@
-import { ref, reactive, computed } from 'vue'
+import { useMeasurementDataProcessor } from './useMeasurementDataProcessor'
 
 /**
- * Battery data processing composable for IoT battery data
+ * Battery data processor - wrapper around generic measurement processor
+ * Includes special battery percentage calculation logic
  */
 export function useBatteryDataProcessor() {
-    const lastDevice = ref(null)
-    const recentMessages = ref([])
-    const chartKey = ref(0)
-
-    // Battery constants (from Saul's data)
+    // Battery constants
     const BATTERY_MIN_V = 10.5
     const BATTERY_MAX_V = 13.2
 
-    // Chart data for battery measurements (dual-axis)
-    const chartData = reactive({
-        datasets: [
-            {
-                label: 'Batería (V)',
-                data: [],
-                borderColor: 'rgba(4, 116, 0, 1)',
-                backgroundColor: 'rgba(4, 116, 0, 0.1)',
-                borderWidth: 2,
-                tension: 0.1,
-                pointRadius: 1,
-                pointHoverRadius: 4,
-                fill: false,
-                yAxisID: 'y-left'
-            },
-            {
-                label: 'Batería (%)',
-                data: [],
-                borderColor: 'rgba(116, 0, 87, 1)',
-                backgroundColor: 'rgba(116, 0, 87, 0.1)',
-                borderWidth: 2,
-                tension: 0.1,
-                pointRadius: 1,
-                pointHoverRadius: 4,
-                fill: false,
-                yAxisID: 'y-right'
-            }
-        ]
-    })
-
-    // Computed battery percentage
-    const batteryPercentage = computed(() => {
-        const maxV = lastDevice.value?.buffer_stats?.max_voltage || 0
-        if (maxV <= BATTERY_MIN_V) return 0
-        if (maxV >= BATTERY_MAX_V) return 100
-        const percent = ((maxV - BATTERY_MIN_V) / (BATTERY_MAX_V - BATTERY_MIN_V)) * 100
-        return Math.round(percent)
-    })
+    const chartColors = [
+        'rgb(59, 130, 246)',
+        'rgba(168, 85, 247, 1)',
+        'rgba(34, 197, 94, 1)',
+        'rgba(251, 146, 60, 1)',
+        'rgba(14, 165, 233, 1)',
+        'rgba(236, 72, 153, 1)',
+        'rgba(99, 102, 241, 1)'
+    ]
 
     // Convert voltage to percentage
     const voltageToPercentage = (voltage) => {
@@ -59,64 +27,62 @@ export function useBatteryDataProcessor() {
         return Math.round(percent)
     }
 
-    // Process incoming data
-    const processIncomingData = (data) => {
-        if (data.error) {
-            console.warn('⚠️ Datos con error recibidos:', data.error)
-            return
-        }
-
-        if (data.object?.type !== 'battery') {
-            console.log(`ℹ️ Datos ignorados - tipo: ${data.object?.type}, esperando 'battery'`)
-            return
-        }
-
-        lastDevice.value = data
-
-        recentMessages.value.unshift(data)
-        if (recentMessages.value.length > 10) {
-            recentMessages.value.pop()
-        }
-
-        const batteryValues = data.object?.values || data.measurement_values
-        if (batteryValues && Array.isArray(batteryValues)) {
-            console.log(`📊 Procesando ${batteryValues.length} muestras de batería`)
-
-            const voltagePoints = batteryValues.map(sample => ({
-                x: new Date(sample.time_iso),
-                y: sample.value
-            }))
-
-            const percentagePoints = batteryValues.map(sample => ({
-                x: new Date(sample.time_iso),
-                y: voltageToPercentage(sample.value)
-            }))
-
-            chartData.datasets[0].data = voltagePoints
-            chartData.datasets[1].data = percentagePoints
-
-            chartKey.value++
-
-            console.log(`✅ Gráfico de batería actualizado con ${voltagePoints.length} puntos`)
+    // Special processing for battery to add max_voltage field for backwards compatibility
+    const specialProcessing = (stats, data) => {
+        return {
+            max_voltage: stats.max_battery || 0,
+            avg_value: stats.avg_battery || 0
         }
     }
 
-    const clearData = () => {
-        chartData.datasets[0].data = []
-        chartData.datasets[1].data = []
-        lastDevice.value = null
-        recentMessages.value = []
-        chartKey.value++
+    // Dataset generator for dual-axis battery charts
+    const datasetGenerator = (i, samples, color) => {
+        return [
+            {
+                label: `Voltaje ch${i} (V)`,
+                data: samples,
+                parsing: false,
+                borderColor: color,
+                backgroundColor: color,
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 1,
+                fill: false,
+                yAxisID: 'y-left'
+            },
+            {
+                label: `Porcentaje ch${i} (%)`,
+                data: samples.map(p => ({ x: p.x, y: voltageToPercentage(p.y) })),
+                parsing: false,
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 1,
+                fill: false,
+                yAxisID: 'y-right'
+            }
+        ]
+    }
+
+    const processor = useMeasurementDataProcessor({
+        measurementType: 'battery',
+        chartColors,
+        chartLabel: 'Voltaje',
+        unit: 'V',
+        specialProcessing,
+        datasetGenerator
+    })
+
+    // Computed battery percentage from max voltage
+    const getBatteryPercentage = () => {
+        const maxV = processor.lastDevice.value?.buffer_stats?.max_battery || 0
+        return voltageToPercentage(maxV)
     }
 
     return {
-        chartData,
-        lastDevice,
-        recentMessages,
-        chartKey,
-        batteryPercentage,
-        processIncomingData,
-        clearData,
+        ...processor,
+        getBatteryPercentage,
         voltageToPercentage,
         BATTERY_MIN_V,
         BATTERY_MAX_V

@@ -19,139 +19,143 @@ const CreateSeedbedMember = defineAsyncComponent(() => import("@/components/form
 
 const CreateTenants = defineAsyncComponent(() => import("@components/forms/create/tenants/formCreateTenants.vue"));
 const CreateGateways = defineAsyncComponent(() => import("@components/forms/create/gateways/formCreateGateways.vue"));
-
+const CreateLocations = defineAsyncComponent(() => import("@components/forms/create/locations/formCreateLocations.vue"));
+const CreateDeviceProfiles = defineAsyncComponent(() => import("@components/forms/create/device_profiles/formCreateDeviceProfiles.vue"));
+const CreateDevices = defineAsyncComponent(() => import("@components/forms/create/device/formCreateDevices.vue"));
+const CreateDeviceActivation = defineAsyncComponent(() => import("@components/forms/create/device/formActivationDevice.vue"));
+const CreateMachines = defineAsyncComponent(() => import("@components/forms/create/machines/formCreateMachines.vue"));
+const CreateApplications = defineAsyncComponent(() => import("@components/forms/create/applications/formCreateApplications.vue"));
+const CreateWorkspaces = defineAsyncComponent(() => import("@components/forms/create/workspaces/formCreateWorkspaces.vue"));
+const CreateManagers = defineAsyncComponent(() => import("@components/forms/create/managers/formCreateManagers.vue"));
+const CreateUsers = defineAsyncComponent(() => import("@components/forms/create/users/formCreateUsers.vue"));
+const CreateMeasurements = defineAsyncComponent(() => import("@components/forms/create/measurements/formCreateMeasurements.vue"));
+const CreateRoles = defineAsyncComponent(() => import("@components/forms/create/roles/formCreateRoles.vue"));
+const CreateDeviceTypes = defineAsyncComponent(() => import("@components/forms/create/deviceTypes/formCreateDeviceTypes.vue"));
 
 
 export class CreateFormFactory extends AbstractFormFactory {
-  getComponentConfig(type) {
-    const componentMap = {
-        tenant: {
-            component: CreateTenants,
-            props: {
-                type: type,
-                label: 'tenant',
-                fields: schema.tenant,
-            }
-        },
-        gateway: {
-            component: CreateGateways,
-            props: {
-                type: type,
-                label: 'gateway',
-                fields: schema.gateway,
-            }
-        },
-      /*period: {
-        component: CreatePeriod,
-        props: {
-          type: type,
-          label: 'periodo',
-          fields: schema.period
-        }
-      },
-      group: {
-        component: CreateGroup,
-        props: {
-          type: type,
-          label: "grupo",
-          fields: schema.group,
-        }
-      },
-      user_integra: {
-        component: CreateUser,
-        props: {
-          type: type,
-          label: "usuario",
-          fields: schema.user_integra
-        }
-      },
-      user_external: {
-        component: CreateUser,
-        props: {
-          type: type,
-          label: "usuario externo",
-          fields: schema.user_external
-        }
-      },
-      role: {
-        component: CreateRole,
-        props: {
-          type: type,
-          label: "rol",
-          fields: schema.role
-        }
-      },
-      seedbed: {
-        component: CreateSeedbed,
-        props: {
-          type: type,
-          label: "semillero",
-          fields: schema.seedbed
-        }
-      },
-      functionary_profile: {
-        component: CreateInternalProfile,
-        props: {
-          type: type,
-          label: "perfil de funcionario",
-          fields: schema.internal_profile
-        }
-      },
-      student_profile: {
-        component: CreateInternalProfile,
-        props: {
-          type: type,
-          label: "perfil de estudiante",
-          fields: schema.internal_profile
-        }
-      },
-      external_profile: {
-        component: CreateExternalProfile,
-        props: {
-          type: type,
-          label: "perfil de aliado externo",
-          fields: schema.external_profile
-        }
-      },
-      external_seedbed_profile: {
-        component: CreateExternalProfile,
-        props: {
-          type: type,
-          label: "perfil de aliado externo en semillero",
-          fields: schema.external_seedbed_profile
-        }
-      },
-      group_profile: {
-        component: CreateGroupProfile,
-        props: {
-          type: type,
-          label: "perfil de grupo",
-          fields: schema.group_profile
-        }
-      },
-      seedbed_profile: {
-        component: CreateSeedbedProfile,
-        props: {
-          type: type,
-          label: "perfil de semillero",
-          fields: schema.seedbed_profile
-        }
-      },
-      seedbed_member: {
-        component: CreateSeedbedMember,
-        props: {
-          type: type,
-          label: "miembro de semillero",
-          fields: schema.seedbed_member
-        }
-      },*/
-    };
+    // allow forwarding extraProps (initialData/additionalData) from QuickControl
+    getComponentConfig(type, extraProps = {}) {
+        const componentMap = {
+            tenant: {
+                component: CreateTenants,
+                props: {
+                    type: type,
+                    label: 'cliente',
+                    fields: schema.tenant,
+                }
+            },
+            gateway: {
+                component: CreateGateways,
+                props: {
+                    type: type,
+                    label: 'gateway',
+                    fields: schema.gateway,
+                }
+            },
+            location: {
+                component: CreateLocations,
+                props: {
+                    type: type,
+                    label: 'ubicación',
+                    fields: schema.location,
+                }
+            },
+            device_profile: {
+                component: CreateDeviceProfiles,
+                props: {
+                    type: type,
+                    label: 'perfil de dispositivo',
+                    fields: schema.device_profile,
+                }
+            },
+            device_type: {
+                component: CreateDeviceTypes,
+                props: {
+                    type: type,
+                    label: 'tipo de dispositivo',
+                    fields: schema.device_type,
+                }
+            },
 
-    if (!(type in componentMap) || !EntityTypes.includes(type)) {
-      console.log(`Componente no encontrado para el tipo: ${type}`);
-      return this.getDefaultComponent();
+            device: {
+                component: CreateDevices,
+                props: {
+                    type: type,
+                    label: 'dispositivo',
+                    fields: schema.device,
+                }
+            },
+            device_activation: {
+                component: CreateDeviceActivation,
+                props: {
+                    type: type,
+                    label: 'activación de dispositivo',
+                    fields: schema.device_activation,
+                }
+            },
+            machine: {
+                component: CreateMachines,
+                props: {
+                    type: type,
+                    label: 'máquina',
+                    fields: schema.machine,
+                }
+            },
+            application: {
+                component: CreateApplications,
+                props: {
+                    type: type,
+                    label: 'aplicación',
+                    fields: schema.application,
+                }
+            },
+            workspace: {
+                component: CreateWorkspaces,
+                props: {
+                    type: type,
+                    label: 'workspace',
+                    fields: schema.workspace,
+                }
+            },
+            manager: {
+                component: CreateManagers,
+                props: {
+                    type: type,
+                    label: 'manager',
+                    fields: schema.manager,
+                }
+            },
+            user: {
+                component: CreateUsers,
+                props: {
+                    type: type,
+                    label: 'usuario',
+                    fields: schema.user,
+                }
+            },
+            measurement: {
+                component: CreateMeasurements,
+                props: {
+                    type: type,
+                    label: 'variable',
+                    fields: schema.measurement,
+                }
+            },
+            role: {
+                component: CreateRoles,
+                props: {
+                    type: type,
+                    label: 'rol',
+                    fields: schema.role,
+                }
+            },   
+        }
+
+        if (!(type in componentMap) || !EntityTypes.includes(type)) {
+            console.log(`Componente no encontrado para el tipo: ${type}`);
+            return this.getDefaultComponent();
+        }
+        return componentMap[type];
     }
-
-    return componentMap[type];
-  }
 }

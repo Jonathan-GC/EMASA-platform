@@ -1,33 +1,28 @@
 <template>
   <ion-page>
     
-    <ion-content :fullscreen="true" class="h-full">
-
-      <ion-header collapse="condense">
-        <ion-toolbar>
-          <ion-title size="large">Login Test</ion-title>
-        </ion-toolbar>
-      </ion-header>
-
-
-      <div class="login-background min-h-screen">
-        <ion-header class="ion-no-border">
-          <ion-toolbar color="amber-700/10">
+    <ion-content 
+      :fullscreen="true" 
+      class="h-full ion-no-padding"
+      :scroll-y="isMobile"
+    >
+        <ion-header class="ion-no-border transparent-header">
+          <ion-toolbar color="amber-700/10" class="transpatent-toolbar">
             <ion-buttons slot="start">
               <ion-back-button default-href="/home" class="text-neutral-50"></ion-back-button>
             </ion-buttons>
-            <ion-title class="text-neutral-50">Regresar</ion-title>
+            <ion-title class="text-neutral-50 back-button-text">Regresar</ion-title>
           </ion-toolbar>
         </ion-header>
 
-        <div class="content-center min-h-full">
-          <img :src="MonitorLogo" alt="Monitor Logo" class="logo">
-          <LoginForm />
-          <div class="text-center">
-            <p><span class="text-amber-50">Al usar nuestros servicios, aceptas nuestros</span></p>
-            <a>Terminos de Servicios y Política de privacidad</a>
+        <div class="login-background min-h-screen">
+          <div class="content-center min-h-full header-container">
+            <img :src="MonitorLogo" alt="Monitor Logo" class="logo">
           </div>
-        </div>
+          <div class="reset-card-container">
+            <LoginForm />
+          </div>
+          <AuthFooter />     
       </div>
     </ion-content>
   </ion-page>
@@ -36,6 +31,11 @@
 <script setup>
 import MonitorLogo from '@assets/monitor_logo_dark.svg'
 import {splineCurveMonotone} from "chart.js/helpers";
+import { useResponsiveView } from '@composables/useResponsiveView.js'
+
+// Responsive view detection
+const { isMobile } = useResponsiveView(768)
+
 // El componente LoginForm se auto-importa gracias a unplugin-vue-components
 </script>
 
@@ -47,16 +47,45 @@ import {splineCurveMonotone} from "chart.js/helpers";
 }*/
 
 .login-background {
-  background-image: url("/login.png");
-  background-size: cover;
+  min-height: 100vh;
+  background: url('/login.png') no-repeat center center / cover;
+  display: flex;
+  flex-direction: column;
 }
 
 .logo{
-  display: block;
-  margin: 0 auto;
-  padding: 20px;
-  max-width: 300px;
+  height: 60px;
+  width: auto;
 }
+
+.reset-card-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding: 1rem;
+}
+
+.transparent-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.transparent-toolbar {
+  --background: rgba(180, 83, 9, 0);
+  --color: white;
+}
+
+.header-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 5rem 1rem 2rem;
+}
+
 
 /* Mobile responsive */
 @media (max-width: 768px) {

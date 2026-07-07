@@ -38,9 +38,13 @@
         <!-- Dual-axis battery chart -->
         <DualAxisBatteryChart 
           v-if="lastDevice && chartData.datasets[0].data.length > 0"
+          :key="chartKey"
           :chart-data="chartData"
+          :latest-data-points="latestDataPoints"
           :chart-key="chartKey"
           :device-name="lastDevice?.device_name || 'Dispositivo IoT'"
+          :y-axis-min="BATTERY_MIN_V"
+          :y-axis-max="BATTERY_MAX_V"
         />
 
         <!-- Recent messages -->
@@ -86,6 +90,7 @@ ChartJS.register(
 const { isConnected, reconnectAttempts, setOnMessage } = useWebSocket()
 const { 
   chartData, 
+  latestDataPoints,
   lastDevice, 
   recentMessages, 
   chartKey, 

@@ -1,24 +1,16 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/home"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Monitor Clients</ion-title>
-      </ion-toolbar>
-    </ion-header>
 
     <ion-content :fullscreen="true">
       <div v-if="pageReady" class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
-          <h1>🛜 Panel de Gateways</h1>
-          <div class="header-subtitle">
-            <ConnectionStatus
-              :is-connected="isConnected"
-              :reconnect-attempts="reconnectAttempts"
-            />
+          <div class="header-title">
+            <ion-back-button default-href="/home"></ion-back-button>
+          <h1>
+            <ion-icon :icon="icons.wifi"></ion-icon>
+            Gateways
+          </h1>
           </div>
         </div>
         <!-- Main gateways table with fetch data -->
@@ -35,10 +27,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, inject } from 'vue'
 import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import TableGateways from '@components/tables/gateways/TableGateways.vue'
+
+const icons = inject('icons', {})
 
 // State for connection status
 const isConnected = ref(true)
@@ -64,21 +58,6 @@ onMounted(() => {
 <style scoped>
 @import '@assets/css/dashboard.css';
 
-.current-dashboard {
-  padding: 20px;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.header h1 {
-  margin: 0 0 15px 0;
-  color: #374151;
-  font-size: 2rem;
-  font-weight: 600;
-}
 
 .header-subtitle {
   display: flex;
@@ -108,9 +87,7 @@ onMounted(() => {
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-  .current-dashboard {
-    padding: 15px;
-  }
+
 
   .header h1 {
     font-size: 1.5rem;
