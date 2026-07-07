@@ -31,6 +31,7 @@ jobs:
       - name: Copy files to server
         run: |
           rsync -avz --delete \
+          --exclude 'monitor-platform-*.json' \
           --exclude '.env.prod' \
           --exclude '**/.env.prod' \
           --exclude '**/*.pem' \
