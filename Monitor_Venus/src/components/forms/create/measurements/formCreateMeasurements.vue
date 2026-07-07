@@ -8,7 +8,7 @@
       :additionalData="additionalData"
       @itemCreated="handleItemCreated"
       @closed="emit('closed')"
-+      @fieldChanged="onFieldChanged"
++     @fieldChanged="onFieldChanged"
     />
     </ion-content>
   </ion-page>

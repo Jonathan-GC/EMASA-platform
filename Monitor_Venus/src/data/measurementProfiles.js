@@ -113,7 +113,7 @@ export const MEASUREMENT_PROFILES = [
   {
     value: 'power_factor',
     label: 'Factor de Potencia',
-    unit: '',
+    unit: '_',
     description: 'Medición del factor de potencia, sin unidad específica.',
     axes: 1,
     realtime: {

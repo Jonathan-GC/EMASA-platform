@@ -16,9 +16,9 @@ export function useCurrentDataProcessor() {
     ]
 
     return useMeasurementDataProcessor({
-        ref: 'current',
+        measurementType: 'current',
         chartColors,
-        label: 'Corriente',
+        chartLabel: 'Corriente',
         unit: 'A'
     })
 }

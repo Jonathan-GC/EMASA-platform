@@ -172,7 +172,11 @@ const props = defineProps({
   },
   initialType: {
     type: String,
-    default: 'voltage'
+    default: ''
+  },
+  label: {
+    type: String,
+    default: ''
   },
   availableMeasurements: {
     type: Array,
@@ -208,7 +212,7 @@ const measurementTypes = computed(() => {
   const types = new Set(['voltage', 'current', 'battery'])
   if (props.availableMeasurements && props.availableMeasurements.length > 0) {
     props.availableMeasurements.forEach(m => {
-      if (m.unit) types.add(m.unit.toLowerCase())
+      if (m.ref) types.add(m.ref.toLowerCase())
     })
   }
   return Array.from(types)
@@ -413,7 +417,7 @@ const exportPDF = async () => {
     
     // Get threshold info for the current measurement
     const currentMeasurementInfo = props.availableMeasurements.find(
-      m => m.unit?.toLowerCase() === filters.measurement_type?.toLowerCase()
+      m => m.ref?.toLowerCase() === filters.measurement_type?.toLowerCase()
     )
     
     const mMin = currentMeasurementInfo?.min
@@ -684,7 +688,7 @@ const fetchData = async () => {
     rawHistoricalData.value = data
     
     if (filters.measurement_type) {
-      title.value = `Histórico de ${capitalize(filters.measurement_type)}`
+      title.value = `Histórico de ${capitalize(props.label)}`
       subtitle.value = `Datos desde ${format(new Date(filters.start), 'MMM dd', { locale: es })} hasta ${format(new Date(filters.end), 'MMM dd', { locale: es })}`
     } else {
       title.value = 'Histórico de Datos'

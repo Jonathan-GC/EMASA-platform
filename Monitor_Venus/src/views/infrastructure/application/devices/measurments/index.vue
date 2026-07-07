@@ -144,8 +144,8 @@ const {
   chartKey: powerChartKey,
   processIncomingData: processPowerData
 } = useMeasurementDataProcessor({
-  ref: 'power',
-  label: 'Potencia',
+  measurementType: 'power',
+  chartLabel: 'Potencia',
   unit: 'W'
 })
 
@@ -157,8 +157,8 @@ const {
   chartKey: energyChartKey,
   processIncomingData: processEnergyData
 } = useMeasurementDataProcessor({
-  ref: 'energy',
-  label: 'Energía',
+  measurementType: 'energy',
+  chartLabel: 'Energía',
   unit: 'kWh'
 })
 
@@ -170,8 +170,8 @@ const {
   chartKey: pressureChartKey,
   processIncomingData: processPressureData
 } = useMeasurementDataProcessor({
-  ref: 'pressure',
-  label: 'Presión',
+  measurementType: 'pressure',
+  chartLabel: 'Presión',
   unit: 'Psi'
 })
 
@@ -183,8 +183,8 @@ const {
   chartKey: humidityChartKey,
   processIncomingData: processHumidityData
 } = useMeasurementDataProcessor({
-  ref: 'humidity',
-  label: 'Humedad',
+  measurementType: 'humidity',
+  chartLabel: 'Humedad',
   unit: '%'
 })
 
@@ -196,8 +196,8 @@ const {
   chartKey: luminosityChartKey,
   processIncomingData: processLuminosityData
 } = useMeasurementDataProcessor({
-  ref: 'luminosity',
-  label: 'Luminosidad',
+  measurementType: 'luminosity',
+  chartLabel: 'Luminosidad',
   unit: 'lx'
 })
 
@@ -209,8 +209,8 @@ const {
   chartKey: powerFactorChartKey,
   processIncomingData: processPowerFactorData
 } = useMeasurementDataProcessor({
-  ref: 'power_factor',
-  label: 'Factor de Potencia',
+  measurementType: 'power_factor',
+  chartLabel: 'Factor de Potencia',
   unit: ''
 })
 
@@ -222,8 +222,8 @@ const {
   chartKey: realPowerChartKey,
   processIncomingData: processRealPowerData
 } = useMeasurementDataProcessor({
-  ref: 'real_power',
-  label: 'Potencia Real',
+  measurementType: 'real_power',
+  chartLabel: 'Potencia Real',
   unit: 'W'
 })  
 
@@ -235,8 +235,8 @@ const {
   chartKey: apparentPowerChartKey,
   processIncomingData: processApparentPowerData
 } = useMeasurementDataProcessor({
-  ref: 'apparent_power',
-  label: 'Potencia Aparente',
+  measurementType: 'apparent_power',
+  chartLabel: 'Potencia Aparente',
   unit: 'VA'
 })
 
@@ -248,8 +248,8 @@ const {
   chartKey: reactivePowerChartKey,
   processIncomingData: processReactivePowerData
 } = useMeasurementDataProcessor({
-  ref: 'reactive_power',
-  label: 'Potencia Reactiva',
+  measurementType: 'reactive_power',
+  chartLabel: 'Potencia Reactiva',
   unit: 'VAr'
 })
 
@@ -261,8 +261,8 @@ const {
   chartKey: frequencyChartKey,
   processIncomingData: processFrequencyData
 } = useMeasurementDataProcessor({
-  ref: 'frequency',
-  label: 'Frecuencia',
+  measurementType: 'frequency',
+  chartLabel: 'Frecuencia',
   unit: 'Hz'
 })
 
@@ -336,8 +336,8 @@ const registerMeasurementProcessor = (measurementType, config = {}) => {
   // Fallback label: use provided label, otherwise a title‑cased version of the type
   const fallbackLabel = measurementType.charAt(0).toUpperCase() + measurementType.slice(1)
   const processor = useMeasurementDataProcessor({
-    ref: measurementType,
-    label: config.label || fallbackLabel,
+    measurementType,
+    chartLabel: config.label || fallbackLabel,
     unit: config.unit || '',
     chartColors: config.chartColors,
     specialProcessing: config.specialProcessing
@@ -422,8 +422,8 @@ const fetchAndRegisterMeasurements = async () => {
       if (type && !excludedTypes.includes(type)) {
         registerMeasurementProcessor(type, {
           unit: m.unit,
-          label: m.label,
-          ref: m.ref,
+          charLlabel: m.ref,
+          //ref: m.ref,
           icon: m.icon
         })
       }

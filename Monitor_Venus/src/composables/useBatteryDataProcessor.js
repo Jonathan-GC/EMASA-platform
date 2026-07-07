@@ -66,9 +66,9 @@ export function useBatteryDataProcessor() {
     }
 
     const processor = useMeasurementDataProcessor({
-        ref: 'battery',
+        measurementType: 'battery',
         chartColors,
-        label: 'Voltaje',
+        chartLabel: 'Voltaje',
         unit: 'V',
         specialProcessing,
         datasetGenerator
