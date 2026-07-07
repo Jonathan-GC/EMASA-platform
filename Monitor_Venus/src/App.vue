@@ -5,15 +5,86 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, onBeforeUnmount } from 'vue'
 import { IonApp, IonRouterOutlet } from '@ionic/vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore.js'
+import { Capacitor } from '@capacitor/core'
+import { App as CapApp } from '@capacitor/app'
+import API from '@/utils/api/api.js'
 
-// Initialize auth store when app loads
 const authStore = useAuthStore()
+const router = useRouter()
 
-onMounted(() => {
+let appUrlListener = null
+
+function handleDeepLink(url) {
+  // Native deep-link from the system browser after server-side OAuth.
+  // Backend redirects to: com.mtr.online://auth/google/callback?access=...&refresh=...
+  if (!url || !url.startsWith('com.mtr.online://auth/google/callback')) return
+  try {
+    const u = new URL(url)
+    const access = u.searchParams.get('access')
+    const refresh = u.searchParams.get('refresh')
+    const oauthError = u.searchParams.get('error')
+
+    if (oauthError) {
+      router.replace({ name: 'login', query: { error: String(oauthError) } })
+      return
+    }
+    if (!access) {
+      router.replace({ name: 'login', query: { error: 'No access token from Google' } })
+      return
+    }
+
+    const ok = authStore.login(String(access), refresh ? String(refresh) : null)
+    if (!ok) {
+      router.replace({ name: 'login', query: { error: 'Failed to store access token' } })
+      return
+    }
+
+    authStore.fetchUserProfile().catch(() => {})
+
+    if (authStore.needsTenantSetup) router.replace('/tenant-setup')
+    else if (authStore.isSuperUser || authStore.isGlobalUser) router.replace('/tenants')
+    else router.replace('/home')
+  } catch (e) {
+    console.error('❌ Failed to parse deep link:', e)
+    router.replace({ name: 'login' })
+  }
+}
+
+onMounted(async () => {
   console.log('🚀 App montada - Inicializando autenticación...')
   authStore.initializeAuth()
+
+  // 🔐 Fetch CSRF token on app load (required by backend for POST/PUT/PATCH/DELETE)
+  // This ensures the csrftoken cookie is set before any component makes a request.
+  try {
+    console.log('🔐 Fetching CSRF token on app load...')
+    await API.get(API.CSRF_TOKEN)
+    console.log('✅ CSRF token obtained and stored in cookies')
+  } catch (error) {
+    console.error('❌ Failed to fetch CSRF token on app load:', error)
+    // Non-blocking: components like SignupForm / verification view have fallback
+    // CSRF fetching logic, so we don't crash the app if this initial fetch fails.
+  }
+
+  // Listen for deep links on Android (when Capacitor.Browser finishes the
+  // OAuth flow and redirects back to com.mtr.online://...). On iOS the
+  // same listener fires via Universal Links / Custom URL Scheme.
+  if (Capacitor.isNativePlatform()) {
+    try {
+      appUrlListener = await CapApp.addListener('appUrlOpen', ({ url }) => {
+        handleDeepLink(url)
+      })
+    } catch (e) {
+      console.warn('⚠️ Could not register appUrlOpen listener:', e)
+    }
+  }
+})
+
+onBeforeUnmount(() => {
+  if (appUrlListener) appUrlListener.remove()
 })
 </script>

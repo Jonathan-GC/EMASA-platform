@@ -15,6 +15,8 @@
       :y-axis-max="yAxisMax"
       :threshold="threshold"
       :realtime-options="realtimeOptions"
+      :y-axis-label="yLeftLabel" 
+      
     />
   </div>
 </template>
@@ -36,7 +38,8 @@ const props = defineProps({
   yAxisMin: { type: Number, default: null },
   yAxisMax: { type: Number, default: null },
   threshold: { type: Number, default: null },
-  realtimeOptions: { type: Object, default: null }
+  realtimeOptions: { type: Object, default: null },
+  yLeftLabel: { type: String, default: 'Valor' }
 })
 
 const gridColumns = computed(() => Math.min(props.chartFragments.length, 3))

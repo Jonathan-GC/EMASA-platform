@@ -278,8 +278,8 @@ const exportPDF = async () => {
     const fileName = `Reporte_${props.deviceId}_${timestamp}.pdf`
     
     // Get threshold info for both measurements
-    const m1Info = props.availableMeasurements.find(m => m.unit?.toLowerCase() === props.measurement1Type?.toLowerCase())
-    const m2Info = props.availableMeasurements.find(m => m.unit?.toLowerCase() === props.measurement2Type?.toLowerCase())
+    const m1Info = props.availableMeasurements.find(m => m.ref?.toLowerCase() === props.measurement1Type?.toLowerCase())
+    const m2Info = props.availableMeasurements.find(m => m.ref?.toLowerCase() === props.measurement2Type?.toLowerCase())
 
     // 1. Header with Logo
     try {

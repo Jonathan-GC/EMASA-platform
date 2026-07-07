@@ -206,19 +206,24 @@ const filteredFields = computed(() => {
   return props.fields.filter(field => field.key !== 'accuracy' && field.key !== 'source');
 });
 
+const formValues = ref<Record<string, any>>({});
 // Properly initialize formValues from fields array and initialData
 const initializeFormValues = (fieldsArray) => {
   const values = {};
   if (Array.isArray(fieldsArray)) {
     fieldsArray.forEach(field => {
-      values[field.key] = field.value !== undefined ? field.value : null;
+      // ✅ Only seed if not already set (preserves user selections)
+      if (formValues.value[field.key] === undefined || formValues.value[field.key] === null) {
+        values[field.key] = field.value !== undefined ? field.value : null;
+      } else {
+        // Keep current value (user may have changed it)
+        values[field.key] = formValues.value[field.key];
+      }
     });
   }
-  // Order of priority: field default values < additionalData < initialData
   return { ...values, ...additionalData.value, ...props.initialData };
 };
 
-const formValues = ref(initializeFormValues(props.fields));
 const componentKey = ref(0);
 const imageUploadRefs = ref({});
 
@@ -242,7 +247,11 @@ const closeModal = () => {
 // Watch for changes in props.fields to update formValues
 // Preserve initialData when fields update (e.g., after fetching dropdown options)
 watch(fields, (newFields) => {
-  formValues.value = initializeFormValues(newFields);
+  formValues.value = {...initializeFormValues(newFields), ...additionalData.value};
+}, { deep: true });
+
+watch(additionalData, (newData) => {
+  formValues.value = { ...formValues.value, ...newData };
 }, { deep: true });
 
 function handleFieldChange(fieldKey, value) {
@@ -387,7 +396,10 @@ async function createItem() {
       } else {
         // Use JSON if no files
         console.log('📄 Using JSON payload (no files)');
-        payload = { ...formValues.value } as any;
+        // formValues (which already incorporates initialData) must win over
+        // additionalData so that any value the user (or initialData) provided
+        // is not overwritten by stale additionalData from a previous open.
+        payload = { ...additionalData.value, ...formValues.value } as any;
         // Convert dev_eui to lowercase
         if (payload.dev_eui && typeof payload.dev_eui === 'string') {
           payload.dev_eui = payload.dev_eui.toLowerCase();
