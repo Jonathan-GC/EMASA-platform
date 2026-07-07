@@ -39,7 +39,6 @@ class BillingAddress(Address):
 
 class UserBase(models.Model):
     code = models.CharField(max_length=80, null=True, blank=True)
-    sub = models.CharField(max_length=80, null=True, blank=True)
     img = models.FileField(upload_to="user_images/", blank=True, null=True)
     name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
@@ -105,8 +104,27 @@ class User(UserBase, AbstractBaseUser, PermissionsMixin):
         return self.username
 
 
+class OAuthAccount(models.Model):
+    PROVIDER_CHOICES = [
+        ("google", "Google"),
+    ]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="oauth_accounts"
+    )
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)
+    provider_user_id = models.CharField(max_length=255)
+    email = models.EmailField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("provider", "provider_user_id")
+
+
 from auditlog.registry import auditlog
 
 auditlog.register(User)
 auditlog.register(MainAddress)
 auditlog.register(BillingAddress)
+auditlog.register(OAuthAccount)
