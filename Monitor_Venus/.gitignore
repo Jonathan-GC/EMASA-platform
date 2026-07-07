@@ -27,4 +27,11 @@ examples
 ._*
 .env
 components.d.ts
+
+# Local Google/Firebase service config.
+# Keep the real file out of git and recreate it from local/CI secrets.
+android/app/google-services.json
+
+# Local Capacitor config may contain environment-specific OAuth client IDs.
+capacitor.config.json
 **/certs/

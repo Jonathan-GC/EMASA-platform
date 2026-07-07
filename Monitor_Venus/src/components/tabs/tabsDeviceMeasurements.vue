@@ -9,7 +9,7 @@
           :tab="`measurement-${measurement.id}`"
         >
           <ion-icon :icon="icons[measurement.icon] || icons.analytics"></ion-icon>
-          <ion-label>{{ capitalizeFirst(measurement.unit) }}</ion-label>
+          <ion-label>{{ capitalizeFirst(measurement.label) }}</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="comparison">
@@ -42,7 +42,7 @@
                 <ion-back-button default-href="/home"></ion-back-button>
                 <h1>
                   <ion-icon :icon="icons[measurement.icon] || icons.analytics" size="large"></ion-icon>
-                  {{ capitalizeFirst(measurement.unit) }}</h1>
+                  {{ capitalizeFirst(measurement.label) }}</h1>
               </div>
               <div class="header-subtitle connection-status">
                 <ConnectionStatus :is-connected="isConnected" :reconnect-attempts="reconnectAttempts" />
@@ -57,7 +57,7 @@
               <ion-card-header>
                 <div class="card-header-content">
                   <div class="card-title-section">
-                    <ion-card-title>Configuración - {{ capitalizeFirst(measurement.unit) }}</ion-card-title>
+                    <ion-card-title>Configuración - {{ capitalizeFirst(measurement.label) }}</ion-card-title>
                     <ion-badge 
                       :color="getThresholdStatus(measurement)" 
                       class="status-badge"
@@ -75,7 +75,7 @@
                     </div>
                     <div class="measurement-info">
                       <span class="measurement-label">Mínimo</span>
-                      <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                      <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.unit }}</span></span>
                     </div>
                   </div>
                   
@@ -85,7 +85,7 @@
                     </div>
                     <div class="measurement-info">
                       <span class="measurement-label">Máximo</span>
-                      <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                      <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.unit }}</span></span>
                     </div>
                   </div>
                   
@@ -95,7 +95,7 @@
                     </div>
                     <div class="measurement-info">
                       <span class="measurement-label">Umbral</span>
-                      <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                      <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.unit }}</span></span>
                     </div>
                   </div>
                 </div>
@@ -121,27 +121,27 @@
 
             <!-- Charts grid - dynamically select version based on measurement type -->
             <component 
-              :is="getComponentForUnit(measurement.unit)"
-              v-if="getMeasurementChartData(measurement.unit).length > 0"
-              :chart-fragments="getMeasurementChartData(measurement.unit)" 
+              :is="getComponentForUnit(measurement.ref)"
+              v-if="getMeasurementChartData(measurement.ref).length"
+              :chart-fragments="getMeasurementChartData(measurement.ref)" 
               :chart-key="chartKey"
-              :latest-data-points="getMeasurementLatestDataPoints(measurement.unit)"
-              :device-name="getMeasurementDevice(measurement)?.device_name || deviceName"
+              :latest-data-points="getMeasurementLatestDataPoints(measurement.ref)"
+              :device-name="getMeasurementDevice(measurement)?.device_name"
               :y-axis-min="measurement.min"
               :y-axis-max="measurement.max" 
               :threshold="measurement.threshold"
-              :y-left-label="getProfileByValue(measurement.unit)?.label + ' (' + getProfileByValue(measurement.unit)?.unit + ')'"
-              :y-right-label="getProfileByValue(measurement.unit)?.secondaryUnit ? getProfileByValue(measurement.unit).secondaryUnit : ''"
-              :realtime-options="getProfileByValue(measurement.unit)?.realtime"
+              :y-left-label="getProfileByValue(measurement.ref)?.label + ' (' + getProfileByValue(measurement.ref)?.unit + ')'"
+              :y-right-label="getProfileByValue(measurement.ref)?.secondaryUnit ? getProfileByValue(measurement.ref).secondaryUnit : ''"
+              :realtime-options="getProfileByValue(measurement.ref)?.realtime"
             />
 
             <!-- Placeholder when no chart data available -->
             <div v-else class="charts-section">
-              <h3 class="section-title">📈 Real-time {{ capitalizeFirst(measurement.unit) }} Data</h3>
+              <h3 class="section-title">📈 Datos de {{ capitalizeFirst(measurement.label) }} en Tiempo-Real</h3>
               <div class="waiting-data-card">
                 <ion-icon :icon="icons.time" size="large" color="medium"></ion-icon>
-                <p>Esperando datos en tiempo real de {{ measurement.unit }}...</p>
-                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de {{ measurement.unit }}</p>
+                <p>Esperando datos en tiempo real de {{ measurement.label }}...</p>
+                <p class="hint-text">Los datos aparecerán aquí cuando el dispositivo envíe mediciones de {{ measurement.label }}</p>
               </div>
             </div>
 
@@ -149,11 +149,12 @@
               v-if="deviceId || (device && device.id)"
               :device-id="deviceId || device.id"
               :available-measurements="measurements"
-              :initial-type="measurement.unit?.toLowerCase()"
+              :initial-type="measurement.ref?.toLowerCase()"
+              :label="measurement.label"
             />
 
             <!-- Recent messages -->
-            <RecentMessages :messages="getMeasurementRecentMessages(measurement.unit)" :measurement-type="measurement.unit?.toLowerCase()" />
+            <RecentMessages :messages="getMeasurementRecentMessages(measurement.ref)" :measurement-type="measurement.ref?.toLowerCase()" />
 
             <!-- Historical Measurement Chart -->
             
@@ -198,10 +199,10 @@
                       <option 
                         v-for="measurement in getAvailableMeasurements()"
                         :key="'m1-' + measurement.id"
-                        :value="measurement.unit.toLowerCase()"
-                        :disabled="measurement.unit.toLowerCase() === selectedMeasurement2"
+                        :value="measurement.ref.toLowerCase()"
+                        :disabled="measurement.ref.toLowerCase() === selectedMeasurement2"
                       >
-                        {{ capitalizeFirst(measurement.unit) }} ({{ measurement.ref || 'N/A' }})
+                        {{ capitalizeFirst(measurement.ref) }} ({{ measurement.unit || 'N/A' }})
                       </option>
                     </select>
                     
@@ -230,10 +231,10 @@
                       <option 
                         v-for="measurement in getAvailableMeasurements()"
                         :key="'m2-' + measurement.id"
-                        :value="measurement.unit.toLowerCase()"
-                        :disabled="measurement.unit.toLowerCase() === selectedMeasurement1"
+                        :value="measurement.ref.toLowerCase()"
+                        :disabled="measurement.ref.toLowerCase() === selectedMeasurement1"
                       >
-                        {{ capitalizeFirst(measurement.unit) }} ({{ measurement.ref || 'N/A' }})
+                        {{ capitalizeFirst(measurement.ref) }} ({{ measurement.unit || 'N/A' }})
                       </option>
                     </select>
                     
@@ -377,10 +378,10 @@
                 <ion-card-header>
                   <div class="card-header-content">
                     <div class="card-icon-wrapper">
-                      <ion-icon :icon="icons[measurement.icon]" color="primary"></ion-icon>
+                      <ion-icon :icon="icons[measurement.icon] || icons.analytics" color="primary"></ion-icon>
                     </div>
                     <div class="card-title-section">
-                      <ion-card-title>{{ capitalizeFirst(measurement.unit) || 'Measurement' }}</ion-card-title>
+                      <ion-card-title>{{ capitalizeFirst(measurement.label) || 'Measurement' }}</ion-card-title>
                       <ion-badge 
                         :color="getThresholdStatus(measurement)" 
                         class="status-badge"
@@ -391,7 +392,7 @@
                         type="measurement"
                         to-edit
                         to-delete
-                        :name="measurement.unit"
+                        :name="measurement.label"
                         :index="measurement.id"
                         :initial-data="setMeasurementInitialData(measurement)"
                         @item-edited="handleMeasurementCreated"
@@ -408,7 +409,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Mínimo</span>
-                        <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                        <span class="measurement-value">{{ measurement.min }} <span class="unit-text">{{ measurement.unit }}</span></span>
                       </div>
                     </div>
                     
@@ -418,7 +419,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Máximo</span>
-                        <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                        <span class="measurement-value">{{ measurement.max }} <span class="unit-text">{{ measurement.unit }}</span></span>
                       </div>
                     </div>
                     
@@ -428,7 +429,7 @@
                       </div>
                       <div class="measurement-info">
                         <span class="measurement-label">Umbral</span>
-                        <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.ref }}</span></span>
+                        <span class="measurement-value">{{ measurement.threshold }} <span class="unit-text">{{ measurement.unit }}</span></span>
                       </div>
                     </div>
                   </div>
@@ -722,7 +723,56 @@ const props = defineProps({
   powerFactorMessages: {
     type: Array,
     default: () => []
+  },
+  realPowerChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  realPowerLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  realPowerMessages: {
+    type: Array,
+    default: () => []
+  },
+  reactivePowerChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  reactivePowerLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  reactivePowerMessages: {
+    type: Array,
+    default: () => []
+  },
+  apparentPowerChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  apparentPowerLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  apparentPowerMessages: {
+    type: Array,
+    default: () => []
+  },
+  frequencyChartDataFragments: {
+    type: Array,
+    default: () => []
+  },
+  frequencyLatestDataPoints: {
+    type: Object,
+    default: () => ({})
+  },
+  frequencyMessages: {  
+    type: Array,
+    default: () => []
   }
+
 })
 
 // Inject icons
@@ -923,28 +973,28 @@ const calculateDangerZoneWidth = (data) => {
   return Math.max(0, Math.min(100, (dangerWidth / range) * 100))
 }
 
-const formatValue = (value, unit) => {
+const formatValue = (value, ref) => {
   if (value === null || value === undefined) return 'N/A'
   
   // Format numbers nicely
   if (typeof value === 'number') {
     if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}k ${unit || ''}`
+      return `${(value / 1000).toFixed(1)}k ${ref || ''}`
     } else if (value >= 100) {
-      return `${value.toFixed(0)} ${unit || ''}`
+      return `${value.toFixed(0)} ${ref || ''}`
     } else if (value >= 10) {
-      return `${value.toFixed(1)} ${unit || ''}`
+      return `${value.toFixed(1)} ${ref || ''}`
     } else {
-      return `${value.toFixed(2)} ${unit || ''}`
+      return `${value.toFixed(2)} ${ref || ''}`
     }
   }
   
-  return `${value} ${unit || ''}`
+  return `${value} ${ref || ''}`
 }
 
 // Helper function to get the appropriate chart grid component based on the unit
-const getComponentForUnit = (unit) => {
-  const profile = getProfileByValue(unit);
+const getComponentForUnit = (ref) => {
+  const profile = getProfileByValue(ref);
   
   // If the profile says it has 2 axes, use BatteryChartsGrid (which handles dual-axis)
   if (profile && profile.axes === 2) {
@@ -968,25 +1018,18 @@ const getMeasurementChartData = (measurementUnit) => {
   // You can extend this mapping as needed
   const chartDataMap = {
     'voltage': props.chartDataFragments || [],
-    'voltaje': props.chartDataFragments || [],
     'current': props.currentChartDataFragments || [],
-    'corriente': props.currentChartDataFragments || [],
     'battery': props.batteryChartDataFragments || [],
-    'batería': props.batteryChartDataFragments || [],
-    'bateria': props.batteryChartDataFragments || [],
-    // Additional measurement types
     'power': props.powerChartDataFragments || [],
-    'potencia': props.powerChartDataFragments || [],
     'energy': props.energyChartDataFragments || [],
-    'energía': props.energyChartDataFragments || [],
     'pressure': props.pressureChartDataFragments || [],
-    'presión': props.pressureChartDataFragments || [],
     'humidity': props.humidityChartDataFragments || [],
-    'humedad': props.humidityChartDataFragments || [],
     'luminosity': props.luminosityChartDataFragments || [],
-    'luminosidad': props.luminosityChartDataFragments || [],
     'power_factor': props.powerFactorChartDataFragments || [],
-    'factor de potencia': props.powerFactorChartDataFragments || [],
+    'real_power': props.realPowerChartDataFragments || [],
+    'reactive_power': props.reactivePowerChartDataFragments || [],
+    'apparent_power': props.apparentPowerChartDataFragments || [],
+    'frequency': props.frequencyChartDataFragments || [],
   }
   
   // Return matching chart data or empty array for new measurement types
@@ -1001,25 +1044,18 @@ const getMeasurementLatestDataPoints = (measurementUnit) => {
   
   const latestDataMap = {
     'voltage': props.latestDataPoints || {},
-    'voltaje': props.latestDataPoints || {},
     'current': props.currentLatestDataPoints || {},
-    'corriente': props.currentLatestDataPoints || {},
     'battery': props.batteryLatestDataPoints || {},
-    'batería': props.batteryLatestDataPoints || {},
-    'bateria': props.batteryLatestDataPoints || {},
-    // Additional measurement types
     'power': props.powerLatestDataPoints || {},
-    'potencia': props.powerLatestDataPoints || {},
     'energy': props.energyLatestDataPoints || {},
-    'energía': props.energyLatestDataPoints || {},
     'pressure': props.pressureLatestDataPoints || {},
-    'presión': props.pressureLatestDataPoints || {},
     'humidity': props.humidityLatestDataPoints || {},
-    'humedad': props.humidityLatestDataPoints || {},
     'luminosity': props.luminosityLatestDataPoints || {},
-    'luminosidad': props.luminosityLatestDataPoints || {},
     'power_factor': props.powerFactorLatestDataPoints || {},
-    'factor de potencia': props.powerFactorLatestDataPoints || {},
+    'real_power': props.realPowerLatestDataPoints || {},
+    'reactive_power': props.reactivePowerLatestDataPoints || {},
+    'apparent_power': props.apparentPowerLatestDataPoints || {},
+    'frequency': props.frequencyLatestDataPoints || {},
   }
   
   return latestDataMap[unitLower] || {}
@@ -1033,25 +1069,18 @@ const getMeasurementRecentMessages = (measurementUnit) => {
   
   const messagesMap = {
     'voltage': props.recentMessages || [],
-    'voltaje': props.recentMessages || [],
     'current': props.currentMessages || [],
-    'corriente': props.currentMessages || [],
     'battery': props.batteryMessages || [],
-    'batería': props.batteryMessages || [],
-    'bateria': props.batteryMessages || [],
-    // Additional measurement types
     'power': props.powerMessages || [],
-    'potencia': props.powerMessages || [],
     'energy': props.energyMessages || [],
-    'energía': props.energyMessages || [],
     'pressure': props.pressureMessages || [],
-    'presión': props.pressureMessages || [],
     'humidity': props.humidityMessages || [],
-    'humedad': props.humidityMessages || [],
     'luminosity': props.luminosityMessages || [],
-    'luminosidad': props.luminosityMessages || [],
     'power_factor': props.powerFactorMessages || [],
-    'factor de potencia': props.powerFactorMessages || [],
+    'real_power': props.realPowerMessages || [],
+    'reactive_power': props.reactivePowerMessages || [],
+    'apparent_power': props.apparentPowerMessages || [],
+    'frequency': props.frequencyMessages || [],
   }
   
   return messagesMap[unitLower] || props.measurementMessages[unitLower] || []
@@ -1062,7 +1091,7 @@ const getMeasurementDevice = (measurement) => {
   if (!measurement) return null
   
   // measurement.unit already contains the processor type (e.g., 'voltage', 'current', 'battery')
-  const measurementType = measurement.unit?.toLowerCase()
+  const measurementType = measurement.ref?.toLowerCase()
   
   // Check if we have device data for this measurement type
   if (measurementType && props.measurementDevices[measurementType]) {
@@ -1115,16 +1144,18 @@ function handleMeasurementCreated() {
 
 // Set initial data for measurement editing (like TableApplications.vue)
 const setMeasurementInitialData = (measurement) => {
+  console.log('Initial data for measurement:', measurement)
   return {
     icon: measurement.icon,
     measurement_id: measurement.id,
     unit: measurement.unit,
+    label: measurement.label,
     ref: measurement.ref,
     min: measurement.min,
     max: measurement.max,
     threshold: measurement.threshold
   }
-  console.log('Initial data for measurement:', measurement)
+  
 }
 
 // Helper functions for measurement comparison
@@ -1138,22 +1169,18 @@ const initializeDefaultSelections = () => {
   
   // Auto-select first two measurements if nothing selected
   if (!selectedMeasurement1.value && !selectedMeasurement2.value) {
-    // Try to find voltage and temperature first
-    const voltage = measurements.value.find(m => 
-      m.unit?.toLowerCase() === 'voltage' || m.unit?.toLowerCase() === 'voltaje'
-    )
-    const temperature = measurements.value.find(m => 
-      m.unit?.toLowerCase() === 'temperature' || m.unit?.toLowerCase() === 'temperatura'
-    )
-    
-    if (voltage && temperature) {
-      selectedMeasurement1.value = voltage.unit.toLowerCase()
-      selectedMeasurement2.value = temperature.unit.toLowerCase()
+    // Try to find voltage and battery first (most common pair to compare)
+    const voltage = measurements.value.find(m => m.ref?.toLowerCase() === 'voltage')
+    const battery = measurements.value.find(m => m.ref?.toLowerCase() === 'battery')
+
+    if (voltage && battery) {
+      selectedMeasurement1.value = voltage.ref.toLowerCase()
+      selectedMeasurement2.value = battery.ref.toLowerCase()
     } else {
       // Just use the first two available
-      selectedMeasurement1.value = measurements.value[0].unit?.toLowerCase() || ''
+      selectedMeasurement1.value = measurements.value[0].ref?.toLowerCase() || ''
       if (measurements.value.length > 1) {
-        selectedMeasurement2.value = measurements.value[1].unit?.toLowerCase() || ''
+        selectedMeasurement2.value = measurements.value[1].ref?.toLowerCase() || ''
       }
     }
   }

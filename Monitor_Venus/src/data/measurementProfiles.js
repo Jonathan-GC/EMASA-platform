@@ -72,9 +72,48 @@ export const MEASUREMENT_PROFILES = [
     }
   },
   {
+    value: 'real_power',
+    label: 'Potencia Activa',
+    unit: 'W',
+    description: 'Medición de la potencia real total en kilovatios.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
+    }
+  },
+  {
+    value: 'reactive_power',
+    label: 'Potencia Reactiva',
+    unit: 'VAr',
+    description: 'Medición de la potencia reactiva total en kilovoltamperios reactivos.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
+    }
+  },
+  {
+    value: 'apparent_power',
+    label: 'Potencia Aparente',
+    unit: 'VA',
+    description: 'Medición de la potencia aparente total en kilovoltamperios.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
+    }
+  },
+  {
     value: 'power_factor',
     label: 'Factor de Potencia',
-    unit: '',
+    unit: '_',
     description: 'Medición del factor de potencia, sin unidad específica.',
     axes: 1,
     realtime: {
@@ -82,6 +121,19 @@ export const MEASUREMENT_PROFILES = [
       duration: 30000,
       refresh: 1000,
       delay: 30000
+    }
+  },
+  {
+    value: 'frequency',
+    label: 'Frecuencia',
+    unit: 'Hz',
+    description: 'Medición de frecuencia eléctrica en Hertz.',
+    axes: 1,
+    realtime: {
+      ttl: 60000,
+      duration: 30000,
+      refresh: 1000,
+      delay: 10000
     }
   },
   {
@@ -139,4 +191,12 @@ export const getProfileByValue = (value) => {
   if (!value) return null;
   const lowerValue = value.toLowerCase();
   return MEASUREMENT_PROFILES.find(p => p.value === lowerValue) || null;
+};
+
+// ---------------------------------------------------
+// Default export – makes the module usable with `import … from …`
+// ---------------------------------------------------
+export default {
+  MEASUREMENT_PROFILES,
+  getProfileByValue,
 };

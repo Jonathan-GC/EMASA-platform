@@ -47,7 +47,10 @@ const props = defineProps({
   yAxisMin: { type: Number, default: null },
   yAxisMax: { type: Number, default: null },
   threshold: { type: Number, default: null },
-  realtimeOptions: { type: Object, default: null }
+  realtimeOptions: { type: Object, default: null },
+  yAxisLabel: { type: String, default: 'Valor' },
+  yAxisUnit: { type: String, default: '' }
+
 })
 
 const canvasRef = ref(null)
@@ -153,7 +156,7 @@ const chartOptions = computed(() => ({
       animation: false,
       callbacks: {
         title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS', { locale: es }) : '',
-        label: (context) => `Voltaje: ${context.parsed.y.toFixed(3)}V`
+        label: (context) => `${props.yAxisLabel}: ${context.parsed.y.toFixed(3)}${props.yAxisUnit}`
       }
     },
     annotation: {
@@ -249,7 +252,7 @@ const chartOptions = computed(() => ({
     y: {
       min: props.yAxisMin,
       max: props.yAxisMax,
-      title: { display: true, text: 'Voltaje (V)' },
+      title: { display: true, text: `${props.yAxisLabel}`},
       grid: { color: 'rgba(0, 0, 0, 0.1)' }
     }
   }

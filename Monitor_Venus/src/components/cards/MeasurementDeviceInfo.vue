@@ -18,14 +18,14 @@
       <ion-card-header>
         <ion-card-title>
           <ion-icon :icon="icons.stats" size="small"></ion-icon>
-          Último Buffer - {{ capitalizeFirst(measurement.unit) }}
+          Último Buffer - {{ capitalizeFirst(measurement.label) }}
         </ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <p><strong>Total Muestras:</strong> {{ device?.buffer_stats?.total_samples || 0 }}</p>
         <p><strong>Fragmentos:</strong> {{ device?.buffer_stats?.total_fragments || 0 }}</p>
-        <p><strong>Promedio:</strong> {{ formatValue(device?.buffer_stats?.[`avg_${measurement.unit.toLowerCase()}`]) }} {{ measurement.ref }}</p>
-        <p><strong>Rango:</strong> {{ formatValue(device?.buffer_stats?.[`min_${measurement.unit.toLowerCase()}`]) }} {{ measurement.ref }} - {{ formatValue(device?.buffer_stats?.[`max_${measurement.unit.toLowerCase()}`]) }} {{ measurement.ref }}</p>
+        <p><strong>Promedio:</strong> {{ formatValue(device?.buffer_stats?.[`avg_${measurement.ref.toLowerCase()}`]) }} {{ measurement.unit }}</p>
+        <p><strong>Rango:</strong> {{ formatValue(device?.buffer_stats?.[`min_${measurement.ref.toLowerCase()}`]) }} {{ measurement.unit }} - {{ formatValue(device?.buffer_stats?.[`max_${measurement.ref.toLowerCase()}`]) }} {{ measurement.unit }}</p>
       </ion-card-content>
     </ion-card>
 
@@ -77,7 +77,7 @@ const formatValue = (value) => {
 const getMeasurementStatusText = () => {
   if (!props.device?.buffer_stats || !props.measurement) return 'N.A'
   
-  const measurementKey = props.measurement.unit.toLowerCase()
+  const measurementKey = props.measurement.ref.toLowerCase()
   const currentValue = props.device.buffer_stats[`current_${measurementKey}`] || 
                        props.device.buffer_stats[`avg_${measurementKey}`] || 0
   

@@ -202,6 +202,7 @@ export const icons = {
   'bookmark': bookmarkOutline,
   'analytics': analyticsOutline,
   'package': packageOutline,
+  
 
   // Hardware icons
   'hardwareChip': hardwareChipOutline,
