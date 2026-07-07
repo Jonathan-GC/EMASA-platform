@@ -5,7 +5,7 @@ from .serializers import (
     CustomTokenRefreshSerializer,
     LogEntrySerializer,
 )
-from .models import User
+from .models import User, OAuthAccount
 from roles.permissions import HasPermission
 from auditlog.models import LogEntry
 
@@ -21,18 +21,25 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt, ensure_csrf_
 from django.middleware.csrf import CsrfViewMiddleware
 from datetime import timedelta
 from functools import wraps
+import urllib.parse
+
+import requests as http_requests
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.utils import (
+    extend_schema_view,
+    extend_schema,
+    OpenApiExample,
+    OpenApiResponse,
+)
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample
 
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -386,57 +393,264 @@ class LogoutView(APIView):
         return response
 
 
-class GoogleLoginView(APIView):
+def _resolve_redirect_uri(value):
+    """
+    Validate and return a redirect_uri against the server's allow-list.
+
+    Returns the sanitised URI on success, or ``None`` when *value* is
+    empty/``None`` (the caller should fall back to the default).
+    Raises ``ValueError`` if *value* is not in the allowed set.
+    """
+    if not value:
+        return None
+    allowed = settings.GOOGLE_ALLOWED_REDIRECT_URIS
+    if value not in allowed:
+        raise ValueError(f"redirect_uri is not allowed: {value!r}")
+    return value
+
+
+class GoogleLoginUrlView(APIView):
+    """
+    Returns the Google OAuth2 authorization URL for the frontend
+    to redirect the user to.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Google OAuth2 authorization URL",
+        description=(
+            "Returns the Google OAuth2 consent-page URL that the frontend "
+            "should redirect the user to.  The URL includes the required "
+            "`client_id`, `redirect_uri`, `response_type=code` and `scope` "
+            "parameters.\n\n"
+            "An optional **query parameter** ``?redirect_uri=…`` can be "
+            "supplied to override the default web callback.  The value must "
+            "be listed in ``GOOGLE_ALLOWED_REDIRECT_URIS``."
+        ),
+        parameters=[
+            {
+                "name": "redirect_uri",
+                "in_": "query",
+                "description": (
+                    "Optional override for the OAuth redirect URI. "
+                    "Must belong to ``GOOGLE_ALLOWED_REDIRECT_URIS``."
+                ),
+                "schema": {"type": "string"},
+            }
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="Authorization URL ready for redirect.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(
+                description="The supplied `redirect_uri` is not allowed.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            501: OpenApiResponse(
+                description="Google OAuth is not configured on this server.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+        examples=[
+            OpenApiExample(
+                "Success (web fallback)",
+                value={
+                    "url": "https://accounts.google.com/o/oauth2/v2/auth"
+                    "?client_id=xxx&redirect_uri=http://localhost:5173/auth/callback"
+                    "&response_type=code&scope=openid+email+profile"
+                    "&access_type=offline&prompt=consent"
+                },
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Success (native app)",
+                value={
+                    "url": "https://accounts.google.com/o/oauth2/v2/auth"
+                    "?client_id=xxx&redirect_uri=com.example.app%3A%2Foauth2redirect"
+                    "&response_type=code&scope=openid+email+profile"
+                    "&access_type=offline&prompt=consent"
+                },
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Invalid redirect_uri",
+                value={"detail": "redirect_uri is not allowed: ..."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Not configured",
+                value={"detail": "Google OAuth is not configured."},
+                response_only=True,
+                status_codes=["501"],
+            ),
+        ],
+    )
+    def get(self, request):
+        if not settings.GOOGLE_CLIENT_ID:
+            return Response(
+                {"detail": "Google OAuth is not configured."},
+                status=status.HTTP_501_NOT_IMPLEMENTED,
+            )
+
+        raw_uri = request.query_params.get("redirect_uri")
+        try:
+            resolved = _resolve_redirect_uri(raw_uri)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+
+        params = {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": settings.GOOGLE_SCOPE,
+            "access_type": "offline",
+            "prompt": "consent",
+        }
+        url = f"{settings.GOOGLE_AUTH_URL}?{urllib.parse.urlencode(params)}"
+        return Response({"url": url})
+
+
+class GoogleCallbackView(APIView):
+    """
+    Handles the Google OAuth2 callback.
+    Exchanges the authorization code for tokens, then logs the user in
+    or creates a new account with a linked OAuthAccount.
+    """
+
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Google OAuth2 Login",
+        summary="Google OAuth2 callback",
+        description=(
+            "Exchanges the authorization `code` the frontend received from "
+            "Google for an ID token, validates it, and either logs the user "
+            "in (if a matching `OAuthAccount` exists) or creates a brand-new "
+            "account.\n\n"
+            "If an account with the same email **already exists** but has no "
+            "linked Google identity the endpoint returns **409 Conflict** — "
+            "the user must log in with their password and link the Google "
+            "account via the `auth/google/link/` endpoint."
+        ),
         request={
             "application/json": {
                 "type": "object",
-                "properties": {"id_token": {"type": "string"}},
-                "required": ["id_token"],
+                "properties": {
+                    "code": {"type": "string"},
+                    "redirect_uri": {
+                        "type": "string",
+                        "description": (
+                            "Optional.  The redirect URI that was used to "
+                            "obtain the authorization code.  Must belong to "
+                            "``GOOGLE_ALLOWED_REDIRECT_URIS``.  Defaults to "
+                            "the web ``GOOGLE_REDIRECT_URI`` if omitted."
+                        ),
+                    },
+                },
+                "required": ["code"],
             }
+        },
+        responses={
+            200: OpenApiResponse(
+                description=(
+                    "Authentication successful.  Returns a short-lived JWT "
+                    "`access` token in the response body and sets a long-lived "
+                    "refresh token in an HTTP-only cookie."
+                ),
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(
+                description=(
+                    "Missing `code`, invalid payload, unsupported "
+                    "`redirect_uri`, or token exchange failure."
+                ),
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description="Invalid ID token, audience, or issuer.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            409: OpenApiResponse(
+                description=(
+                    "An account with this email already exists but has no "
+                    "linked Google identity.  The frontend should prompt the "
+                    "user to log in and link their account."
+                ),
+                response=OpenApiTypes.OBJECT,
+            ),
         },
         examples=[
             OpenApiExample(
-                "Google OAuth2 Login Example",
-                value={"id_token": "string"},
+                "Request body — web",
+                value={"code": "4/0AanRRr..."},
                 request_only=True,
-            )
+            ),
+            OpenApiExample(
+                "Request body — native app",
+                value={"code": "4/0AanRRr...", "redirect_uri": ""},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Success — tokens issued",
+                value={"access": "eyJhbGciOiJIUzI1NiIs..."},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Missing code",
+                value={"detail": "Authorization code is required."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Invalid ID token",
+                value={"detail": "Invalid token."},
+                response_only=True,
+                status_codes=["401"],
+            ),
+            OpenApiExample(
+                "Email already exists",
+                value={
+                    "detail": (
+                        "An account with this email already exists. "
+                        "Please log in with your password and link your "
+                        "Google account in settings."
+                    ),
+                    "code": "email_exists",
+                    "email": "user@example.com",
+                },
+                response_only=True,
+                status_codes=["409"],
+            ),
         ],
     )
     def post(self, request):
-        token = request.data.get("id_token")
-        if not token:
+        code = request.data.get("code")
+        if not code:
             return Response(
-                {"detail": "ID token is required."},
+                {"detail": "Authorization code is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        raw_uri = request.data.get("redirect_uri")
         try:
-            idinfo = id_token.verify_oauth2_token(token, requests.Request())
+            resolved = _resolve_redirect_uri(raw_uri)
         except ValueError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
 
-        if idinfo["aud"] != settings.GOOGLE_CLIENT_ID:
-            return Response(
-                {"detail": "Invalid audience."}, status=status.HTTP_401_UNAUTHORIZED
-            )
-        if idinfo.get("iss") not in [settings.GOOGLE_ISS, "accounts.google.com"]:
-            return Response(
-                {"detail": "Invalid issuer."}, status=status.HTTP_401_UNAUTHORIZED
-            )
+        idinfo = self._exchange_and_verify(code, redirect_uri)
+        if isinstance(idinfo, Response):
+            return idinfo
 
         email = idinfo.get("email")
-        base_username = email.split("@")[0]
-        username = base_username
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{base_username}_{counter}"
-            counter += 1
-
         sub = idinfo.get("sub")
 
         if not email or not sub:
@@ -445,21 +659,119 @@ class GoogleLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user, created = User.objects.get_or_create(
+        try:
+            oauth_account = OAuthAccount.objects.get(
+                provider="google", provider_user_id=sub
+            )
+            user = oauth_account.user
+        except OAuthAccount.DoesNotExist:
+            try:
+                existing_user = User.objects.get(email=email)
+                return Response(
+                    {
+                        "detail": (
+                            "An account with this email already exists. "
+                            "Please log in with your password and link your "
+                            "Google account in settings."
+                        ),
+                        "code": "email_exists",
+                        "email": email,
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+            except User.DoesNotExist:
+                user = self._create_user_from_google(idinfo, sub, email)
+
+        if not user.is_active:
+            user.is_active = True
+            user.save()
+
+        return self._issue_tokens(user)
+
+    def _exchange_and_verify(self, code, redirect_uri):
+        token_data = {
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_SECRET,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }
+
+        try:
+            token_response = http_requests.post(
+                settings.GOOGLE_TOKEN_URL,
+                data=token_data,
+                timeout=10,
+            )
+            token_response.raise_for_status()
+            token_json = token_response.json()
+        except Exception as e:
+            logger.error(f"Google token exchange failed: {e}")
+            return Response(
+                {"detail": "Failed to exchange authorization code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        google_id_token = token_json.get("id_token")
+        if not google_id_token:
+            return Response(
+                {"detail": "No ID token received from Google."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                google_id_token, requests.Request()
+            )
+        except ValueError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if idinfo["aud"] != settings.GOOGLE_CLIENT_ID:
+            return Response(
+                {"detail": "Invalid audience."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        if idinfo.get("iss") not in [settings.GOOGLE_ISS, "accounts.google.com"]:
+            return Response(
+                {"detail": "Invalid issuer."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        return idinfo
+
+    def _create_user_from_google(self, idinfo, sub, email):
+        base_username = email.split("@")[0]
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}_{counter}"
+            counter += 1
+
+        user = User.objects.create(
             username=username,
-            defaults={
-                "email": email,
-                "sub": sub,
-                "name": idinfo.get("given_name", ""),
-                "last_name": idinfo.get("family_name", ""),
-                "is_active": True,
-            },
+            email=email,
+            name=idinfo.get("given_name", ""),
+            last_name=idinfo.get("family_name", ""),
+            is_active=True,
+        )
+        user.set_unusable_password()
+        user.save()
+
+        OAuthAccount.objects.create(
+            user=user,
+            provider="google",
+            provider_user_id=sub,
+            email=email,
         )
 
-        if created:
-            assign_new_user_base_permissions(user)
+        assign_new_user_base_permissions(user)
+        return user
 
-        refresh = RefreshToken.for_user(user)
+    def _issue_tokens(self, user):
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
         access = str(refresh.access_token)
 
         refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
@@ -468,7 +780,6 @@ class GoogleLoginView(APIView):
         max_age = int(refresh_lifetime.total_seconds())
 
         response = Response({"access": access}, status=status.HTTP_200_OK)
-
         response.set_cookie(
             key=REFRESH_COOKIE_NAME,
             value=refresh,
@@ -479,6 +790,197 @@ class GoogleLoginView(APIView):
             path=REFRESH_COOKIE_PATH,
         )
         return response
+
+
+class GoogleLinkView(APIView):
+    """
+    Allows an authenticated user to link their Google account.
+    Accepts an authorization code, verifies it, and creates an
+    OAuthAccount tied to the current user.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(csrf_protect)
+    @extend_schema(
+        summary="Link a Google account",
+        description=(
+            "Exchanges a Google authorization `code` for an ID token, "
+            "validates it, and attaches a new `OAuthAccount` record to the "
+            "**currently authenticated user**.\n\n"
+            "Use this after the user logs in with their password and wants "
+            "to link their Google identity for future OAuth logins.  If the "
+            "Google account is already linked to *another* user a **409 "
+            "Conflict** is returned."
+        ),
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "code": {"type": "string"},
+                    "redirect_uri": {
+                        "type": "string",
+                        "description": (
+                            "Optional.  The redirect URI that was used to "
+                            "obtain the authorization code.  Must belong to "
+                            "``GOOGLE_ALLOWED_REDIRECT_URIS``.  Defaults to "
+                            "the web ``GOOGLE_REDIRECT_URI`` if omitted."
+                        ),
+                    },
+                },
+                "required": ["code"],
+            }
+        },
+        responses={
+            200: OpenApiResponse(
+                description="Account linked successfully.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(
+                description=(
+                    "Missing `code`, invalid payload, unsupported "
+                    "`redirect_uri`, or token exchange failure."
+                ),
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description=(
+                    "Invalid ID token, audience, or issuer — or the request "
+                    "is not authenticated."
+                ),
+                response=OpenApiTypes.OBJECT,
+            ),
+            409: OpenApiResponse(
+                description="This Google account is already linked to another user.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+        examples=[
+            OpenApiExample(
+                "Request body — web",
+                value={"code": "4/0AanRRr..."},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Request body — native app",
+                value={"code": "4/0AanRRr...", "redirect_uri": ""},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Success",
+                value={"detail": "Google account linked successfully."},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Missing code",
+                value={"detail": "Authorization code is required."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Already linked",
+                value={
+                    "detail": "This Google account is already linked to another user."
+                },
+                response_only=True,
+                status_codes=["409"],
+            ),
+        ],
+    )
+    def post(self, request):
+        code = request.data.get("code")
+        if not code:
+            return Response(
+                {"detail": "Authorization code is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        raw_uri = request.data.get("redirect_uri")
+        try:
+            resolved = _resolve_redirect_uri(raw_uri)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+
+        token_data = {
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_SECRET,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }
+
+        try:
+            token_response = http_requests.post(
+                settings.GOOGLE_TOKEN_URL,
+                data=token_data,
+                timeout=10,
+            )
+            token_response.raise_for_status()
+            token_json = token_response.json()
+        except Exception as e:
+            logger.error(f"Google token exchange failed during link: {e}")
+            return Response(
+                {"detail": "Failed to exchange authorization code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        google_id_token = token_json.get("id_token")
+        if not google_id_token:
+            return Response(
+                {"detail": "No ID token received from Google."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                google_id_token, requests.Request()
+            )
+        except ValueError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if idinfo["aud"] != settings.GOOGLE_CLIENT_ID:
+            return Response(
+                {"detail": "Invalid audience."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        if idinfo.get("iss") not in [settings.GOOGLE_ISS, "accounts.google.com"]:
+            return Response(
+                {"detail": "Invalid issuer."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        sub = idinfo.get("sub")
+        email = idinfo.get("email")
+
+        if not sub or not email:
+            return Response(
+                {"detail": "Invalid token payload."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if OAuthAccount.objects.filter(
+            provider="google", provider_user_id=sub
+        ).exists():
+            return Response(
+                {
+                    "detail": "This Google account is already linked to another user."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        OAuthAccount.objects.create(
+            user=request.user,
+            provider="google",
+            provider_user_id=sub,
+            email=email,
+        )
+
+        return Response({"detail": "Google account linked successfully."})
 
 
 class RegisterView(APIView):
