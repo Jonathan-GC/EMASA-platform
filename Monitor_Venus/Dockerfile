@@ -1,7 +1,10 @@
-# Multi-stage build para producción
-FROM node:20-alpine AS builder
+
+FROM node:22-alpine AS builder
 
 WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
 
 # Accept build arguments
 ARG VITE_WEBSOCKET_URL
@@ -14,18 +17,17 @@ ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_WS_NOTIFY_URL=$VITE_WS_NOTIFY_URL
 
 # Copy package files
-COPY package*.json ./
+COPY package*.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install dependencies (including devDependencies for build)
-RUN npm ci
+# Install dependencies and ensure build scripts (like esbuild) are allowed to run
+RUN pnpm config set ignore-scripts false && \
+    pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
-RUN chmod +x node_modules/.bin/vite
-
 # Build for production
-RUN npm run build
+RUN pnpm run build
 
 # Production stage
 FROM nginx:alpine
