@@ -332,10 +332,8 @@ def get_assignable_permissions(user, workspace, role):
     if not is_admin or role.name == "Sin rol":
         return assignable_permissions
 
-    group = role.group
-
-    if user and user.is_superuser:
-        group = get_global_admin_role_group() or group
+    target_group = role.group
+    admin_group = get_global_admin_role_group() if (user and user.is_superuser) else get_user_group(user)
 
     is_global_tenant = workspace.tenant == get_monitor_tenant()
 
@@ -373,17 +371,19 @@ def get_assignable_permissions(user, workspace, role):
             for action in allowed_actions:
                 codename = f"{action}_{model_name}"
 
-                # Check object-level permission
-                has = codename in get_perms(group, obj)
-
-                # Check global permission fallback
-                if not has:
-                    if group.permissions.filter(
+                assigned = codename in get_perms(target_group, obj) if target_group else False
+                if not assigned and target_group:
+                    assigned = target_group.permissions.filter(
                         content_type=ct, codename=codename
-                    ).exists():
-                        has = True
+                    ).exists()
 
-                perms_for_obj[codename] = has
+                can_assign = codename in get_perms(admin_group, obj) if admin_group else False
+                if not can_assign and admin_group:
+                    can_assign = admin_group.permissions.filter(
+                        content_type=ct, codename=codename
+                    ).exists()
+
+                perms_for_obj[codename] = {"assigned": assigned, "can_assign": can_assign}
 
             assignable_permissions["object"][model_name].append(
                 {
@@ -484,3 +484,38 @@ def bulk_assign_permissions(permissions, role):
                         )
 
     logger.info("Bulk permission changes processed.")
+
+
+def debug_assign_all_workspace_objects_permissions_to_group(workspace, group):
+    """
+    Debug function to assign all permissions for all objects in a workspace to a group.
+    This is useful for testing and debugging purposes.
+
+    Args:
+        workspace (Workspace): The workspace object containing the objects.
+        group (Group): The group to assign permissions to.
+    """
+
+    # Define the models and their corresponding app labels
+    object_models = {
+        "tenant": ("organizations", [workspace.tenant] if workspace.tenant else []),
+        "workspace": ("organizations", [workspace]),
+        "device": ("infrastructure", workspace.device_set.all()),
+        "gateway": ("infrastructure", workspace.gateway_set.all()),
+        "application": ("infrastructure", workspace.application_set.all()),
+        "machine": ("infrastructure", workspace.machine_set.all()),
+        "deviceprofile": ("chirpstack", workspace.deviceprofile_set.all()),
+        "apiuser": ("chirpstack", workspace.apiuser_set.all()),
+        "role": ("roles", workspace.role_set.all()),
+        "workspacemembership": ("roles", workspace.workspacemembership_set.all()),
+    }
+
+    # Assign all permissions for each model
+    for model_name, (app_label, queryset) in object_models.items():
+        ct = ContentType.objects.get(app_label=app_label, model=model_name)
+
+        for obj in queryset:
+            for action in ["view", "change", "delete"]:
+                codename = f"{action}_{model_name}"
+                assign_perm(codename, group, obj)
+                logger.debug(f"Assigned {codename} to {group.name} for {obj}")
