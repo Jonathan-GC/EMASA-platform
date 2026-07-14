@@ -71,7 +71,7 @@
                   </div>
                   <div class="item-permissions">
                     <ion-checkbox 
-                      v-for="(value, permKey) in item.permissions" 
+                      v-for="([permKey, permValue]) in Object.entries(item.permissions).filter(([_, v]) => v.can_assign)" 
                       :key="permKey"
                       :checked="isPermissionChecked(category.key, item.id, permKey)"
                       @ionChange="(e) => togglePermission(category.key, item.id, permKey, e.detail.checked)"
@@ -229,7 +229,7 @@ const isPermissionChecked = (categoryKey, itemId, permissionType) => {
   if (!item || !item.permissions) return false
   
   // Return the API value (true if permission is assignable)
-  return item.permissions[permissionType] === true
+  return item.permissions[permissionType]?.assigned === true
 }
 
 // Helper to toggle permission
@@ -305,7 +305,7 @@ const initializePermissions = () => {
       if (!item.permissions) continue
       
       for (const [permKey, value] of Object.entries(item.permissions)) {
-        if (value === true) {
+        if (value?.assigned === true) {
           const key = getPermissionKey(categoryKey, item.id, permKey)
           permissions.value[key] = true
         }
@@ -343,7 +343,7 @@ const savePermissions = async () => {
         for (const [permKey, apiValue] of Object.entries(item.permissions)) {
           // Get current value using the same logic as the UI
           const currentValue = isPermissionChecked(categoryKey, item.id, permKey)
-          const initialValue = apiValue === true
+          const initialValue = apiValue?.assigned === true
           
           console.log(`📊 ${categoryKey}.${item.id}.${permKey}: current=${currentValue}, initial=${initialValue}`)
           
