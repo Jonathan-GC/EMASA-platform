@@ -8,7 +8,6 @@ Monitor Hermes supports both **WS** (unsecured WebSocket) and **WSS** (WebSocket
 
 All endpoints support both WS and WSS protocols:
 
-- `/ws/notifications` - Personal notifications channel
 - `/ws` - General/Legacy WebSocket endpoint
 - `/ws/tenant/{id}` - Tenant-specific dashboard
 - `/ws/device/{id}` - Device-specific monitoring
@@ -107,7 +106,7 @@ import ssl
 
 async def connect_wss():
     # For production with valid certificates
-    uri = "wss://your-domain.com/ws/notifications?token=YOUR_JWT_TOKEN"
+    uri = "wss://your-domain.com/ws?token=YOUR_JWT_TOKEN"
     async with websockets.connect(uri) as websocket:
         message = await websocket.recv()
         print(f"Received: {message}")

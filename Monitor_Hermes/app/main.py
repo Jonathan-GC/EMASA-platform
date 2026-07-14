@@ -25,7 +25,6 @@ import loguru
 import asyncio
 from datetime import datetime, timezone
 from typing import Optional
-from app.ws.helpers import notify_user
 from app.auth.deps import verify_service_api_key
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -100,30 +99,6 @@ async def get_measurements_history(
         f"Fetching history for {dev_eui} ({measurement_type}) from {start} to {end}"
     )
     return await aggregations(db, dev_eui, measurement_type, start, end, steps, channel)
-
-
-@app.post("/notify")
-async def notify_user_endpoint(
-    user_id: str,
-    title: str,
-    message: str,
-    type: str = "info",
-    _: bool = Depends(verify_service_api_key),
-):
-    """
-    Send a notification to a user via WebSocket.
-
-    This endpoint allows external services to send notifications to users.
-    Requires SERVICE_API_KEY authentication via X-API-Key header.
-    """
-    loguru.logger.debug(f"Notifying user {user_id}: {message}")
-
-    success = await notify_user(user_id, title, message, type)
-
-    if success:
-        return {"status": "success", "sent": True}
-    else:
-        return {"status": "error", "sent": False}
 
 
 @app.post("/internal/mappings/device-user")
