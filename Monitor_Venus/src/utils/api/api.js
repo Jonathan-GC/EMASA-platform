@@ -165,7 +165,11 @@ class API {
 
     //----[NOTIFICATION]----
     MY_NOTIFICATIONS = 'support/notification/my_notifications/'
-    
+    REGISTER_DEVICE = 'notifications/devices/register/'
+    MY_DEVICES = 'notifications/devices/'
+    UNREGISTER_DEVICE(deviceId) {
+        return `notifications/devices/${deviceId}/unregister/`
+    }
 
     //----[SUPPORT]----
     SUPPORT_TICKET = 'support/ticket/'

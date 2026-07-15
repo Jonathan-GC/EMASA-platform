@@ -4,7 +4,6 @@ from .models import (
     Comment,
     Attachment,
     CommentAttachment,
-    Notification,
     SupportMembership,
 )
 from .serializers import (
@@ -12,15 +11,10 @@ from .serializers import (
     CommentSerializer,
     AttachmentSerializer,
     CommentAttachmentSerializer,
-    NotificationSerializer,
     SupportMembershipSerializer,
     TicketConversationSerializer,
 )
-from guardian.shortcuts import get_users_with_perms
 
-from roles.permissions import IsServiceOrHasPermission
-
-from infrastructure.models import Device
 from users.models import User
 
 from rest_framework.decorators import action
@@ -51,138 +45,7 @@ from users.emails import (
 from users.jwt import generate_token
 
 from .helpers import is_support_member
-
-
-@extend_schema_view(
-    list=extend_schema(description="Notification List"),
-    create=extend_schema(description="Notification Create"),
-    retrieve=extend_schema(description="Notification Retrieve"),
-    update=extend_schema(description="Notification Update"),
-    partial_update=extend_schema(description="Notification Partial Update"),
-    destroy=extend_schema(description="Notification Destroy"),
-    notify_user=extend_schema(description="Notify user via WebSocket"),
-    my_notifications=extend_schema(description="Get user's notifications"),
-    mark_as_read=extend_schema(description="Mark notification as read"),
-    alert=extend_schema(
-        description="Alert",
-        examples=[
-            OpenApiExample(
-                "Alert Example",
-                summary="Alert Example",
-                description="Example payload for sending an alert notification.",
-                value={
-                    "title": "Device Offline",
-                    "message": "The device with ID 12345 has gone offline.",
-                    "type": "error",
-                    "device_id": 1,
-                },
-                request_only=True,
-                response_only=False,
-            )
-        ],
-    ),
-)
-class NotificationViewSet(viewsets.ModelViewSet):
-    queryset = Notification.objects.all()
-    serializer_class = NotificationSerializer
-
-    @action(
-        detail=True,
-        methods=["post"],
-        description="Notify user via WebSocket",
-    )
-    def notify_user(self, request, pk=None):
-        notification = self.get_object()
-        try:
-            notification.notify_ws()
-        except Exception as e:
-            logger.error(f"Failed to notify user: {e}")
-            return Response({"status": "failed", "error": str(e)}, status=500)
-
-        return Response({"status": "notified"})
-
-    @action(
-        detail=False,
-        methods=["get"],
-        description="Get user's notifications",
-    )
-    def my_notifications(self, request):
-        user = request.user
-        notifications = Notification.objects.filter(user=user).order_by("-created_at")
-        page = self.paginate_queryset(notifications)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(notifications, many=True)
-        return Response(serializer.data)
-
-    @action(
-        detail=True,
-        methods=["post"],
-        description="Mark notification as read",
-    )
-    def mark_as_read(self, request, pk=None):
-        notification = self.get_object()
-        try:
-            notification.mark_as_read()
-        except Exception as e:
-            logger.error(f"Failed to mark notification as read: {e}")
-            return Response({"status": "failed", "error": str(e)}, status=500)
-
-        return Response({"status": "marked_as_read"})
-
-    @action(
-        detail=False,
-        methods=["post"],
-        description="Alert",
-        permission_classes=[IsServiceOrHasPermission],
-    )
-    def alert(self, request):
-        required_fields = ["title", "message", "type", "dev_eui"]
-        data = request.data
-        device = Device.objects.filter(dev_eui=data.get("dev_eui")).first()
-        if not device:
-            logger.error(f"Device with ID {data.get('dev_eui')} not found.")
-            return Response({"error": "Device not found."}, status=404)
-
-        users = get_users_with_perms(device, only_with_perms_in=["view_device"])
-        superuser = User.objects.filter(is_superuser=True).first()
-        if not users and not superuser:
-            logger.error(
-                f"No users found with permission to view device with ID {data.get('device_id')}."
-            )
-            return Response(
-                {"error": "No users found with permission to view this device."},
-                status=404,
-            )
-        for user in users:
-            notification = Notification.objects.create(
-                title=data.get("title"),
-                message=data.get("message"),
-                type=data.get("type"),
-                user=user,
-            )
-            notification.save()
-            try:
-                notification.notify_ws()
-            except Exception as e:
-                logger.error(f"Failed to notify user {user.id}: {e}")
-
-        if superuser and superuser not in users:
-            notification = Notification.objects.create(
-                title=data.get("title"),
-                message=data.get("message"),
-                type=data.get("type"),
-                user=superuser,
-            )
-            notification.save()
-            try:
-                notification.notify_ws()
-            except Exception as e:
-                logger.error(f"Failed to notify superuser {superuser.id}: {e}")
-
-        return Response({"status": "alert_sent"}, status=200)
+from notifications.engine import NotificationsEngine
 
 
 @extend_schema_view(
@@ -231,13 +94,13 @@ class TicketViewSet(viewsets.ModelViewSet):
         else:
             ticket_body = f"Ticket {ticket_number} has been submitted."
 
-        notification = Notification.objects.create(
+        NotificationsEngine.send_notification(
+            users=[user],
             title="New Ticket Submitted",
             message=ticket_body,
             type="warning",
-            user=user,
+            topic="updates",
         )
-        notification.notify_ws()
 
         if not ticket.user_id:
             token = generate_token(
@@ -321,14 +184,13 @@ class TicketViewSet(viewsets.ModelViewSet):
             ticket.assigned_to = assigned_user
             ticket.is_read = False
             ticket.save()
-            notification = Notification.objects.create(
+            NotificationsEngine.send_notification(
+                users=[assigned_user],
                 title="New Ticket Assignment",
                 message=f"The ticket '{ticket.title}' has been delegated to you.",
                 type="info",
-                user=assigned_user,
+                topic="updates",
             )
-            notification.save()
-            notification.notify_ws()
             return Response({"status": "ticket_delegated"})
 
         except User.DoesNotExist:

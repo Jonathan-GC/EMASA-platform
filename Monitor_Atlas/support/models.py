@@ -1,12 +1,7 @@
 from django.db import models
 from users.models import User
-import requests
-from django.conf import settings
-from loguru import logger
 import uuid
 from organizations.hasher import generate_id
-
-HERMES_API_URL = getattr(settings, "HERMES_API_URL", "http://localhost:5000")
 
 SUPPORT_MEMBERSHIP_ROLE_CHOICES = [
     ("support_agent", "Support Agent"),
@@ -27,13 +22,6 @@ STATUS_CHOICES = [
     ("in_progress", "In Progress"),
     ("resolved", "Resolved"),
     ("closed", "Closed"),
-]
-
-NOTIFICATION_TYPE_CHOICES = [
-    ("info", "Info"),
-    ("warning", "Warning"),
-    ("error", "Error"),
-    ("success", "Success"),
 ]
 
 CATEGORY_CHOICES = [
@@ -213,51 +201,6 @@ class CommentAttachment(models.Model):
 
     def __str__(self):
         return self.file.name
-
-
-class Notification(models.Model):
-    id = models.CharField(
-        max_length=16, primary_key=True, default=generate_id, editable=False
-    )
-    title = models.CharField(max_length=200, default="Notification")
-    message = models.TextField()
-    type = models.CharField(
-        max_length=20, choices=NOTIFICATION_TYPE_CHOICES, default="info"
-    )
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def mark_as_read(self):
-        self.is_read = True
-        self.save()
-
-    def notify_ws(self):
-        logger.debug("Sending WebSocket notification via Hermes")
-
-        url = f"{HERMES_API_URL}/notify"
-        headers = {"X-API-Key": getattr(settings, "SERVICE_API_KEY", "")}
-
-        params = {
-            "user_id": self.user.id,
-            "title": self.title,
-            "message": self.message,
-            "type": self.type,
-        }
-
-        try:
-            logger.debug(f"Notification params: {params} to {url}")
-            response = requests.post(url, params=params, headers=headers, timeout=5)
-            response.raise_for_status()
-            logger.debug(
-                f"WebSocket notification sent: {response.status_code} - {response.text}"
-            )
-        except requests.RequestException as e:
-            logger.error(f"Failed to send notification via WebSocket: {e}")
-
-    def __str__(self):
-        return self.title
 
 
 from auditlog.registry import auditlog

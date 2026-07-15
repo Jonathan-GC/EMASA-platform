@@ -18,14 +18,13 @@ from app.redis.redis import connect_to_redis, close_redis_connection
 from app.workers.redis_worker import process_messages
 from app.workers.alert_retry_worker import retry_pending_alerts
 from app.persistence.models import MessageIn, DeviceUserMapping
-from app.persistence.device_mapping import update_device_user_mapping_cache
+from app.persistence.device_mapping import get_device_user_mapping_from_atlas, update_device_user_mapping_cache
 from app.validation.measurement_cache import force_refresh_measurement_configs
 from app.mqtt.client import start_mqtt
 import loguru
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-from app.ws.helpers import notify_user
 from app.auth.deps import verify_service_api_key
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -102,51 +101,37 @@ async def get_measurements_history(
     return await aggregations(db, dev_eui, measurement_type, start, end, steps, channel)
 
 
-@app.post("/notify")
-async def notify_user_endpoint(
-    user_id: str,
-    title: str,
-    message: str,
-    type: str = "info",
-    _: bool = Depends(verify_service_api_key),
-):
-    """
-    Send a notification to a user via WebSocket.
-
-    This endpoint allows external services to send notifications to users.
-    Requires SERVICE_API_KEY authentication via X-API-Key header.
-    """
-    loguru.logger.debug(f"Notifying user {user_id}: {message}")
-
-    success = await notify_user(user_id, title, message, type)
-
-    if success:
-        return {"status": "success", "sent": True}
-    else:
-        return {"status": "error", "sent": False}
-
-
 @app.post("/internal/mappings/device-user")
 async def update_device_user_mapping_endpoint(
-    mapping: DeviceUserMapping,
+    dev_eui: str,
     db=Depends(get_db),
     _: bool = Depends(verify_service_api_key),
 ):
     """
-    Update device-user mapping in cache and database.
+    Refresh and retrieve device-user mapping via hybrid cache.
 
-    This endpoint is called by external services (e.g. Atlas) when
+    Fetches the mapping from Redis -> MongoDB -> Atlas API cascade,
+    updating the cache at each level. Called by external services when
     a device is assigned or unassigned from a user.
     Requires SERVICE_API_KEY authentication.
     """
     try:
-        await update_device_user_mapping_cache(db, mapping)
+        mapping = await get_device_user_mapping_from_atlas(db, dev_eui)
+        if not mapping:
+            mapping = DeviceUserMapping(
+                dev_eui=dev_eui,
+                tenant_id="",
+                assigned_users=[],
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            )
+            await update_device_user_mapping_cache(db, mapping)
         return {
             "status": "success",
-            "message": f"Mapping updated for {mapping.dev_eui}",
+            "mapping": mapping.model_dump(),
         }
     except Exception as e:
-        loguru.logger.exception(f"Failed to update mapping for {mapping.dev_eui}: {e}")
+        loguru.logger.exception(f"Failed to get mapping for {dev_eui}: {e}")
         return {"status": "error", "message": str(e)}
 
 
