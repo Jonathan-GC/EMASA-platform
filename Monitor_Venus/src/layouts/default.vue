@@ -21,8 +21,8 @@ import { createAnimation } from '@ionic/vue'
 
 /**
  * Initialize global notification system
- * - WebSocket connection persists across all routes
- * - Available to all child components via inject('notifications')
+ * - Provides notification display helpers (showNotification, etc.) to all child components
+ * - Available via inject('notifications')
  */
 const notificationSystem = useNotifications()
 provide('notifications', notificationSystem)
