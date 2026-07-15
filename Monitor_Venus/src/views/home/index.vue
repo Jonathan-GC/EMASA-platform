@@ -325,7 +325,6 @@
 import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore.js'
-import { useNotifications } from '@/composables/useNotifications.js'
 import API from '@/utils/api/api.js'
 import { paths as P } from '@/plugins/router/paths.js'
 
@@ -338,7 +337,6 @@ import { statsChartOutline, timeOutline, serverOutline, peopleOutline, mailOutli
 const router = useRouter()
 const authStore = useAuthStore()
 const icons = inject('icons', {})
-const { connectionStatus, connect, disconnect } = useNotifications()
 
 // Recent Activity from API (Audit logs)
 const serverActivity = ref([])
@@ -493,18 +491,11 @@ const platformLabel = computed(() => {
   return 'Unknown Platform'
 })
 
-// System status based on notification connection
-const systemStatus = computed(() => {
-  if (connectionStatus.value === 'connected') return 'All Systems Operational'
-  if (connectionStatus.value === 'connecting') return 'Connecting...'
-  return 'Connection Lost'
-})
+// System status — FCM push notifications replaced the WebSocket connection,
+// so the "connected" state is always assumed.
+const systemStatus = computed(() => 'All Systems Operational')
 
-const systemStatusColor = computed(() => {
-  if (connectionStatus.value === 'connected') return 'success'
-  if (connectionStatus.value === 'connecting') return 'warning'
-  return 'danger'
-})
+const systemStatusColor = computed(() => 'success')
 
 // Real-time metrics from API
 const metrics = ref([
@@ -691,10 +682,7 @@ const navigateTo = (path) => {
 onMounted(async () => {
   isMounted.value = true
   pageReady.value = true
-  
-  // Connect to notification WebSocket
-  connect()
-  
+
   // Fetch real metrics
   await fetchMetrics()
   
@@ -709,7 +697,6 @@ onMounted(async () => {
   onUnmounted(() => {
     isMounted.value = false
     clearInterval(metricsInterval)
-    disconnect()
   })
 })
 

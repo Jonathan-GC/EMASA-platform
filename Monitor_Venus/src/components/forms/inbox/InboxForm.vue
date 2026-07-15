@@ -537,7 +537,7 @@ function handleSortBy(field) { sortField.value = field; }
 function toggleSortDirection() { sortAscending.value = !sortAscending.value; }
 
 // WebSocket notifications: refresh tickets when any notification arrives
-const { notifications, isConnected, connectionStatus } = useNotifications();
+const { notifications, isConnected, reconnectAttempts } = useNotifications();
 let refreshTimeout = null;
 watch(() => notifications.value[0], () => {
   // Debounce: refresh 700ms after last notification

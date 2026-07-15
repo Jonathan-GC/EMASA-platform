@@ -8,7 +8,7 @@ const isNative = Capacitor.isNativePlatform()
 
 const fcmToken = ref(null)
 const deviceId = ref(localStorage.getItem('push_device_id') || null)
-const isRegistered = ref(false)
+const isRegistered = ref(!!localStorage.getItem('push_device_id'))
 
 function persistDeviceId(id) {
   deviceId.value = id
@@ -43,8 +43,8 @@ export async function registerPush() {
     return false
   }
 
-  if (isRegistered.value) {
-    console.log('Push already registered')
+  if (isRegistered.value && deviceId.value) {
+    console.log('Push already registered, device:', deviceId.value)
     return true
   }
 
