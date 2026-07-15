@@ -27,6 +27,7 @@
     "@capacitor/haptics": "^7.0.1",
     "@capacitor/ios": "^7.4.0",
     "@capacitor/local-notifications": "^7.0.1",
+    "@capacitor/push-notifications": "^8.1.1",
     "@capacitor/share": "^7.0.4",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@ionic/vue": "^8.6.2",

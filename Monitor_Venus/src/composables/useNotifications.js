@@ -243,7 +243,7 @@ export function useNotifications() {
         }
 
         await requestNotificationPermission();
-        connect();
+        // connect(); // Disabled: replaced by Firebase Cloud Messaging
     });
 
     onUnmounted(() => {
