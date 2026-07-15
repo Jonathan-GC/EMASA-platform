@@ -521,7 +521,7 @@ class GoogleCallbackView(APIView):
     """
     Handles the Google OAuth2 callback.
     Exchanges the authorization code for tokens, then logs the user in
-    or creates a new account with a linked OAuthAccount.
+    only if a matching OAuthAccount exists.
     """
 
     permission_classes = [AllowAny]
@@ -531,13 +531,13 @@ class GoogleCallbackView(APIView):
         summary="Google OAuth2 callback",
         description=(
             "Exchanges the authorization `code` the frontend received from "
-            "Google for an ID token, validates it, and either logs the user "
-            "in (if a matching `OAuthAccount` exists) or creates a brand-new "
-            "account.\n\n"
-            "If an account with the same email **already exists** but has no "
-            "linked Google identity the endpoint returns **409 Conflict** — "
-            "the user must log in with their password and link the Google "
-            "account via the `auth/google/link/` endpoint."
+            "Google for an ID token, validates it, and logs the user in "
+            "**only if** a matching `OAuthAccount` exists.\n\n"
+            "Google authentication does **not** create new accounts — users "
+            "must register with email and password first, then link their "
+            "Google identity via `auth/google/link/`.  If no linked account "
+            "is found a **404 Not Found** is returned with the Google email "
+            "so the frontend can pre-fill the registration form."
         ),
         request={
             "application/json": {
@@ -577,11 +577,10 @@ class GoogleCallbackView(APIView):
                 description="Invalid ID token, audience, or issuer.",
                 response=OpenApiTypes.OBJECT,
             ),
-            409: OpenApiResponse(
+            404: OpenApiResponse(
                 description=(
-                    "An account with this email already exists but has no "
-                    "linked Google identity.  The frontend should prompt the "
-                    "user to log in and link their account."
+                    "No `OAuthAccount` is linked to this Google identity.  "
+                    "The user must register first and then link their account."
                 ),
                 response=OpenApiTypes.OBJECT,
             ),
@@ -616,18 +615,18 @@ class GoogleCallbackView(APIView):
                 status_codes=["401"],
             ),
             OpenApiExample(
-                "Email already exists",
+                "No linked account",
                 value={
                     "detail": (
-                        "An account with this email already exists. "
-                        "Please log in with your password and link your "
-                        "Google account in settings."
+                        "No account is linked to this Google identity. "
+                        "Please register with email and password first, "
+                        "then link your Google account in settings."
                     ),
-                    "code": "email_exists",
+                    "code": "no_linked_account",
                     "email": "user@example.com",
                 },
                 response_only=True,
-                status_codes=["409"],
+                status_codes=["404"],
             ),
         ],
     )
@@ -650,10 +649,9 @@ class GoogleCallbackView(APIView):
         if isinstance(idinfo, Response):
             return idinfo
 
-        email = idinfo.get("email")
         sub = idinfo.get("sub")
 
-        if not email or not sub:
+        if not sub:
             return Response(
                 {"detail": "Invalid token payload."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -665,22 +663,18 @@ class GoogleCallbackView(APIView):
             )
             user = oauth_account.user
         except OAuthAccount.DoesNotExist:
-            try:
-                existing_user = User.objects.get(email=email)
-                return Response(
-                    {
-                        "detail": (
-                            "An account with this email already exists. "
-                            "Please log in with your password and link your "
-                            "Google account in settings."
-                        ),
-                        "code": "email_exists",
-                        "email": email,
-                    },
-                    status=status.HTTP_409_CONFLICT,
-                )
-            except User.DoesNotExist:
-                user = self._create_user_from_google(idinfo, sub, email)
+            return Response(
+                {
+                    "detail": (
+                        "No account is linked to this Google identity. "
+                        "Please register with email and password first, "
+                        "then link your Google account in settings."
+                    ),
+                    "code": "no_linked_account",
+                    "email": idinfo.get("email"),
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         if not user.is_active:
             user.is_active = True
@@ -741,34 +735,6 @@ class GoogleCallbackView(APIView):
             )
 
         return idinfo
-
-    def _create_user_from_google(self, idinfo, sub, email):
-        base_username = email.split("@")[0]
-        username = base_username
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{base_username}_{counter}"
-            counter += 1
-
-        user = User.objects.create(
-            username=username,
-            email=email,
-            name=idinfo.get("given_name", ""),
-            last_name=idinfo.get("family_name", ""),
-            is_active=True,
-        )
-        user.set_unusable_password()
-        user.save()
-
-        OAuthAccount.objects.create(
-            user=user,
-            provider="google",
-            provider_user_id=sub,
-            email=email,
-        )
-
-        assign_new_user_base_permissions(user)
-        return user
 
     def _issue_tokens(self, user):
         refresh = CustomTokenObtainPairSerializer.get_token(user)

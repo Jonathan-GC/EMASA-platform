@@ -155,6 +155,7 @@ async def update_pending_alert_status(
 
 async def save_device_user_mapping(db, mapping: DeviceUserMapping):
     doc = mapping.model_dump()
+    doc.pop("created_at", None)
     now = datetime.now(timezone.utc)
 
     result = await db.device_user_mapping.update_one(
