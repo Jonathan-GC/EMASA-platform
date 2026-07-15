@@ -1,0 +1,24 @@
+[
+  {
+    "model": "infrastructure.device",
+    "pk": "0123456789023456",
+    "fields": {
+      "dev_eui": "095160bcd3430002",
+      "name": "Arduino",
+      "description": "Arduino Test Device: Voltaje, Corriente, Bateria",
+      "machine": "7890123456789023",
+      "workspace": "5f67890a1b2c3d4e",
+      "device_type": "2345678901234568",
+      "device_profile": "8901234567890234",
+      "application": "4567890123456781",
+      "is_disabled": true,
+      "last_seen_at": "2025-10-24T18:18:42.309Z",
+      "sync_status": "PENDING",
+      "sync_error": "",
+      "last_synced_at": "2025-10-27T15:31:18.459Z",
+      "enabled_activation": true,
+      "is_active": false,
+      "activation": "9012345678902345"
+    }
+  }
+]

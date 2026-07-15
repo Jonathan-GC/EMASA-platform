@@ -1,0 +1,40 @@
+services:
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - chirp-django-net
+    depends_on:
+      - frontend
+    env_file:
+      - .env
+
+
+  # Frontend Production Build
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_WEBSOCKET_URL= ${VITE_WEBSOCKET_URL}
+        - VITE_API_URL=${VITE_API_URL}
+    restart: unless-stopped
+    volumes:
+      - frontend-dist:/app/dist
+    networks:
+      - chirp-django-net
+    env_file:
+      - .env
+
+
+volumes:
+  frontend-dist:
+
+networks:
+  chirp-django-net:
+    external: true

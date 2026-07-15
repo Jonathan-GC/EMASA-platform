@@ -1,0 +1,218 @@
+from rest_framework import status, viewsets
+from rest_framework.exceptions import PermissionDenied, ValidationError
+
+from .permissions import HasPermission
+
+from django.db.models import Count
+from django.db import transaction
+
+from .serializers import (
+    RoleSerializer,
+    WorkspaceMembershipSerializer,
+)
+from .models import Role, WorkspaceMembership
+
+from drf_spectacular.utils import extend_schema_view, extend_schema
+from .helpers import (
+    assign_new_role_base_permissions,
+    assign_created_instance_permissions,
+    get_assignable_permissions,
+    bulk_assign_permissions,
+)
+
+from django.contrib.auth.models import Group
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from loguru import logger
+from guardian.shortcuts import get_objects_for_user
+
+from users.models import User
+from users.serializers import UserSerializer
+
+
+@extend_schema_view(
+    list=extend_schema(description="Role List"),
+    create=extend_schema(description="Role Create"),
+    retrieve=extend_schema(description="Role Retrieve"),
+    update=extend_schema(description="Role Update"),
+    partial_update=extend_schema(description="Role Partial Update"),
+    destroy=extend_schema(description="Role Destroy"),
+    get_all_permission_keys_by_role=extend_schema(
+        description="Get all permission keys by role ID"
+    ),
+)
+class RoleViewSet(viewsets.ModelViewSet):
+
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    permission_classes = [HasPermission]
+    scope = "role"
+
+    def get_queryset(self):
+        user = self.request.user
+        user_tenant = user.tenant
+
+        if user.is_superuser:
+            queryset = Role.objects.all()
+        else:
+            queryset = get_objects_for_user(user, "roles.view_role", Role).filter(
+                workspace__tenant=user_tenant
+            )
+
+        return queryset.annotate(users_count=Count("group__user"))
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        user_tenant = user.tenant
+
+        workspace = serializer.validated_data.get("workspace")
+        if workspace is None:
+            raise ValidationError({"workspace": "Workspace is required."})
+
+        role_tenant = workspace.tenant
+        if user_tenant != role_tenant and not user.is_superuser:
+            raise PermissionDenied(
+                "User does not have permission to create role for this tenant"
+            )
+
+        instance = serializer.save()
+
+        assign_new_role_base_permissions(instance, user)
+
+        if not instance.group:
+            group = Group.objects.create(
+                name=f"{instance.id}_{instance.name}_{instance.workspace.tenant.name}"
+            )
+            instance.group = group
+            instance.save()
+
+        logger.debug(
+            f"Assigned base role permissions to user {user.username} for role {instance.name}"
+        )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+
+        workspace = request.query_params.get("workspace")
+        if workspace:
+            queryset = queryset.filter(workspace__id=workspace)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    def get_assignable_permissions(self, request, pk=None):
+        user = request.user
+        workspace = self.get_object().workspace
+        role = self.get_object()
+        permissions = get_assignable_permissions(user, workspace, role)
+        return Response({"assignable_permissions": permissions})
+
+    @action(detail=True, methods=["patch"])
+    def bulk_assign_permissions(self, request, pk=None):
+        role = self.get_object()
+        permissions = request.data.get("permissions", {})
+        bulk_assign_permissions(permissions, role)
+        return Response({"status": "permissions updated"})
+
+    @extend_schema(responses=UserSerializer(many=True))
+    @action(detail=True, methods=["get"])
+    def get_all_role_users(self, request, pk=None):
+        role = self.get_object()
+        group = role.group
+
+        if not group:
+            return Response([])
+
+        users = User.objects.filter(groups=group).select_related("tenant", "address")
+
+        page = self.paginate_queryset(users)
+        if page is not None:
+            serializer = UserSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True, methods=["post"], permission_classes=[HasPermission], scope="role"
+    )
+    def remove_user(self, request, pk=None):
+        role = self.get_object()
+        user_id = request.data.get("user_id")
+        if not user_id:
+            return Response(
+                {"detail": "user_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        workspace_membership = (
+            WorkspaceMembership.objects.select_related("user", "role", "workspace")
+            .filter(user__id=user_id, role=role, workspace=role.workspace)
+            .first()
+        )
+        if not workspace_membership:
+            return Response(
+                {"status": "user not found in this role"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user = workspace_membership.user
+        group = getattr(role, "group", None)
+        group_name = group.name if group else None
+
+        with transaction.atomic():
+            workspace_membership.delete()
+
+        logger.debug(
+            f"Removed user {user.username} from role {role.name} (group={group_name})"
+        )
+        return Response({"status": "user removed from role"}, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(description="Workspace Membership List"),
+    create=extend_schema(description="Workspace Membership Create"),
+    retrieve=extend_schema(description="Workspace Membership Retrieve"),
+    update=extend_schema(description="Workspace Membership Update"),
+    partial_update=extend_schema(description="Workspace Membership Partial Update"),
+    destroy=extend_schema(description="Workspace Membership Destroy"),
+)
+class WorkspaceMembershipViewSet(viewsets.ModelViewSet):
+
+    queryset = WorkspaceMembership.objects.all()
+    serializer_class = WorkspaceMembershipSerializer
+    permission_classes = [HasPermission]
+    scope = "workspacemembership"
+
+    def get_queryset(self):
+        user = self.request.user
+        user_tenant = user.tenant
+
+        if user.is_superuser:
+            return WorkspaceMembership.objects.all()
+        else:
+            return get_objects_for_user(
+                user, "roles.view_workspacemembership", WorkspaceMembership
+            ).filter(workspace__tenant=user_tenant)
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        assign_created_instance_permissions(instance, self.request.user)
+
+        role = instance.role
+        group = role.group
+        user = instance.user
+
+        # Assign role group to user
+        if group:
+            user.groups.add(group)
+            user.save()
+            logger.debug(
+                f"Added user {user.username} to group {group.name} for role {role.name}"
+            )

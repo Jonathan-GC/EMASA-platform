@@ -1,4 +1,6 @@
 # Logs
+
+.*
 logs
 *.log
 npm-debug.log*
@@ -22,6 +24,7 @@ examples
 *.njsproj
 *.sln
 *.sw?
+._*
 .env
 components.d.ts
 
@@ -31,3 +34,4 @@ android/app/google-services.json
 
 # Local Capacitor config may contain environment-specific OAuth client IDs.
 capacitor.config.json
+**/certs/

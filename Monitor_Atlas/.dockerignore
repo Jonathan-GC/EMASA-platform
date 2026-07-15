@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+.Python
+*.so
+*.egg
+*.egg-info
+dist/
+build/
+
+# Database
+*.sqlite3
+*.db
+
+# Environment
+.env
+.env.*
+venv/
+env/
+ENV/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Media and static (development)
+.media/
+staticfiles/
+
+# Documentation
+README.md
+*.md
+!requirements.txt
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Tests
+tests/
+*.test
+pytest_cache/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
