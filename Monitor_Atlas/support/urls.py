@@ -10,7 +10,6 @@ routers.register(r"ticket", views.TicketViewSet)
 routers.register(r"comment", views.CommentViewSet)
 routers.register(r"attachment", views.AttachmentViewSet)
 routers.register(r"comment-attachment", views.CommentAttachmentViewSet)
-routers.register(r"notification", views.NotificationViewSet)
 routers.register(r"support_membership", views.SupportMembershipViewSet)
 
 urlpatterns = [

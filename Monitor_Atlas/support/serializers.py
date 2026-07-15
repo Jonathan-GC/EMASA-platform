@@ -3,7 +3,6 @@ from .models import (
     Comment,
     Attachment,
     CommentAttachment,
-    Notification,
     SupportMembership,
 )
 from rest_framework import serializers
@@ -130,12 +129,6 @@ class TicketConversationSerializer(serializers.ModelSerializer):
         comments = instance.comments.all().order_by("created_at")
         representation["comments"] = CommentSerializer(comments, many=True).data
         return representation
-
-
-class NotificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Notification
-        fields = "__all__"
 
 
 class SupportMembershipSerializer(serializers.ModelSerializer):

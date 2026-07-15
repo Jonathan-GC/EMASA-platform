@@ -97,40 +97,25 @@ Used by:
 # =============================================================================
 
 """
-POST /api/v1/support/notification/alert/
+POST /api/v1/notifications/notifications/alert/
 
-Sends a notification alert to Atlas for a specific user.
+Sends a notification alert to Atlas for a device.
+Atlas resolves which users have permission to view the device
+and dispatches FCM push notifications to them.
 
 Request Body:
     {
         "title": "Alert Title",
         "message": "Alert message content",
         "type": "info|warning|error|success",
-        "user": 1,
-        "metadata": {
-            "source": "monitor_hermes",
-            "dev_eui": "70b3d57ed006e15b",
-            "device_name": "Morbius",
-            "violation_count": 2,
-            "violations": [
-                {
-                    "unit": "voltage",
-                    "channel": "ch1",
-                    "value": 28.5,
-                    "limit_type": "max",
-                    "limit_value": 25.3,
-                    "threshold": 20.0,
-                    "timestamp": "2025-11-11T15:30:00Z"
-                }
-            ]
-        }
+        "dev_eui": "70b3d57ed006e15b"
     }
 
 Response (200 OK):
     {
-        "id": "7a2f9c8e1b5d3a6f",
-        "status": "sent",
-        "created_at": "2025-11-11T15:30:00Z"
+        "status": "alert_sent",
+        "notified": 2,
+        "skipped": 1
     }
 
 Usage Example:
@@ -140,28 +125,25 @@ Usage Example:
         "title": "Voltage Alert",
         "message": "Voltage exceeded maximum limit",
         "type": "warning",
-        "user": "5a8b9c7d2e3f1a4b",
-        "metadata": {...}
+        "dev_eui": "70b3d57ed006e15b",
     }
     
     response = await atlas_client.post(
-        "/api/v1/support/notification/alert/",
+        "/api/v1/notifications/notifications/alert/",
         json=alert_data,
         timeout=5.0
     )
 
 Error Handling:
-    - 400: Invalid request body
-    - 401: Invalid API key
-    - 404: User not found
+    - 400: Missing required fields
+    - 404: Device or users not found
     - 500: Internal server error
-    - Timeout: Triggers fallback to WebSocket
+    - Timeout: Alert is queued to pending_alerts for retry
 
 Fallback Mechanism:
     If this endpoint fails:
-    1. Send notification via WebSocket (notify_user)
-    2. Save to pending_alerts collection in MongoDB
-    3. Retry worker attempts resend every 5 minutes (max 3 attempts)
+    1. Save to pending_alerts collection in MongoDB
+    2. Retry worker attempts resend every 5 minutes (max 3 attempts)
 
 Used by:
     - app.validation.alert_service.send_alert_with_fallback()

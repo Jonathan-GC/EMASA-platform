@@ -8,13 +8,10 @@ from loguru import logger
 
 class ConnectionManager:
     def __init__(self):
-        self.tenants: Dict[str, List[WebSocket]] = {}  # tenant connections
-        self.global_connections: List[WebSocket] = []  # global connections
-        self.super_connections: List[WebSocket] = []  # superuser connections
-        self.device_subs: Dict[str, Set[WebSocket]] = {}  # device subscriptions
-        self.users: Dict[str, List[WebSocket]] = (
-            {}
-        )  # user connections for notifications
+        self.tenants: Dict[str, List[WebSocket]] = {}
+        self.global_connections: List[WebSocket] = []
+        self.super_connections: List[WebSocket] = []
+        self.device_subs: Dict[str, Set[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, info: dict):
         if info.get("is_global"):
@@ -32,11 +29,6 @@ class ConnectionManager:
             loguru.logger.debug(
                 f"Device-only connection established: \n User: {str(info.get('username'))} \n Tenant: {str(tenant_id)}"
             )
-        elif info.get("notification_only"):
-            # Connection dedicated ONLY for notifications
-            loguru.logger.debug(
-                f"Notification-only connection established: \n User: {str(info.get('username'))} (ID: {info.get('user_id')})"
-            )
         else:
             tenant_id = str(info.get("tenant_id"))
             loguru.logger.debug(
@@ -45,22 +37,6 @@ class ConnectionManager:
             if tenant_id not in self.tenants:
                 self.tenants[tenant_id] = []
             self.tenants[tenant_id].append(websocket)
-
-        # Register for notifications (only if not device_only)
-        # Notification_only, tenant, global and superuser connections can receive notifications
-        try:
-            if not info.get("device_only"):
-                user_id = info.get("user_id")
-                if user_id is not None:
-                    key = str(user_id)
-                    if key not in self.users:
-                        self.users[key] = []
-                    self.users[key].append(websocket)
-                    loguru.logger.debug(
-                        f"Registered websocket for user {key} notifications"
-                    )
-        except Exception:
-            loguru.logger.exception("Error registering websocket under user mapping")
 
     def disconnect(self, websocket: WebSocket, info: dict):
         if info.get("is_global"):
@@ -72,10 +48,6 @@ class ConnectionManager:
         elif info.get("device_only"):
             tenant_id = str(info.get("tenant_id"))
             loguru.logger.debug(f"Device-only connection closed for tenant {tenant_id}")
-        elif info.get("notification_only"):
-            loguru.logger.debug(
-                f"Notification-only connection closed for user {info.get('username')} (ID: {info.get('user_id')})"
-            )
         else:
             tenant_id = str(info.get("tenant_id"))
             loguru.logger.debug(f"Tenant {tenant_id} connection closed")
@@ -84,7 +56,6 @@ class ConnectionManager:
                 if not self.tenants[tenant_id]:
                     del self.tenants[tenant_id]
 
-        # Clean device subscriptions
         try:
             for dev, conns in list(self.device_subs.items()):
                 if websocket in conns:
@@ -93,22 +64,6 @@ class ConnectionManager:
                         del self.device_subs[dev]
         except Exception:
             loguru.logger.exception("Error cleaning device subscriptions on disconnect")
-
-        # Clean user notification registry
-        try:
-            if not info.get("device_only"):
-                user_id = info.get("user_id")
-                if user_id is not None:
-                    key = str(user_id)
-                    if key in self.users and websocket in self.users[key]:
-                        self.users[key].remove(websocket)
-                        if not self.users[key]:
-                            del self.users[key]
-                        loguru.logger.debug(
-                            f"Removed websocket from user {key} notifications"
-                        )
-        except Exception:
-            loguru.logger.exception("Error cleaning user mapping on disconnect")
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
@@ -131,10 +86,6 @@ class ConnectionManager:
                     self.global_connections.remove(connection)
 
     async def subscribe_device(self, websocket: WebSocket, dev_eui: str):
-        """Subscribe a websocket to a device EUI.
-
-        Uses a set to avoid duplicates and speed up removals.
-        """
         if not dev_eui:
             return
         key = str(dev_eui)
@@ -154,10 +105,6 @@ class ConnectionManager:
             loguru.logger.debug(f"WebSocket unsubscribed from device {key}")
 
     async def broadcast_to_device(self, message: dict, dev_eui: str):
-        """Send message dict to all websockets subscribed to dev_eui.
-
-        Cleans up dead connections on error.
-        """
         if not dev_eui:
             return
         key = str(dev_eui)
@@ -173,28 +120,6 @@ class ConnectionManager:
                 )
         if key in self.device_subs and not self.device_subs[key]:
             del self.device_subs[key]
-
-    async def send_to_user(self, user_id: str, message: dict):
-        """Send a message dict to all websockets associated with a user_id.
-
-        Cleans up dead connections on error.
-        """
-        if user_id is None:
-            return
-        key = str(user_id)
-        conns = list(self.users.get(key, []))
-        for conn in conns:
-            try:
-                await conn.send_json(message)
-            except Exception:
-                if key in self.users and conn in self.users[key]:
-                    try:
-                        self.users[key].remove(conn)
-                    except Exception:
-                        pass
-                loguru.logger.exception(f"Failed to send message to user {key}")
-        if key in self.users and not self.users[key]:
-            del self.users[key]
 
     def route_device_message(self, msg):
         dev_eui = msg.get("devEui") or msg.get("dev_eui")

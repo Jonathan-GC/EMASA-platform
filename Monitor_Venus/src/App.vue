@@ -5,18 +5,23 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount } from 'vue'
+import { onMounted, onBeforeUnmount, watch } from 'vue'
 import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore.js'
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 import API from '@/utils/api/api.js'
+import { usePushNotifications } from '@composables/usePushNotifications.js'
+import { useNotifications } from '@composables/useNotifications.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const { registerPush, listenForeground } = usePushNotifications()
+const { showNotification } = useNotifications()
 
 let appUrlListener = null
+let removeForegroundListener = null
 
 function handleDeepLink(url) {
   // Native deep-link from the system browser after server-side OAuth.
@@ -56,7 +61,7 @@ function handleDeepLink(url) {
 
 onMounted(async () => {
   console.log('🚀 App montada - Inicializando autenticación...')
-  authStore.initializeAuth()
+  const isAuth = authStore.initializeAuth()
 
   // 🔐 Fetch CSRF token on app load (required by backend for POST/PUT/PATCH/DELETE)
   // This ensures the csrftoken cookie is set before any component makes a request.
@@ -84,7 +89,29 @@ onMounted(async () => {
   }
 })
 
+watch(
+  () => authStore.isAuthenticated,
+  async (isAuth) => {
+    console.log('🔔 Auth state changed:', isAuth)
+    if (isAuth) {
+      try {
+        const registered = await registerPush()
+        console.log('🔔 registerPush result:', registered)
+        if (!removeForegroundListener) {
+          removeForegroundListener = await listenForeground((notification) => {
+            console.log('🔔 Foreground push notification:', notification)
+            showNotification(notification)
+          })
+        }
+      } catch (e) {
+        console.warn('⚠️ Push notification setup failed:', e)
+      }
+    }
+  }
+)
+
 onBeforeUnmount(() => {
   if (appUrlListener) appUrlListener.remove()
+  if (removeForegroundListener) removeForegroundListener()
 })
 </script>

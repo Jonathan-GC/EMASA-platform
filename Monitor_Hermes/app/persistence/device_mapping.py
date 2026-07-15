@@ -51,7 +51,7 @@ async def get_device_user_mapping(db, dev_eui: str) -> Optional[DeviceUserMappin
     loguru.logger.info(f"Cache MISS for {dev_eui}. Fetching from Atlas...")
     try:
         response = await atlas_client.get(
-            "/api/v1/infrastructure/device/get_users_for_device",
+            "/api/v1/infrastructure/device/get_users_for_device/",
             params={"dev_eui": dev_eui},
             timeout=5.0,
         )
@@ -85,6 +85,50 @@ async def get_device_user_mapping(db, dev_eui: str) -> Optional[DeviceUserMappin
         loguru.logger.warning(f"Atlas API error fetching mapping for {dev_eui}: {e}")
     except Exception as e:
         loguru.logger.exception(f"Unexpected error fetching mapping for {dev_eui}: {e}")
+
+    return None
+
+
+async def get_device_user_mapping_from_atlas(
+    db, dev_eui: str
+) -> Optional[DeviceUserMapping]:
+    """
+    Fetch device-user mapping directly from Atlas API, bypassing cache.
+
+    Always hits Atlas as the source of truth. Saves result to Mongo + Redis
+    on success, keeping the cache updated without reading from it first.
+    """
+    loguru.logger.info(f"Fetching mapping for {dev_eui} directly from Atlas...")
+    try:
+        response = await atlas_client.get(
+            "/api/v1/infrastructure/device/get_users_for_device/",
+            params={"dev_eui": dev_eui},
+            timeout=5.0,
+        )
+
+        data = response.json()
+
+        assigned_users_list = [
+            u.get("user_id") for u in data.get("assigned_users", []) if u.get("user_id")
+        ]
+        new_mapping = DeviceUserMapping(
+            dev_eui=data.get("dev_eui", dev_eui),
+            tenant_id=str(data.get("tenant_id", "")),
+            assigned_users=[str(uid) for uid in assigned_users_list],
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+
+        await save_device_user_mapping(db, new_mapping)
+        await _cache_mapping_in_redis(new_mapping)
+
+        loguru.logger.info(f"Fetched and cached mapping for {dev_eui} from Atlas")
+        return new_mapping
+
+    except httpx.HTTPError as e:
+        loguru.logger.warning(f"Atlas API error for {dev_eui}: {e}")
+    except Exception as e:
+        loguru.logger.exception(f"Unexpected error for {dev_eui}: {e}")
 
     return None
 
