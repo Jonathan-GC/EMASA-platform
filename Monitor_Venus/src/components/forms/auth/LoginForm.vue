@@ -114,6 +114,7 @@ import { useResponsiveView } from '@composables/useResponsiveView.js'
 import API from '@utils/api/index.js'
 import {paths}  from '@/plugins/router/paths.js'
 import GoogleLoginButton from '@/components/common/GoogleLoginButton.vue'
+import { registerPush } from '@composables/usePushNotifications.js'
 
 // Router instance
 const router = useRouter()
@@ -238,7 +239,10 @@ const handleLogin = async () => {
     }
     
     success.value = '¡Login exitoso! Redirigiendo...'
-    
+
+    // Register push notifications before redirect (shows browser permission prompt)
+    await registerPush()
+
     // Redirigir según el estado del usuario
     setTimeout(() => {
       // 1. Verificar si necesita configurar tenant
