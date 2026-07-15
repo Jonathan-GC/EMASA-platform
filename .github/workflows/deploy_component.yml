@@ -32,6 +32,7 @@ jobs:
         run: |
           rsync -avz --delete \
           --exclude 'monitor-platform-*.json' \
+          --exclude 'capacitor.config.json' \
           --exclude '.env.prod' \
           --exclude '**/.env.prod' \
           --exclude '**/*.pem' \
