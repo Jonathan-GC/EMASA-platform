@@ -3,12 +3,22 @@ import { firebaseApp } from '@/plugins/firebase/index'
 import API from '@/utils/api/api'
 
 let messagingInstance = null
+let swRegistration = null
 
 function getMessagingInstance() {
   if (!messagingInstance) {
     messagingInstance = getMessaging(firebaseApp)
   }
   return messagingInstance
+}
+
+async function ensureServiceWorker() {
+  if (swRegistration) return swRegistration
+  if (!('serviceWorker' in navigator)) return null
+
+  swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+  await navigator.serviceWorker.ready
+  return swRegistration
 }
 
 /**
@@ -36,7 +46,8 @@ export async function requestWebPushPermission() {
   }
 
   try {
-    const token = await getToken(messaging, { vapidKey })
+    const registration = await ensureServiceWorker()
+    const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration })
     console.log('FCM web token obtained:', token)
     return token
   } catch (error) {

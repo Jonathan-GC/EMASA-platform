@@ -500,6 +500,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Actualizar store con nuevo token decodificado
       const userData = getUserFromToken(data.access);
       user.value = userData;
+      isAuthenticated.value = true;
       
       console.log('✅ Token refrescado exitosamente');
       return data.access;

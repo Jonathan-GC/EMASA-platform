@@ -24,12 +24,18 @@ export async function initCapacitorPush() {
   await PushNotifications.register()
 
   return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Push registration timeout — no native event received'))
+    }, 10000)
+
     PushNotifications.addListener('registration', (token) => {
+      clearTimeout(timeout)
       console.log('Capacitor push registration token:', token.value)
       resolve(token.value)
     })
 
     PushNotifications.addListener('registrationError', (err) => {
+      clearTimeout(timeout)
       console.error('Capacitor push registration error:', err.error)
       reject(err.error)
     })
