@@ -240,8 +240,8 @@ const handleLogin = async () => {
     
     success.value = '¡Login exitoso! Redirigiendo...'
 
-    // Register push notifications before redirect (shows browser permission prompt)
-    await registerPush()
+    // Register push in background — don't block the redirect
+    registerPush().catch(e => console.warn('Push registration failed:', e))
 
     // Redirigir según el estado del usuario
     setTimeout(() => {

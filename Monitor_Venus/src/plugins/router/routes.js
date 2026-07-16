@@ -15,6 +15,7 @@ import {
     requireRoles,
     requireTenant
 } from "@utils/auth/guards.js";
+import tokenManager from '@utils/auth/tokenManager.js';
 
 
 export const routes = [
@@ -239,7 +240,13 @@ export const routes = [
             { 
                 path: P.LOGIN, 
                 component: C.LOGIN, 
-                beforeEnter: allowAll,
+                beforeEnter: (to, from, next) => {
+                    if (tokenManager.hasValidToken()) {
+                        next('/home')
+                    } else {
+                        next()
+                    }
+                },
                 meta: { public: true, guest: true }
             },
             {

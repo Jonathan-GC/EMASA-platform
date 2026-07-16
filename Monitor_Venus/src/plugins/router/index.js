@@ -1,9 +1,18 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import { routes } from './routes'
+import tokenManager from '@/utils/auth/tokenManager'
 
 const router = createRouter({
     history: createWebHistory(),
     routes
+})
+
+router.beforeEach((to, from) => {
+    if (!from.href) {
+        if (to.path === '/login' && tokenManager.hasValidToken()) {
+            return '/home'
+        }
+    }
 })
 
 // Debug: expose available routes at runtime
