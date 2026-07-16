@@ -51,8 +51,7 @@ class TokenManager {
       const expiryTime = parseInt(expiry);
       
       if (now >= expiryTime) {
-        console.log('⚠️ Access token expirado');
-        this.clearAccessToken();
+        console.log('⚠️ Access token expirado localmente');
         return null;
       }
       

@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/authStore.js'
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 import API from '@/utils/api/api.js'
+import tokenManager from '@/utils/auth/tokenManager.js'
 import { usePushNotifications } from '@composables/usePushNotifications.js'
 import { useNotifications } from '@composables/useNotifications.js'
 
@@ -22,6 +23,27 @@ const { showNotification } = useNotifications()
 
 let appUrlListener = null
 let removeForegroundListener = null
+let appStateListener = null
+
+async function handleAppResume() {
+  const refreshToken = tokenManager.getRefreshToken()
+  if (!refreshToken) return
+
+  if (!tokenManager.hasValidToken() || tokenManager.shouldRefreshToken()) {
+    console.log('🔄 App reanudada, intentando refresh silencioso...')
+    try {
+      const newToken = await authStore.refreshAccessToken()
+      if (newToken) {
+        authStore.initializeAuth()
+      }
+    } catch (e) {
+      console.warn('⚠️ Refresh silencioso falló:', e.message)
+    }
+    try {
+      await API.get(API.CSRF_TOKEN)
+    } catch (_) {}
+  }
+}
 
 function handleDeepLink(url) {
   // Native deep-link from the system browser after server-side OAuth.
@@ -86,6 +108,16 @@ onMounted(async () => {
     } catch (e) {
       console.warn('⚠️ Could not register appUrlOpen listener:', e)
     }
+
+    try {
+      appStateListener = await CapApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          handleAppResume()
+        }
+      })
+    } catch (e) {
+      console.warn('⚠️ Could not register appStateChange listener:', e)
+    }
   }
 })
 
@@ -112,6 +144,7 @@ watch(
 
 onBeforeUnmount(() => {
   if (appUrlListener) appUrlListener.remove()
+  if (appStateListener) appStateListener.remove()
   if (removeForegroundListener) removeForegroundListener()
 })
 </script>

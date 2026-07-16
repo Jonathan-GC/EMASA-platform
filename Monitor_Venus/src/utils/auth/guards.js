@@ -28,8 +28,12 @@ export const requireAuth = (to, from, next) => {
     
     if (authStore.isAuthenticated && tokenManager.hasValidToken()) {
         next();
+    } else if (tokenManager.getRefreshToken()) {
+        // Access token expired but refresh token exists — allow through,
+        // the 401 handler in api.js will attempt a silent refresh.
+        next();
     } else {
-        console.log('🚫 Acceso denegado - No autenticado');
+        console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
         clearAllAuthData();
         next(P.LOGIN);
     }
@@ -66,10 +70,12 @@ export const requireSuperUser = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     if (authStore.isSuperUser) {
@@ -92,10 +98,12 @@ export const requireAdmin = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     if (authStore.isAdmin) {
@@ -119,10 +127,12 @@ export const requireNormalUser = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     if (authStore.isNormalUser) {
@@ -146,10 +156,12 @@ export const requireRoles = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     // Obtener roles requeridos del meta de la ruta
@@ -184,10 +196,12 @@ export const requireTenant = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     // Verificar si necesita configurar tenant
@@ -217,10 +231,12 @@ export const requireManager = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     if (authStore.isManager || authStore.isSuperUser || authStore.isGlobalUser) {
@@ -243,10 +259,12 @@ export const requireTechnician = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     if (authStore.isTechnician || authStore.isManager || authStore.isSuperUser || authStore.isGlobalUser) {
@@ -269,10 +287,12 @@ export const requireViewer = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     // Viewers tienen acceso de lectura, pero también roles superiores
@@ -297,10 +317,12 @@ export const requireTenantUser = (to, from, next) => {
     }
     
     if (!authStore.isAuthenticated) {
-        console.log('🚫 Acceso denegado - No autenticado');
-        clearAllAuthData();
-        next(P.LOGIN);
-        return;
+        if (!tokenManager.getRefreshToken()) {
+            console.log('🚫 Acceso denegado - No autenticado y sin refresh token');
+            clearAllAuthData();
+            next(P.LOGIN);
+            return;
+        }
     }
     
     if (authStore.isTenantUser || authStore.isManager) {
