@@ -9,6 +9,7 @@ const isNative = Capacitor.isNativePlatform()
 const fcmToken = ref(null)
 const deviceId = ref(localStorage.getItem('push_device_id') || null)
 const isRegistered = ref(!!localStorage.getItem('push_device_id'))
+let registering = false
 
 function persistDeviceId(id) {
   deviceId.value = id
@@ -48,6 +49,12 @@ export async function registerPush() {
     return true
   }
 
+  if (registering) {
+    console.log('🔔 Push registration already in progress, skipping')
+    return true
+  }
+
+  registering = true
   try {
     let token
     let deviceResponse
@@ -85,6 +92,8 @@ export async function registerPush() {
   } catch (error) {
     console.error('Error registering push notifications:', error)
     return false
+  } finally {
+    registering = false
   }
 }
 
