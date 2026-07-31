@@ -265,8 +265,8 @@ class UserViewSet(ModelViewSet):
         permission_classes=[HasPermission],
         scope="user",
     )
-    def profile(self, request):
-        user = User.objects.get(pk=self.kwargs["pk"])
+    def profile(self, request, pk=None):
+        user = self.get_object()
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
 

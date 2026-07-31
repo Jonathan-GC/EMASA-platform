@@ -100,10 +100,15 @@ def test_user_profile_endpoint():
     )
     WorkspaceMembership.objects.create(user=user, workspace=workspace, role=role)
 
+    superuser = User.objects.create_superuser(
+        username="adminuser",
+        email="adminuser@example.com",
+        password="Password123!",
+    )
     client = APIClient()
-    client.force_authenticate(user=user)
+    client.force_authenticate(user=superuser)
 
-    response = client.get("/api/v1/users/user/profile/")
+    response = client.get(f"/api/v1/users/user/{user.id}/profile/")
     assert response.status_code == 200
     data = response.data
 
