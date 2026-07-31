@@ -404,8 +404,22 @@ class UserSerializer(serializers.ModelSerializer):
         return representation
 
 
+def _safe_get_url(file_field):
+    if not file_field:
+        return None
+    try:
+        return file_field.url
+    except Exception:
+        return str(file_field) if file_field else None
+
+
 class UserMeSerializer(UserSerializer):
     tenant = serializers.SerializerMethodField(read_only=True)
+    google_oauth = serializers.SerializerMethodField(read_only=True)
+    roles = serializers.SerializerMethodField(read_only=True)
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["google_oauth", "roles"]
 
     def get_tenant(self, obj):
         tenant = obj.tenant
@@ -413,9 +427,146 @@ class UserMeSerializer(UserSerializer):
             return {
                 "id": tenant.id,
                 "name": tenant.name,
-                "img": tenant.img.url if tenant.img else None,
+                "description": tenant.description,
+                "img": _safe_get_url(tenant.img),
             }
         return None
+
+    def get_google_oauth(self, obj):
+        oauth = obj.oauth_accounts.filter(provider="google").first()
+        if oauth:
+            return {
+                "is_linked": True,
+                "email": oauth.email,
+                "provider_user_id": oauth.provider_user_id,
+                "created_at": oauth.created_at,
+            }
+        return {
+            "is_linked": False,
+            "email": None,
+            "provider_user_id": None,
+            "created_at": None,
+        }
+
+    def get_roles(self, obj):
+        from roles.models import WorkspaceMembership
+
+        memberships = WorkspaceMembership.objects.filter(user=obj).select_related(
+            "role", "workspace"
+        )
+        roles_list = []
+        for membership in memberships:
+            roles_list.append(
+                {
+                    "id": membership.role.id,
+                    "name": membership.role.name,
+                    "description": membership.role.description,
+                    "color": membership.role.color,
+                    "is_admin": membership.role.is_admin,
+                    "workspace": (
+                        {
+                            "id": membership.workspace.id,
+                            "name": membership.workspace.name,
+                        }
+                        if membership.workspace
+                        else None
+                    ),
+                }
+            )
+        return roles_list
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField(read_only=True)
+    user_info = serializers.SerializerMethodField(read_only=True)
+    status = serializers.SerializerMethodField(read_only=True)
+    tenant = serializers.SerializerMethodField(read_only=True)
+    contact_info = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "roles",
+            "user_info",
+            "status",
+            "tenant",
+            "contact_info",
+        ]
+
+    def get_roles(self, obj):
+        from roles.models import WorkspaceMembership
+
+        memberships = WorkspaceMembership.objects.filter(user=obj).select_related(
+            "role", "workspace"
+        )
+        roles_list = []
+        for membership in memberships:
+            roles_list.append(
+                {
+                    "id": membership.role.id,
+                    "name": membership.role.name,
+                    "description": membership.role.description,
+                    "color": membership.role.color,
+                    "is_admin": membership.role.is_admin,
+                    "workspace": (
+                        {
+                            "id": membership.workspace.id,
+                            "name": membership.workspace.name,
+                        }
+                        if membership.workspace
+                        else None
+                    ),
+                }
+            )
+        return roles_list
+
+    def get_user_info(self, obj):
+        return {
+            "id": obj.id,
+            "code": obj.code,
+            "username": obj.username,
+            "email": obj.email,
+            "name": obj.name,
+            "last_name": obj.last_name,
+            "full_name": obj.get_full_name(),
+            "img": _safe_get_url(obj.img),
+            "is_staff": obj.is_staff,
+            "is_superuser": obj.is_superuser,
+        }
+
+    def get_status(self, obj):
+        return {
+            "is_active": obj.is_active,
+            "status_text": "Active" if obj.is_active else "Inactive",
+        }
+
+    def get_tenant(self, obj):
+        tenant = obj.tenant
+        if tenant:
+            return {
+                "id": tenant.id,
+                "name": tenant.name,
+                "description": tenant.description,
+                "img": _safe_get_url(tenant.img),
+            }
+        return None
+
+    def get_contact_info(self, obj):
+        contact = {
+            "email": obj.email,
+            "phone": obj.phone,
+            "phone_code": obj.phone_code,
+            "country": obj.country,
+            "address": MainAddressSerializer(obj.address).data if obj.address else None,
+        }
+        if hasattr(obj, "billing_address") and obj.billing_address:
+            contact["billing_address"] = BillingAddressSerializer(
+                obj.billing_address
+            ).data
+        else:
+            contact["billing_address"] = None
+        return contact
+
 
 
 from auditlog.models import LogEntry

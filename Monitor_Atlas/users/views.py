@@ -1,6 +1,7 @@
 from .serializers import (
     UserSerializer,
     UserMeSerializer,
+    UserProfileSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
     LogEntrySerializer,
@@ -256,6 +257,17 @@ class UserViewSet(ModelViewSet):
     def me(self, request):
         user = request.user
         serializer = UserMeSerializer(user)
+        return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="user",
+    )
+    def profile(self, request):
+        user = request.user
+        serializer = UserProfileSerializer(user)
         return Response(serializer.data)
 
 
