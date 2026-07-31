@@ -266,7 +266,7 @@ class UserViewSet(ModelViewSet):
         scope="user",
     )
     def profile(self, request):
-        user = self.get_object()
+        user = User.objects.get(pk=self.kwargs["pk"])
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
 
