@@ -260,13 +260,13 @@ class UserViewSet(ModelViewSet):
         return Response(serializer.data)
 
     @action(
-        detail=False,
+        detail=True,
         methods=["get"],
         permission_classes=[HasPermission],
         scope="user",
     )
     def profile(self, request):
-        user = request.user
+        user = self.get_object()
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
 
@@ -515,7 +515,9 @@ class GoogleLoginUrlView(APIView):
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        redirect_uri = (
+            resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        )
 
         params = {
             "client_id": settings.GOOGLE_CLIENT_ID,
@@ -655,7 +657,9 @@ class GoogleCallbackView(APIView):
             resolved = _resolve_redirect_uri(raw_uri)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        redirect_uri = (
+            resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        )
 
         idinfo = self._exchange_and_verify(code, redirect_uri)
         if isinstance(idinfo, Response):
@@ -726,9 +730,7 @@ class GoogleCallbackView(APIView):
             )
 
         try:
-            idinfo = id_token.verify_oauth2_token(
-                google_id_token, requests.Request()
-            )
+            idinfo = id_token.verify_oauth2_token(google_id_token, requests.Request())
         except ValueError as e:
             return Response(
                 {"detail": str(e)},
@@ -879,7 +881,9 @@ class GoogleLinkView(APIView):
             resolved = _resolve_redirect_uri(raw_uri)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        redirect_uri = (
+            resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        )
 
         token_data = {
             "code": code,
@@ -912,9 +916,7 @@ class GoogleLinkView(APIView):
             )
 
         try:
-            idinfo = id_token.verify_oauth2_token(
-                google_id_token, requests.Request()
-            )
+            idinfo = id_token.verify_oauth2_token(google_id_token, requests.Request())
         except ValueError as e:
             return Response(
                 {"detail": str(e)},
@@ -945,9 +947,7 @@ class GoogleLinkView(APIView):
             provider="google", provider_user_id=sub
         ).exists():
             return Response(
-                {
-                    "detail": "This Google account is already linked to another user."
-                },
+                {"detail": "This Google account is already linked to another user."},
                 status=status.HTTP_409_CONFLICT,
             )
 
