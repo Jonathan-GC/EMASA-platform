@@ -284,8 +284,10 @@ const closeNavbar = () => {
 
 // Handle profile avatar click
 const handleProfileClick = () => {
-  console.log('Profile clicked - you can navigate to profile page here')
-  // router.push('/profile') // Uncomment when profile route exists
+  const userId = authStore.user?.user_id
+  if (userId) {
+    router.push(`/users/${userId}`)
+  }
   closeNavbar()
 }
 

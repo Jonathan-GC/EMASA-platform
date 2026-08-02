@@ -44,6 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
       img:null,
     },
     google_oauth: null, // { is_linked, email, provider_user_id, created_at }
+    roles: [], // [{ id, name, description, color, is_admin, workspace }]
   });
 
   const isAuthenticated = ref(false);
@@ -227,6 +228,16 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const googleEmail = computed(() => userProfile.value.google_oauth?.email || '');
 
+  /**
+   * Obtiene los roles actuales del usuario (desde API.ME)
+   */
+  const userRoles = computed(() => userProfile.value.roles || []);
+
+  /**
+   * Obtiene el ID del usuario actual (perfil /me o claims del token)
+   */
+  const currentUserId = computed(() => userProfile.value.id || user.value.user_id);
+
   // ========================================
   // ACTIONS - Funciones para modificar el estado
   // ========================================
@@ -381,6 +392,7 @@ export const useAuthStore = defineStore('auth', () => {
           img: userData.tenant?.img || null,
         },
         google_oauth: userData.google_oauth || null,
+        roles: Array.isArray(userData.roles) ? userData.roles : [],
       };
 
       console.log('✅ User profile loaded:', {
@@ -437,6 +449,7 @@ export const useAuthStore = defineStore('auth', () => {
         img:null,
       },
       google_oauth: null,
+      roles: [],
 
     };
     isAuthenticated.value = false;
@@ -612,6 +625,8 @@ export const useAuthStore = defineStore('auth', () => {
     profileTenantImage,
     googleLinked,
     googleEmail,
+    userRoles,
+    currentUserId,
     
     // Actions
     initializeAuth,

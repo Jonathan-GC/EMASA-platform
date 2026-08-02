@@ -142,6 +142,7 @@
                   type="user"
                   :index="user.id" 
                   :name="user.username"
+                  :to-view="`/users/${user.id}`"
                   to-edit
                   to-toggle
                   :status="user.is_active"
@@ -210,6 +211,7 @@
                     type="user"
                     :index="user.id" 
                     :name="user.username"
+                    :to-view="`/users/${user.id}`"
                     to-edit
                     to-delete
                     :initial-data="setInitialData(user)"

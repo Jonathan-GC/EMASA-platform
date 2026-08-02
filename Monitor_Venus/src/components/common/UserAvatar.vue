@@ -58,6 +58,10 @@ const props = defineProps({
     type: String,
     default: null
   },
+  name: {
+    type: String,
+    default: null
+  },
   showTenantBadge: {
     type: Boolean,
     default: true
@@ -83,16 +87,18 @@ const avatarSize = computed(() => `avatar-${props.size}`)
 // Compute badge size class
 const badgeSize = computed(() => `badge-${props.size}`)
 
-// Get user's display name - prioritize profile data
+// Get user's display name - prioritize explicit name, then profile data
 const displayName = computed(() => {
+  if (props.name) return props.name
   if (props.showName && authStore.fullName) {
     return authStore.fullName
   }
   return authStore.userProfile?.username || authStore.user?.username || 'Usuario'
 })
 
-// Get profile image from store or props
+// Get profile image from props or store
 const userProfileImage = computed(() => {
+  if (props.name) return props.profileImage
   return props.profileImage || authStore.profileImage
 })
 

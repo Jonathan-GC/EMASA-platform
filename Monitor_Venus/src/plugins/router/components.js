@@ -14,6 +14,7 @@ export const components = {
     TENANT_WORKSPACES: () => import('@views/workspaces/index.vue' ),
     USERS: () => import('@views/users/index.vue'),
     ROLES: () => import('@views/roles/index.vue'),
+    USER_DETAIL: () => import('@views/users/detail/index.vue'),
     LOGIN: () => import('@views/auth/login/index.vue'),
     GOOGLE_AUTH: () => import('@views/auth/google/callback/index.vue'),
     REGISTER: () => import('@views/auth/signup/index.vue'),

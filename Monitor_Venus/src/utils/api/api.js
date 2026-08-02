@@ -33,6 +33,13 @@ class API {
     DEACTIVATE_USER(userId) {
         return `users/user/${userId}/disable_user/`
     }
+    USER_DETAIL(userId) {
+        return `users/user/${userId}/`
+    }
+    USER_PROFILE(userId) {
+        return `users/user/${userId}/profile/`
+    }
+
     //----[AUTH]----
     TOKEN = 'token/'
     REFRESH_TOKEN = 'token/refresh/'

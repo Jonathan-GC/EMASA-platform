@@ -90,6 +90,17 @@ export const routes = [
                 }
             },
             {
+                name: 'user_detail',
+                path: P.USERS + V.USER_ID,
+                component: C.USER_DETAIL,
+                beforeEnter: requireRoles,
+                meta: {
+                    requiresAuth: true,
+                    roles: ['root', 'admin', 'manager', 'tenant_admin', 'tenant_user'],
+                    label: 'Detalle de Usuario'
+                }
+            },
+            {
                 path: P.ROLES,
                 component: C.ROLES,
                 beforeEnter: requireRoles,
