@@ -11,6 +11,8 @@ from roles.models import WorkspaceMembership
 from .models import User, MainAddress, BillingAddress
 from support.models import SupportMembership
 from organizations.models import Tenant
+from drf_spectacular.utils import extend_schema_field, inline_serializer
+from drf_spectacular.types import OpenApiTypes
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -421,6 +423,17 @@ class UserMeSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ["google_oauth", "roles"]
 
+    @extend_schema_field(
+        inline_serializer(
+            name="UserMeTenant",
+            fields={
+                "id": serializers.CharField(allow_null=True),
+                "name": serializers.CharField(),
+                "description": serializers.CharField(allow_null=True),
+                "img": serializers.CharField(allow_null=True),
+            },
+        )
+    )
     def get_tenant(self, obj):
         tenant = obj.tenant
         if tenant:
@@ -432,6 +445,17 @@ class UserMeSerializer(UserSerializer):
             }
         return None
 
+    @extend_schema_field(
+        inline_serializer(
+            name="UserMeGoogleOAuth",
+            fields={
+                "is_linked": serializers.BooleanField(),
+                "email": serializers.CharField(allow_null=True),
+                "provider_user_id": serializers.CharField(allow_null=True),
+                "created_at": serializers.DateTimeField(allow_null=True),
+            },
+        )
+    )
     def get_google_oauth(self, obj):
         oauth = obj.oauth_accounts.filter(provider="google").first()
         if oauth:
@@ -448,6 +472,27 @@ class UserMeSerializer(UserSerializer):
             "created_at": None,
         }
 
+    @extend_schema_field(
+        inline_serializer(
+            name="UserMeRole",
+            many=True,
+            fields={
+                "id": serializers.CharField(),
+                "name": serializers.CharField(),
+                "description": serializers.CharField(allow_null=True),
+                "color": serializers.CharField(allow_null=True),
+                "is_admin": serializers.BooleanField(),
+                "workspace": inline_serializer(
+                    name="UserMeRoleWorkspace",
+                    fields={
+                        "id": serializers.CharField(),
+                        "name": serializers.CharField(),
+                    },
+                    allow_null=True,
+                ),
+            },
+        )
+    )
     def get_roles(self, obj):
         from roles.models import WorkspaceMembership
 
@@ -493,6 +538,27 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "contact_info",
         ]
 
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileRole",
+            many=True,
+            fields={
+                "id": serializers.CharField(),
+                "name": serializers.CharField(),
+                "description": serializers.CharField(allow_null=True),
+                "color": serializers.CharField(allow_null=True),
+                "is_admin": serializers.BooleanField(),
+                "workspace": inline_serializer(
+                    name="UserProfileRoleWorkspace",
+                    fields={
+                        "id": serializers.CharField(),
+                        "name": serializers.CharField(),
+                    },
+                    allow_null=True,
+                ),
+            },
+        )
+    )
     def get_roles(self, obj):
         from roles.models import WorkspaceMembership
 
@@ -520,6 +586,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
             )
         return roles_list
 
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileUserInfo",
+            fields={
+                "id": serializers.CharField(),
+                "code": serializers.CharField(allow_null=True),
+                "username": serializers.CharField(),
+                "email": serializers.CharField(),
+                "name": serializers.CharField(),
+                "last_name": serializers.CharField(),
+                "full_name": serializers.CharField(),
+                "img": serializers.CharField(allow_null=True),
+                "is_staff": serializers.BooleanField(),
+                "is_superuser": serializers.BooleanField(),
+            },
+        )
+    )
     def get_user_info(self, obj):
         return {
             "id": obj.id,
@@ -534,12 +617,32 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "is_superuser": obj.is_superuser,
         }
 
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileStatus",
+            fields={
+                "is_active": serializers.BooleanField(),
+                "status_text": serializers.CharField(),
+            },
+        )
+    )
     def get_status(self, obj):
         return {
             "is_active": obj.is_active,
             "status_text": "Active" if obj.is_active else "Inactive",
         }
 
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileTenant",
+            fields={
+                "id": serializers.CharField(allow_null=True),
+                "name": serializers.CharField(),
+                "description": serializers.CharField(allow_null=True),
+                "img": serializers.CharField(allow_null=True),
+            },
+        )
+    )
     def get_tenant(self, obj):
         tenant = obj.tenant
         if tenant:
@@ -551,6 +654,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
             }
         return None
 
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileContactInfo",
+            fields={
+                "email": serializers.CharField(),
+                "phone": serializers.CharField(allow_null=True),
+                "phone_code": serializers.CharField(allow_null=True),
+                "country": serializers.CharField(allow_null=True),
+                "address": MainAddressSerializer(allow_null=True),
+                "billing_address": BillingAddressSerializer(allow_null=True),
+            },
+        )
+    )
     def get_contact_info(self, obj):
         contact = {
             "email": obj.email,
@@ -566,7 +682,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         else:
             contact["billing_address"] = None
         return contact
-
 
 
 from auditlog.models import LogEntry
@@ -593,12 +708,15 @@ class LogEntrySerializer(serializers.ModelSerializer):
             "changes",
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_model(self, obj):
         if obj.content_type:
             return obj.content_type.model
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_app(self, obj):
         if obj.content_type:
             return obj.content_type.app_label
         return None
+

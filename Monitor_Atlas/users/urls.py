@@ -23,6 +23,11 @@ urlpatterns = [
         views.GoogleLinkView.as_view(),
         name="google-link",
     ),
+    path(
+        "auth/google/unlink/",
+        views.GoogleUnlinkView.as_view(),
+        name="google-unlink",
+    ),
     path("auth/register/", views.RegisterView.as_view(), name="register"),
     path(
         "auth/verify-account/",

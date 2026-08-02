@@ -141,3 +141,45 @@ def test_user_profile_endpoint():
     assert len(data["roles"]) == 1
     assert data["roles"][0]["name"] == "Engineer"
     assert data["roles"][0]["workspace"]["name"] == "Default Workspace"
+
+
+@pytest.mark.django_db
+def test_google_unlink_success():
+    user = User.objects.create_user(
+        username="unlinkuser",
+        email="unlinkuser@example.com",
+        password="Password123!",
+        name="Unlink",
+        last_name="User",
+    )
+    OAuthAccount.objects.create(
+        user=user,
+        provider="google",
+        provider_user_id="google-sub-99999",
+        email="unlinkuser@example.com",
+    )
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.post("/api/v1/users/auth/google/unlink/")
+    assert response.status_code == 200
+    assert response.data["detail"] == "Google account unlinked successfully."
+    assert not OAuthAccount.objects.filter(user=user, provider="google").exists()
+
+
+@pytest.mark.django_db
+def test_google_unlink_not_linked():
+    user = User.objects.create_user(
+        username="nounlinkuser",
+        email="nounlinkuser@example.com",
+        password="Password123!",
+        name="NoUnlink",
+        last_name="User",
+    )
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.post("/api/v1/users/auth/google/unlink/")
+    assert response.status_code == 400
+    assert response.data["detail"] == "No Google account linked to this user."
+

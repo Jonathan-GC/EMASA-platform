@@ -29,7 +29,7 @@ import requests as http_requests
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -39,6 +39,8 @@ from drf_spectacular.utils import (
     extend_schema,
     OpenApiExample,
     OpenApiResponse,
+    OpenApiParameter,
+    inline_serializer,
 )
 from drf_spectacular.types import OpenApiTypes
 
@@ -68,9 +70,14 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
 
 
 @extend_schema_view(
-    list=extend_schema(description="User List"),
+    list=extend_schema(
+        summary="List users",
+        description="Filter users by workspace if 'workspace' query parameter is provided.",
+        responses={200: UserSerializer(many=True)},
+    ),
     create=extend_schema(
-        description="User Create",
+        summary="Create user",
+        description="Create a new user account.",
         examples=[
             OpenApiExample(
                 "User Create",
@@ -95,14 +102,31 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 response_only=False,
             )
         ],
+        responses={201: UserSerializer, 400: OpenApiResponse(description="Validation error")},
     ),
-    retrieve=extend_schema(description="User Retrieve"),
-    update=extend_schema(description="User Update"),
-    partial_update=extend_schema(description="User Partial Update"),
-    destroy=extend_schema(description="User Destroy"),
+    retrieve=extend_schema(
+        summary="Retrieve user",
+        description="Retrieve user by ID.",
+        responses={200: UserSerializer, 404: OpenApiResponse(description="User not found")},
+    ),
+    update=extend_schema(
+        summary="Update user",
+        description="Update user details.",
+        responses={200: UserSerializer, 400: OpenApiResponse(description="Validation error")},
+    ),
+    partial_update=extend_schema(
+        summary="Partial update user",
+        description="Partially update user details.",
+        responses={200: UserSerializer, 400: OpenApiResponse(description="Validation error")},
+    ),
+    destroy=extend_schema(
+        summary="Delete user",
+        description="Delete a user account.",
+        responses={204: OpenApiResponse(description="User deleted successfully.")},
+    ),
     set_user_image=extend_schema(
-        description="Set user image",
-        summary="Set or update the user's profile image",
+        summary="Set or update profile image",
+        description="Set or update the user's profile image",
         examples=[
             OpenApiExample(
                 "Set User Image Example",
@@ -110,9 +134,11 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 value={"img": "https://example.com/path/to/image.jpg"},
             ),
         ],
+        responses={200: UserSerializer},
     ),
     disable_user=extend_schema(
-        description="Disable a user",
+        summary="Disable user",
+        description="Disable a user account (is_active=False)",
         request=OpenApiTypes.NONE,
         examples=[
             OpenApiExample(
@@ -122,9 +148,11 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 response_only=True,
             ),
         ],
+        responses={200: UserSerializer},
     ),
     enable_user=extend_schema(
-        description="Enable a user",
+        summary="Enable user",
+        description="Enable a user account (is_active=True)",
         request=OpenApiTypes.NONE,
         examples=[
             OpenApiExample(
@@ -134,9 +162,11 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 response_only=True,
             ),
         ],
+        responses={200: UserSerializer},
     ),
     get_support_membership=extend_schema(
-        description="Get support membership for a user",
+        summary="Get support membership for a user",
+        description="Get support membership details for a user",
         request=OpenApiTypes.NONE,
         examples=[
             OpenApiExample(
@@ -146,6 +176,20 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 response_only=True,
             ),
         ],
+        responses={
+            200: SupportMembershipSerializer,
+            404: OpenApiResponse(description="This user does not have a support membership."),
+        },
+    ),
+    me=extend_schema(
+        summary="Get current user ('me')",
+        description="Returns details for the currently authenticated user including Google OAuth status, tenant details, and assigned workspace roles.",
+        responses={200: UserMeSerializer},
+    ),
+    profile=extend_schema(
+        summary="Get user profile",
+        description="Returns full profile structure for a user including roles, user info, active status, tenant, and contact info.",
+        responses={200: UserProfileSerializer},
     ),
 )
 class UserViewSet(ModelViewSet):
@@ -324,6 +368,20 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     @method_decorator(conditional_csrf_protect)
+    @extend_schema(
+        summary="Obtain JWT token pair (Cookie)",
+        description="Authenticates user credentials and returns JWT access token in body while setting HTTP-only refresh cookie.",
+        responses={
+            200: OpenApiResponse(
+                description="Token obtained successfully.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description="Invalid credentials or account inactive.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
@@ -352,6 +410,20 @@ class CookieTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
 
     @method_decorator(conditional_csrf_protect)
+    @extend_schema(
+        summary="Refresh JWT token (Cookie)",
+        description="Refreshes access token using the HTTP-only refresh token cookie.",
+        responses={
+            200: OpenApiResponse(
+                description="Token refreshed successfully.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description="Refresh token not found or invalid.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
 
@@ -386,6 +458,15 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 class LogoutView(APIView):
     @method_decorator(conditional_csrf_protect)
+    @extend_schema(
+        summary="Logout user",
+        description="Blacklists the HTTP-only refresh token cookie and deletes the cookie.",
+        request=OpenApiTypes.NONE,
+        responses={
+            204: OpenApiResponse(description="Logged out successfully."),
+            400: OpenApiResponse(description="Invalid or expired token."),
+        },
+    )
     def post(self, request):
         refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if refresh:
@@ -441,15 +522,15 @@ class GoogleLoginUrlView(APIView):
             "be listed in ``GOOGLE_ALLOWED_REDIRECT_URIS``."
         ),
         parameters=[
-            {
-                "name": "redirect_uri",
-                "in_": "query",
-                "description": (
+            OpenApiParameter(
+                name="redirect_uri",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
                     "Optional override for the OAuth redirect URI. "
                     "Must belong to ``GOOGLE_ALLOWED_REDIRECT_URIS``."
                 ),
-                "schema": {"type": "string"},
-            }
+            )
         ],
         responses={
             200: OpenApiResponse(
@@ -961,13 +1042,111 @@ class GoogleLinkView(APIView):
         return Response({"detail": "Google account linked successfully."})
 
 
+class GoogleUnlinkView(APIView):
+    """
+    Allows an authenticated user to unlink their Google account.
+    Removes the OAuthAccount record associated with the current user.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(csrf_protect)
+    @extend_schema(
+        summary="Unlink a Google account",
+        description=(
+            "Removes the `OAuthAccount` record associated with the "
+            "**currently authenticated user**.\n\n"
+            "If no Google account is linked to the current user, returns a "
+            "**400 Bad Request**."
+        ),
+        request=OpenApiTypes.NONE,
+        responses={
+            200: OpenApiResponse(
+                description="Google account unlinked successfully.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(
+                description="No Google account linked to this user.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+        examples=[
+            OpenApiExample(
+                "Success",
+                value={"detail": "Google account unlinked successfully."},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Not linked",
+                value={"detail": "No Google account linked to this user."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+    )
+    def post(self, request):
+        return self._unlink(request)
+
+    @method_decorator(csrf_protect)
+    @extend_schema(
+        summary="Unlink a Google account (DELETE)",
+        description=(
+            "Removes the `OAuthAccount` record associated with the "
+            "**currently authenticated user**."
+        ),
+        request=OpenApiTypes.NONE,
+        responses={
+            200: OpenApiResponse(
+                description="Google account unlinked successfully.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(
+                description="No Google account linked to this user.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
+    def delete(self, request):
+        return self._unlink(request)
+
+    def _unlink(self, request):
+        deleted_count, _ = OAuthAccount.objects.filter(
+            user=request.user, provider="google"
+        ).delete()
+
+        if deleted_count == 0:
+            return Response(
+                {"detail": "No Google account linked to this user."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"detail": "Google account unlinked successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="User Registration",
+        summary="User Registration",
+        description="Creates a new inactive user account and sends an email verification link.",
         request=UserSerializer,
+        responses={
+            201: OpenApiResponse(description="User registered successfully. Please verify your email."),
+            400: OpenApiResponse(description="Validation error or missing password."),
+        },
         examples=[
             OpenApiExample(
                 "User Registration Example",
@@ -1016,13 +1195,15 @@ class PasswordResetView(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Password Reset Request",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"email": {"type": "string"}},
-                "required": ["email"],
-            }
+        summary="Password Reset Request",
+        description="Sends a password reset email if the specified email address belongs to a registered account.",
+        request=inline_serializer(
+            name="PasswordResetRequest",
+            fields={"email": serializers.EmailField()},
+        ),
+        responses={
+            200: OpenApiResponse(description="If the email is registered, a reset link has been sent."),
+            400: OpenApiResponse(description="Email is required."),
         },
         examples=[
             OpenApiExample(
@@ -1060,13 +1241,15 @@ class AccountVerificationView(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Account Verification",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"token": {"type": "string"}},
-                "required": ["token"],
-            }
+        summary="Account Verification",
+        description="Verifies user email account using a token.",
+        request=inline_serializer(
+            name="AccountVerificationRequest",
+            fields={"token": serializers.CharField()},
+        ),
+        responses={
+            200: OpenApiResponse(description="Account verified successfully."),
+            400: OpenApiResponse(description="Token is required or invalid."),
         },
         examples=[
             OpenApiExample(
@@ -1100,16 +1283,18 @@ class PasswordResetConfirmView(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Password Reset Confirmation",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {
-                    "token": {"type": "string"},
-                    "new_password": {"type": "string"},
-                },
-                "required": ["token", "new_password"],
-            }
+        summary="Password Reset Confirmation",
+        description="Resets the password for a user using a valid token.",
+        request=inline_serializer(
+            name="PasswordResetConfirmRequest",
+            fields={
+                "token": serializers.CharField(),
+                "new_password": serializers.CharField(),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(description="Password reset successfully."),
+            400: OpenApiResponse(description="Token and new password required or invalid."),
         },
         examples=[
             OpenApiExample(
@@ -1171,13 +1356,15 @@ class ReSendVerificationEmailView(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Re-send account verification email",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"email": {"type": "string"}},
-                "required": ["email"],
-            }
+        summary="Re-send account verification email",
+        description="Re-sends account verification email if the account exists and is not verified.",
+        request=inline_serializer(
+            name="ResendVerificationRequest",
+            fields={"email": serializers.EmailField()},
+        ),
+        responses={
+            200: OpenApiResponse(description="If the account exists and is not verified, a verification email has been sent."),
+            400: OpenApiResponse(description="Email is required."),
         },
         examples=[
             OpenApiExample(
@@ -1230,13 +1417,15 @@ class VerifyTicketToken(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Verify ticket access token",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"token": {"type": "string"}},
-                "required": ["token"],
-            }
+        summary="Verify ticket access token",
+        description="Verifies a ticket access token and returns ticket_id.",
+        request=inline_serializer(
+            name="VerifyTicketTokenRequest",
+            fields={"token": serializers.CharField()},
+        ),
+        responses={
+            200: OpenApiResponse(description="Token verified successfully. Returns ticket_id."),
+            400: OpenApiResponse(description="Token is required or invalid."),
         },
         examples=[
             OpenApiExample(
@@ -1259,6 +1448,11 @@ class VerifyTicketToken(APIView):
             return Response({"detail": str(e)}, status=400)
 
 
+@extend_schema(
+    summary="Set CSRF cookie",
+    description="Ensures that the CSRF cookie is set on the client browser.",
+    responses={200: OpenApiResponse(description="CSRF cookie set.")},
+)
 @ensure_csrf_cookie
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -1301,8 +1495,13 @@ class LogLogsViewSet(viewsets.ViewSet):
 
 
 @extend_schema_view(
-    list=extend_schema(description="Audit Log List"),
-    retrieve=extend_schema(description="Audit Log Retrieve"),
+    list=extend_schema(summary="List audit logs", description="Audit Log List"),
+    retrieve=extend_schema(summary="Retrieve audit log", description="Audit Log Retrieve"),
+    get_tenant_admin_logs=extend_schema(
+        summary="Get tenant admin audit logs",
+        description="Return audit logs for tenant admins (filtered by tenant).",
+        responses={200: LogEntrySerializer(many=True)},
+    ),
 )
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
