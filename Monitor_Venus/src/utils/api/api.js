@@ -33,7 +33,6 @@ class API {
     DEACTIVATE_USER(userId) {
         return `users/user/${userId}/disable_user/`
     }
-
     //----[AUTH]----
     TOKEN = 'token/'
     REFRESH_TOKEN = 'token/refresh/'
@@ -42,6 +41,7 @@ class API {
     GOOGLE_LOGIN_URL = 'users/auth/google/url/';
     GOOGLE_CALLBACK = 'users/auth/google/callback/';
     GOOGLE_LINK = 'users/auth/google/link/';
+    GOOGLE_UNLINK = 'users/auth/google/unlink/';
     REGISTER = 'users/auth/register/';
     VERIFY_ACCOUNT = 'users/auth/verify-account/'
     RESEND_VERIFICATION = 'users/auth/re-send-verification/'

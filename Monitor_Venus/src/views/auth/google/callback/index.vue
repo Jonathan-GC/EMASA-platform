@@ -15,6 +15,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import API from '@/utils/api/api'
+import { parseGoogleState, postGoogleLinkCode } from '@/utils/auth/googleOAuth'
 
 const router = useRouter()
 const route = useRoute()
@@ -82,6 +83,22 @@ function goToLoginWithError(message) {
   router.replace({ name: 'login', query: { error: String(message) } })
 }
 
+async function handleLink(code, next) {
+  try {
+    // POST { code } → backend validates the Google identity and attaches
+    // a new OAuthAccount to the currently authenticated user.
+    await postGoogleLinkCode(code)
+    router.replace(next || '/users')
+  } catch (e) {
+    const message = String(e?.message || '')
+    if (message.includes('(409)') || message.includes('email_exists') || message.includes('already exists')) {
+      error.value = 'Esta cuenta de Google ya está vinculada a otro usuario.'
+    } else {
+      error.value = message || 'No se pudo vincular la cuenta de Google.'
+    }
+  }
+}
+
 onMounted(async () => {
   // Google redirects the browser here after the user consents. The URL
   // contains ?code=... (success) or ?error=...&error_description=... (failure).
@@ -100,16 +117,14 @@ onMounted(async () => {
   }
 
   // The `state` query param is `${redirectUri}|${jsonState}`. We use the
-  // JSON portion to remember where to send the user after login.
-  let next = null
-  const stateParam = route.query.state
-  if (stateParam && typeof stateParam === 'string' && stateParam.includes('|')) {
-    try {
-      const parsed = JSON.parse(decodeURIComponent(stateParam.split('|').slice(1).join('|')))
-      next = parsed?.next || null
-    } catch {
-      // ignore parse errors and fall through to default routing
-    }
+  // JSON portion to remember where to send the user and what to do.
+  const state = parseGoogleState(route.query.state)
+  const next = state?.next || null
+  const mode = state?.mode || 'login'
+
+  if (mode === 'link') {
+    await handleLink(code, next)
+    return
   }
 
   try {

@@ -43,6 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
       name:null,
       img:null,
     },
+    google_oauth: null, // { is_linked, email, provider_user_id, created_at }
   });
 
   const isAuthenticated = ref(false);
@@ -216,6 +217,16 @@ export const useAuthStore = defineStore('auth', () => {
     return `${backendUrl}${imagePath}`;
   });
 
+  /**
+   * Verifica si el usuario tiene vinculada una cuenta de Google
+   */
+  const googleLinked = computed(() => userProfile.value.google_oauth?.is_linked === true);
+
+  /**
+   * Obtiene el email de la cuenta de Google vinculada
+   */
+  const googleEmail = computed(() => userProfile.value.google_oauth?.email || '');
+
   // ========================================
   // ACTIONS - Funciones para modificar el estado
   // ========================================
@@ -368,7 +379,8 @@ export const useAuthStore = defineStore('auth', () => {
           id: userData.tenant?.id || null,
           name: userData.tenant?.name || null,
           img: userData.tenant?.img || null,
-        }
+        },
+        google_oauth: userData.google_oauth || null,
       };
 
       console.log('✅ User profile loaded:', {
@@ -423,7 +435,8 @@ export const useAuthStore = defineStore('auth', () => {
         id:null,  
         name:null,
         img:null,
-      }
+      },
+      google_oauth: null,
 
     };
     isAuthenticated.value = false;
@@ -597,6 +610,8 @@ export const useAuthStore = defineStore('auth', () => {
     profileTenantId,
     profileTenantName,
     profileTenantImage,
+    googleLinked,
+    googleEmail,
     
     // Actions
     initializeAuth,
