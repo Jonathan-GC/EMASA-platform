@@ -389,7 +389,8 @@ const openRoleMembersModal = async (role) => {
   const modal = await modalController.create({
     component: RoleMembersModal,
     componentProps: {
-      role: role
+      role: role,
+      allowRemove: true
     },
     cssClass: 'full-modal'
   })
