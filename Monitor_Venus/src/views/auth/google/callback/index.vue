@@ -1,26 +1,72 @@
 <template>
-  <div class="callback">
-    <p v-if="!error">Finishing sign-in…</p>
-    <template v-else>
-      <p class="error">{{ error }}</p>
-      <button type="button" class="login-link" @click="goToLoginWithError(error)">
-        Volver al login
-      </button>
-    </template>
-  </div>
+  <ion-page>
+    <ion-content :fullscreen="true">
+      <div class="callback-page">
+        <div class="header-container">
+          <img src="/monitor_logo.svg" alt="Monitor Logo" class="logo" />
+        </div>
+
+        <div class="callback-card-container">
+          <ion-card class="callback-card">
+            <ion-card-content class="card-content">
+              <template v-if="!error">
+                <div class="icon-container">
+                  <ion-spinner name="crescent" class="orange-spinner"></ion-spinner>
+                </div>
+                <h1 class="callback-title">Conectando con tu cuenta…</h1>
+                <p class="callback-message">{{ loadingMessage }}</p>
+              </template>
+              <template v-else>
+                <div class="icon-container">
+                  <ion-icon :icon="icons.alertCircle" color="danger" size="large"></ion-icon>
+                </div>
+                <h1 class="callback-title">Algo salió mal</h1>
+                <p class="callback-error">{{ error }}</p>
+                <ion-button expand="block" color="primary" class="continue-button" @click="goToLoginWithError(error)">
+                  Volver al login
+                </ion-button>
+              </template>
+            </ion-card-content>
+          </ion-card>
+        </div>
+
+        <div class="footer-band">
+          <AuthFooter />
+        </div>
+      </div>
+    </ion-content>
+  </ion-page>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import API from '@/utils/api/api'
 import { parseGoogleState, postGoogleLinkCode } from '@/utils/auth/googleOAuth'
+import AuthFooter from '@/components/layout/AuthFooter.vue'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const icons = inject('icons', {})
 const error = ref(null)
+
+const loadingMessages = [
+  'Conectando con tu cuenta de forma segura…',
+  'Verificando tu identidad…',
+  'Casi listo, un momento…',
+]
+const loadingMessage = ref(loadingMessages[0])
+let loadingTimer = null
+
+function startLoadingMessages() {
+  let index = 0
+  loadingTimer = setInterval(() => {
+    index = (index + 1) % loadingMessages.length
+    loadingMessage.value = loadingMessages[index]
+  }, 1500)
+}
 
 function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -100,6 +146,8 @@ async function handleLink(code, next) {
 }
 
 onMounted(async () => {
+  startLoadingMessages()
+
   // Google redirects the browser here after the user consents. The URL
   // contains ?code=... (success) or ?error=...&error_description=... (failure).
   const code = route.query.code
@@ -159,7 +207,7 @@ onMounted(async () => {
       throw new Error('No se pudo guardar el access token')
     }
 
-    await auth.fetchUserProfile().catch(() => {})
+    await auth.fetchUserProfile().catch(() => { })
     navigateAfterLogin(next)
   } catch (e) {
     // Handle the 409 case where the email already exists in the system
@@ -173,27 +221,114 @@ onMounted(async () => {
     error.value = message || 'Error desconocido durante el login con Google.'
   }
 })
+
+onBeforeUnmount(() => {
+  if (loadingTimer) clearInterval(loadingTimer)
+})
 </script>
 
 <style scoped>
-.callback {
+.callback-page {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.header-container {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem 2rem;
+}
+
+.logo {
+  height: 60px;
+  width: auto;
+}
+
+.callback-card-container {
+  display: flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
-  padding: 2rem;
+  padding: 0 1rem 2rem;
+}
+
+.callback-card {
+  width: 100%;
+  max-width: 440px;
+  margin: 0;
+  border-radius: 16px;
+  box-shadow: none;
+  background-color: #f9fafb;
+}
+
+.card-content {
+  padding: 2.5rem 2rem;
   text-align: center;
 }
-.error { color: #c0392b; }
-.login-link {
+
+.icon-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.orange-spinner {
+  --color: #ee731b;
+  width: 56px;
+  height: 56px;
+}
+
+.callback-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.callback-message {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+.callback-error {
+  margin: 0;
+  padding: 0.75rem;
+  border-left: 3px solid var(--ion-color-danger);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  font-size: 0.9rem;
+  color: #c0392b;
+  text-align: left;
+}
+
+.continue-button {
   margin-top: 1rem;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
-  background: #fff;
-  color: #3c4043;
-  cursor: pointer;
-  font-weight: 500;
-  padding: 0.65rem 1rem;
+  font-weight: 600;
+}
+
+.footer-band {
+  background: #111827;
+}
+
+@media (max-width: 768px) {
+  .header-container {
+    padding: 2rem 1rem 1.5rem;
+  }
+
+  .logo {
+    height: 48px;
+  }
+
+  .card-content {
+    padding: 2rem 1.25rem;
+  }
+
+  .orange-spinner {
+    width: 48px;
+    height: 48px;
+  }
 }
 </style>

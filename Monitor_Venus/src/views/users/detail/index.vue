@@ -470,6 +470,10 @@ const hasGoogleLinked = computed(() => {
 
 const googleToggleEnabled = ref(false)
 
+watch(() => authStore.googleLinked, (linked) => {
+  googleToggleEnabled.value = linked
+})
+
 const googleEmail = computed(() => authStore.googleEmail || '')
 
 const sidebarInitialData = computed(() => {
