@@ -241,13 +241,43 @@
         <GoogleLoginButton mode="link" :next="`/users/${userId}`" @started="handleLinkStarted" />
       </div>
     </ion-modal>
+
+    <!-- Google Unlink Confirmation Modal -->
+    <ion-modal :is-open="isUnlinkModalOpen" @did-dismiss="closeUnlinkModal" class="google-link-modal">
+      <ion-header class="custom">
+        <ion-toolbar>
+          <ion-title>Desvincular Google</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="closeUnlinkModal">
+              <ion-icon :icon="icons.close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="google-link-modal-content">
+        <div class="unlink-icon">
+          <ion-icon :icon="icons.link" size="large" color="medium"></ion-icon>
+        </div>
+        <p class="modal-description">
+          ¿Seguro que deseas desvincular tu cuenta de Google? Podrás volver a vincularla cuando quieras y
+          seguirás accediendo con tu correo y contraseña.
+        </p>
+        <div class="modal-actions">
+          <ion-button fill="outline" @click="closeUnlinkModal">Cancelar</ion-button>
+          <ion-button color="danger" :disabled="googleUnlinkLoading" @click="confirmGoogleUnlink">
+            <ion-spinner v-if="googleUnlinkLoading" name="crescent" slot="start"></ion-spinner>
+            Desvincular
+          </ion-button>
+        </div>
+      </div>
+    </ion-modal>
   </ion-page>
 </template>
 
 <script setup>
 import { ref, computed, inject, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
-import { modalController } from '@ionic/vue'
+import { modalController, toastController } from '@ionic/vue'
 import API from '@/utils/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import RoleMembersModal from '@components/forms/roles/RoleMembersModal.vue'
@@ -267,6 +297,8 @@ const selectedTab = ref('overview')
 
 const googleToggleLoading = ref(false)
 const isLinkModalOpen = ref(false)
+const isUnlinkModalOpen = ref(false)
+const googleUnlinkLoading = ref(false)
 const linkError = ref(null)
 
 const fetchUser = async () => {
@@ -473,7 +505,7 @@ const handleGoogleToggle = async (ev) => {
   } else {
     googleToggleEnabled.value = false
     if (hasGoogleLinked.value) {
-      await handleGoogleUnlink()
+      isUnlinkModalOpen.value = true
     }
   }
 }
@@ -496,17 +528,30 @@ const handleLinkStarted = () => {
   isLinkModalOpen.value = false
 }
 
-const handleGoogleUnlink = async () => {
-  googleToggleLoading.value = true
+const closeUnlinkModal = () => {
+  isUnlinkModalOpen.value = false
+  googleToggleEnabled.value = authStore.googleLinked
+}
+
+const confirmGoogleUnlink = async () => {
+  googleUnlinkLoading.value = true
   try {
     await API.post(API.GOOGLE_UNLINK)
     await authStore.fetchUserProfile().catch(() => { })
     googleToggleEnabled.value = authStore.googleLinked
+    isUnlinkModalOpen.value = false
   } catch (err) {
     console.error('Error al desvincular Google:', err)
     googleToggleEnabled.value = true
+    const toast = await toastController.create({
+      message: 'No se pudo desvincular la cuenta de Google. Inténtalo de nuevo.',
+      duration: 4000,
+      color: 'danger',
+      position: 'top'
+    })
+    await toast.present()
   } finally {
-    googleToggleLoading.value = false
+    googleUnlinkLoading.value = false
   }
 }
 
@@ -1004,6 +1049,23 @@ const handleLinkError = (ev) => {
   color: var(--ion-color-medium);
   line-height: 1.5;
   max-width: 280px;
+}
+
+.unlink-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--ion-color-light, #f3f4f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
 }
 
 /* ── Loading & Error ── */
