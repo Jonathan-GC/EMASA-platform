@@ -34,6 +34,7 @@ from .helpers import (
     get_or_create_admin_role,
     get_global_tenant,
 )
+from platform_backend.audit_mixins import AuditActionMixin
 
 
 @extend_schema_view(
@@ -44,7 +45,7 @@ from .helpers import (
     partial_update=extend_schema(description="Workspace Partial Update"),
     destroy=extend_schema(description="Workspace Destroy"),
 )
-class WorkspaceViewSet(viewsets.ModelViewSet):
+class WorkspaceViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
     permission_classes = [HasPermission]
@@ -104,7 +105,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     destroy=extend_schema(description="Tenant Destroy"),
     get_tenant_by_cs_id=extend_schema(description="Get Tenant by CS ID"),
 )
-class TenantViewSet(viewsets.ModelViewSet):
+class TenantViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
     permission_classes = [HasPermission]
@@ -301,7 +302,7 @@ class TenantViewSet(viewsets.ModelViewSet):
     partial_update=extend_schema(description="Subscription Partial Update"),
     destroy=extend_schema(description="Subscription Destroy"),
 )
-class SubscriptionViewSet(viewsets.ModelViewSet):
+class SubscriptionViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
     permission_classes = [HasPermission]

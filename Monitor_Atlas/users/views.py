@@ -9,6 +9,8 @@ from .serializers import (
 from .models import User, OAuthAccount
 from roles.permissions import HasPermission
 from auditlog.models import LogEntry
+from django.db.models import Q
+from platform_backend.audit_mixins import AuditActionMixin
 
 from rest_framework.viewsets import ModelViewSet
 from guardian.shortcuts import get_objects_for_user
@@ -192,7 +194,7 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
         responses={200: UserProfileSerializer},
     ),
 )
-class UserViewSet(ModelViewSet):
+class UserViewSet(AuditActionMixin, ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [HasPermission]
@@ -1505,27 +1507,93 @@ class LogLogsViewSet(viewsets.ViewSet):
 )
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for viewing audit logs.
+    ViewSet for viewing audit logs with query parameter filtering.
     """
 
     queryset = LogEntry.objects.all().order_by("-timestamp")
     serializer_class = LogEntrySerializer
     permission_classes = [IsAnAdminUser]
 
+    def filter_audit_queryset(self, queryset, request):
+        params = request.query_params
+
+        # Filter by action (0=CREATE, 1=UPDATE, 2=DELETE, 3=ACCESS)
+        action_param = params.get("action")
+        if action_param is not None:
+            action_map = {"create": 0, "update": 1, "delete": 2, "access": 3}
+            val = action_map.get(str(action_param).lower(), action_param)
+            if str(val).isdigit():
+                queryset = queryset.filter(action=int(val))
+
+        # Filter by model name
+        model_param = params.get("model")
+        if model_param:
+            queryset = queryset.filter(content_type__model__iexact=model_param)
+
+        # Filter by app label
+        app_param = params.get("app")
+        if app_param:
+            queryset = queryset.filter(content_type__app_label__iexact=app_param)
+
+        # Filter by actor ID or email
+        actor_param = params.get("actor")
+        if actor_param:
+            if str(actor_param).isdigit():
+                queryset = queryset.filter(actor_id=int(actor_param))
+            else:
+                queryset = queryset.filter(actor__email__icontains=actor_param)
+
+        # Filter by object_pk
+        object_pk = params.get("object_pk")
+        if object_pk:
+            queryset = queryset.filter(object_pk=str(object_pk))
+
+        # Filter by date range
+        start_date = params.get("start_date") or params.get("from_date")
+        if start_date:
+            queryset = queryset.filter(timestamp__gte=start_date)
+
+        end_date = params.get("end_date") or params.get("to_date")
+        if end_date:
+            queryset = queryset.filter(timestamp__lte=end_date)
+
+        # Search filter
+        search = params.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(object_repr__icontains=search)
+                | Q(changes__icontains=search)
+                | Q(actor__username__icontains=search)
+                | Q(actor__email__icontains=search)
+                | Q(additional_data__icontains=search)
+            )
+
+        return queryset
+
+    def get_queryset(self):
+        queryset = LogEntry.objects.all().order_by("-timestamp")
+        return self.filter_audit_queryset(queryset, self.request)
+
     @action(detail=False, methods=["get"], permission_classes=[IsTenantAdminUser])
     def get_tenant_admin_logs(self, request):
         """
         Return audit logs for tenant admins.
-        Filters logs where the actor belongs to the same tenant as the requester.
+        Filters logs where the actor belongs to the same tenant as the requester or parent_tenant_id matches.
         """
         user = request.user
 
         if user.is_superuser:
             queryset = LogEntry.objects.all().order_by("-timestamp")
         else:
-            queryset = LogEntry.objects.filter(actor__tenant=user.tenant).order_by(
-                "-timestamp"
-            )
+            if getattr(user, "tenant", None):
+                queryset = LogEntry.objects.filter(
+                    Q(actor__tenant=user.tenant)
+                    | Q(additional_data__parent_tenant_id=str(user.tenant.id))
+                ).order_by("-timestamp")
+            else:
+                queryset = LogEntry.objects.none()
+
+        queryset = self.filter_audit_queryset(queryset, request)
 
         page = self.paginate_queryset(queryset)
         if page is not None:

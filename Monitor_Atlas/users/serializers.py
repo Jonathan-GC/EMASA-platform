@@ -690,12 +690,18 @@ from auditlog.models import LogEntry
 class LogEntrySerializer(serializers.ModelSerializer):
     model = serializers.SerializerMethodField()
     app = serializers.SerializerMethodField()
+    action_name = serializers.CharField(source="get_action_display", read_only=True)
+    detail = serializers.SerializerMethodField()
+    actor_details = serializers.SerializerMethodField()
+    formatted_changes = serializers.SerializerMethodField()
 
     class Meta:
         model = LogEntry
         fields = [
             "id",
             "action",
+            "action_name",
+            "detail",
             "model",
             "app",
             "content_type",
@@ -703,9 +709,12 @@ class LogEntrySerializer(serializers.ModelSerializer):
             "object_repr",
             "serialized_data",
             "actor",
+            "actor_details",
             "remote_addr",
             "timestamp",
             "changes",
+            "formatted_changes",
+            "additional_data",
         ]
 
     @extend_schema_field(serializers.CharField(allow_null=True))
@@ -719,4 +728,48 @@ class LogEntrySerializer(serializers.ModelSerializer):
         if obj.content_type:
             return obj.content_type.app_label
         return None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_detail(self, obj):
+        if obj.additional_data and isinstance(obj.additional_data, dict):
+            return obj.additional_data.get("action_detail")
+        return None
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_actor_details(self, obj):
+        if not obj.actor:
+            return None
+        full_name = f"{getattr(obj.actor, 'name', '')} {getattr(obj.actor, 'last_name', '')}".strip()
+        return {
+            "id": obj.actor.id,
+            "username": getattr(obj.actor, "username", ""),
+            "email": getattr(obj.actor, "email", ""),
+            "full_name": full_name or getattr(obj.actor, "username", "Unknown User"),
+        }
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_formatted_changes(self, obj):
+        changes = obj.changes
+        if not changes:
+            return []
+
+        if isinstance(changes, str):
+            try:
+                import json
+                changes = json.loads(changes)
+            except Exception:
+                return [changes]
+
+        if not isinstance(changes, dict):
+            return []
+
+        formatted = []
+        for field, diff in changes.items():
+            if isinstance(diff, list) and len(diff) == 2:
+                old_val, new_val = diff[0], diff[1]
+                formatted.append(f"Changed '{field}' from '{old_val}' to '{new_val}'")
+            else:
+                formatted.append(f"Modified '{field}': {diff}")
+        return formatted
+
 
