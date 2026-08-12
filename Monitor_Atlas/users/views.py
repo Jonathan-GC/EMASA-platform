@@ -1496,12 +1496,89 @@ class LogLogsViewSet(viewsets.ViewSet):
             return Response({"error": str(e)}, status=500)
 
 
+audit_log_parameters = [
+    OpenApiParameter(
+        name="action",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by action type: 'create' (0), 'update' (1), 'delete' (2), or 'access' (3).",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="model",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by target model name (case-insensitive, e.g. 'device', 'user', 'machine').",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="app",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by Django app label (e.g. 'users', 'infrastructure', 'roles').",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="actor",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by actor ID (integer) or actor email address (substring match).",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="object_pk",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by primary key string of the targeted object.",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="start_date",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter log entries on or after this ISO 8601 date/datetime (e.g. '2026-01-01T00:00:00Z').",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="end_date",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter log entries on or before this ISO 8601 date/datetime (e.g. '2026-08-06T23:59:59Z').",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="search",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Free-text search matching object representation, field changes, actor details, or action details.",
+        required=False,
+    ),
+]
+
+
 @extend_schema_view(
-    list=extend_schema(summary="List audit logs", description="Audit Log List"),
-    retrieve=extend_schema(summary="Retrieve audit log", description="Audit Log Retrieve"),
+    list=extend_schema(
+        summary="List global audit logs",
+        description=(
+            "Retrieves a paginated list of system audit log entries for global admins and superusers. "
+            "Supports multi-field filtering by action type, target model/app, actor, object primary key, "
+            "date ranges, and keyword search."
+        ),
+        parameters=audit_log_parameters,
+        responses={200: LogEntrySerializer(many=True)},
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve specific audit log entry",
+        description="Retrieves a single audit log entry by its unique database ID.",
+        responses={200: LogEntrySerializer},
+    ),
     get_tenant_admin_logs=extend_schema(
         summary="Get tenant admin audit logs",
-        description="Return audit logs for tenant admins (filtered by tenant).",
+        description=(
+            "Retrieves audit logs filtered specifically for the requester's tenant. "
+            "Superusers retrieve all logs. Supports the full suite of query parameter filters."
+        ),
+        parameters=audit_log_parameters,
         responses={200: LogEntrySerializer(many=True)},
     ),
 )
