@@ -11,17 +11,24 @@
             </h1>
           </div>
         </div>
-        <TableAudit />
+        <TableAudit ref="tableAuditRef" />
       </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup>
-import { inject } from 'vue'
+import { ref, inject } from 'vue'
+import { onIonViewWillEnter } from '@ionic/vue'
 import TableAudit from '@components/tables/audit/TableAudit.vue'
 
 const icons = inject('icons', {})
+
+const tableAuditRef = ref(null)
+
+onIonViewWillEnter(() => {
+  tableAuditRef.value?.fetchLogs(true)
+})
 </script>
 
 <style scoped>

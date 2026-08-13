@@ -437,9 +437,11 @@ function getActivityColor(item) {
 async function fetchActivity() {
   try {
     const endpoint = authStore.isSuperUser ? API.AUDIT : API.TENANT_AUDIT
-    const response = await API.get(endpoint)
-    const logs = Array.isArray(response) ? response : (response?.results || [])
-    serverActivity.value = logs.slice(0, 5) // Get exactly last 5
+    const response = await API.get(`${endpoint}?limit=5`)
+    // API.get wraps object responses in [obj]; paginated bodies carry data in .results
+    const payload = response?.[0] ?? response
+    const logs = payload?.results ?? (Array.isArray(payload) ? payload : [])
+    serverActivity.value = logs.slice(0, 5) // Limit via backend, fallback slice as safety
 
     // Fetch actor full names for the logs
     const uniqueActors = [...new Set(serverActivity.value.map(log => log.actor).filter(id => id && !actorDetails.value[id]))]

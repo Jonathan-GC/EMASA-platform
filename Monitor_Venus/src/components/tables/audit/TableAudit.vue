@@ -4,19 +4,66 @@
       <ion-card-header>
         <ion-card-title>Registros de auditoría</ion-card-title>
         <ion-card-subtitle>
-          {{ loading ? 'Cargando...' : `${logs.length} ${logs.length === 1 ? 'registro encontrado' : 'registros encontrados'}` }}
+          {{ loading ? 'Cargando...' : `${totalCount} ${totalCount === 1 ? 'registro encontrado' : 'registros encontrados'}` }}
         </ion-card-subtitle>
       </ion-card-header>
 
       <ion-card-content class="custom">
-        <!-- Loading state -->
-        <div v-if="loading" class="loading-container">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Obteniendo registros de auditoría...</p>
+        <!-- Desktop controls -->
+        <div v-if="!isMobile" class="table-controls">
+          <ion-searchbar v-model="searchText" placeholder="Buscar en object_repr, cambios, actor..."
+            @ionInput="handleSearchInput" show-clear-button="focus" class="custom"></ion-searchbar>
+          <div class="desktop-filter-row">
+            <label class="filter-field">
+              <span>Acción</span>
+              <ion-select v-model="actionFilter" placeholder="Seleccionar acción" @ionChange="triggerFetch" class="filter-select">
+                <ion-select-option :value="0">Crear</ion-select-option>
+                <ion-select-option :value="1">Actualizar</ion-select-option>
+                <ion-select-option :value="2">Eliminar</ion-select-option>
+                <ion-select-option :value="3">Acceso</ion-select-option>
+              </ion-select>
+            </label>
+            <label class="filter-field">
+              <span>Actor (id o email)</span>
+              <ion-input v-model="actorFilter" placeholder="user@example.com" @ionInput="handleSearchInput" class="filter-input"></ion-input>
+            </label>
+            <label class="filter-field">
+              <span>App</span>
+              <ion-input v-model="appFilter" placeholder="infrastructure" @ionInput="handleSearchInput" class="filter-input"></ion-input>
+            </label>
+            <label class="filter-field">
+              <span>Modelo</span>
+              <ion-input v-model="modelFilter" placeholder="Machine" @ionInput="handleSearchInput" class="filter-input"></ion-input>
+            </label>
+            <label class="filter-field">
+              <span>Object PK</span>
+              <ion-input v-model="objectPkFilter" placeholder="123" @ionInput="handleSearchInput" class="filter-input"></ion-input>
+            </label>
+            <label class="filter-field">
+              <span>Desde</span>
+              <input v-model="startDate" type="datetime-local" @change="triggerFetch" class="date-input" />
+            </label>
+            <label class="filter-field">
+              <span>Hasta</span>
+              <input v-model="endDate" type="datetime-local" @change="triggerFetch" class="date-input" />
+            </label>
+            <div class="filter-actions">
+              <QuickControl type="audit" :toRefresh="true" :toClear="true" @refresh="fetchLogs" @clear="clearFilters" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile: single Filters button -->
+        <div v-else class="mobile-controls">
+          <ion-button @click="openFiltersModal" fill="outline" color="primary">
+            <ion-icon :icon="icons.options" slot="start"></ion-icon>
+            Filtros
+          </ion-button>
+          <QuickControl type="audit" :toRefresh="true" :toClear="true" @refresh="fetchLogs" @clear="clearFilters" />
         </div>
 
         <!-- Error state -->
-        <div v-else-if="error" class="error-container">
+        <div v-if="error" class="error-container">
           <ion-icon :icon="icons.alertCircle" color="danger"></ion-icon>
           <p>Error: {{ error }}</p>
           <ion-button @click="fetchLogs" fill="outline" color="danger">
@@ -24,63 +71,10 @@
           </ion-button>
         </div>
 
-        <!-- Data -->
+        <!-- Body -->
         <div v-else>
-          <!-- Desktop controls -->
-          <div v-if="!isMobile" class="table-controls">
-            <ion-searchbar v-model="searchText" placeholder="Buscar en object_repr, cambios, actor..."
-              @ionInput="handleSearchInput" show-clear-button="focus" class="custom"></ion-searchbar>
-            <div class="desktop-filter-row">
-              <label class="filter-field">
-                <span>Acción</span>
-                <ion-select v-model="actionFilter" @ionChange="triggerFetch" class="filter-select">
-                  <ion-select-option :value="0">Crear</ion-select-option>
-                  <ion-select-option :value="1">Actualizar</ion-select-option>
-                  <ion-select-option :value="2">Eliminar</ion-select-option>
-                  <ion-select-option :value="3">Acceso</ion-select-option>
-                </ion-select>
-              </label>
-              <label class="filter-field">
-                <span>Actor (id o email)</span>
-                <ion-input v-model="actorFilter" @ionInput="handleSearchInput" class="filter-input"></ion-input>
-              </label>
-              <label class="filter-field">
-                <span>App</span>
-                <ion-input v-model="appFilter" @ionInput="handleSearchInput" class="filter-input"></ion-input>
-              </label>
-              <label class="filter-field">
-                <span>Modelo</span>
-                <ion-input v-model="modelFilter" @ionInput="handleSearchInput" class="filter-input"></ion-input>
-              </label>
-              <label class="filter-field">
-                <span>Object PK</span>
-                <ion-input v-model="objectPkFilter" @ionInput="handleSearchInput" class="filter-input"></ion-input>
-              </label>
-              <label class="filter-field">
-                <span>Desde</span>
-                <input v-model="startDate" type="datetime-local" @change="triggerFetch" class="date-input" />
-              </label>
-              <label class="filter-field">
-                <span>Hasta</span>
-                <input v-model="endDate" type="datetime-local" @change="triggerFetch" class="date-input" />
-              </label>
-              <div class="filter-actions">
-                <QuickControl type="audit" :toRefresh="true" :toClear="true" @refresh="fetchLogs" @clear="clearFilters" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Mobile: single Filters button -->
-          <div v-else class="mobile-controls">
-            <ion-button @click="openFiltersModal" fill="outline" color="primary">
-              <ion-icon :icon="icons.options" slot="start"></ion-icon>
-              Filtros
-            </ion-button>
-            <QuickControl type="audit" :toRefresh="true" :toClear="true" @refresh="fetchLogs" @clear="clearFilters" />
-          </div>
-
           <!-- Empty -->
-          <div v-if="paginatedItems.length === 0" class="empty-container">
+          <div v-if="!loading && paginatedItems.length === 0" class="empty-container">
             <ion-icon :icon="icons.document" size="large" color="medium"></ion-icon>
             <p>No se encontraron registros con los filtros actuales.</p>
           </div>
@@ -98,24 +92,41 @@
                 <ion-col size="1"><strong>IP</strong></ion-col>
                 <ion-col size="1"><strong>Detalle</strong></ion-col>
               </ion-row>
-              <ion-row v-for="log in paginatedItems" :key="log.id" class="log-row" @click="openDetail(log)">
-                <ion-col size="2">{{ formatTimestamp(log.timestamp) }}</ion-col>
-                <ion-col size="1.5">
-                  <ion-chip :color="actionColor(log.action)" size="small" class="action-chip">
-                    {{ actionLabel(log.action) || log.action_name }}
-                  </ion-chip>
+              <ion-row v-if="loading" class="row-loading">
+                <ion-col class="row-loading-col">
+                  <ion-spinner name="crescent"></ion-spinner>
+                  <span>Cargando...</span>
                 </ion-col>
-                <ion-col size="2" class="cell-truncate">{{ log.actor_details?.username || '-' }}</ion-col>
-                <ion-col size="1">{{ log.app || '-' }}</ion-col>
-                <ion-col size="1.5">{{ log.model || '-' }}</ion-col>
-                <ion-col size="2" class="cell-truncate">{{ log.object_repr || log.object_pk || '-' }}</ion-col>
-                <ion-col size="1">{{ log.remote_addr || '-' }}</ion-col>
-                <ion-col size="1" class="cell-truncate">{{ log.detail || '-' }}</ion-col>
               </ion-row>
+              <template v-else>
+                <ion-row v-for="log in paginatedItems" :key="log.id" class="log-row" @click="openDetail(log)">
+                  <ion-col size="2">{{ formatTimestamp(log.timestamp) }}</ion-col>
+                  <ion-col size="1.5">
+                    <ion-chip :color="actionColor(log.action)" size="small" class="action-chip">
+                      {{ actionLabel(log.action) || log.action_name }}
+                    </ion-chip>
+                  </ion-col>
+                  <ion-col size="2" class="cell-truncate">{{ log.actor_details?.username || '-' }}</ion-col>
+                  <ion-col size="1">{{ log.app || '-' }}</ion-col>
+                  <ion-col size="1.5">{{ log.model || '-' }}</ion-col>
+                  <ion-col size="2" class="cell-truncate">{{ log.object_repr || log.object_pk || '-' }}</ion-col>
+                  <ion-col size="1">{{ log.remote_addr || '-' }}</ion-col>
+                  <ion-col size="1" class="cell-truncate">{{ log.detail || '-' }}</ion-col>
+                </ion-row>
+              </template>
             </ion-grid>
 
             <!-- Pagination -->
             <div class="pagination">
+              <span class="page-size">
+                <span class="page-size-label">Filas:</span>
+                <select :value="itemsPerPage" class="items-per-page-select" @change="setPageSize(Number($event.target.value))">
+                  <option :value="10">10</option>
+                  <option :value="25">25</option>
+                  <option :value="50">50</option>
+                  <option :value="100">100</option>
+                </select>
+              </span>
               <ion-button fill="clear" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
                 <ion-icon :icon="icons.chevronBack" slot="icon-only"></ion-icon>
               </ion-button>
@@ -130,23 +141,38 @@
 
           <!-- Mobile list -->
           <div v-else class="mobile-list">
-            <div v-for="log in paginatedItems" :key="log.id" class="mobile-card" @click="openDetail(log)">
-              <div class="mobile-card-header">
-                <ion-chip :color="actionColor(log.action)" size="small" class="action-chip">
-                  {{ actionLabel(log.action) || log.action_name }}
-                </ion-chip>
-                <span class="mobile-timestamp">{{ formatTimestamp(log.timestamp) }}</span>
-              </div>
-              <div class="mobile-card-body">
-                <strong>{{ log.object_repr || log.model || '-' }}</strong>
-                <span class="mobile-meta">
-                  {{ log.actor || '-' }} · {{ log.app || '-' }} · {{ log.model || '-' }}
-                </span>
-                <span v-if="log.remote_addr" class="mobile-meta">IP: {{ log.remote_addr }}</span>
-              </div>
+            <div v-if="loading" class="mobile-loading">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>Cargando...</span>
             </div>
+            <template v-else>
+              <div v-for="log in paginatedItems" :key="log.id" class="mobile-card" @click="openDetail(log)">
+                <div class="mobile-card-header">
+                  <ion-chip :color="actionColor(log.action)" size="small" class="action-chip">
+                    {{ actionLabel(log.action) || log.action_name }}
+                  </ion-chip>
+                  <span class="mobile-timestamp">{{ formatTimestamp(log.timestamp) }}</span>
+                </div>
+                <div class="mobile-card-body">
+                  <strong>{{ log.object_repr || log.model || '-' }}</strong>
+                  <span class="mobile-meta">
+                    {{ log.actor || '-' }} · {{ log.app || '-' }} · {{ log.model || '-' }}
+                  </span>
+                  <span v-if="log.remote_addr" class="mobile-meta">IP: {{ log.remote_addr }}</span>
+                </div>
+              </div>
+            </template>
 
             <div class="pagination">
+              <span class="page-size">
+                <span class="page-size-label">Filas:</span>
+                <select :value="itemsPerPage" class="items-per-page-select" @change="setPageSize(Number($event.target.value))">
+                  <option :value="10">10</option>
+                  <option :value="25">25</option>
+                  <option :value="50">50</option>
+                  <option :value="100">100</option>
+                </select>
+              </span>
               <ion-button fill="clear" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
                 <ion-icon :icon="icons.chevronBack" slot="icon-only"></ion-icon>
               </ion-button>
@@ -179,7 +205,7 @@
             show-clear-button="focus"></ion-searchbar>
           <label class="filter-field full">
             <span>Acción</span>
-            <ion-select v-model="actionFilter" @ionChange="triggerFetch">
+            <ion-select v-model="actionFilter" placeholder="Seleccionar acción" @ionChange="triggerFetch">
               <ion-select-option :value="0">Crear</ion-select-option>
               <ion-select-option :value="1">Actualizar</ion-select-option>
               <ion-select-option :value="2">Eliminar</ion-select-option>
@@ -192,15 +218,15 @@
           </label>
           <label class="filter-field full">
             <span>App</span>
-            <ion-input v-model="appFilter" @ionInput="handleSearchInput"></ion-input>
+            <ion-input v-model="appFilter" placeholder="infrastructure" @ionInput="handleSearchInput"></ion-input>
           </label>
           <label class="filter-field full">
             <span>Modelo</span>
-            <ion-input v-model="modelFilter" @ionInput="handleSearchInput"></ion-input>
+            <ion-input v-model="modelFilter" placeholder="Machine" @ionInput="handleSearchInput"></ion-input>
           </label>
           <label class="filter-field full">
             <span>Object PK</span>
-            <ion-input v-model="objectPkFilter" @ionInput="handleSearchInput"></ion-input>
+            <ion-input v-model="objectPkFilter" placeholder="123" @ionInput="handleSearchInput"></ion-input>
           </label>
           <label class="filter-field full">
             <span>Desde</span>
@@ -346,11 +372,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, inject } from 'vue'
+import { ref, computed, inject } from 'vue'
 import API from '@/utils/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
-import { useTablePagination } from '@composables/Tables/useTablePagination.js'
+import { useServerPagination } from '@composables/Tables/useServerPagination.js'
 import QuickControl from '@components/operators/quickControl.vue'
 
 const authStore = useAuthStore()
@@ -428,19 +454,24 @@ const buildQuery = () => {
     const iso = new Date(endDate.value).toISOString()
     if (!Number.isNaN(new Date(iso).getTime())) params.set('end_date', iso)
   }
+  params.set('limit', itemsPerPage.value)
+  params.set('offset', offset.value)
   return params.toString()
 }
 
-const fetchLogs = async () => {
-  loading.value = true
-  error.value = null
+const fetchLogs = async (silent = false) => {
+  if (!silent) {
+    loading.value = true
+    error.value = null
+  }
   try {
     const qs = buildQuery()
     const url = qs ? `${endpoint.value}?${qs}` : endpoint.value
     const response = await API.get(url)
-    let data = Array.isArray(response) ? response : (response?.data || response || [])
-    if (data && !Array.isArray(data)) data = [data]
-    logs.value = Array.isArray(data) ? data : []
+    // API.get wraps object responses in [obj]; paginated bodies carry data in .results
+    const payload = Array.isArray(response) ? response[0] : response
+    logs.value = payload?.results ?? []
+    setTotal(payload?.count)
   } catch (err) {
     error.value = err.message || 'Error al cargar registros de auditoría'
     logs.value = []
@@ -457,6 +488,7 @@ const handleSearchInput = () => {
 }
 
 const triggerFetch = () => {
+  resetToFirstPage()
   fetchLogs()
 }
 
@@ -469,6 +501,7 @@ const clearFilters = () => {
   objectPkFilter.value = ''
   startDate.value = ''
   endDate.value = ''
+  resetToFirstPage()
   fetchLogs()
 }
 
@@ -488,13 +521,10 @@ const closeFiltersModal = () => {
   isFiltersModalOpen.value = false
 }
 
-const { currentPage, totalPages, changePage, paginatedItems, resetPagination } = useTablePagination(logs)
+const { currentPage, itemsPerPage, totalPages, offset, setTotal, changePage, setPageSize, resetToFirstPage } = useServerPagination({ fetchFn: fetchLogs, pageSize: 10 })
+const paginatedItems = computed(() => logs.value)
 
-watch(logs, () => resetPagination())
-
-onMounted(() => {
-  fetchLogs()
-})
+defineExpose({ fetchLogs })
 </script>
 
 <style scoped>
@@ -510,7 +540,6 @@ ion-card-subtitle {
   color: var(--ion-color-medium);
 }
 
-.loading-container,
 .error-container,
 .empty-container {
   display: flex;
@@ -520,6 +549,24 @@ ion-card-subtitle {
   gap: 12px;
   padding: 40px 20px;
   text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.row-loading-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px 0;
+  color: var(--ion-color-medium);
+}
+
+.mobile-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px 0;
   color: var(--ion-color-medium);
 }
 
@@ -667,6 +714,43 @@ ion-card-subtitle {
 .page-info {
   font-size: 0.9rem;
   color: var(--ion-color-medium);
+}
+
+.page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-size-label {
+  font-size: 0.875rem;
+  color: var(--ion-color-medium);
+}
+
+.items-per-page-select {
+  background: var(--ion-background-color, transparent);
+  border: 1px solid var(--ion-color-light-shade, #e5e7eb);
+  border-radius: 6px;
+  padding: 6px 32px 6px 12px;
+  font-size: 0.875rem;
+  color: var(--ion-text-color);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  transition: all 0.2s;
+}
+
+.items-per-page-select:hover {
+  border-color: var(--ion-color-primary);
+}
+
+.items-per-page-select:focus {
+  border-color: var(--ion-color-primary);
+  background-color: rgba(var(--ion-color-primary-rgb), 0.05);
 }
 
 .mobile-list {
@@ -944,6 +1028,10 @@ ion-card-subtitle {
 @media (max-width: 768px) {
   .table-card {
     margin: 8px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
   }
 }
 </style>
