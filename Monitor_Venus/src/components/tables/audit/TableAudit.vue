@@ -635,6 +635,9 @@ ion-card-subtitle {
   border: 1px solid var(--ion-color-light-shade, #e5e7eb);
   border-radius: 6px;
   background: var(--ion-card-background, #fff);
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --placeholder-opacity: 0.9;
 }
 
 .filter-field span {
