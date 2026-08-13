@@ -34,6 +34,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status, viewsets, serializers
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -1505,7 +1506,25 @@ def csrf_setup(request):
 
 @extend_schema_view(
     list=extend_schema(
-        description="Get system logs", responses={200: OpenApiTypes.OBJECT}
+        summary="Get system logs",
+        description="Return system log lines with limit and offset support.",
+        parameters=[
+            OpenApiParameter(
+                name="limit",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description="Number of log lines to return (default: 100, max: 1000).",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="offset",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description="Number of log lines to offset from the end of the log file.",
+                required=False,
+            ),
+        ],
+        responses={200: OpenApiTypes.OBJECT},
     )
 )
 class LogLogsViewSet(viewsets.ViewSet):
@@ -1513,16 +1532,25 @@ class LogLogsViewSet(viewsets.ViewSet):
 
     def list(self, request):
         """
-        Return the last 100 lines of the system log.
+        Return system log lines with limit and offset support.
         """
         limit = request.query_params.get("limit", 100)
+        offset = request.query_params.get("offset", 0)
         try:
             limit = int(limit)
         except ValueError:
             limit = 100
 
+        try:
+            offset = int(offset)
+        except ValueError:
+            offset = 0
+
         if limit <= 0 or limit > 1000:
             limit = 100
+
+        if offset < 0:
+            offset = 0
 
         log_file = settings.BASE_DIR / "logs/system.log"
         if not log_file.exists():
@@ -1530,14 +1558,41 @@ class LogLogsViewSet(viewsets.ViewSet):
 
         try:
             with open(log_file, "r") as f:
-                # Read all lines and take the last 100
-                lines = f.readlines()[-limit:]
-            return Response({"logs": lines})
+                lines = f.readlines()
+                total = len(lines)
+                end = total - offset if offset < total else total
+                start = max(0, end - limit)
+                slice_lines = lines[start:end]
+            return Response({
+                "count": total,
+                "limit": limit,
+                "offset": offset,
+                "logs": slice_lines,
+            })
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
 
+class AuditLogLimitOffsetPagination(LimitOffsetPagination):
+    default_limit = 100
+    max_limit = 1000
+
+
 audit_log_parameters = [
+    OpenApiParameter(
+        name="limit",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Number of results to return per page (default: 100, max: 1000).",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="offset",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="The initial index from which to return the results.",
+        required=False,
+    ),
     OpenApiParameter(
         name="action",
         type=str,
@@ -1602,8 +1657,8 @@ audit_log_parameters = [
         summary="List global audit logs",
         description=(
             "Retrieves a paginated list of system audit log entries for global admins and superusers. "
-            "Supports multi-field filtering by action type, target model/app, actor, object primary key, "
-            "date ranges, and keyword search."
+            "Supports limit/offset pagination and multi-field filtering by action type, target model/app, actor, "
+            "object primary key, date ranges, and keyword search."
         ),
         parameters=audit_log_parameters,
         responses={200: LogEntrySerializer(many=True)},
@@ -1617,7 +1672,7 @@ audit_log_parameters = [
         summary="Get tenant admin audit logs",
         description=(
             "Retrieves audit logs filtered specifically for the requester's tenant. "
-            "Superusers retrieve all logs. Supports the full suite of query parameter filters."
+            "Superusers retrieve all logs. Supports limit/offset pagination and query parameter filters."
         ),
         parameters=audit_log_parameters,
         responses={200: LogEntrySerializer(many=True)},
@@ -1625,12 +1680,13 @@ audit_log_parameters = [
 )
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for viewing audit logs with query parameter filtering.
+    ViewSet for viewing audit logs with query parameter filtering and limit/offset pagination.
     """
 
     queryset = LogEntry.objects.all().order_by("-timestamp")
     serializer_class = LogEntrySerializer
     permission_classes = [IsAnAdminUser]
+    pagination_class = AuditLogLimitOffsetPagination
 
     def filter_audit_queryset(self, queryset, request):
         params = request.query_params
