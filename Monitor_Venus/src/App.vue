@@ -14,17 +14,15 @@ import { App as CapApp } from '@capacitor/app'
 import API from '@/utils/api/api.js'
 import tokenManager from '@/utils/auth/tokenManager.js'
 import { parseGoogleState, postGoogleLinkCode } from '@/utils/auth/googleOAuth.js'
-import { usePushNotifications } from '@composables/usePushNotifications.js'
-import { useNotifications } from '@composables/useNotifications.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const { registerPush, listenForeground } = usePushNotifications()
-const { showNotification } = useNotifications()
 
 let appUrlListener = null
 let removeForegroundListener = null
 let appStateListener = null
+let pushRefs = null
+let notifRefs = null
 
 async function handleAppResume() {
   const refreshToken = tokenManager.getRefreshToken()
@@ -159,6 +157,18 @@ watch(
     console.log('🔔 Auth state changed:', isAuth)
     if (isAuth) {
       try {
+        // Lazy-load firebase + push + notifications composables only after auth
+        // so the entry chunk doesn't include firebase/messaging.
+        if (!pushRefs) {
+          const { usePushNotifications } = await import('@composables/usePushNotifications.js')
+          pushRefs = usePushNotifications()
+        }
+        if (!notifRefs) {
+          const { useNotifications } = await import('@composables/useNotifications.js')
+          notifRefs = useNotifications()
+        }
+        const { registerPush, listenForeground } = pushRefs
+        const { showNotification } = notifRefs
         const registered = await registerPush()
         console.log('🔔 registerPush result:', registered)
         if (!removeForegroundListener) {

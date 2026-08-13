@@ -1,14 +1,14 @@
-import { getMessaging, getToken, onMessage } from 'firebase/messaging'
-import { firebaseApp } from '@/plugins/firebase/index'
+import { ensureFirebaseApp } from '@/plugins/firebase/index'
 import API from '@/utils/api/api'
 
 let messagingInstance = null
 let swRegistration = null
 
-function getMessagingInstance() {
-  if (!messagingInstance) {
-    messagingInstance = getMessaging(firebaseApp)
-  }
+async function getMessagingInstance() {
+  if (messagingInstance) return messagingInstance
+  const { getMessaging } = await import('firebase/messaging')
+  const app = await ensureFirebaseApp()
+  messagingInstance = getMessaging(app)
   return messagingInstance
 }
 
@@ -36,7 +36,6 @@ export async function requestWebPushPermission() {
     return null
   }
 
-  const messaging = getMessagingInstance()
   const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
   console.log('🔔 VAPID key present:', !!vapidKey, 'starts with:', vapidKey ? vapidKey.substring(0, 10) + '...' : 'N/A')
 
@@ -46,6 +45,8 @@ export async function requestWebPushPermission() {
   }
 
   try {
+    const messaging = await getMessagingInstance()
+    const { getToken } = await import('firebase/messaging')
     const registration = await ensureServiceWorker()
     const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration })
     console.log('FCM web token obtained:', token)
@@ -61,8 +62,9 @@ export async function requestWebPushPermission() {
  * The callback receives the Firebase message payload.
  * Returns an unsubscribe function.
  */
-export function onForegroundMessage(callback) {
-  const messaging = getMessagingInstance()
+export async function onForegroundMessage(callback) {
+  const messaging = await getMessagingInstance()
+  const { onMessage } = await import('firebase/messaging')
   return onMessage(messaging, callback)
 }
 
