@@ -1,5 +1,21 @@
 <template>
   <!--
+    Refresh button (toRefresh):
+    Emits 'refresh' so the parent table reloads its data.
+  -->
+  <ion-button v-if="toRefresh" fill="clear" shape="round" class="mx-2" @click="$emit('refresh')">
+    <ion-icon :icon="refreshOutline" slot="icon-only"></ion-icon>
+  </ion-button>
+
+  <!--
+    Clear button (toClear):
+    Emits 'clear' so the parent table resets its search/filters.
+  -->
+  <ion-button v-if="toClear" fill="outline" shape="round" class="mx-2" @click="$emit('clear')">
+    <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+  </ion-button>
+
+  <!--
     Create button (toCreate):
     Opens a modal containing the appropriate create form component.
   -->
@@ -51,7 +67,7 @@
 <script lang="ts">
 import { defineComponent, inject } from 'vue';
 import { IonButton, IonIcon, IonModal, IonContent, IonSpinner } from '@ionic/vue';
-import { addOutline, pencilOutline } from 'ionicons/icons';
+import { addOutline, pencilOutline, refreshOutline, closeOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from  '@utils/forms/form-types/formsTypes';
 import { useAuthStore } from '@/stores/authStore'
@@ -66,7 +82,7 @@ export default defineComponent({
     IonContent,
     IonSpinner
   },
-  emits: ['itemCreated', 'itemEdited'],
+  emits: ['itemCreated', 'itemEdited', 'refresh', 'clear'],
   props: {
     /**
      * The type of the item to handle (e.g. 'periodo', 'grupo', 'semillero').
@@ -119,6 +135,22 @@ export default defineComponent({
     },
 
     /**
+     * Flag to enable the refresh action (emits 'refresh').
+     */
+    toRefresh: {
+      type: Boolean,
+      required: false,
+    },
+
+    /**
+     * Flag to enable the clear action (emits 'clear').
+     */
+    toClear: {
+      type: Boolean,
+      required: false,
+    },
+
+    /**
      * Initial data for the create or edit form (e.g. { name, start_date, ... }).
      */
     initialData: {
@@ -133,12 +165,15 @@ export default defineComponent({
     return {
       addOutline,
       pencilOutline,
+      refreshOutline,
+      closeOutline,
       authStore
     };
   },
 
   computed: {
     ComponentToRender() {
+      if (!this.toCreate && !this.toEdit) return null;
       const extraProps = {
         index: this.index,
         name: this.name,

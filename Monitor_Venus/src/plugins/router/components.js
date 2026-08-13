@@ -28,6 +28,7 @@ export const components = {
     EMAIL_VERIFICATION: () => import('@views/auth/verification/index.vue'),
     UNAUTHORIZED: () => import('@views/UnauthorizedView.vue'),
     TENANT_SETUP: () => import('@views/auth/tenant-setup/index.vue'),
+    AUDIT: () => import('@views/audit/index.vue'),
     NOT_FOUND: () => import('@views/NotFound.vue'),
 
     

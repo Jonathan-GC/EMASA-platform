@@ -20,6 +20,7 @@ export const paths = {
     GOOGLE_AUTH: '/auth/callback',
     SIGNUP: '/signup',
     TENANT_SETUP: '/tenant-setup',
+    AUDIT: '/audit',
     RESET_PASSWORD_REQUEST: '/forgot-password',
     RESET_PASSWORD_CONFIRM: '/reset-password',
 

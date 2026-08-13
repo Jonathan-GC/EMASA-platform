@@ -65,6 +65,20 @@
             ></ion-icon>
             Notificationes
           </router-link>
+
+
+          <router-link
+              v-if="canAccessRoute(['root', 'admin', 'tenant_admin'])"
+              :to="paths.AUDIT"
+              class="nav-link"
+              :class="{ active: $route.path === paths.AUDIT }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.time"
+            ></ion-icon>
+            Auditoría
+          </router-link>
         </template>
         
         <!-- Enlaces de administración -->
@@ -140,6 +154,9 @@
             ></ion-icon>
             Ubicaciones
           </router-link>
+
+          <!-- Auditoría: root, admin, tenant_admin -->
+          
         </template>
 
         <!-- Enlaces de infraestructura -->

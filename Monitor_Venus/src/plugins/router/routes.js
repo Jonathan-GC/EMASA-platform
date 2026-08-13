@@ -73,10 +73,20 @@ export const routes = [
                 path: P.TENANT_WORKSPACES,
                 component: C.TENANT_WORKSPACES,
                 beforeEnter: requireRoles,
-                meta: { 
+                meta: {
                     requiresAuth: true,
                     roles: ['root', 'admin', 'manager', 'viewer', 'tenant_admin', 'tenant_user'],
                     label: 'Workspaces'
+                }
+            },
+            {
+                path: P.AUDIT,
+                component: C.AUDIT,
+                beforeEnter: requireRoles,
+                meta: {
+                    requiresAuth: true,
+                    roles: ['root', 'admin', 'tenant_admin'],
+                    label: 'Auditoría'
                 }
             },
             {
