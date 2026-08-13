@@ -773,3 +773,24 @@ class LogEntrySerializer(serializers.ModelSerializer):
         return formatted
 
 
+class OTPRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        if not User.objects.filter(email=email, is_active=True).exists():
+            raise serializers.ValidationError(
+                "No active account found with this email address."
+            )
+        return email
+
+
+class OTPVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6, min_length=6)
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+

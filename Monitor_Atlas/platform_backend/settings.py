@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "storages",
     "users",
     "roles",
     "organizations",
@@ -160,13 +161,52 @@ USE_TZ = True
 
 
 # ============================================================================
-# STATIC AND MEDIA FILES
+# STATIC AND MEDIA FILES (Cloudflare R2 / S3 / Local Storage)
 # ============================================================================
 
 STATIC_URL = "static/"
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
+
+USE_R2 = env.bool("USE_R2", default=False)
+
+if USE_R2:
+    R2_ACCESS_KEY_ID = env("R2_ACCESS_KEY_ID", default=None)
+    R2_SECRET_ACCESS_KEY = env("R2_SECRET_ACCESS_KEY", default=None)
+    R2_BUCKET_NAME = env("R2_BUCKET_NAME", default=None)
+    R2_ENDPOINT_URL = env("R2_ENDPOINT_URL", default=None)
+    R2_CUSTOM_DOMAIN = env("R2_CUSTOM_DOMAIN", default=None)
+    R2_REGION_NAME = env("R2_REGION_NAME", default="auto")
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "access_key": R2_ACCESS_KEY_ID,
+                "secret_key": R2_SECRET_ACCESS_KEY,
+                "bucket_name": R2_BUCKET_NAME,
+                "endpoint_url": R2_ENDPOINT_URL,
+                "custom_domain": R2_CUSTOM_DOMAIN,
+                "region_name": R2_REGION_NAME,
+                "signature_version": "s3v4",
+                "file_overwrite": False,
+                "default_acl": None,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
 
 
 # ============================================================================

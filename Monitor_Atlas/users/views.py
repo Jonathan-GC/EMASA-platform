@@ -5,6 +5,8 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
     LogEntrySerializer,
+    OTPRequestSerializer,
+    OTPVerifySerializer,
 )
 from .models import User, OAuthAccount
 from roles.permissions import HasPermission
@@ -52,8 +54,12 @@ from google.auth.transport import requests
 from .emails import (
     send_verification_email,
     send_password_reset_email,
+    send_otp_email,
 )
 from .jwt import generate_token, verify_token
+
+from django.core.cache import cache
+import secrets
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
@@ -371,12 +377,26 @@ class CookieTokenObtainPairView(TokenObtainPairView):
 
     @method_decorator(conditional_csrf_protect)
     @extend_schema(
-        summary="Obtain JWT token pair (Cookie)",
-        description="Authenticates user credentials and returns JWT access token in body while setting HTTP-only refresh cookie.",
+        tags=["Authentication"],
+        summary="Login Step 1: Validate Password & Trigger Mandatory 2FA OTP",
+        description=(
+            "### Mandatory 2FA Login Flow (Step 1 of 2):\n"
+            "1. Client submits `username` and `password`.\n"
+            "2. Server validates credentials.\n"
+            "3. If credentials are valid, a 6-digit 2FA OTP code is generated and emailed to the user's address.\n"
+            "4. Tokens are **NOT** issued in this step. Client receives `requires_2fa: true` and must submit the 6-digit code to `/api/v1/users/auth/otp/verify/` to complete authentication."
+        ),
         responses={
             200: OpenApiResponse(
-                description="Token obtained successfully.",
-                response=OpenApiTypes.OBJECT,
+                description="Password verified. 2FA verification code sent to user email.",
+                response=inline_serializer(
+                    name="TwoFactorRequiredResponse",
+                    fields={
+                        "requires_2fa": serializers.BooleanField(default=True),
+                        "email": serializers.CharField(),
+                        "detail": serializers.CharField(),
+                    },
+                ),
             ),
             401: OpenApiResponse(
                 description="Invalid credentials or account inactive.",
@@ -385,27 +405,48 @@ class CookieTokenObtainPairView(TokenObtainPairView):
         },
     )
     def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
 
-        refresh = response.data.get("refresh")
+        user = getattr(serializer, "user", None)
+        if not user:
+            return Response(
+                {"detail": "No active account found with the given credentials"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
-        response.data.pop("refresh", None)
-
-        refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
-        if not isinstance(refresh_lifetime, timedelta):
-            refresh_lifetime = timedelta(days=1)
-        max_age = int(refresh_lifetime.total_seconds())
-
-        response.set_cookie(
-            key=REFRESH_COOKIE_NAME,
-            value=refresh,
-            max_age=max_age,
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite="Lax",
-            path=REFRESH_COOKIE_PATH,
+        # Generate 6-digit 2FA OTP code
+        otp_code = f"{secrets.randbelow(1000000):06d}"
+        cache_key = f"otp_data_{user.email.lower()}"
+        cache.set(
+            cache_key,
+            {
+                "code": otp_code,
+                "attempts": 0,
+                "user_id": user.id,
+            },
+            timeout=300,
         )
-        return response
+
+        try:
+            send_otp_email(user, otp_code)
+        except Exception as e:
+            logger.error(f"Failed to send 2FA OTP email to {user.email}: {str(e)}")
+            return Response(
+                {"detail": "Credentials valid, but error sending 2FA verification email. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        logger.info(f"🔐 Mandatory 2FA step 1 complete for user {user.username}. OTP sent to {user.email}")
+        return Response(
+            {
+                "requires_2fa": True,
+                "email": user.email,
+                "detail": "Password verified. Enter the 2FA code sent to your email to complete login.",
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class CookieTokenRefreshView(TokenRefreshView):
@@ -1679,3 +1720,241 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class OTPRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Authentication - OTP"],
+        summary="Request Email OTP for Passwordless Login",
+        description=(
+            "### Instructions for Integration:\n"
+            "1. Client posts an active user's `email` address.\n"
+            "2. The server generates a cryptographically random 6-digit numeric OTP code (valid for **5 minutes**).\n"
+            "3. The code is dispatched via email (Mailgun) to the user.\n\n"
+            "**Note**: Only active, pre-registered user accounts can request an OTP. "
+            "If the email does not exist or is inactive, an HTTP 400 validation error is returned."
+        ),
+        request=OTPRequestSerializer,
+        examples=[
+            OpenApiExample(
+                "Request OTP Example",
+                value={"email": "user@example.com"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Request OTP Success Response",
+                value={"detail": "Verification code sent to email."},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "User Not Found Error Response",
+                value={"email": ["No active account found with this email address."]},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="OTP verification code successfully sent to email.",
+                response=inline_serializer(
+                    name="OTPRequestSuccessResponse",
+                    fields={"detail": serializers.CharField()},
+                ),
+            ),
+            400: OpenApiResponse(
+                description="Invalid input or active user account not found.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            500: OpenApiResponse(
+                description="Internal server error sending email.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = OTPRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data["email"]
+        user = User.objects.get(email=email, is_active=True)
+
+        # Generate a cryptographically secure 6-digit OTP code
+        otp_code = f"{secrets.randbelow(1000000):06d}"
+
+        # Store in cache for 5 minutes (300 seconds)
+        cache_key = f"otp_data_{email}"
+        cache.set(
+            cache_key,
+            {
+                "code": otp_code,
+                "attempts": 0,
+                "user_id": user.id,
+            },
+            timeout=300,
+        )
+
+        try:
+            send_otp_email(user, otp_code)
+        except Exception as e:
+            logger.error(f"Failed to send OTP email to {email}: {str(e)}")
+            return Response(
+                {"detail": "Error sending OTP email. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        logger.info(f"🔑 OTP requested and sent to {email}")
+        return Response(
+            {"detail": "Verification code sent to email."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class OTPVerifyView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(conditional_csrf_protect)
+    @extend_schema(
+        tags=["Authentication - OTP"],
+        summary="Verify Email OTP and Obtain JWT Tokens",
+        description=(
+            "### Instructions for Integration:\n"
+            "1. Client posts the `email` and the 6-digit `code` received in their inbox.\n"
+            "2. The server verifies the OTP code against cache.\n"
+            "3. **Attempt Limit**: Up to 3 incorrect attempts are allowed before the OTP code is permanently invalidated.\n"
+            "4. On successful verification:\n"
+            "   - The OTP code is deleted from cache.\n"
+            "   - The JWT `access` token is returned in the JSON response body.\n"
+            "   - The JWT `refresh_token` is set in an HTTP-Only secure cookie (`REFRESH_COOKIE_NAME`).\n\n"
+            "**Web Browser CSRF Protection**: Standard conditional CSRF protection applies for web clients."
+        ),
+        request=OTPVerifySerializer,
+        examples=[
+            OpenApiExample(
+                "Verify OTP Request Example",
+                value={"email": "user@example.com", "code": "123456"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Verify OTP Success Response",
+                value={"access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Invalid Code Error Response",
+                value={"detail": "Invalid verification code. 2 attempt(s) remaining."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Expired OTP Error Response",
+                value={"detail": "OTP expired or not requested. Please request a new code."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="OTP verified successfully. Returns JWT access token in body and sets HTTP-only refresh cookie.",
+                response=inline_serializer(
+                    name="OTPVerifySuccessResponse",
+                    fields={"access": serializers.CharField()},
+                ),
+            ),
+            400: OpenApiResponse(
+                description="Invalid OTP code, expired code, or maximum attempts exceeded.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = OTPVerifySerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data["email"]
+        input_code = serializer.validated_data["code"].strip()
+
+        cache_key = f"otp_data_{email}"
+        otp_data = cache.get(cache_key)
+
+        if not otp_data:
+            return Response(
+                {"detail": "OTP expired or not requested. Please request a new code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if otp_data["attempts"] >= 3:
+            cache.delete(cache_key)
+            return Response(
+                {"detail": "Too many invalid attempts. Please request a new OTP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if otp_data["code"] != input_code:
+            otp_data["attempts"] += 1
+            remaining = 3 - otp_data["attempts"]
+            if remaining > 0:
+                cache.set(cache_key, otp_data, timeout=300)
+                return Response(
+                    {"detail": f"Invalid verification code. {remaining} attempt(s) remaining."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            else:
+                cache.delete(cache_key)
+                return Response(
+                    {"detail": "Too many invalid attempts. Please request a new OTP."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Clear OTP from cache after successful verification
+        cache.delete(cache_key)
+
+        try:
+            user = User.objects.get(id=otp_data["user_id"], is_active=True)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Active user account not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Generate tokens using CustomTokenObtainPairSerializer logic
+        refresh = RefreshToken.for_user(user)
+
+        # Apply custom claims from CustomTokenObtainPairSerializer
+        token_data = CustomTokenObtainPairSerializer.get_token(user)
+        for claim_key in ["user_id", "username", "is_global", "cs_tenant_id", "is_superuser", "is_support", "is_tenant_admin"]:
+            if claim_key in token_data:
+                refresh[claim_key] = token_data[claim_key]
+
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        response = Response(
+            {"access": access_token},
+            status=status.HTTP_200_OK,
+        )
+
+        refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
+        if not isinstance(refresh_lifetime, timedelta):
+            refresh_lifetime = timedelta(days=1)
+        max_age = int(refresh_lifetime.total_seconds())
+
+        response.set_cookie(
+            key=REFRESH_COOKIE_NAME,
+            value=refresh_token,
+            max_age=max_age,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite="Lax",
+            path=REFRESH_COOKIE_PATH,
+        )
+
+        logger.info(f"✅ User {user.username} logged in via Email OTP")
+        return response
+
+

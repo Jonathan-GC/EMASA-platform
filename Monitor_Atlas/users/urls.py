@@ -54,4 +54,15 @@ urlpatterns = [
         views.VerifyTicketToken.as_view(),
         name="verify-ticket-token",
     ),
+    path(
+        "auth/otp/request/",
+        views.OTPRequestView.as_view(),
+        name="otp-request",
+    ),
+    path(
+        "auth/otp/verify/",
+        views.OTPVerifyView.as_view(),
+        name="otp-verify",
+    ),
 ]
+

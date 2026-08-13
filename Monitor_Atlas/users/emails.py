@@ -193,3 +193,42 @@ def send_ticket_updated_notification_email_to_staff(staff_email, ticket, comment
     }
 
     return send_email(to, subject, text=text, template="ticket.staff", vars=vars)
+
+
+def send_otp_email(user, code: str):
+    """Send an OTP code to the user for email login.
+
+    param user: User object with 'email' and 'name' attributes
+    param code: 6-digit OTP code string
+    """
+    to = user.email
+    subject = f"Tu código de inicio de sesión: {code}"
+    text = (
+        f"Hola {user.name or user.username},\n\n"
+        f"Tu código de verificación para iniciar sesión en Monitor Atlas es: {code}\n\n"
+        f"Este código es válido por 5 minutos. No lo compartas con nadie."
+    )
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #1a73e8;">Código de Verificación</h2>
+        <p>Hola <strong>{user.name or user.username}</strong>,</p>
+        <p>Tu código de verificación para iniciar sesión en Monitor Atlas es:</p>
+        <div style="background-color: #f1f3f4; padding: 15px; border-radius: 6px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #202124; margin: 20px 0;">
+            {code}
+        </div>
+        <p>Este código expira en <strong>5 minutos</strong>. Si no solicitaste este código, puedes ignorar este mensaje.</p>
+    </div>
+    """
+    vars = {
+        "logo_url": MTR_LOGO_URL,
+        "otp_code": code,
+        "name": user.name or user.username,
+    }
+
+    try:
+        return send_email(
+            to, subject, text=text, html=html, template="account.otp", vars=vars
+        )
+    except Exception:
+        return send_email(to, subject, text=text, html=html)
+
