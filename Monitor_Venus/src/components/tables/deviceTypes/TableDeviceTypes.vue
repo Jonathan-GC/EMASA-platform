@@ -38,13 +38,12 @@
             
             <!-- Desktop buttons -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button @click="fetchDeviceTypes" fill="clear" shape="round">
-                <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
-              </ion-button>
               <QuickControl
                   :toCreate="true"
+                  :toRefresh="true"
                   type="device_type"
                   @itemCreated="handleItemRefresh"
+                  @refresh="fetchDeviceTypes"
               />
             </div>
           </div>
@@ -238,7 +237,7 @@ const selectedGateway = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(deviceTypes, ['name', 'cs_gateway_id', 'location.name', 'state'])
+const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(deviceTypes, ['name', 'cs_gateway_id', 'location.name', 'state'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

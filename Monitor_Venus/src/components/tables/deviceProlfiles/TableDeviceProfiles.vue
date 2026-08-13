@@ -33,10 +33,8 @@
 
             <!-- Desktop buttons -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button @click="GetDeviceProfiles" fill="clear">
-                <ion-icon :icon="icons.refresh"></ion-icon>
-              </ion-button>
-              <QuickControl :toCreate="true" type="device_profile" @itemCreated="handleItemRefresh" />
+              <QuickControl :toCreate="true" :toRefresh="true" type="device_profile"
+                @itemCreated="handleItemRefresh" @refresh="GetDeviceProfiles" />
             </div>
           </div>
 
@@ -230,7 +228,7 @@ const selecteddeviceProfile = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(deviceProfile, ['name', 'cs_device_profile_id', 'region', 'mac_version', 'reg_param_revision'])
+const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(deviceProfile, ['name', 'cs_device_profile_id', 'region', 'mac_version', 'reg_param_revision'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

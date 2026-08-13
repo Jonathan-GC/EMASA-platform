@@ -39,13 +39,12 @@
             
             <!-- Desktop buttons -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button @click="fetchRoles" fill="clear" shape="round">
-                <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
-              </ion-button>
               <QuickControl
                   :toCreate="true"
+                  :toRefresh="true"
                   type="role"
                   @itemCreated="handleItemRefresh"
+                  @refresh="fetchRoles"
               />
             </div>
           </div>
@@ -294,7 +293,7 @@ const isMounted = ref(false)
 const permissionsModal = ref(null)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(roles, ['name', 'description'])
+const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(roles, ['name', 'description'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)
