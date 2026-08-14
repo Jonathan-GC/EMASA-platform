@@ -1709,13 +1709,14 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         if app_param:
             queryset = queryset.filter(content_type__app_label__iexact=app_param)
 
-        # Filter by actor ID or email
+        # Filter by actor (ID, username, or email)
         actor_param = params.get("actor")
         if actor_param:
-            if str(actor_param).isdigit():
-                queryset = queryset.filter(actor_id=int(actor_param))
-            else:
-                queryset = queryset.filter(actor__email__icontains=actor_param)
+            queryset = queryset.filter(
+                Q(actor_id=actor_param)
+                | Q(actor__username__iexact=actor_param)
+                | Q(actor__email__icontains=actor_param)
+            )
 
         # Filter by object_pk
         object_pk = params.get("object_pk")
