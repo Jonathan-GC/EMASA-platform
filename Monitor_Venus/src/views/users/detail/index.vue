@@ -40,7 +40,7 @@
 
             <!-- Tab Content -->
             <div class="tab-content">
-              <UserOverviewTab v-if="selectedTab === 'overview'" />
+              <UserOverviewTab v-if="selectedTab === 'overview'" :user-id="userId" />
               <UserTeamsTab v-if="selectedTab === 'teams'" :roles="userRoles" />
               <UserConnectionsTab v-if="isOwnProfile && selectedTab === 'connections'" :user-id="userId" />
             </div>
