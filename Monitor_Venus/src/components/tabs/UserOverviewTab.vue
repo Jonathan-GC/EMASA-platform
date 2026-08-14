@@ -39,16 +39,19 @@
             </div>
           </div>
           <div class="timeline-body">
-            <button class="timeline-row" @click="toggleExpanded(log)">
+            <div class="timeline-row">
               <div class="timeline-text">
-                <p class="timeline-sentence">{{ buildSentence(log) }}</p>
+                <span class="timeline-sentence">{{ buildSentence(log) }}</span>
+                <ion-chip v-if="objectName(log)" size="small" class="timeline-object-chip">{{ objectName(log) }}</ion-chip>
+                <ion-chip size="small" color="orange-500" class="timeline-module-chip">{{ getModuleLabel(log.app) }}</ion-chip>
+              </div>
+              <div class="timeline-meta">
+                <template v-if="log.remote_addr">
+                  <span>IP {{ log.remote_addr }}</span>
+                  <span>·</span>
+                </template>
                 <span class="timeline-time" :title="formatFullDate(log.timestamp)">{{ timeAgo(log.timestamp) }}</span>
               </div>
-              <ion-icon :icon="expandedIds.has(log.id) ? icons.chevronUp : icons.chevronDown"
-                class="timeline-chevron"></ion-icon>
-            </button>
-            <div v-if="expandedIds.has(log.id)" class="timeline-detail">
-              <code>{{ prettyJson(log.detail) }}</code>
             </div>
           </div>
         </div>
@@ -73,6 +76,7 @@ import { ref, computed, inject, onMounted } from 'vue'
 import API from '@/utils/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useServerPagination } from '@composables/Tables/useServerPagination.js'
+import { getObjectType, getModuleLabel } from '@/data/activityMappings.js'
 
 const props = defineProps({
   userId: { type: [String, Number], required: true }
@@ -84,7 +88,6 @@ const icons = inject('icons', {})
 const logs = ref([])
 const loading = ref(true)
 const error = ref(null)
-const expandedIds = ref(new Set())
 
 const endpoint = computed(() =>
   authStore.isSuperUser ? API.AUDIT : API.TENANT_AUDIT
@@ -121,11 +124,6 @@ async function fetchActivity() {
   }
 }
 
-const actionLabel = (action) => {
-  const labels = { 0: 'Crear', 1: 'Actualizar', 2: 'Eliminar', 3: 'Acceso' }
-  return labels[action] || null
-}
-
 const actionColor = (action) => {
   const colors = { 0: 'success', 1: 'primary', 2: 'danger', 3: 'medium' }
   return colors[action] || 'medium'
@@ -136,14 +134,18 @@ const actionIcon = (action) => {
   return map[action] || icons.document
 }
 
+const objectName = (log) => log.object_repr || (log.model ? `${log.model} #${log.object_pk}` : '')
+
 const buildSentence = (log) => {
-  const objectName = log.object_repr || (log.model ? `${log.model} #${log.object_pk}` : '')
+  const hasObject = Boolean(objectName(log))
+  const type = getObjectType(log.model)
   if (log.action === 3) {
-    return objectName ? `Acceso a «${objectName}»` : 'Acceso al sistema'
+    return hasObject ? 'Acceso a' : 'Acceso al sistema'
   }
   const verb = { 0: 'Creó', 1: 'Actualizó', 2: 'Eliminó' }[log.action]
-  if (!verb) return objectName ? `Registro en «${objectName}»` : 'Registro de actividad'
-  return objectName ? `${verb} «${objectName}»` : `${verb} un registro`
+  if (!verb) return hasObject ? 'Registro en' : 'Registro de actividad'
+  if (type && hasObject) return `${verb} ${type.article} ${type.label}`
+  return hasObject ? `${verb}` : `${verb} un registro`
 }
 
 const timeAgo = (iso) => {
@@ -164,30 +166,6 @@ const formatFullDate = (iso) => {
   if (!iso) return ''
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString()
-}
-
-const prettyJson = (value) => {
-  if (value === null || value === undefined || value === '') return '(sin cambios registrados)'
-  let parsed = value
-  if (typeof value === 'string') {
-    try {
-      parsed = JSON.parse(value)
-    } catch {
-      return value
-    }
-  }
-  try {
-    return JSON.stringify(parsed, null, 2)
-  } catch {
-    return String(value)
-  }
-}
-
-const toggleExpanded = (log) => {
-  const next = new Set(expandedIds.value)
-  if (next.has(log.id)) next.delete(log.id)
-  else next.add(log.id)
-  expandedIds.value = next
 }
 
 onMounted(() => {
@@ -314,17 +292,17 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   width: 100%;
-  background: none;
-  border: none;
   padding: 8px 0;
-  cursor: pointer;
-  text-align: left;
   color: var(--ion-text-color);
 }
 
 .timeline-text {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .timeline-sentence {
@@ -334,31 +312,28 @@ onMounted(() => {
   word-break: break-word;
 }
 
+.timeline-object-chip,
+.timeline-module-chip {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
 .timeline-time {
   font-size: 0.78rem;
   color: var(--ion-color-medium);
 }
 
-.timeline-chevron {
-  font-size: 1.1rem;
-  color: var(--ion-color-medium);
+.timeline-meta {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
   flex-shrink: 0;
-}
-
-.timeline-detail {
-  margin: 4px 0 8px;
-  padding: 10px 12px;
-  background: var(--ion-color-light, #f3f4f6);
-  border-radius: 8px;
-  overflow-x: auto;
-}
-
-.timeline-detail code {
-  font-family: monospace;
-  font-size: 0.8rem;
-  color: var(--ion-text-color);
-  white-space: pre-wrap;
-  word-break: break-word;
+  font-size: 0.78rem;
+  color: var(--ion-color-medium);
+  white-space: nowrap;
 }
 
 .timeline-pagination {
