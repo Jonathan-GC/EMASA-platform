@@ -209,6 +209,11 @@ class API {
     AUDIT = 'users/audit/'
     TENANT_AUDIT = 'users/audit/get_tenant_admin_logs/'
 
+
+    //----[SYSTEM]----//
+    MODEL = 'system/models/'
+    APPS = 'system/apps/'
+
     static instance;
 
     constructor() { }

@@ -29,11 +29,18 @@
             </label>
             <label class="filter-field">
               <span>App</span>
-              <ion-input v-model="appFilter" placeholder="infrastructure" @ionInput="handleSearchInput" class="filter-input"></ion-input>
+              <ion-select v-model="appFilter" placeholder="Seleccionar app" @ionChange="handleAppChange" class="filter-select">
+                <ion-select-option value="">Todos</ion-select-option>
+                <ion-select-option v-for="a in appOptions" :key="a.value" :value="a.value">{{ a.label }}</ion-select-option>
+              </ion-select>
             </label>
             <label class="filter-field">
               <span>Modelo</span>
-              <ion-input v-model="modelFilter" placeholder="Machine" @ionInput="handleSearchInput" class="filter-input"></ion-input>
+              <ion-select v-model="modelFilter" placeholder="Seleccionar modelo" @ionChange="triggerFetch" class="filter-select"
+                :disabled="!appFilter">
+                <ion-select-option value="">Todos</ion-select-option>
+                <ion-select-option v-for="m in modelOptions" :key="m.model_name" :value="m.model_name">{{ m.label }}</ion-select-option>
+              </ion-select>
             </label>
             <label class="filter-field">
               <span>Object PK</span>
@@ -202,7 +209,7 @@
       </ion-header>
         <div class="filters-modal-content">
           <ion-searchbar v-model="searchText" placeholder="Buscar..." @ionInput="handleSearchInput"
-            show-clear-button="focus"></ion-searchbar>
+            show-clear-button="focus" class="custom"></ion-searchbar>
           <label class="filter-field full">
             <span>Acción</span>
             <ion-select v-model="actionFilter" placeholder="Seleccionar acción" @ionChange="triggerFetch">
@@ -218,11 +225,17 @@
           </label>
           <label class="filter-field full">
             <span>App</span>
-            <ion-input v-model="appFilter" placeholder="infrastructure" @ionInput="handleSearchInput"></ion-input>
+            <ion-select v-model="appFilter" placeholder="Seleccionar app" @ionChange="handleAppChange">
+              <ion-select-option value="">Todos</ion-select-option>
+              <ion-select-option v-for="a in appOptions" :key="a.value" :value="a.value">{{ a.label }}</ion-select-option>
+            </ion-select>
           </label>
           <label class="filter-field full">
             <span>Modelo</span>
-            <ion-input v-model="modelFilter" placeholder="Machine" @ionInput="handleSearchInput"></ion-input>
+            <ion-select v-model="modelFilter" placeholder="Seleccionar modelo" @ionChange="triggerFetch" :disabled="!appFilter">
+              <ion-select-option value="">Todos</ion-select-option>
+              <ion-select-option v-for="m in modelOptions" :key="m.model_name" :value="m.model_name">{{ m.label }}</ion-select-option>
+            </ion-select>
           </label>
           <label class="filter-field full">
             <span>Object PK</span>
@@ -372,7 +385,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 import API from '@/utils/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
@@ -397,8 +410,40 @@ const modelFilter = ref('')
 const objectPkFilter = ref('')
 const startDate = ref('')
 const endDate = ref('')
+const appsMeta = ref([])
 
 let debounceTimer = null
+
+const appOptions = computed(() =>
+  appsMeta.value.map((a) => ({ value: a.app_label, label: a.verbose_name || a.app_label }))
+)
+
+const modelOptions = computed(() => {
+  const app = appsMeta.value.find((a) => a.app_label === appFilter.value)
+  return (app?.models || []).map((m) => ({
+    model_name: m.model_name,
+    label: m.verbose_name || m.object_name || m.model_name
+  }))
+})
+
+const loadMeta = async () => {
+  try {
+    const response = await API.get(API.APPS)
+    const payload = Array.isArray(response) ? response[0] : response
+    appsMeta.value = Array.isArray(payload?.apps) ? payload.apps : []
+  } catch (err) {
+    console.error('Error cargando apps para filtros de auditoría:', err)
+  }
+}
+
+const handleAppChange = () => {
+  modelFilter.value = ''
+  triggerFetch()
+}
+
+onMounted(() => {
+  loadMeta()
+})
 
 const endpoint = computed(() =>
   authStore.isSuperUser ? API.AUDIT : API.TENANT_AUDIT
@@ -604,8 +649,16 @@ ion-card-subtitle {
 
 .filter-select {
   --padding-start: 12px;
-  --padding-end: 12px;
+  --padding-end: 32px;
   --placeholder-opacity: 0.9;
+}
+
+.filter-select::part(icon),
+.filter-field.full ion-select::part(icon) {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .filter-input {
@@ -636,7 +689,7 @@ ion-card-subtitle {
   border-radius: 6px;
   background: var(--ion-card-background, #fff);
   --padding-start: 12px;
-  --padding-end: 12px;
+  --padding-end: 32px;
   --placeholder-opacity: 0.9;
 }
 
