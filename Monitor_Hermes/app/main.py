@@ -1,26 +1,28 @@
-# App starting point
 from typing import Any
 from fastapi import FastAPI, Depends
 from app.ws.routes import router as ws_router
+from app.ws.manager import manager
 from contextlib import asynccontextmanager
 from app.persistence.mongo import (
     connect_to_mongo,
     close_mongo_connection,
     get_db,
     save_message,
+    check_mongo_health,
 )
 from app.persistence.db_helpers import (
     get_last_messages,
     aggregations,
     get_historic_from_date_range,
 )
-from app.redis.redis import connect_to_redis, close_redis_connection
+from app.redis.redis import connect_to_redis, close_redis_connection, check_redis_health
 from app.workers.redis_worker import process_messages
 from app.workers.alert_retry_worker import retry_pending_alerts
 from app.persistence.models import MessageIn, DeviceUserMapping
 from app.persistence.device_mapping import get_device_user_mapping_from_atlas, update_device_user_mapping_cache
 from app.validation.measurement_cache import force_refresh_measurement_configs
-from app.mqtt.client import start_mqtt
+from app.mqtt.client import start_mqtt, is_mqtt_connected
+from app.settings import settings
 import loguru
 import asyncio
 from datetime import datetime, timezone
@@ -55,6 +57,48 @@ app.add_middleware(
 )
 
 app.include_router(ws_router)
+
+
+@app.get("/health")
+@app.get("/healthcheck")
+async def healthcheck_endpoint():
+    """
+    Healthcheck endpoint for Hermes service and its connected components:
+    - MongoDB
+    - Redis
+    - WebSockets Manager
+    - MQTT Client
+    """
+    mongo_status = await check_mongo_health()
+    redis_status = await check_redis_health()
+    ws_stats = manager.get_stats()
+    mqtt_connected = is_mqtt_connected()
+
+    mongo_ok = mongo_status.get("status") == "healthy"
+    redis_ok = redis_status.get("status") == "healthy"
+
+    if mongo_ok and redis_ok:
+        overall_status = "healthy"
+    elif mongo_ok or redis_ok:
+        overall_status = "degraded"
+    else:
+        overall_status = "unhealthy"
+
+    return {
+        "status": overall_status,
+        "service": "Monitor_Hermes",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "components": {
+            "database": mongo_status,
+            "redis": redis_status,
+            "websockets": ws_stats,
+            "mqtt": {
+                "status": "connected" if mqtt_connected else "disconnected",
+                "broker": settings.BROKER_URL,
+                "port": settings.BROKER_PORT,
+            },
+        },
+    }
 
 
 @app.post("/messages")

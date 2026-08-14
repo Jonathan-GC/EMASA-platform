@@ -41,6 +41,7 @@ urlpatterns = [
     path("api/v1/chirpstack/", include("chirpstack.urls")),
     path("api/v1/support/", include("support.urls")),
     path("api/v1/notifications/", include("notifications.urls")),
+    path("api/v1/system/", include("system.urls")),
     path(
         "api/v1/token/",
         CookieTokenObtainPairView.as_view(),

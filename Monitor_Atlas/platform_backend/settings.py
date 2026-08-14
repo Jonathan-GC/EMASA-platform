@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "chirpstack",
     "support",
     "notifications",
+    "system",
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
