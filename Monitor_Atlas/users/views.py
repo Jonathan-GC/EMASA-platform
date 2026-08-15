@@ -384,8 +384,8 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             "### Mandatory 2FA Login Flow (Step 1 of 2):\n"
             "1. Client submits `username` and `password`.\n"
             "2. Server validates credentials.\n"
-            "3. If credentials are valid, a 6-digit 2FA OTP code is generated and emailed to the user's address.\n"
-            "4. Tokens are **NOT** issued in this step. Client receives `requires_2fa: true` and must submit the 6-digit code to `/api/v1/users/auth/otp/verify/` to complete authentication."
+            "3. If credentials are valid, a 6-digit 2FA OTP code is generated, uniquely bound to this username, and emailed to the user's registered address.\n"
+            "4. Tokens are **NOT** issued in this step. Client receives `requires_2fa: true` and must submit `{ \"username\": username, \"code\": code }` to `/api/v1/users/auth/otp/verify/` to complete authentication."
         ),
         responses={
             200: OpenApiResponse(
@@ -394,7 +394,8 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                     name="TwoFactorRequiredResponse",
                     fields={
                         "requires_2fa": serializers.BooleanField(default=True),
-                        "email": serializers.CharField(),
+                        "username": serializers.CharField(),
+                        "email": serializers.CharField(allow_null=True),
                         "detail": serializers.CharField(),
                     },
                 ),
@@ -419,13 +420,14 @@ class CookieTokenObtainPairView(TokenObtainPairView):
 
         # Generate 6-digit 2FA OTP code
         otp_code = f"{secrets.randbelow(1000000):06d}"
-        cache_key = f"otp_data_{user.email.lower()}"
+        cache_key = f"otp_data_{user.username.lower()}"
         cache.set(
             cache_key,
             {
                 "code": otp_code,
                 "attempts": 0,
-                "user_id": user.id,
+                "user_id": str(user.id),
+                "username": user.username.lower(),
             },
             timeout=300,
         )
@@ -443,11 +445,13 @@ class CookieTokenObtainPairView(TokenObtainPairView):
         return Response(
             {
                 "requires_2fa": True,
+                "username": user.username,
                 "email": user.email,
                 "detail": "Password verified. Enter the 2FA code sent to your email to complete login.",
             },
             status=status.HTTP_200_OK,
         )
+
 
 
 class CookieTokenRefreshView(TokenRefreshView):
@@ -1784,20 +1788,20 @@ class OTPRequestView(APIView):
 
     @extend_schema(
         tags=["Authentication - OTP"],
-        summary="Request Email OTP for Passwordless Login",
+        summary="Request / Resend 2FA Email OTP",
         description=(
             "### Instructions for Integration:\n"
-            "1. Client posts an active user's `email` address.\n"
-            "2. The server generates a cryptographically random 6-digit numeric OTP code (valid for **5 minutes**).\n"
-            "3. The code is dispatched via email (Mailgun) to the user.\n\n"
+            "1. Client posts an active user's `username`.\n"
+            "2. The server generates a cryptographically random 6-digit numeric OTP code (valid for **5 minutes**) uniquely bound to this username.\n"
+            "3. The code is dispatched via email (Mailgun) to the user's registered address.\n\n"
             "**Note**: Only active, pre-registered user accounts can request an OTP. "
-            "If the email does not exist or is inactive, an HTTP 400 validation error is returned."
+            "If the username does not exist or is inactive, an HTTP 400 validation error is returned."
         ),
         request=OTPRequestSerializer,
         examples=[
             OpenApiExample(
                 "Request OTP Example",
-                value={"email": "user@example.com"},
+                value={"username": "user123"},
                 request_only=True,
             ),
             OpenApiExample(
@@ -1808,7 +1812,7 @@ class OTPRequestView(APIView):
             ),
             OpenApiExample(
                 "User Not Found Error Response",
-                value={"email": ["No active account found with this email address."]},
+                value={"username": ["No active account found with this username."]},
                 response_only=True,
                 status_codes=["400"],
             ),
@@ -1836,20 +1840,21 @@ class OTPRequestView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        email = serializer.validated_data["email"]
-        user = User.objects.get(email=email, is_active=True)
+        username = serializer.validated_data["username"]
+        user = User.objects.get(username__iexact=username, is_active=True)
 
         # Generate a cryptographically secure 6-digit OTP code
         otp_code = f"{secrets.randbelow(1000000):06d}"
 
-        # Store in cache for 5 minutes (300 seconds)
-        cache_key = f"otp_data_{email}"
+        # Store in cache for 5 minutes (300 seconds) uniquely tied to this username
+        cache_key = f"otp_data_{user.username.lower()}"
         cache.set(
             cache_key,
             {
                 "code": otp_code,
                 "attempts": 0,
-                "user_id": user.id,
+                "user_id": str(user.id),
+                "username": user.username.lower(),
             },
             timeout=300,
         )
@@ -1857,13 +1862,13 @@ class OTPRequestView(APIView):
         try:
             send_otp_email(user, otp_code)
         except Exception as e:
-            logger.error(f"Failed to send OTP email to {email}: {str(e)}")
+            logger.error(f"Failed to send OTP email to {user.email}: {str(e)}")
             return Response(
                 {"detail": "Error sending OTP email. Please try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        logger.info(f"🔑 OTP requested and sent to {email}")
+        logger.info(f"🔑 OTP requested and sent to {user.email} for username {user.username}")
         return Response(
             {"detail": "Verification code sent to email."},
             status=status.HTTP_200_OK,
@@ -1879,10 +1884,11 @@ class OTPVerifyView(APIView):
         summary="Verify Email OTP and Obtain JWT Tokens",
         description=(
             "### Instructions for Integration:\n"
-            "1. Client posts the `email` and the 6-digit `code` received in their inbox.\n"
-            "2. The server verifies the OTP code against cache.\n"
+            "1. Client posts the `username` and the 6-digit `code` received in their inbox.\n"
+            "2. The server verifies the OTP code specifically tied to that username in cache.\n"
             "3. **Attempt Limit**: Up to 3 incorrect attempts are allowed before the OTP code is permanently invalidated.\n"
-            "4. On successful verification:\n"
+            "4. **Account Binding**: Codes are strictly bound to the individual account and cannot be used across different accounts.\n"
+            "5. On successful verification:\n"
             "   - The OTP code is deleted from cache.\n"
             "   - The JWT `access` token is returned in the JSON response body.\n"
             "   - The JWT `refresh_token` is set in an HTTP-Only secure cookie (`REFRESH_COOKIE_NAME`).\n\n"
@@ -1892,7 +1898,7 @@ class OTPVerifyView(APIView):
         examples=[
             OpenApiExample(
                 "Verify OTP Request Example",
-                value={"email": "user@example.com", "code": "123456"},
+                value={"username": "user123", "code": "123456"},
                 request_only=True,
             ),
             OpenApiExample(
@@ -1933,15 +1939,22 @@ class OTPVerifyView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        email = serializer.validated_data["email"]
+        username = serializer.validated_data["username"].strip().lower()
         input_code = serializer.validated_data["code"].strip()
 
-        cache_key = f"otp_data_{email}"
+        cache_key = f"otp_data_{username}"
         otp_data = cache.get(cache_key)
 
         if not otp_data:
             return Response(
                 {"detail": "OTP expired or not requested. Please request a new code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Ensure the code is strictly linked to this unique account
+        if otp_data.get("username") != username:
+            return Response(
+                {"detail": "Invalid verification code for this account."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -1976,6 +1989,13 @@ class OTPVerifyView(APIView):
         except User.DoesNotExist:
             return Response(
                 {"detail": "Active user account not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verify that the account retrieved matches the requested username
+        if user.username.lower() != username:
+            return Response(
+                {"detail": "Account mismatch."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

@@ -774,23 +774,24 @@ class LogEntrySerializer(serializers.ModelSerializer):
 
 
 class OTPRequestSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    username = serializers.CharField()
 
-    def validate_email(self, value):
-        email = value.strip().lower()
-        if not User.objects.filter(email=email, is_active=True).exists():
+    def validate_username(self, value):
+        username = value.strip()
+        if not User.objects.filter(username__iexact=username, is_active=True).exists():
             raise serializers.ValidationError(
-                "No active account found with this email address."
+                "No active account found with this username."
             )
-        return email
+        return username
 
 
 class OTPVerifySerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    username = serializers.CharField()
     code = serializers.CharField(max_length=6, min_length=6)
 
-    def validate_email(self, value):
-        return value.strip().lower()
+    def validate_username(self, value):
+        return value.strip()
+
 
 
 
