@@ -44,6 +44,7 @@ class API {
     TOKEN = 'token/'
     REFRESH_TOKEN = 'token/refresh/'
     CSRF_TOKEN = 'csrf/'
+    OTP_VERIFY = 'users/auth/otp/verify/'
     LOGOUT = 'logout/';
     GOOGLE_LOGIN_URL = 'users/auth/google/url/';
     GOOGLE_CALLBACK = 'users/auth/google/callback/';

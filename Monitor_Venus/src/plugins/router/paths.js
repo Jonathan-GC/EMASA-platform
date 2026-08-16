@@ -17,6 +17,7 @@ export const paths = {
     USERS: '/users',
     ROLES: '/roles',
     LOGIN: '/login',
+    OTP: '/otp',
     GOOGLE_AUTH: '/auth/callback',
     SIGNUP: '/signup',
     TENANT_SETUP: '/tenant-setup',

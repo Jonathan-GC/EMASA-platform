@@ -276,6 +276,12 @@ export const routes = [
                 beforeEnter: allowAll,
                 meta: { public: true, guest: true }
             },
+            {
+                path: P.OTP,
+                component: C.OTP,
+                beforeEnter: allowAll,
+                meta: { public: true }
+            },
             /*{ 
                 path: P.SIGNUP, 
                 component: C.REGISTER,
