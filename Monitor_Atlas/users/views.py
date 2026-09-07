@@ -9,6 +9,8 @@ from .serializers import (
     OTPVerifySerializer,
 )
 from .models import User, OAuthAccount
+from organizations.models import Tenant
+from .services import UserTenantTransferService
 from roles.permissions import HasPermission
 from auditlog.models import LogEntry
 from django.db.models import Q
@@ -322,6 +324,53 @@ class UserViewSet(AuditActionMixin, ModelViewSet):
         user = self.get_object()
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="transfer_tenant",
+        permission_classes=[IsAuthenticated, IsAnAdminUser],
+    )
+    def transfer_tenant(self, request, pk=None):
+        """
+        Atomically transfers the user to a new destination tenant.
+        """
+        user = self.get_object()
+        destination_tenant_id = request.data.get("destination_tenant_id")
+
+        if not destination_tenant_id:
+            return Response(
+                {"detail": "destination_tenant_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            destination_tenant = Tenant.objects.get(id=destination_tenant_id)
+        except Tenant.DoesNotExist:
+            return Response(
+                {"detail": "Destination tenant not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            result = UserTenantTransferService.transfer_user(
+                user=user,
+                destination_tenant=destination_tenant,
+                actor=request.user,
+            )
+            return Response(result, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            msg = e.messages[0] if hasattr(e, "messages") and e.messages else str(e)
+            return Response(
+                {"detail": msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.error(f"Failed to transfer user {user.username}: {e}")
+            return Response(
+                {"detail": f"Failed to transfer user: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 # Authentication

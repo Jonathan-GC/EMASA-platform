@@ -47,7 +47,16 @@ class Tenant(models.Model):
     last_synced_at = models.DateTimeField(auto_now=True)
 
     # Monitor
-    is_global = models.BooleanField(default=False)
+    is_global = models.BooleanField(default=False, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["is_global"],
+                condition=models.Q(is_global=True),
+                name="unique_global_tenant",
+            )
+        ]
 
     def __str__(self):
         return self.name

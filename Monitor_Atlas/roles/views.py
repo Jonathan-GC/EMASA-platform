@@ -1,7 +1,9 @@
 from rest_framework import status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import IsAuthenticated
 
-from .permissions import HasPermission
+from .permissions import HasContextualPermission, HasPermission
+from .catalog import PermissionCatalogRegistry
 
 from django.db.models import Count
 from django.db import transaction
@@ -13,6 +15,7 @@ from .serializers import (
 from .models import Role, WorkspaceMembership
 
 from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.types import OpenApiTypes
 from .helpers import (
     assign_new_role_base_permissions,
     assign_created_instance_permissions,
@@ -46,19 +49,37 @@ class RoleViewSet(AuditActionMixin, viewsets.ModelViewSet):
 
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [HasContextualPermission]
     scope = "role"
+
+    def get_permissions(self):
+        if self.action == "catalog":
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     def get_queryset(self):
         user = self.request.user
-        user_tenant = user.tenant
+        active_tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        workspace = (
+            getattr(self.request, "workspace", None)
+            or self.request.query_params.get("workspace")
+            or (
+                self.request.headers.get("X-Workspace-ID")
+                if hasattr(self.request, "headers")
+                else None
+            )
+        )
 
         if user.is_superuser:
             queryset = Role.objects.all()
         else:
-            queryset = get_objects_for_user(user, "roles.view_role", Role).filter(
-                workspace__tenant=user_tenant
-            )
+            queryset = get_objects_for_user(user, "roles.view_role", Role)
+            if active_tenant:
+                queryset = queryset.filter(workspace__tenant=active_tenant)
+
+        if workspace:
+            ws_id = getattr(workspace, "id", workspace)
+            queryset = queryset.filter(workspace__id=ws_id)
 
         return queryset.annotate(users_count=Count("group__user"))
 
@@ -106,6 +127,20 @@ class RoleViewSet(AuditActionMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        description="Permission Catalog containing categories, resource models, labels, icons, scopes, and actions.",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def catalog(self, request):
+        user = request.user
+        tenant = getattr(request, "tenant", getattr(user, "tenant", None))
+        is_global = bool(user.is_superuser or (tenant and getattr(tenant, "is_global", False)))
+        catalog_data = PermissionCatalogRegistry.get_catalog(
+            is_global=is_global, user=user, tenant=tenant
+        )
+        return Response({"categories": catalog_data}, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["get"])
     def get_assignable_permissions(self, request, pk=None):
         user = request.user
@@ -117,6 +152,8 @@ class RoleViewSet(AuditActionMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["patch"])
     def bulk_assign_permissions(self, request, pk=None):
         role = self.get_object()
+        if role.name == "Sin rol":
+            raise ValidationError("Cannot modify permissions for default role 'Sin rol'.")
         permissions = request.data.get("permissions", {})
         bulk_assign_permissions(permissions, role)
         return Response({"status": "permissions updated"})
@@ -141,7 +178,7 @@ class RoleViewSet(AuditActionMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(
-        detail=True, methods=["post"], permission_classes=[HasPermission], scope="role"
+        detail=True, methods=["post"], permission_classes=[HasContextualPermission], scope="role"
     )
     def remove_user(self, request, pk=None):
         role = self.get_object()
@@ -188,19 +225,36 @@ class WorkspaceMembershipViewSet(AuditActionMixin, viewsets.ModelViewSet):
 
     queryset = WorkspaceMembership.objects.all()
     serializer_class = WorkspaceMembershipSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [HasContextualPermission]
     scope = "workspacemembership"
 
     def get_queryset(self):
         user = self.request.user
-        user_tenant = user.tenant
+        active_tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        workspace = (
+            getattr(self.request, "workspace", None)
+            or self.request.query_params.get("workspace")
+            or (
+                self.request.headers.get("X-Workspace-ID")
+                if hasattr(self.request, "headers")
+                else None
+            )
+        )
 
         if user.is_superuser:
-            return WorkspaceMembership.objects.all()
+            queryset = WorkspaceMembership.objects.all()
         else:
-            return get_objects_for_user(
+            queryset = get_objects_for_user(
                 user, "roles.view_workspacemembership", WorkspaceMembership
-            ).filter(workspace__tenant=user_tenant)
+            )
+            if active_tenant:
+                queryset = queryset.filter(workspace__tenant=active_tenant)
+
+        if workspace:
+            ws_id = getattr(workspace, "id", workspace)
+            queryset = queryset.filter(workspace__id=ws_id)
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()

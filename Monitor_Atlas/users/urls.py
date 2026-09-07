@@ -11,6 +11,7 @@ routers.register(r"logs", views.LogLogsViewSet, basename="logs")
 routers.register(r"audit", views.AuditLogViewSet, basename="audit")
 
 urlpatterns = [
+    path("<str:pk>/transfer_tenant/", views.UserViewSet.as_view({"post": "transfer_tenant"}), name="user-direct-transfer-tenant"),
     path("", include(routers.urls)),
     path("auth/google/url/", views.GoogleLoginUrlView.as_view(), name="google-login-url"),
     path(

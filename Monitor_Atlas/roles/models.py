@@ -21,7 +21,9 @@ class Role(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE, null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        if not self.pk and not self.group:
+        if not self.id:
+            self.id = generate_id()
+        if not self.group:
             group = Group.objects.create(
                 name=f"{self.id}_{self.name}_{self.workspace.tenant.name}"
             )

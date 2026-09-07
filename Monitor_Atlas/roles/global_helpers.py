@@ -17,10 +17,17 @@ def get_monitor_tenant():
         return None
 
 
+import warnings
+
 GLOBAL_ROLES = ["admin", "manager", "technician", "viewer"]
 GROUP_PREFIX = "global_"
 
-# Global permissions preset
+# DEPRECATED: GLOBAL_PERMISSIONS_PRESET is deprecated in favor of roles.catalog.PermissionCatalogRegistry
+warnings.warn(
+    "GLOBAL_PERMISSIONS_PRESET is deprecated in favor of roles.catalog.PermissionCatalogRegistry",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 GLOBAL_PERMISSIONS_PRESET = {
     "admin": {
