@@ -7,6 +7,7 @@ from .models import (
     Location,
     Activation,
     Measurements,
+    DeviceConsent,
 )
 from rest_framework import serializers
 from organizations.serializers import WorkspaceSerializer
@@ -147,4 +148,93 @@ class ActivationSerializer(serializers.ModelSerializer):
 class MeasurementsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Measurements
-        fields = ["id", "min", "max", "threshold", "ref", "label", "unit", "icon"]
+        fields = [
+            "id",
+            "min",
+            "max",
+            "threshold",
+            "ref",
+            "label",
+            "unit",
+            "icon",
+            "require_consent",
+        ]
+
+
+class DeviceConsentSerializer(serializers.ModelSerializer):
+    consented_measurement_ids = serializers.SerializerMethodField()
+    device_eui = serializers.ReadOnlyField(source="device.dev_eui")
+    device_name = serializers.ReadOnlyField(source="device.name")
+    granted_by_username = serializers.ReadOnlyField(source="granted_by.username")
+    revoked_by_username = serializers.ReadOnlyField(source="revoked_by.username")
+
+    class Meta:
+        model = DeviceConsent
+        fields = [
+            "id",
+            "device",
+            "device_eui",
+            "device_name",
+            "tenant",
+            "workspace",
+            "version",
+            "status",
+            "terms_version",
+            "device_signature",
+            "consented_measurements",
+            "consented_measurement_ids",
+            "granted_by",
+            "granted_by_username",
+            "granted_at",
+            "revoked_by",
+            "revoked_by_username",
+            "revoked_at",
+            "revocation_reason",
+            "ip_address",
+            "user_agent",
+        ]
+        read_only_fields = fields
+
+    def get_consented_measurement_ids(self, obj):
+        return list(obj.consented_measurements.values_list("id", flat=True))
+
+
+class ConsentAcceptSerializer(serializers.Serializer):
+    consented_measurement_ids = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+    )
+    terms_version = serializers.CharField(
+        max_length=50,
+        required=False,
+        default="v1.0",
+    )
+
+    def validate_consented_measurement_ids(self, value):
+        device = self.context.get("device")
+        if device and value:
+            valid_ids = set(
+                Measurements.objects.filter(device=device, id__in=value).values_list(
+                    "id", flat=True
+                )
+            )
+            invalid_ids = set(value) - valid_ids
+            if invalid_ids:
+                raise serializers.ValidationError(
+                    f"Measurement IDs {list(invalid_ids)} do not belong to device {device.dev_eui}."
+                )
+        return value
+
+
+class ConsentRevokeSerializer(serializers.Serializer):
+    reason = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        min_length=1,
+        error_messages={
+            "blank": "Revocation reason cannot be blank.",
+            "required": "Revocation reason is required.",
+        },
+    )
+

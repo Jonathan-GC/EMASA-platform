@@ -21,6 +21,10 @@ CUSTOM_ACTION_DECORATORS = [
     "get_ws_link",
     "bulk_assign_permissions",
     "remove_user",
+    "consent",
+    "consent_history",
+    "accept_consent",
+    "revoke_consent",
 ]
 
 WORKSPACE_SCOPED_MODELS = {
@@ -33,6 +37,7 @@ WORKSPACE_SCOPED_MODELS = {
     "apiuser",
     "role",
     "workspacemembership",
+    "deviceconsent",
 }
 
 TENANT_SCOPED_MODELS = {
@@ -509,6 +514,12 @@ class HasContextualPermission(BasePermission):
                 perm_name = "add_measurements"
             elif view.action in ["bulk_assign_permissions", "remove_user"]:
                 perm_name = f"change_{scope}"
+            elif view.action in ["consent", "consent_history"]:
+                perm_name = "view_deviceconsent"
+            elif view.action == "accept_consent":
+                perm_name = "add_deviceconsent"
+            elif view.action == "revoke_consent":
+                perm_name = "change_deviceconsent"
 
         # If operation is on a workspace-scoped resource, ensure context can be resolved
         if scope in WORKSPACE_SCOPED_MODELS:
@@ -534,12 +545,25 @@ class HasContextualPermission(BasePermission):
         if is_detail_action and workspace is None:
             return True
 
-        has_perm = has_contextual_perm(
-            user=user,
-            perm=perm_name,
-            tenant=tenant,
-            workspace=workspace,
-        )
+        if getattr(view, "action", None) == "accept_consent":
+            has_perm = has_contextual_perm(
+                user=user,
+                perm="add_deviceconsent",
+                tenant=tenant,
+                workspace=workspace,
+            ) or has_contextual_perm(
+                user=user,
+                perm="change_deviceconsent",
+                tenant=tenant,
+                workspace=workspace,
+            )
+        else:
+            has_perm = has_contextual_perm(
+                user=user,
+                perm=perm_name,
+                tenant=tenant,
+                workspace=workspace,
+            )
         if not has_perm:
             raise PermissionDenied(f"Contextual permission '{perm_name}' denied.")
 
@@ -640,6 +664,20 @@ class HasContextualPermission(BasePermission):
         }
 
         perm_name = perm_map.get(action)
+        if hasattr(view, "action") and view.action in CUSTOM_ACTION_DECORATORS:
+            if view.action in ["set_activation", "activate", "deactivate"]:
+                perm_name = f"change_{scope}"
+            elif view.action == "create_measurement":
+                perm_name = "add_measurements"
+            elif view.action in ["bulk_assign_permissions", "remove_user"]:
+                perm_name = f"change_{scope}"
+            elif view.action in ["consent", "consent_history"]:
+                perm_name = "view_deviceconsent"
+            elif view.action == "accept_consent":
+                perm_name = "add_deviceconsent"
+            elif view.action == "revoke_consent":
+                perm_name = "change_deviceconsent"
+
         if not perm_name:
             return False
 
@@ -660,13 +698,28 @@ class HasContextualPermission(BasePermission):
         effective_ws = req_ws or obj_ws
         effective_tenant = tenant or obj_t
 
-        has_perm = has_contextual_perm(
-            user=user,
-            perm=perm_name,
-            tenant=effective_tenant,
-            workspace=effective_ws,
-            obj=obj,
-        )
+        if getattr(view, "action", None) == "accept_consent":
+            has_perm = has_contextual_perm(
+                user=user,
+                perm="add_deviceconsent",
+                tenant=effective_tenant,
+                workspace=effective_ws,
+                obj=obj,
+            ) or has_contextual_perm(
+                user=user,
+                perm="change_deviceconsent",
+                tenant=effective_tenant,
+                workspace=effective_ws,
+                obj=obj,
+            )
+        else:
+            has_perm = has_contextual_perm(
+                user=user,
+                perm=perm_name,
+                tenant=effective_tenant,
+                workspace=effective_ws,
+                obj=obj,
+            )
         if not has_perm:
             raise PermissionDenied(f"Object-level permission '{perm_name}' denied.")
 

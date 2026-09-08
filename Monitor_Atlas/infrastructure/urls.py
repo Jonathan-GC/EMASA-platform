@@ -18,6 +18,8 @@ routers.register(r'application', views.ApplicationViewSet, basename='application
 routers.register(r'applications', views.ApplicationViewSet, basename='applications')
 routers.register(r'location', views.LocationViewSet, basename='location')
 routers.register(r'locations', views.LocationViewSet, basename='locations')
+routers.register(r'consent', views.DeviceConsentViewSet, basename='consent')
+routers.register(r'consents', views.DeviceConsentViewSet, basename='consents')
 
 urlpatterns = [
     path('', include(routers.urls)),

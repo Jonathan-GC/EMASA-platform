@@ -56,6 +56,8 @@ class ResourceEntry:
             return getattr(workspace, f"{self.model}_set").all()
         elif hasattr(model_class, "workspace"):
             return model_class.objects.filter(workspace=workspace)
+        elif self.model == "deviceconsent":
+            return model_class.objects.filter(workspace=workspace)
         elif self.model == "location":
             return model_class.objects.filter(gateway__workspace=workspace).distinct()
         elif self.model == "user":
@@ -273,6 +275,15 @@ class PermissionCatalogRegistry:
             icon="location",
             scopes=["workspace"],
             actions=["view", "change", "delete"],
+        )
+        cls.register_resource(
+            category_key="infrastructure",
+            app_label="infrastructure",
+            model="deviceconsent",
+            label="Consentimientos de Dispositivo",
+            icon="shieldCheckmark",
+            scopes=["workspace"],
+            actions=["view", "add", "change", "delete"],
         )
 
         # 3. ChirpStack

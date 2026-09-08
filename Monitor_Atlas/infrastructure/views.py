@@ -4,6 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count
 
+from django.db import transaction, models
+from django.utils import timezone
+
 from .serializers import (
     GatewaySerializer,
     MachineSerializer,
@@ -13,6 +16,9 @@ from .serializers import (
     LocationSerializer,
     ActivationSerializer,
     MeasurementsSerializer,
+    DeviceConsentSerializer,
+    ConsentAcceptSerializer,
+    ConsentRevokeSerializer,
 )
 from .models import (
     Gateway,
@@ -23,13 +29,15 @@ from .models import (
     Location,
     Activation,
     Measurements,
+    DeviceConsent,
 )
 
 from organizations.models import Tenant
 from roles.permissions import HasPermission, IsServiceOrHasPermission
 from guardian.shortcuts import get_objects_for_user, get_users_with_perms
 from auditlog.context import set_extra_data
-from platform_backend.audit_mixins import AuditActionMixin
+from platform_backend.audit_mixins import AuditActionMixin, _current_audit_context
+from .consent_helpers import compute_device_consent_signature
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -1216,6 +1224,192 @@ class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+    @action(detail=True, methods=["get"], url_path="consent")
+    def consent(self, request, pk=None):
+        device = self.get_object()
+        active_consent = device.consents.filter(status="ACTIVE").first()
+        if not active_consent:
+            return Response(
+                {"detail": "No active consent found for this device."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = DeviceConsentSerializer(active_consent)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="consent/history")
+    def consent_history(self, request, pk=None):
+        device = self.get_object()
+        consents = device.consents.all().order_by("-version")
+        serializer = DeviceConsentSerializer(consents, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="consent/accept")
+    def accept_consent(self, request, pk=None):
+        device = self.get_object()
+        serializer = ConsentAcceptSerializer(
+            data=request.data, context={"device": device}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        consented_measurement_ids = serializer.validated_data.get(
+            "consented_measurement_ids", []
+        )
+        terms_version = serializer.validated_data.get("terms_version", "v1.0")
+
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded_for:
+            ip_address = x_forwarded_for.split(",")[0].strip()
+        else:
+            ip_address = request.META.get("REMOTE_ADDR")
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
+
+        with transaction.atomic():
+            locked_device = Device.objects.select_for_update().get(id=device.id)
+
+            prior_consent = (
+                locked_device.consents.select_for_update()
+                .filter(status="ACTIVE")
+                .first()
+            )
+            if prior_consent:
+                token_prior = _current_audit_context.set(
+                    {
+                        "action_detail": "supersede_consent",
+                        "actor": (
+                            request.user
+                            if request.user and request.user.is_authenticated
+                            else None
+                        ),
+                    }
+                )
+                try:
+                    prior_consent.status = "SUPERSEDED"
+                    prior_consent.save(update_fields=["status"])
+                finally:
+                    _current_audit_context.reset(token_prior)
+                version = prior_consent.version + 1
+            else:
+                max_v = (
+                    locked_device.consents.order_by("-version")
+                    .values_list("version", flat=True)
+                    .first()
+                )
+                version = (max_v or 0) + 1
+
+            granted_at = timezone.now()
+            granted_at_iso = granted_at.isoformat()
+            granter_id = (
+                request.user.id
+                if request.user and request.user.is_authenticated
+                else ""
+            )
+
+            signature = compute_device_consent_signature(
+                device_eui=locked_device.dev_eui,
+                tenant_id=locked_device.workspace.tenant_id,
+                version=version,
+                terms_version=terms_version,
+                measurement_ids=consented_measurement_ids,
+                granter_id=granter_id,
+                granted_at_iso=granted_at_iso,
+            )
+
+            token_new = _current_audit_context.set(
+                {
+                    "action_detail": "accept_consent",
+                    "actor": (
+                        request.user
+                        if request.user and request.user.is_authenticated
+                        else None
+                    ),
+                }
+            )
+            try:
+                consent_obj = DeviceConsent.objects.create(
+                    device=locked_device,
+                    tenant=locked_device.workspace.tenant,
+                    workspace=locked_device.workspace,
+                    version=version,
+                    status="ACTIVE",
+                    terms_version=terms_version,
+                    device_signature=signature,
+                    granted_by=(
+                        request.user
+                        if request.user and request.user.is_authenticated
+                        else None
+                    ),
+                    granted_at=granted_at,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                )
+                if consented_measurement_ids:
+                    measurements = Measurements.objects.filter(
+                        id__in=consented_measurement_ids, device=locked_device
+                    )
+                    consent_obj.consented_measurements.set(measurements)
+            finally:
+                _current_audit_context.reset(token_new)
+
+        return Response(
+            DeviceConsentSerializer(consent_obj).data, status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=True, methods=["post"], url_path="consent/revoke")
+    def revoke_consent(self, request, pk=None):
+        device = self.get_object()
+        serializer = ConsentRevokeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reason = serializer.validated_data["reason"]
+
+        with transaction.atomic():
+            locked_device = Device.objects.select_for_update().get(id=device.id)
+            active_consent = (
+                locked_device.consents.select_for_update()
+                .filter(status="ACTIVE")
+                .first()
+            )
+            if not active_consent:
+                return Response(
+                    {"detail": "No active consent found to revoke."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            token_revoke = _current_audit_context.set(
+                {
+                    "action_detail": "revoke_consent",
+                    "actor": (
+                        request.user
+                        if request.user and request.user.is_authenticated
+                        else None
+                    ),
+                }
+            )
+            try:
+                active_consent.status = "REVOKED"
+                active_consent.revoked_by = (
+                    request.user
+                    if request.user and request.user.is_authenticated
+                    else None
+                )
+                active_consent.revoked_at = timezone.now()
+                active_consent.revocation_reason = reason
+                active_consent.save(
+                    update_fields=[
+                        "status",
+                        "revoked_by",
+                        "revoked_at",
+                        "revocation_reason",
+                    ]
+                )
+            finally:
+                _current_audit_context.reset(token_revoke)
+
+        return Response(
+            {"status": "consent_revoked", "detail": "Consent successfully revoked."},
+            status=status.HTTP_200_OK,
+        )
+
+
 
 @extend_schema_view(
     list=extend_schema(description="Application List (ChirpStack)"),
@@ -1390,3 +1584,48 @@ class LocationViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         assign_created_instance_permissions(instance, self.request.user)
         logger.debug(f"Created location {instance.name} with ID {instance.id}")
+
+
+@extend_schema_view(
+    list=extend_schema(description="List Device Consents for active tenant"),
+    retrieve=extend_schema(description="Retrieve a Device Consent"),
+)
+class DeviceConsentViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = DeviceConsent.objects.all()
+    serializer_class = DeviceConsentSerializer
+    permission_classes = [HasPermission]
+    scope = "deviceconsent"
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return DeviceConsent.objects.none()
+
+        if user.is_superuser:
+            qs = DeviceConsent.objects.all()
+        else:
+            tenant = getattr(self.request, "tenant", None) or getattr(user, "tenant", None)
+            if not tenant:
+                return DeviceConsent.objects.none()
+            qs = DeviceConsent.objects.filter(tenant=tenant)
+
+        device_param = self.request.query_params.get("device")
+        if device_param:
+            qs = qs.filter(
+                models.Q(device_id=device_param) | models.Q(device__dev_eui=device_param)
+            )
+
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            qs = qs.filter(status__iexact=status_param)
+
+        terms_param = self.request.query_params.get("terms_version")
+        if terms_param:
+            qs = qs.filter(terms_version=terms_param)
+
+        workspace_param = self.request.query_params.get("workspace")
+        if workspace_param:
+            qs = qs.filter(workspace_id=workspace_param)
+
+        return qs.order_by("-version", "-granted_at")
+
