@@ -214,6 +214,7 @@ class API {
     //----[SYSTEM]----//
     MODEL = 'system/models/'
     APPS = 'system/apps/'
+    SYSTEM_HEALTH = 'system/health/'
 
     static instance;
 
