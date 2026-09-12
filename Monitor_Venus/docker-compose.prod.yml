@@ -32,6 +32,11 @@ services:
         VITE_WEBSOCKET_URL: ${VITE_WEBSOCKET_URL}
         VITE_API_URL: ${VITE_API_URL}
         VITE_WS_NOTIFY_URL: ${VITE_WS_NOTIFY_URL}
+        VITE_HEALTH_MONITOR_URL: ${VITE_HEALTH_MONITOR_URL:-}
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
+        VITE_BUILD_VERSION: ${VITE_BUILD_VERSION:-dev}
+        GIT_SHA: ${GIT_SHA:-unknown}
+        GIT_BRANCH: ${GIT_BRANCH:-unknown}
     restart: unless-stopped
     env_file:
       - .env.prod

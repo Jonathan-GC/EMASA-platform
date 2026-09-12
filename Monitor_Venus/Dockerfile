@@ -10,16 +10,25 @@ RUN npm install -g pnpm
 ARG VITE_WEBSOCKET_URL
 ARG VITE_API_URL
 ARG VITE_WS_NOTIFY_URL
+ARG VITE_HEALTH_MONITOR_URL
+ARG VITE_FIREBASE_API_KEY
+ARG VITE_BUILD_VERSION
+ARG GIT_SHA
+ARG GIT_BRANCH
 
 # Set environment variables for build
 ENV VITE_WEBSOCKET_URL=$VITE_WEBSOCKET_URL
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_WS_NOTIFY_URL=$VITE_WS_NOTIFY_URL
+ENV VITE_HEALTH_MONITOR_URL=$VITE_HEALTH_MONITOR_URL
 
 # Copy package files
 COPY package*.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies and ensure build scripts (like esbuild) are allowed to run
+# CI=1 lets pnpm auto-confirm purging/reinstalling node_modules without a TTY,
+# avoiding ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY in Docker builds
+ENV CI=1
 RUN pnpm config set ignore-scripts false && \
     pnpm install --frozen-lockfile
 
@@ -28,6 +37,14 @@ COPY . .
 
 # Build for production
 RUN pnpm run build
+
+# Bake health metadata into dist/ (served by nginx at /health)
+# ARG vars are available as env in RUN; Vite copies public/health.json first.
+RUN node -e "const fs=require('fs'); \
+const build={version:process.env.VITE_BUILD_VERSION||'dev',commit:process.env.GIT_SHA||'unknown',branch:process.env.GIT_BRANCH||'unknown',built_at:new Date().toISOString(),environment:'production'}; \
+const config={api_url:process.env.VITE_API_URL||null,ws_url:process.env.VITE_WEBSOCKET_URL||null,firebase_configured:!!process.env.VITE_FIREBASE_API_KEY,capacitor_app_id:'com.mtr.online'}; \
+const payload={status:'healthy',service:'Monitor_Venus',type:'spa_frontend',version:process.env.VITE_BUILD_VERSION||'dev',build:build,config:config}; \
+fs.writeFileSync('/app/dist/health.json',JSON.stringify(payload,null,2)+'\n')"
 
 # Production stage
 FROM nginx:alpine
