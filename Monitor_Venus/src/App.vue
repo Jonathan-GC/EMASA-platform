@@ -23,6 +23,7 @@ let removeForegroundListener = null
 let appStateListener = null
 let pushRefs = null
 let notifRefs = null
+let healthHeartbeat = null
 
 async function handleAppResume() {
   const refreshToken = tokenManager.getRefreshToken()
@@ -157,6 +158,12 @@ watch(
     console.log('🔔 Auth state changed:', isAuth)
     if (isAuth) {
       try {
+        // Heartbeat de salud hacia la plataforma de estado (lazy, no bloquea)
+        if (!healthHeartbeat) {
+          const { useHealthMonitor } = await import('@composables/useHealthMonitor.js')
+          healthHeartbeat = useHealthMonitor()
+          healthHeartbeat.startHeartbeat()
+        }
         // Lazy-load firebase + push + notifications composables only after auth
         // so the entry chunk doesn't include firebase/messaging.
         if (!pushRefs) {
@@ -180,11 +187,18 @@ watch(
       } catch (e) {
         console.warn('⚠️ Push notification setup failed:', e)
       }
+    } else {
+      // Al cerrar sesión se detiene el heartbeat de salud
+      if (healthHeartbeat) {
+        healthHeartbeat.stopHeartbeat()
+        healthHeartbeat = null
+      }
     }
   }
 )
 
 onBeforeUnmount(() => {
+  if (healthHeartbeat) healthHeartbeat.stopHeartbeat()
   if (appUrlListener) appUrlListener.remove()
   if (appStateListener) appStateListener.remove()
   if (removeForegroundListener) removeForegroundListener()
