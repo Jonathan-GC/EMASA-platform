@@ -23,6 +23,11 @@ urlpatterns = [
         views.GoogleLinkView.as_view(),
         name="google-link",
     ),
+    path(
+        "auth/google/unlink/",
+        views.GoogleUnlinkView.as_view(),
+        name="google-unlink",
+    ),
     path("auth/register/", views.RegisterView.as_view(), name="register"),
     path(
         "auth/verify-account/",
@@ -49,4 +54,15 @@ urlpatterns = [
         views.VerifyTicketToken.as_view(),
         name="verify-ticket-token",
     ),
+    path(
+        "auth/otp/request/",
+        views.OTPRequestView.as_view(),
+        name="otp-request",
+    ),
+    path(
+        "auth/otp/verify/",
+        views.OTPVerifyView.as_view(),
+        name="otp-verify",
+    ),
 ]
+

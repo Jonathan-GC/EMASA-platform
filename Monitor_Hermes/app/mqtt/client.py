@@ -38,3 +38,11 @@ def start_mqtt(db, loop):
     client.connect(BROKER_HOST, BROKER_PORT, 60)
     client.loop_start()
     loguru.logger.debug("MQTT client started and running in background")
+
+
+def is_mqtt_connected() -> bool:
+    try:
+        return bool(client and client.is_connected())
+    except Exception:
+        return False
+
