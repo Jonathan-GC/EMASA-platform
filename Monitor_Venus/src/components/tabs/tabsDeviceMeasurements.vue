@@ -49,10 +49,7 @@
               </div>
             </div>
 
-            <!-- Device information section -->
-            <MeasurementDeviceInfo :device="getMeasurementDevice(measurement)" :measurement="measurement" />
-
-            <!-- Measurement configuration card -->
+            <!-- Measurement configuration card (min/max/threshold) -->
             <ion-card class="measurement-config-card">
               <ion-card-header>
                 <div class="card-header-content">
@@ -119,7 +116,7 @@
               </ion-card-content>
             </ion-card>
 
-            <!-- Charts grid - dynamically select version based on measurement type -->
+            <!-- Realtime chart - dynamically select version based on measurement type -->
             <component 
               :is="getComponentForUnit(measurement.ref)"
               v-if="getMeasurementChartData(measurement.ref).length"
@@ -145,6 +142,7 @@
               </div>
             </div>
 
+            <!-- Historical chart -->
             <HistoricalMeasurementChart 
               v-if="deviceId || (device && device.id)"
               :device-id="deviceId || device.id"
@@ -153,10 +151,11 @@
               :label="measurement.label"
             />
 
+            <!-- Device information section -->
+            <MeasurementDeviceInfo :device="getMeasurementDevice(measurement)" :measurement="measurement" />
+
             <!-- Recent messages -->
             <RecentMessages :messages="getMeasurementRecentMessages(measurement.ref)" :measurement-type="measurement.ref?.toLowerCase()" />
-
-            <!-- Historical Measurement Chart -->
             
           </div>
         </ion-content>

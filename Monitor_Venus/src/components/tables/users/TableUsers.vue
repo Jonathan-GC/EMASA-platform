@@ -38,13 +38,12 @@
 
             <!-- Desktop buttons -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button @click="fetchUsers" fill="clear" shape="round">
-                <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
-              </ion-button>
               <QuickControl
                 :toCreate="true"
+                :toRefresh="true"
                 type="user"
                 @itemCreated="handleItemRefresh"
+                @refresh="fetchUsers"
               />
             </div>
           </div>
@@ -142,6 +141,7 @@
                   type="user"
                   :index="user.id" 
                   :name="user.username"
+                  :to-view="`/users/${user.id}`"
                   to-edit
                   to-toggle
                   :status="user.is_active"
@@ -210,6 +210,7 @@
                     type="user"
                     :index="user.id" 
                     :name="user.username"
+                    :to-view="`/users/${user.id}`"
                     to-edit
                     to-delete
                     :initial-data="setInitialData(user)"
@@ -310,7 +311,7 @@ const searchableUsers = computed(() => {
 })
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(searchableUsers, ['code', 'username', 'email', 'name', 'last_name', 'tenant', 'statusText'])
+const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(searchableUsers, ['code', 'username', 'email', 'name', 'last_name', 'tenant', 'statusText'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

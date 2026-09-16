@@ -21,6 +21,7 @@ from rest_framework.decorators import action
 from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
 from rest_framework.response import Response
+from platform_backend.audit_mixins import AuditActionMixin
 
 from .models import (
     PRIORITY_CHOICES,
@@ -71,7 +72,7 @@ from notifications.engine import NotificationsEngine
         ],
     ),
 )
-class TicketViewSet(viewsets.ModelViewSet):
+class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
 

@@ -135,5 +135,21 @@ class ConnectionManager:
         except Exception:
             logger.exception("Failed to schedule broadcast_to_device")
 
+    def get_stats(self) -> dict:
+        active_tenant_connections = sum(len(conns) for conns in self.tenants.values())
+        global_conns = len(self.global_connections)
+        super_conns = len(self.super_connections)
+        total = active_tenant_connections + global_conns + super_conns
+        return {
+            "status": "healthy",
+            "active_tenants": len(self.tenants),
+            "tenant_connections": active_tenant_connections,
+            "global_connections": global_conns,
+            "super_connections": super_conns,
+            "total_connections": total,
+            "device_subscriptions": len(self.device_subs),
+        }
+
 
 manager = ConnectionManager()
+

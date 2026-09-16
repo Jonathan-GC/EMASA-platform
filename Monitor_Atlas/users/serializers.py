@@ -11,6 +11,8 @@ from roles.models import WorkspaceMembership
 from .models import User, MainAddress, BillingAddress
 from support.models import SupportMembership
 from organizations.models import Tenant
+from drf_spectacular.utils import extend_schema_field, inline_serializer
+from drf_spectacular.types import OpenApiTypes
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -404,18 +406,282 @@ class UserSerializer(serializers.ModelSerializer):
         return representation
 
 
+def _safe_get_url(file_field):
+    if not file_field:
+        return None
+    try:
+        return file_field.url
+    except Exception:
+        return str(file_field) if file_field else None
+
+
 class UserMeSerializer(UserSerializer):
     tenant = serializers.SerializerMethodField(read_only=True)
+    google_oauth = serializers.SerializerMethodField(read_only=True)
+    roles = serializers.SerializerMethodField(read_only=True)
 
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["google_oauth", "roles"]
+
+    @extend_schema_field(
+        inline_serializer(
+            name="UserMeTenant",
+            fields={
+                "id": serializers.CharField(allow_null=True),
+                "name": serializers.CharField(),
+                "description": serializers.CharField(allow_null=True),
+                "img": serializers.CharField(allow_null=True),
+            },
+        )
+    )
     def get_tenant(self, obj):
         tenant = obj.tenant
         if tenant:
             return {
                 "id": tenant.id,
                 "name": tenant.name,
-                "img": tenant.img.url if tenant.img else None,
+                "description": tenant.description,
+                "img": _safe_get_url(tenant.img),
             }
         return None
+
+    @extend_schema_field(
+        inline_serializer(
+            name="UserMeGoogleOAuth",
+            fields={
+                "is_linked": serializers.BooleanField(),
+                "email": serializers.CharField(allow_null=True),
+                "provider_user_id": serializers.CharField(allow_null=True),
+                "created_at": serializers.DateTimeField(allow_null=True),
+            },
+        )
+    )
+    def get_google_oauth(self, obj):
+        oauth = obj.oauth_accounts.filter(provider="google").first()
+        if oauth:
+            return {
+                "is_linked": True,
+                "email": oauth.email,
+                "provider_user_id": oauth.provider_user_id,
+                "created_at": oauth.created_at,
+            }
+        return {
+            "is_linked": False,
+            "email": None,
+            "provider_user_id": None,
+            "created_at": None,
+        }
+
+    @extend_schema_field(
+        inline_serializer(
+            name="UserMeRole",
+            many=True,
+            fields={
+                "id": serializers.CharField(),
+                "name": serializers.CharField(),
+                "description": serializers.CharField(allow_null=True),
+                "color": serializers.CharField(allow_null=True),
+                "is_admin": serializers.BooleanField(),
+                "workspace": inline_serializer(
+                    name="UserMeRoleWorkspace",
+                    fields={
+                        "id": serializers.CharField(),
+                        "name": serializers.CharField(),
+                    },
+                    allow_null=True,
+                ),
+            },
+        )
+    )
+    def get_roles(self, obj):
+        from roles.models import WorkspaceMembership
+
+        memberships = WorkspaceMembership.objects.filter(user=obj).select_related(
+            "role", "workspace"
+        )
+        roles_list = []
+        for membership in memberships:
+            roles_list.append(
+                {
+                    "id": membership.role.id,
+                    "name": membership.role.name,
+                    "description": membership.role.description,
+                    "color": membership.role.color,
+                    "is_admin": membership.role.is_admin,
+                    "workspace": (
+                        {
+                            "id": membership.workspace.id,
+                            "name": membership.workspace.name,
+                        }
+                        if membership.workspace
+                        else None
+                    ),
+                }
+            )
+        return roles_list
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField(read_only=True)
+    user_info = serializers.SerializerMethodField(read_only=True)
+    status = serializers.SerializerMethodField(read_only=True)
+    tenant = serializers.SerializerMethodField(read_only=True)
+    contact_info = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "roles",
+            "user_info",
+            "status",
+            "tenant",
+            "contact_info",
+        ]
+
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileRole",
+            many=True,
+            fields={
+                "id": serializers.CharField(),
+                "name": serializers.CharField(),
+                "description": serializers.CharField(allow_null=True),
+                "color": serializers.CharField(allow_null=True),
+                "is_admin": serializers.BooleanField(),
+                "workspace": inline_serializer(
+                    name="UserProfileRoleWorkspace",
+                    fields={
+                        "id": serializers.CharField(),
+                        "name": serializers.CharField(),
+                    },
+                    allow_null=True,
+                ),
+            },
+        )
+    )
+    def get_roles(self, obj):
+        from roles.models import WorkspaceMembership
+
+        memberships = WorkspaceMembership.objects.filter(user=obj).select_related(
+            "role", "workspace"
+        )
+        roles_list = []
+        for membership in memberships:
+            roles_list.append(
+                {
+                    "id": membership.role.id,
+                    "name": membership.role.name,
+                    "description": membership.role.description,
+                    "color": membership.role.color,
+                    "is_admin": membership.role.is_admin,
+                    "workspace": (
+                        {
+                            "id": membership.workspace.id,
+                            "name": membership.workspace.name,
+                        }
+                        if membership.workspace
+                        else None
+                    ),
+                }
+            )
+        return roles_list
+
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileUserInfo",
+            fields={
+                "id": serializers.CharField(),
+                "code": serializers.CharField(allow_null=True),
+                "username": serializers.CharField(),
+                "email": serializers.CharField(),
+                "name": serializers.CharField(),
+                "last_name": serializers.CharField(),
+                "full_name": serializers.CharField(),
+                "img": serializers.CharField(allow_null=True),
+                "is_staff": serializers.BooleanField(),
+                "is_superuser": serializers.BooleanField(),
+            },
+        )
+    )
+    def get_user_info(self, obj):
+        return {
+            "id": obj.id,
+            "code": obj.code,
+            "username": obj.username,
+            "email": obj.email,
+            "name": obj.name,
+            "last_name": obj.last_name,
+            "full_name": obj.get_full_name(),
+            "img": _safe_get_url(obj.img),
+            "is_staff": obj.is_staff,
+            "is_superuser": obj.is_superuser,
+        }
+
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileStatus",
+            fields={
+                "is_active": serializers.BooleanField(),
+                "status_text": serializers.CharField(),
+            },
+        )
+    )
+    def get_status(self, obj):
+        return {
+            "is_active": obj.is_active,
+            "status_text": "Active" if obj.is_active else "Inactive",
+        }
+
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileTenant",
+            fields={
+                "id": serializers.CharField(allow_null=True),
+                "name": serializers.CharField(),
+                "description": serializers.CharField(allow_null=True),
+                "img": serializers.CharField(allow_null=True),
+            },
+        )
+    )
+    def get_tenant(self, obj):
+        tenant = obj.tenant
+        if tenant:
+            return {
+                "id": tenant.id,
+                "name": tenant.name,
+                "description": tenant.description,
+                "img": _safe_get_url(tenant.img),
+            }
+        return None
+
+    @extend_schema_field(
+        inline_serializer(
+            name="UserProfileContactInfo",
+            fields={
+                "email": serializers.CharField(),
+                "phone": serializers.CharField(allow_null=True),
+                "phone_code": serializers.CharField(allow_null=True),
+                "country": serializers.CharField(allow_null=True),
+                "address": MainAddressSerializer(allow_null=True),
+                "billing_address": BillingAddressSerializer(allow_null=True),
+            },
+        )
+    )
+    def get_contact_info(self, obj):
+        contact = {
+            "email": obj.email,
+            "phone": obj.phone,
+            "phone_code": obj.phone_code,
+            "country": obj.country,
+            "address": MainAddressSerializer(obj.address).data if obj.address else None,
+        }
+        if hasattr(obj, "billing_address") and obj.billing_address:
+            contact["billing_address"] = BillingAddressSerializer(
+                obj.billing_address
+            ).data
+        else:
+            contact["billing_address"] = None
+        return contact
 
 
 from auditlog.models import LogEntry
@@ -424,12 +690,18 @@ from auditlog.models import LogEntry
 class LogEntrySerializer(serializers.ModelSerializer):
     model = serializers.SerializerMethodField()
     app = serializers.SerializerMethodField()
+    action_name = serializers.CharField(source="get_action_display", read_only=True)
+    detail = serializers.SerializerMethodField()
+    actor_details = serializers.SerializerMethodField()
+    formatted_changes = serializers.SerializerMethodField()
 
     class Meta:
         model = LogEntry
         fields = [
             "id",
             "action",
+            "action_name",
+            "detail",
             "model",
             "app",
             "content_type",
@@ -437,17 +709,89 @@ class LogEntrySerializer(serializers.ModelSerializer):
             "object_repr",
             "serialized_data",
             "actor",
+            "actor_details",
             "remote_addr",
             "timestamp",
             "changes",
+            "formatted_changes",
+            "additional_data",
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_model(self, obj):
         if obj.content_type:
             return obj.content_type.model
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_app(self, obj):
         if obj.content_type:
             return obj.content_type.app_label
         return None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_detail(self, obj):
+        if obj.additional_data and isinstance(obj.additional_data, dict):
+            return obj.additional_data.get("action_detail")
+        return None
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_actor_details(self, obj):
+        if not obj.actor:
+            return None
+        full_name = f"{getattr(obj.actor, 'name', '')} {getattr(obj.actor, 'last_name', '')}".strip()
+        return {
+            "id": obj.actor.id,
+            "username": getattr(obj.actor, "username", ""),
+            "email": getattr(obj.actor, "email", ""),
+            "full_name": full_name or getattr(obj.actor, "username", "Unknown User"),
+        }
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_formatted_changes(self, obj):
+        changes = obj.changes
+        if not changes:
+            return []
+
+        if isinstance(changes, str):
+            try:
+                import json
+                changes = json.loads(changes)
+            except Exception:
+                return [changes]
+
+        if not isinstance(changes, dict):
+            return []
+
+        formatted = []
+        for field, diff in changes.items():
+            if isinstance(diff, list) and len(diff) == 2:
+                old_val, new_val = diff[0], diff[1]
+                formatted.append(f"Changed '{field}' from '{old_val}' to '{new_val}'")
+            else:
+                formatted.append(f"Modified '{field}': {diff}")
+        return formatted
+
+
+class OTPRequestSerializer(serializers.Serializer):
+    username = serializers.CharField()
+
+    def validate_username(self, value):
+        username = value.strip()
+        if not User.objects.filter(username__iexact=username, is_active=True).exists():
+            raise serializers.ValidationError(
+                "No active account found with this username."
+            )
+        return username
+
+
+class OTPVerifySerializer(serializers.Serializer):
+    username = serializers.CharField()
+    code = serializers.CharField(max_length=6, min_length=6)
+
+    def validate_username(self, value):
+        return value.strip()
+
+
+
+

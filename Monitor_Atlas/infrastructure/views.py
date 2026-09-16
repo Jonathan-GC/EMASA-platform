@@ -28,6 +28,8 @@ from .models import (
 from organizations.models import Tenant
 from roles.permissions import HasPermission, IsServiceOrHasPermission
 from guardian.shortcuts import get_objects_for_user, get_users_with_perms
+from auditlog.context import set_extra_data
+from platform_backend.audit_mixins import AuditActionMixin
 
 from chirpstack.chirpstack_api import (
     sync_gateway_create,
@@ -426,7 +428,7 @@ class TypeViewSet(viewsets.ModelViewSet):
         ],
     ),
 )
-class DeviceViewSet(viewsets.ModelViewSet):
+class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
     permission_classes = [HasPermission]
@@ -889,7 +891,18 @@ class DeviceViewSet(viewsets.ModelViewSet):
             measurement, data=request.data, partial=True
         )
         if serializer.is_valid():
-            serializer.save()
+            extra_data = {
+                "actor": request.user,
+                "additional_data": {
+                    "action_detail": "update_measurement",
+                    "parent_model": "Device",
+                    "parent_id": str(measurement.device.id),
+                    "parent_repr": str(measurement.device),
+                },
+            }
+            with set_extra_data(extra_data):
+                serializer.save()
+
             response = requests.post(
                 url,
                 headers=headers,

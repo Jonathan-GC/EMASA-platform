@@ -38,13 +38,12 @@
             
             <!-- Desktop buttons -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button @click="fetchmáquinas" fill="clear">
-                <ion-icon :icon="icons.refresh"></ion-icon>
-              </ion-button>
               <QuickControl
                   :toCreate="true"
+                  :toRefresh="true"
                   type="machine"
                   @itemCreated="handleItemRefresh"
+                  @refresh="fetchMachines"
               />
             </div>
           </div>
@@ -380,7 +379,7 @@ const loadingDetails = ref(false)
 const detailsError = ref(null)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(machines, ['name', 'id', 'workspace.tenant', 'workspace.name'])
+const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(machines, ['name', 'id', 'workspace.tenant', 'workspace.name'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

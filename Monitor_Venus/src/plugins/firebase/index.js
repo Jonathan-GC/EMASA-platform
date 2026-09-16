@@ -1,6 +1,6 @@
 // src/plugins/firebase.js
-import { initializeApp } from 'firebase/app'
-import { getAnalytics, isSupported } from 'firebase/analytics'
+// Firebase is only used for push notifications (after authentication),
+// so the SDK is lazy-loaded to keep it out of the app entry chunk.
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,11 +12,11 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-export const firebaseApp = initializeApp(firebaseConfig)
+let appInstance = null
 
-export async function initFirebaseAnalytics() {
-  if (await isSupported()) {
-    return getAnalytics(firebaseApp)
-  }
-  return null
+export async function ensureFirebaseApp() {
+  if (appInstance) return appInstance
+  const { initializeApp } = await import('firebase/app')
+  appInstance = initializeApp(firebaseConfig)
+  return appInstance
 }

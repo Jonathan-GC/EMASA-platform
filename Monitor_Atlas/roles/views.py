@@ -28,6 +28,7 @@ from guardian.shortcuts import get_objects_for_user
 
 from users.models import User
 from users.serializers import UserSerializer
+from platform_backend.audit_mixins import AuditActionMixin
 
 
 @extend_schema_view(
@@ -41,7 +42,7 @@ from users.serializers import UserSerializer
         description="Get all permission keys by role ID"
     ),
 )
-class RoleViewSet(viewsets.ModelViewSet):
+class RoleViewSet(AuditActionMixin, viewsets.ModelViewSet):
 
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
@@ -183,7 +184,7 @@ class RoleViewSet(viewsets.ModelViewSet):
     partial_update=extend_schema(description="Workspace Membership Partial Update"),
     destroy=extend_schema(description="Workspace Membership Destroy"),
 )
-class WorkspaceMembershipViewSet(viewsets.ModelViewSet):
+class WorkspaceMembershipViewSet(AuditActionMixin, viewsets.ModelViewSet):
 
     queryset = WorkspaceMembership.objects.all()
     serializer_class = WorkspaceMembershipSerializer

@@ -1,4 +1,5 @@
 import sys
+import time
 import redis.asyncio as aioredis
 from app.settings import settings
 from loguru import logger
@@ -33,3 +34,36 @@ def get_redis_client() -> aioredis.Redis:
     if redis_client is None:
         raise RuntimeError("Redis is not connected. Call connect_to_redis() first.")
     return redis_client
+
+
+async def check_redis_health() -> dict:
+    """Check Redis connection health and measure latency."""
+    global redis_client
+    if redis_client is None:
+        return {
+            "status": "unhealthy",
+            "error": "Redis client is not connected",
+        }
+    start = time.perf_counter()
+    try:
+        pong = await redis_client.ping()
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        if pong:
+            return {
+                "status": "healthy",
+                "latency_ms": latency_ms,
+            }
+        return {
+            "status": "unhealthy",
+            "latency_ms": latency_ms,
+            "error": "Ping command returned false",
+        }
+    except Exception as e:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.warning(f"Redis healthcheck failed: {e}")
+        return {
+            "status": "unhealthy",
+            "latency_ms": latency_ms,
+            "error": str(e),
+        }
+

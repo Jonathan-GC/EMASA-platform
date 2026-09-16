@@ -132,7 +132,7 @@ class Device(models.Model):
         Workspace, on_delete=models.CASCADE
     )  # cs Workspace.Tenant
     device_type = models.ForeignKey(
-        Type, on_delete=models.CASCADE
+        Type, on_delete=models.PROTECT, null=True, blank=True
     )  # icon, classification and such
     device_profile = models.ForeignKey(
         DeviceProfile, on_delete=models.CASCADE, help_text="Device profile (Chirpstack)"

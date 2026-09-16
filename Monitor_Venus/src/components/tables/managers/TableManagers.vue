@@ -33,10 +33,8 @@
 
             <!-- Desktop buttons -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button @click="fetchUsers" fill="clear">
-                <ion-icon :icon="icons.refresh"></ion-icon>
-              </ion-button>
-              <QuickControl :toCreate="true" type="manager" @itemCreated="handleItemRefresh" />
+              <QuickControl :toCreate="true" :toRefresh="true"  type="manager"
+                @itemCreated="handleItemRefresh" @refresh="fetchUsers" />
             </div>
           </div>
 
@@ -224,7 +222,7 @@ const searchableUsers = computed(() => {
 })
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(searchableUsers, ['name', 'email', 'cs_user_id', 'statusText'])
+const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(searchableUsers, ['name', 'email', 'cs_user_id', 'statusText'])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

@@ -33,15 +33,23 @@ class API {
     DEACTIVATE_USER(userId) {
         return `users/user/${userId}/disable_user/`
     }
+    USER_DETAIL(userId) {
+        return `users/user/${userId}/`
+    }
+    USER_PROFILE(userId) {
+        return `users/user/${userId}/profile/`
+    }
 
     //----[AUTH]----
     TOKEN = 'token/'
     REFRESH_TOKEN = 'token/refresh/'
     CSRF_TOKEN = 'csrf/'
+    OTP_VERIFY = 'users/auth/otp/verify/'
     LOGOUT = 'logout/';
     GOOGLE_LOGIN_URL = 'users/auth/google/url/';
     GOOGLE_CALLBACK = 'users/auth/google/callback/';
     GOOGLE_LINK = 'users/auth/google/link/';
+    GOOGLE_UNLINK = 'users/auth/google/unlink/';
     REGISTER = 'users/auth/register/';
     VERIFY_ACCOUNT = 'users/auth/verify-account/'
     RESEND_VERIFICATION = 'users/auth/re-send-verification/'
@@ -201,6 +209,12 @@ class API {
     //----[LOGS]----
     AUDIT = 'users/audit/'
     TENANT_AUDIT = 'users/audit/get_tenant_admin_logs/'
+
+
+    //----[SYSTEM]----//
+    MODEL = 'system/models/'
+    APPS = 'system/apps/'
+    SYSTEM_HEALTH = 'system/health/'
 
     static instance;
 
