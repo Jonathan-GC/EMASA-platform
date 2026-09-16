@@ -110,6 +110,7 @@
 import { ref, inject, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore.js'
+import { useOtpStore } from '@/stores/otpStore.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import API from '@utils/api/index.js'
 import {paths}  from '@/plugins/router/paths.js'
@@ -124,6 +125,9 @@ const { isMobile } = useResponsiveView(768)
 
 // Auth Store
 const authStore = useAuthStore()
+
+// OTP Store (flujo de verificación en dos pasos)
+const otpStore = useOtpStore()
 
 // Iconos desde el plugin
 const icons = inject('icons', {})
@@ -204,65 +208,62 @@ const handleLogin = async () => {
     }, headers)
 
     console.log('✅ Login exitoso:', response)
-    
-    // Guardar tokens y decodificar JWT usando authStore
-    if (response && response.length > 0) {
-      const loginData = response[0]; // API.handleResponse retorna array
-      
-      if (loginData.access) {
-        // Usar authStore para guardar tokens y decodificar info del usuario
-        // Pasamos tanto access como refresh para asegurar compatibilidad con móvil
-        const loginSuccess = authStore.login(loginData.access, loginData.refresh);
-        
-        if (loginSuccess) {
-          console.log('💾 Tokens guardados y usuario autenticado');
-          console.log('👤 Usuario:', authStore.username);
-          if (loginData.refresh) {
-            console.log('🔄 Refresh token también guardado en localStorage');
-          }
-          
-          // Fetch user profile data after successful login
-          authStore.fetchUserProfile().catch(err => {
-            console.warn('⚠️ Could not fetch user profile:', err);
-          });
-        } else {
-          console.error('❌ Error procesando token');
-          error.value = 'Error procesando autenticación';
-          return;
-        }
-      }
-      
-      if (loginData.refresh) {
-        // El refresh se maneja por cookies, pero podemos loggearlo
-        console.log('🔄 Refresh token recibido (manejado por cookies)');
-      }
-    }
-    
-    success.value = '¡Login exitoso! Redirigiendo...'
 
-    // Register push in background — don't block the redirect
-    registerPush().catch(e => console.warn('Push registration failed:', e))
+    const loginData = (Array.isArray(response) && response.length > 0) ? response[0] : response;
 
-    // Redirigir según el estado del usuario
-    setTimeout(() => {
-      // 1. Verificar si necesita configurar tenant
-      if (authStore.needsTenantSetup) {
-        console.log('⚠️ Usuario sin tenant - Redirigiendo a configuración');
-        router.push('/tenant-setup');
+    // Compatibilidad: si el backend devuelve access directamente, completar login
+    if (loginData?.access) {
+      const loginSuccess = authStore.login(loginData.access, loginData.refresh || null);
+
+      if (!loginSuccess) {
+        console.error('❌ Error procesando token');
+        error.value = 'Error procesando autenticación';
         return;
       }
-      
-      // 2. Si es admin o superuser, ir a tenants
-      if (authStore.isSuperUser || authStore.isAdmin) {
-        router.push('/tenants');
-      } else {
-        // 3. Usuarios normales van a home
-        router.push('/home');
-      }
-    }, 500);
 
-    // Verificar cookies después del auth
-    setTimeout(checkCookies, 1000)
+      console.log('💾 Tokens guardados y usuario autenticado');
+
+      // Fetch user profile data after successful login
+      authStore.fetchUserProfile().catch(err => {
+        console.warn('⚠️ Could not fetch user profile:', err);
+      });
+
+      success.value = '¡Login exitoso! Redirigiendo...'
+
+      // Register push in background — don't block the redirect
+      registerPush().catch(e => console.warn('Push registration failed:', e))
+
+      // Redirigir según el estado del usuario
+      setTimeout(() => {
+        // 1. Verificar si necesita configurar tenant
+        if (authStore.needsTenantSetup) {
+          console.log('⚠️ Usuario sin tenant - Redirigiendo a configuración');
+          router.push('/tenant-setup');
+          return;
+        }
+
+        // 2. Si es admin o superuser, ir a tenants
+        if (authStore.isSuperUser || authStore.isGlobalUser) {
+          router.push('/tenants');
+        } else {
+          // 3. Usuarios normales van a home
+          router.push('/home');
+        }
+      }, 500);
+
+      // Verificar cookies después del auth
+      setTimeout(checkCookies, 1000)
+      return;
+    }
+
+    // Nuevo flujo: el backend envía un código OTP al correo del usuario.
+    // Guardamos las credenciales en memoria (solo para reenviar el código)
+    // y redirigimos a la página de verificación OTP (no requiere access token).
+    otpStore.setPendingLogin(credentials.value.username, credentials.value.password);
+    console.log('📧 Código OTP enviado al correo, redirigiendo a verificación...');
+
+    success.value = '¡Credenciales correctas! Verificando código...'
+    router.push(paths.OTP);
 
   } catch (err) {
     console.error('❌ Error en auth:', err)

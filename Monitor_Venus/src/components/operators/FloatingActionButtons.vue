@@ -1,34 +1,21 @@
 <template>
   <div class="floating-action-buttons">
-    <!-- Refresh Button -->
-    <ion-button 
-      v-if="showRefresh"
-      @click="$emit('refresh')" 
-      color="primary" 
-      shape="round" 
-      class="fab-refresh"
-    >
-      <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
-    </ion-button>
-    
-    <!-- Create Button -->
     <QuickControl 
-      v-if="showCreate && canCreate"
-      :toCreate="true" 
+      v-if="showRefresh || (showCreate && canCreate)"
+      :toRefresh="showRefresh" 
+      :toCreate="showCreate && canCreate" 
       :type="entityType" 
+      @refresh="$emit('refresh')" 
       @itemCreated="$emit('itemCreated')" 
     />
   </div>
 </template>
 
 <script setup>
-import { inject, computed } from 'vue'
-import { IonButton, IonIcon } from '@ionic/vue'
+import { computed } from 'vue'
 import QuickControl from './quickControl.vue'
 import { useAuthStore } from '@/stores/authStore'
 
-// Access icons from the plugin
-const icons = inject('icons', {})
 const authStore = useAuthStore()
 
 // Props
@@ -83,11 +70,5 @@ const canCreate = computed(() => {
   flex-direction: column;
   gap: 12px;
   align-items: center;
-}
-
-.fab-refresh {
-  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  width: 40.333px;
-  height: 40.333px;
 }
 </style>

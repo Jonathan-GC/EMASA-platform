@@ -3,4 +3,5 @@ export const parameters = {
     DEFAULT_PAGE: 1,
     APPLICATION_ID: '/:application_id',
     DEVICE_ID: '/:device_id',
+    USER_ID: '/:user_id',
 }

@@ -12,7 +12,7 @@
         <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
         <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
       </svg>
-      <span>{{ loading ? 'Conectando…' : 'Continuar con Google' }}</span>
+      <span>{{ loading ? 'Conectando…' : (mode === 'link' ? 'Vincular cuenta de Google' : 'Continuar con Google') }}</span>
     </button>
     <p v-if="error" class="error">{{ error }}</p>
   </div>
@@ -24,14 +24,23 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { Capacitor } from '@capacitor/core'
 import API from '@/utils/api/api'
+import {
+  GOOGLE_REDIRECT_URI,
+  GOOGLE_DEEP_LINK_REDIRECT_URI,
+  buildGoogleState,
+} from '@/utils/auth/googleOAuth'
+
+const props = defineProps({
+  mode: { type: String, default: 'login' },
+  next: { type: String, default: null },
+})
+const emit = defineEmits(['started'])
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const loading = ref(false)
 const error = ref(null)
-
-const APP_URL = import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')
 
 function navigateAfterLogin() {
   const explicit = route.query.next
@@ -49,20 +58,29 @@ async function signInWeb() {
   if (!googleUrl) throw new Error('Backend no devolvió una URL válida.')
 
   // 2. Stamp a `state` query into the Google URL so the callback view
-  // knows where to send the user after login (?next=...).
-  const state = encodeURIComponent(JSON.stringify({
-    next: route.query.next || null,
-  }))
+  // knows where to send the user after login (?next=...) and what to do
+  // (?mode=login|link).
+  const isNative = Capacitor.isNativePlatform()
+  const redirectUri = props.mode === 'link' && isNative
+    ? GOOGLE_DEEP_LINK_REDIRECT_URI
+    : GOOGLE_REDIRECT_URI
+  const state = buildGoogleState({
+    next: props.next || route.query.next || null,
+    mode: props.mode,
+  })
   const u = new URL(googleUrl)
-  u.searchParams.set('redirect_uri', `${APP_URL}/auth/callback`)
-  u.searchParams.set('state', `${APP_URL}/auth/callback|${state}`)
+  u.searchParams.set('redirect_uri', redirectUri)
+  u.searchParams.set('state', `${redirectUri}|${state}`)
   const finalUrl = u.toString()
 
-  if (Capacitor.isNativePlatform()) {
+  emit('started')
+
+  if (isNative) {
     // Native: open the system browser, which handles the OAuth flow.
-    // Backend's GOOGLE_REDIRECT_URI is configured server-side and will
-    // land on the SPA's /auth/callback view on web. For Android a
-    // deep-link redirect_uri would need to be added to the backend.
+    // Login redirects to the deep link with access/refresh (server-side
+    // exchange). Link uses the deep link too, returning a raw `code` that
+    // App.vue POSTs to /users/auth/google/link/ — the system browser has
+    // no JWT, so the code must come back to the app.
     const { Browser } = await import('@capacitor/browser')
     await Browser.open({ url: finalUrl })
     return
