@@ -65,6 +65,20 @@
             ></ion-icon>
             Notificationes
           </router-link>
+
+
+          <router-link
+              v-if="canAccessRoute(['root', 'admin', 'tenant_admin'])"
+              :to="paths.AUDIT"
+              class="nav-link"
+              :class="{ active: $route.path === paths.AUDIT }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.time"
+            ></ion-icon>
+            Auditoría
+          </router-link>
         </template>
         
         <!-- Enlaces de administración -->
@@ -140,6 +154,9 @@
             ></ion-icon>
             Ubicaciones
           </router-link>
+
+          <!-- Auditoría: root, admin, tenant_admin -->
+          
         </template>
 
         <!-- Enlaces de infraestructura -->
@@ -284,8 +301,10 @@ const closeNavbar = () => {
 
 // Handle profile avatar click
 const handleProfileClick = () => {
-  console.log('Profile clicked - you can navigate to profile page here')
-  // router.push('/profile') // Uncomment when profile route exists
+  const userId = authStore.user?.user_id
+  if (userId) {
+    router.push(`/users/${userId}`)
+  }
   closeNavbar()
 }
 

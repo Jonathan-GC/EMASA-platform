@@ -43,5 +43,6 @@ app.use(createIonic({
   }
 }))
 
-registerPlugins(app)
-app.mount('#app')
+registerPlugins(app).then(() => {
+  app.mount('#app')
+})

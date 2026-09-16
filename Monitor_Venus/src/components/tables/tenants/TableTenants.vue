@@ -33,10 +33,8 @@
 
             <!-- Desktop buttons -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button @click="fetchTenants" fill="clear" shape="round">
-                <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
-              </ion-button>
-              <QuickControl :toCreate="true" type="tenant" @itemCreated="handleItemRefresh" />
+              <QuickControl :toCreate="true" :toRefresh="true" type="tenant"
+                @itemCreated="handleItemRefresh" @refresh="fetchTenants" />
             </div>
           </div>
 
@@ -255,7 +253,7 @@ const selectedTenant = ref(null)
 const isMounted = ref(false)
 
 // Table composables
-const { searchText, filteredItems, handleSearch } = useTableSearch(tenants, ['name', 'cs_tenant_id', 'subscription.name, '])
+const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(tenants, ['name', 'cs_tenant_id', 'subscription.name, '])
 const { sortField, sortOrder, sortBy, applySorting } = useTableSorting()
 const sortedItems = computed(() => applySorting(filteredItems.value))
 const { currentPage, totalPages, changePage, paginatedItems } = useTablePagination(sortedItems)

@@ -73,10 +73,20 @@ export const routes = [
                 path: P.TENANT_WORKSPACES,
                 component: C.TENANT_WORKSPACES,
                 beforeEnter: requireRoles,
-                meta: { 
+                meta: {
                     requiresAuth: true,
                     roles: ['root', 'admin', 'manager', 'viewer', 'tenant_admin', 'tenant_user'],
                     label: 'Workspaces'
+                }
+            },
+            {
+                path: P.AUDIT,
+                component: C.AUDIT,
+                beforeEnter: requireRoles,
+                meta: {
+                    requiresAuth: true,
+                    roles: ['root', 'admin', 'tenant_admin'],
+                    label: 'Auditoría'
                 }
             },
             {
@@ -87,6 +97,17 @@ export const routes = [
                     requiresAuth: true,
                     roles: ['root', 'admin', 'manager', 'tenant_admin', 'tenant_user'],
                     label: 'Users'
+                }
+            },
+            {
+                name: 'user_detail',
+                path: P.USERS + V.USER_ID,
+                component: C.USER_DETAIL,
+                beforeEnter: requireRoles,
+                meta: {
+                    requiresAuth: true,
+                    roles: ['root', 'admin', 'manager', 'tenant_admin', 'tenant_user'],
+                    label: 'Detalle de Usuario'
                 }
             },
             {
@@ -254,6 +275,12 @@ export const routes = [
                 component: C.GOOGLE_AUTH,
                 beforeEnter: allowAll,
                 meta: { public: true, guest: true }
+            },
+            {
+                path: P.OTP,
+                component: C.OTP,
+                beforeEnter: allowAll,
+                meta: { public: true }
             },
             /*{ 
                 path: P.SIGNUP, 

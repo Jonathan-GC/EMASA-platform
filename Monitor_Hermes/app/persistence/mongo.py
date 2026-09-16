@@ -78,6 +78,41 @@ async def close_mongo_connection():
         loguru.logger.debug("Closed MongoDB connection")
 
 
+async def check_mongo_health() -> dict:
+    """Check MongoDB connection health and measure latency."""
+    global client
+    if client is None:
+        return {
+            "status": "unhealthy",
+            "error": "MongoDB client is not connected",
+        }
+    import time
+    start = time.perf_counter()
+    try:
+        res = await client.admin.command("ping")
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        if res and res.get("ok") == 1.0:
+            return {
+                "status": "healthy",
+                "latency_ms": latency_ms,
+                "database": settings.MONGO_DB,
+            }
+        return {
+            "status": "unhealthy",
+            "latency_ms": latency_ms,
+            "error": "Ping command failed",
+            "raw": res,
+        }
+    except Exception as e:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        loguru.logger.warning(f"MongoDB healthcheck failed: {e}")
+        return {
+            "status": "unhealthy",
+            "latency_ms": latency_ms,
+            "error": str(e),
+        }
+
+
 async def save_message(db, message: MessageIn):
     doc = message.model_dump()
     doc["timestamp"] = datetime.now(timezone.utc)

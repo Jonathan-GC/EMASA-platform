@@ -1,13 +1,18 @@
 from .serializers import (
     UserSerializer,
     UserMeSerializer,
+    UserProfileSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
     LogEntrySerializer,
+    OTPRequestSerializer,
+    OTPVerifySerializer,
 )
 from .models import User, OAuthAccount
 from roles.permissions import HasPermission
 from auditlog.models import LogEntry
+from django.db.models import Q
+from platform_backend.audit_mixins import AuditActionMixin
 
 from rest_framework.viewsets import ModelViewSet
 from guardian.shortcuts import get_objects_for_user
@@ -28,7 +33,8 @@ import requests as http_requests
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -38,6 +44,8 @@ from drf_spectacular.utils import (
     extend_schema,
     OpenApiExample,
     OpenApiResponse,
+    OpenApiParameter,
+    inline_serializer,
 )
 from drf_spectacular.types import OpenApiTypes
 
@@ -47,8 +55,12 @@ from google.auth.transport import requests
 from .emails import (
     send_verification_email,
     send_password_reset_email,
+    send_otp_email,
 )
 from .jwt import generate_token, verify_token
+
+from django.core.cache import cache
+import secrets
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
@@ -67,9 +79,14 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
 
 
 @extend_schema_view(
-    list=extend_schema(description="User List"),
+    list=extend_schema(
+        summary="List users",
+        description="Filter users by workspace if 'workspace' query parameter is provided.",
+        responses={200: UserSerializer(many=True)},
+    ),
     create=extend_schema(
-        description="User Create",
+        summary="Create user",
+        description="Create a new user account.",
         examples=[
             OpenApiExample(
                 "User Create",
@@ -94,14 +111,31 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 response_only=False,
             )
         ],
+        responses={201: UserSerializer, 400: OpenApiResponse(description="Validation error")},
     ),
-    retrieve=extend_schema(description="User Retrieve"),
-    update=extend_schema(description="User Update"),
-    partial_update=extend_schema(description="User Partial Update"),
-    destroy=extend_schema(description="User Destroy"),
+    retrieve=extend_schema(
+        summary="Retrieve user",
+        description="Retrieve user by ID.",
+        responses={200: UserSerializer, 404: OpenApiResponse(description="User not found")},
+    ),
+    update=extend_schema(
+        summary="Update user",
+        description="Update user details.",
+        responses={200: UserSerializer, 400: OpenApiResponse(description="Validation error")},
+    ),
+    partial_update=extend_schema(
+        summary="Partial update user",
+        description="Partially update user details.",
+        responses={200: UserSerializer, 400: OpenApiResponse(description="Validation error")},
+    ),
+    destroy=extend_schema(
+        summary="Delete user",
+        description="Delete a user account.",
+        responses={204: OpenApiResponse(description="User deleted successfully.")},
+    ),
     set_user_image=extend_schema(
-        description="Set user image",
-        summary="Set or update the user's profile image",
+        summary="Set or update profile image",
+        description="Set or update the user's profile image",
         examples=[
             OpenApiExample(
                 "Set User Image Example",
@@ -109,9 +143,11 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 value={"img": "https://example.com/path/to/image.jpg"},
             ),
         ],
+        responses={200: UserSerializer},
     ),
     disable_user=extend_schema(
-        description="Disable a user",
+        summary="Disable user",
+        description="Disable a user account (is_active=False)",
         request=OpenApiTypes.NONE,
         examples=[
             OpenApiExample(
@@ -121,9 +157,11 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 response_only=True,
             ),
         ],
+        responses={200: UserSerializer},
     ),
     enable_user=extend_schema(
-        description="Enable a user",
+        summary="Enable user",
+        description="Enable a user account (is_active=True)",
         request=OpenApiTypes.NONE,
         examples=[
             OpenApiExample(
@@ -133,9 +171,11 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 response_only=True,
             ),
         ],
+        responses={200: UserSerializer},
     ),
     get_support_membership=extend_schema(
-        description="Get support membership for a user",
+        summary="Get support membership for a user",
+        description="Get support membership details for a user",
         request=OpenApiTypes.NONE,
         examples=[
             OpenApiExample(
@@ -145,9 +185,23 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
                 response_only=True,
             ),
         ],
+        responses={
+            200: SupportMembershipSerializer,
+            404: OpenApiResponse(description="This user does not have a support membership."),
+        },
+    ),
+    me=extend_schema(
+        summary="Get current user ('me')",
+        description="Returns details for the currently authenticated user including Google OAuth status, tenant details, and assigned workspace roles.",
+        responses={200: UserMeSerializer},
+    ),
+    profile=extend_schema(
+        summary="Get user profile",
+        description="Returns full profile structure for a user including roles, user info, active status, tenant, and contact info.",
+        responses={200: UserProfileSerializer},
     ),
 )
-class UserViewSet(ModelViewSet):
+class UserViewSet(AuditActionMixin, ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [HasPermission]
@@ -258,6 +312,17 @@ class UserViewSet(ModelViewSet):
         serializer = UserMeSerializer(user)
         return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[HasPermission],
+        scope="user",
+    )
+    def profile(self, request, pk=None):
+        user = self.get_object()
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data)
+
 
 # Authentication
 REFRESH_COOKIE_NAME = settings.REFRESH_COOKIE_NAME
@@ -312,34 +377,101 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     @method_decorator(conditional_csrf_protect)
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Login Step 1: Validate Password & Trigger Mandatory 2FA OTP",
+        description=(
+            "### Mandatory 2FA Login Flow (Step 1 of 2):\n"
+            "1. Client submits `username` and `password`.\n"
+            "2. Server validates credentials.\n"
+            "3. If credentials are valid, a 6-digit 2FA OTP code is generated, uniquely bound to this username, and emailed to the user's registered address.\n"
+            "4. Tokens are **NOT** issued in this step. Client receives `requires_2fa: true` and must submit `{ \"username\": username, \"code\": code }` to `/api/v1/users/auth/otp/verify/` to complete authentication."
+        ),
+        responses={
+            200: OpenApiResponse(
+                description="Password verified. 2FA verification code sent to user email.",
+                response=inline_serializer(
+                    name="TwoFactorRequiredResponse",
+                    fields={
+                        "requires_2fa": serializers.BooleanField(default=True),
+                        "username": serializers.CharField(),
+                        "email": serializers.CharField(allow_null=True),
+                        "detail": serializers.CharField(),
+                    },
+                ),
+            ),
+            401: OpenApiResponse(
+                description="Invalid credentials or account inactive.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
     def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
 
-        refresh = response.data.get("refresh")
+        user = getattr(serializer, "user", None)
+        if not user:
+            return Response(
+                {"detail": "No active account found with the given credentials"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
-        response.data.pop("refresh", None)
-
-        refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
-        if not isinstance(refresh_lifetime, timedelta):
-            refresh_lifetime = timedelta(days=1)
-        max_age = int(refresh_lifetime.total_seconds())
-
-        response.set_cookie(
-            key=REFRESH_COOKIE_NAME,
-            value=refresh,
-            max_age=max_age,
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite="Lax",
-            path=REFRESH_COOKIE_PATH,
+        # Generate 6-digit 2FA OTP code
+        otp_code = f"{secrets.randbelow(1000000):06d}"
+        cache_key = f"otp_data_{user.username.lower()}"
+        cache.set(
+            cache_key,
+            {
+                "code": otp_code,
+                "attempts": 0,
+                "user_id": str(user.id),
+                "username": user.username.lower(),
+            },
+            timeout=300,
         )
-        return response
+
+        try:
+            send_otp_email(user, otp_code)
+        except Exception as e:
+            logger.error(f"Failed to send 2FA OTP email to {user.email}: {str(e)}")
+            return Response(
+                {"detail": "Credentials valid, but error sending 2FA verification email. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        logger.info(f"🔐 Mandatory 2FA step 1 complete for user {user.username}. OTP sent to {user.email}")
+        return Response(
+            {
+                "requires_2fa": True,
+                "username": user.username,
+                "email": user.email,
+                "detail": "Password verified. Enter the 2FA code sent to your email to complete login.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 
 class CookieTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
 
     @method_decorator(conditional_csrf_protect)
+    @extend_schema(
+        summary="Refresh JWT token (Cookie)",
+        description="Refreshes access token using the HTTP-only refresh token cookie.",
+        responses={
+            200: OpenApiResponse(
+                description="Token refreshed successfully.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description="Refresh token not found or invalid.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
 
@@ -374,6 +506,15 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 class LogoutView(APIView):
     @method_decorator(conditional_csrf_protect)
+    @extend_schema(
+        summary="Logout user",
+        description="Blacklists the HTTP-only refresh token cookie and deletes the cookie.",
+        request=OpenApiTypes.NONE,
+        responses={
+            204: OpenApiResponse(description="Logged out successfully."),
+            400: OpenApiResponse(description="Invalid or expired token."),
+        },
+    )
     def post(self, request):
         refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if refresh:
@@ -429,15 +570,15 @@ class GoogleLoginUrlView(APIView):
             "be listed in ``GOOGLE_ALLOWED_REDIRECT_URIS``."
         ),
         parameters=[
-            {
-                "name": "redirect_uri",
-                "in_": "query",
-                "description": (
+            OpenApiParameter(
+                name="redirect_uri",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
                     "Optional override for the OAuth redirect URI. "
                     "Must belong to ``GOOGLE_ALLOWED_REDIRECT_URIS``."
                 ),
-                "schema": {"type": "string"},
-            }
+            )
         ],
         responses={
             200: OpenApiResponse(
@@ -503,7 +644,9 @@ class GoogleLoginUrlView(APIView):
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        redirect_uri = (
+            resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        )
 
         params = {
             "client_id": settings.GOOGLE_CLIENT_ID,
@@ -643,7 +786,9 @@ class GoogleCallbackView(APIView):
             resolved = _resolve_redirect_uri(raw_uri)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        redirect_uri = (
+            resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        )
 
         idinfo = self._exchange_and_verify(code, redirect_uri)
         if isinstance(idinfo, Response):
@@ -714,9 +859,7 @@ class GoogleCallbackView(APIView):
             )
 
         try:
-            idinfo = id_token.verify_oauth2_token(
-                google_id_token, requests.Request()
-            )
+            idinfo = id_token.verify_oauth2_token(google_id_token, requests.Request())
         except ValueError as e:
             return Response(
                 {"detail": str(e)},
@@ -867,7 +1010,9 @@ class GoogleLinkView(APIView):
             resolved = _resolve_redirect_uri(raw_uri)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        redirect_uri = resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        redirect_uri = (
+            resolved if resolved is not None else settings.GOOGLE_REDIRECT_URI
+        )
 
         token_data = {
             "code": code,
@@ -900,9 +1045,7 @@ class GoogleLinkView(APIView):
             )
 
         try:
-            idinfo = id_token.verify_oauth2_token(
-                google_id_token, requests.Request()
-            )
+            idinfo = id_token.verify_oauth2_token(google_id_token, requests.Request())
         except ValueError as e:
             return Response(
                 {"detail": str(e)},
@@ -933,9 +1076,7 @@ class GoogleLinkView(APIView):
             provider="google", provider_user_id=sub
         ).exists():
             return Response(
-                {
-                    "detail": "This Google account is already linked to another user."
-                },
+                {"detail": "This Google account is already linked to another user."},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -949,13 +1090,111 @@ class GoogleLinkView(APIView):
         return Response({"detail": "Google account linked successfully."})
 
 
+class GoogleUnlinkView(APIView):
+    """
+    Allows an authenticated user to unlink their Google account.
+    Removes the OAuthAccount record associated with the current user.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(csrf_protect)
+    @extend_schema(
+        summary="Unlink a Google account",
+        description=(
+            "Removes the `OAuthAccount` record associated with the "
+            "**currently authenticated user**.\n\n"
+            "If no Google account is linked to the current user, returns a "
+            "**400 Bad Request**."
+        ),
+        request=OpenApiTypes.NONE,
+        responses={
+            200: OpenApiResponse(
+                description="Google account unlinked successfully.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(
+                description="No Google account linked to this user.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+        examples=[
+            OpenApiExample(
+                "Success",
+                value={"detail": "Google account unlinked successfully."},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Not linked",
+                value={"detail": "No Google account linked to this user."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+    )
+    def post(self, request):
+        return self._unlink(request)
+
+    @method_decorator(csrf_protect)
+    @extend_schema(
+        summary="Unlink a Google account (DELETE)",
+        description=(
+            "Removes the `OAuthAccount` record associated with the "
+            "**currently authenticated user**."
+        ),
+        request=OpenApiTypes.NONE,
+        responses={
+            200: OpenApiResponse(
+                description="Google account unlinked successfully.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(
+                description="No Google account linked to this user.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
+    def delete(self, request):
+        return self._unlink(request)
+
+    def _unlink(self, request):
+        deleted_count, _ = OAuthAccount.objects.filter(
+            user=request.user, provider="google"
+        ).delete()
+
+        if deleted_count == 0:
+            return Response(
+                {"detail": "No Google account linked to this user."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"detail": "Google account unlinked successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="User Registration",
+        summary="User Registration",
+        description="Creates a new inactive user account and sends an email verification link.",
         request=UserSerializer,
+        responses={
+            201: OpenApiResponse(description="User registered successfully. Please verify your email."),
+            400: OpenApiResponse(description="Validation error or missing password."),
+        },
         examples=[
             OpenApiExample(
                 "User Registration Example",
@@ -1004,13 +1243,15 @@ class PasswordResetView(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Password Reset Request",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"email": {"type": "string"}},
-                "required": ["email"],
-            }
+        summary="Password Reset Request",
+        description="Sends a password reset email if the specified email address belongs to a registered account.",
+        request=inline_serializer(
+            name="PasswordResetRequest",
+            fields={"email": serializers.EmailField()},
+        ),
+        responses={
+            200: OpenApiResponse(description="If the email is registered, a reset link has been sent."),
+            400: OpenApiResponse(description="Email is required."),
         },
         examples=[
             OpenApiExample(
@@ -1048,13 +1289,15 @@ class AccountVerificationView(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Account Verification",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"token": {"type": "string"}},
-                "required": ["token"],
-            }
+        summary="Account Verification",
+        description="Verifies user email account using a token.",
+        request=inline_serializer(
+            name="AccountVerificationRequest",
+            fields={"token": serializers.CharField()},
+        ),
+        responses={
+            200: OpenApiResponse(description="Account verified successfully."),
+            400: OpenApiResponse(description="Token is required or invalid."),
         },
         examples=[
             OpenApiExample(
@@ -1088,16 +1331,18 @@ class PasswordResetConfirmView(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Password Reset Confirmation",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {
-                    "token": {"type": "string"},
-                    "new_password": {"type": "string"},
-                },
-                "required": ["token", "new_password"],
-            }
+        summary="Password Reset Confirmation",
+        description="Resets the password for a user using a valid token.",
+        request=inline_serializer(
+            name="PasswordResetConfirmRequest",
+            fields={
+                "token": serializers.CharField(),
+                "new_password": serializers.CharField(),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(description="Password reset successfully."),
+            400: OpenApiResponse(description="Token and new password required or invalid."),
         },
         examples=[
             OpenApiExample(
@@ -1159,13 +1404,15 @@ class ReSendVerificationEmailView(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Re-send account verification email",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"email": {"type": "string"}},
-                "required": ["email"],
-            }
+        summary="Re-send account verification email",
+        description="Re-sends account verification email if the account exists and is not verified.",
+        request=inline_serializer(
+            name="ResendVerificationRequest",
+            fields={"email": serializers.EmailField()},
+        ),
+        responses={
+            200: OpenApiResponse(description="If the account exists and is not verified, a verification email has been sent."),
+            400: OpenApiResponse(description="Email is required."),
         },
         examples=[
             OpenApiExample(
@@ -1218,13 +1465,15 @@ class VerifyTicketToken(APIView):
 
     @method_decorator(csrf_protect)
     @extend_schema(
-        description="Verify ticket access token",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"token": {"type": "string"}},
-                "required": ["token"],
-            }
+        summary="Verify ticket access token",
+        description="Verifies a ticket access token and returns ticket_id.",
+        request=inline_serializer(
+            name="VerifyTicketTokenRequest",
+            fields={"token": serializers.CharField()},
+        ),
+        responses={
+            200: OpenApiResponse(description="Token verified successfully. Returns ticket_id."),
+            400: OpenApiResponse(description="Token is required or invalid."),
         },
         examples=[
             OpenApiExample(
@@ -1247,6 +1496,11 @@ class VerifyTicketToken(APIView):
             return Response({"detail": str(e)}, status=400)
 
 
+@extend_schema(
+    summary="Set CSRF cookie",
+    description="Ensures that the CSRF cookie is set on the client browser.",
+    responses={200: OpenApiResponse(description="CSRF cookie set.")},
+)
 @ensure_csrf_cookie
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -1256,7 +1510,25 @@ def csrf_setup(request):
 
 @extend_schema_view(
     list=extend_schema(
-        description="Get system logs", responses={200: OpenApiTypes.OBJECT}
+        summary="Get system logs",
+        description="Return system log lines with limit and offset support.",
+        parameters=[
+            OpenApiParameter(
+                name="limit",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description="Number of log lines to return (default: 100, max: 1000).",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="offset",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description="Number of log lines to offset from the end of the log file.",
+                required=False,
+            ),
+        ],
+        responses={200: OpenApiTypes.OBJECT},
     )
 )
 class LogLogsViewSet(viewsets.ViewSet):
@@ -1264,16 +1536,25 @@ class LogLogsViewSet(viewsets.ViewSet):
 
     def list(self, request):
         """
-        Return the last 100 lines of the system log.
+        Return system log lines with limit and offset support.
         """
         limit = request.query_params.get("limit", 100)
+        offset = request.query_params.get("offset", 0)
         try:
             limit = int(limit)
         except ValueError:
             limit = 100
 
+        try:
+            offset = int(offset)
+        except ValueError:
+            offset = 0
+
         if limit <= 0 or limit > 1000:
             limit = 100
+
+        if offset < 0:
+            offset = 0
 
         log_file = settings.BASE_DIR / "logs/system.log"
         if not log_file.exists():
@@ -1281,40 +1562,217 @@ class LogLogsViewSet(viewsets.ViewSet):
 
         try:
             with open(log_file, "r") as f:
-                # Read all lines and take the last 100
-                lines = f.readlines()[-limit:]
-            return Response({"logs": lines})
+                lines = f.readlines()
+                total = len(lines)
+                end = total - offset if offset < total else total
+                start = max(0, end - limit)
+                slice_lines = lines[start:end]
+            return Response({
+                "count": total,
+                "limit": limit,
+                "offset": offset,
+                "logs": slice_lines,
+            })
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
 
+class AuditLogLimitOffsetPagination(LimitOffsetPagination):
+    default_limit = 100
+    max_limit = 1000
+
+
+audit_log_parameters = [
+    OpenApiParameter(
+        name="limit",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Number of results to return per page (default: 100, max: 1000).",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="offset",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="The initial index from which to return the results.",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="action",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by action type: 'create' (0), 'update' (1), 'delete' (2), or 'access' (3).",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="model",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by target model name (case-insensitive, e.g. 'device', 'user', 'machine').",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="app",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by Django app label (e.g. 'users', 'infrastructure', 'roles').",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="actor",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by actor ID (integer) or actor email address (substring match).",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="object_pk",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by primary key string of the targeted object.",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="start_date",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter log entries on or after this ISO 8601 date/datetime (e.g. '2026-01-01T00:00:00Z').",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="end_date",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter log entries on or before this ISO 8601 date/datetime (e.g. '2026-08-06T23:59:59Z').",
+        required=False,
+    ),
+    OpenApiParameter(
+        name="search",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Free-text search matching object representation, field changes, actor details, or action details.",
+        required=False,
+    ),
+]
+
+
 @extend_schema_view(
-    list=extend_schema(description="Audit Log List"),
-    retrieve=extend_schema(description="Audit Log Retrieve"),
+    list=extend_schema(
+        summary="List global audit logs",
+        description=(
+            "Retrieves a paginated list of system audit log entries for global admins and superusers. "
+            "Supports limit/offset pagination and multi-field filtering by action type, target model/app, actor, "
+            "object primary key, date ranges, and keyword search."
+        ),
+        parameters=audit_log_parameters,
+        responses={200: LogEntrySerializer(many=True)},
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve specific audit log entry",
+        description="Retrieves a single audit log entry by its unique database ID.",
+        responses={200: LogEntrySerializer},
+    ),
+    get_tenant_admin_logs=extend_schema(
+        summary="Get tenant admin audit logs",
+        description=(
+            "Retrieves audit logs filtered specifically for the requester's tenant. "
+            "Superusers retrieve all logs. Supports limit/offset pagination and query parameter filters."
+        ),
+        parameters=audit_log_parameters,
+        responses={200: LogEntrySerializer(many=True)},
+    ),
 )
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for viewing audit logs.
+    ViewSet for viewing audit logs with query parameter filtering and limit/offset pagination.
     """
 
     queryset = LogEntry.objects.all().order_by("-timestamp")
     serializer_class = LogEntrySerializer
     permission_classes = [IsAnAdminUser]
+    pagination_class = AuditLogLimitOffsetPagination
+
+    def filter_audit_queryset(self, queryset, request):
+        params = request.query_params
+
+        # Filter by action (0=CREATE, 1=UPDATE, 2=DELETE, 3=ACCESS)
+        action_param = params.get("action")
+        if action_param is not None:
+            action_map = {"create": 0, "update": 1, "delete": 2, "access": 3}
+            val = action_map.get(str(action_param).lower(), action_param)
+            if str(val).isdigit():
+                queryset = queryset.filter(action=int(val))
+
+        # Filter by model name
+        model_param = params.get("model")
+        if model_param:
+            queryset = queryset.filter(content_type__model__iexact=model_param)
+
+        # Filter by app label
+        app_param = params.get("app")
+        if app_param:
+            queryset = queryset.filter(content_type__app_label__iexact=app_param)
+
+        # Filter by actor (ID, username, or email)
+        actor_param = params.get("actor")
+        if actor_param:
+            queryset = queryset.filter(
+                Q(actor_id=actor_param)
+                | Q(actor__username__iexact=actor_param)
+                | Q(actor__email__icontains=actor_param)
+            )
+
+        # Filter by object_pk
+        object_pk = params.get("object_pk")
+        if object_pk:
+            queryset = queryset.filter(object_pk=str(object_pk))
+
+        # Filter by date range
+        start_date = params.get("start_date") or params.get("from_date")
+        if start_date:
+            queryset = queryset.filter(timestamp__gte=start_date)
+
+        end_date = params.get("end_date") or params.get("to_date")
+        if end_date:
+            queryset = queryset.filter(timestamp__lte=end_date)
+
+        # Search filter
+        search = params.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(object_repr__icontains=search)
+                | Q(changes__icontains=search)
+                | Q(actor__username__icontains=search)
+                | Q(actor__email__icontains=search)
+                | Q(additional_data__icontains=search)
+            )
+
+        return queryset
+
+    def get_queryset(self):
+        queryset = LogEntry.objects.all().order_by("-timestamp")
+        return self.filter_audit_queryset(queryset, self.request)
 
     @action(detail=False, methods=["get"], permission_classes=[IsTenantAdminUser])
     def get_tenant_admin_logs(self, request):
         """
         Return audit logs for tenant admins.
-        Filters logs where the actor belongs to the same tenant as the requester.
+        Filters logs where the actor belongs to the same tenant as the requester or parent_tenant_id matches.
         """
         user = request.user
 
         if user.is_superuser:
             queryset = LogEntry.objects.all().order_by("-timestamp")
         else:
-            queryset = LogEntry.objects.filter(actor__tenant=user.tenant).order_by(
-                "-timestamp"
-            )
+            if getattr(user, "tenant", None):
+                queryset = LogEntry.objects.filter(
+                    Q(actor__tenant=user.tenant)
+                    | Q(additional_data__parent_tenant_id=str(user.tenant.id))
+                ).order_by("-timestamp")
+            else:
+                queryset = LogEntry.objects.none()
+
+        queryset = self.filter_audit_queryset(queryset, request)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -1323,3 +1781,257 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class OTPRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Authentication - OTP"],
+        summary="Request / Resend 2FA Email OTP",
+        description=(
+            "### Instructions for Integration:\n"
+            "1. Client posts an active user's `username`.\n"
+            "2. The server generates a cryptographically random 6-digit numeric OTP code (valid for **5 minutes**) uniquely bound to this username.\n"
+            "3. The code is dispatched via email (Mailgun) to the user's registered address.\n\n"
+            "**Note**: Only active, pre-registered user accounts can request an OTP. "
+            "If the username does not exist or is inactive, an HTTP 400 validation error is returned."
+        ),
+        request=OTPRequestSerializer,
+        examples=[
+            OpenApiExample(
+                "Request OTP Example",
+                value={"username": "user123"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Request OTP Success Response",
+                value={"detail": "Verification code sent to email."},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "User Not Found Error Response",
+                value={"username": ["No active account found with this username."]},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="OTP verification code successfully sent to email.",
+                response=inline_serializer(
+                    name="OTPRequestSuccessResponse",
+                    fields={"detail": serializers.CharField()},
+                ),
+            ),
+            400: OpenApiResponse(
+                description="Invalid input or active user account not found.",
+                response=OpenApiTypes.OBJECT,
+            ),
+            500: OpenApiResponse(
+                description="Internal server error sending email.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = OTPRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        username = serializer.validated_data["username"]
+        user = User.objects.get(username__iexact=username, is_active=True)
+
+        # Generate a cryptographically secure 6-digit OTP code
+        otp_code = f"{secrets.randbelow(1000000):06d}"
+
+        # Store in cache for 5 minutes (300 seconds) uniquely tied to this username
+        cache_key = f"otp_data_{user.username.lower()}"
+        cache.set(
+            cache_key,
+            {
+                "code": otp_code,
+                "attempts": 0,
+                "user_id": str(user.id),
+                "username": user.username.lower(),
+            },
+            timeout=300,
+        )
+
+        try:
+            send_otp_email(user, otp_code)
+        except Exception as e:
+            logger.error(f"Failed to send OTP email to {user.email}: {str(e)}")
+            return Response(
+                {"detail": "Error sending OTP email. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        logger.info(f"🔑 OTP requested and sent to {user.email} for username {user.username}")
+        return Response(
+            {"detail": "Verification code sent to email."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class OTPVerifyView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(conditional_csrf_protect)
+    @extend_schema(
+        tags=["Authentication - OTP"],
+        summary="Verify Email OTP and Obtain JWT Tokens",
+        description=(
+            "### Instructions for Integration:\n"
+            "1. Client posts the `username` and the 6-digit `code` received in their inbox.\n"
+            "2. The server verifies the OTP code specifically tied to that username in cache.\n"
+            "3. **Attempt Limit**: Up to 3 incorrect attempts are allowed before the OTP code is permanently invalidated.\n"
+            "4. **Account Binding**: Codes are strictly bound to the individual account and cannot be used across different accounts.\n"
+            "5. On successful verification:\n"
+            "   - The OTP code is deleted from cache.\n"
+            "   - The JWT `access` token is returned in the JSON response body.\n"
+            "   - The JWT `refresh_token` is set in an HTTP-Only secure cookie (`REFRESH_COOKIE_NAME`).\n\n"
+            "**Web Browser CSRF Protection**: Standard conditional CSRF protection applies for web clients."
+        ),
+        request=OTPVerifySerializer,
+        examples=[
+            OpenApiExample(
+                "Verify OTP Request Example",
+                value={"username": "user123", "code": "123456"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Verify OTP Success Response",
+                value={"access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Invalid Code Error Response",
+                value={"detail": "Invalid verification code. 2 attempt(s) remaining."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Expired OTP Error Response",
+                value={"detail": "OTP expired or not requested. Please request a new code."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="OTP verified successfully. Returns JWT access token in body and sets HTTP-only refresh cookie.",
+                response=inline_serializer(
+                    name="OTPVerifySuccessResponse",
+                    fields={"access": serializers.CharField()},
+                ),
+            ),
+            400: OpenApiResponse(
+                description="Invalid OTP code, expired code, or maximum attempts exceeded.",
+                response=OpenApiTypes.OBJECT,
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = OTPVerifySerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        username = serializer.validated_data["username"].strip().lower()
+        input_code = serializer.validated_data["code"].strip()
+
+        cache_key = f"otp_data_{username}"
+        otp_data = cache.get(cache_key)
+
+        if not otp_data:
+            return Response(
+                {"detail": "OTP expired or not requested. Please request a new code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Ensure the code is strictly linked to this unique account
+        if otp_data.get("username") != username:
+            return Response(
+                {"detail": "Invalid verification code for this account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if otp_data["attempts"] >= 3:
+            cache.delete(cache_key)
+            return Response(
+                {"detail": "Too many invalid attempts. Please request a new OTP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if otp_data["code"] != input_code:
+            otp_data["attempts"] += 1
+            remaining = 3 - otp_data["attempts"]
+            if remaining > 0:
+                cache.set(cache_key, otp_data, timeout=300)
+                return Response(
+                    {"detail": f"Invalid verification code. {remaining} attempt(s) remaining."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            else:
+                cache.delete(cache_key)
+                return Response(
+                    {"detail": "Too many invalid attempts. Please request a new OTP."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Clear OTP from cache after successful verification
+        cache.delete(cache_key)
+
+        try:
+            user = User.objects.get(id=otp_data["user_id"], is_active=True)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Active user account not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verify that the account retrieved matches the requested username
+        if user.username.lower() != username:
+            return Response(
+                {"detail": "Account mismatch."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Generate tokens using CustomTokenObtainPairSerializer logic
+        refresh = RefreshToken.for_user(user)
+
+        # Apply custom claims from CustomTokenObtainPairSerializer
+        token_data = CustomTokenObtainPairSerializer.get_token(user)
+        for claim_key in ["user_id", "username", "is_global", "cs_tenant_id", "is_superuser", "is_support", "is_tenant_admin"]:
+            if claim_key in token_data:
+                refresh[claim_key] = token_data[claim_key]
+
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        response = Response(
+            {"access": access_token},
+            status=status.HTTP_200_OK,
+        )
+
+        refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
+        if not isinstance(refresh_lifetime, timedelta):
+            refresh_lifetime = timedelta(days=1)
+        max_age = int(refresh_lifetime.total_seconds())
+
+        response.set_cookie(
+            key=REFRESH_COOKIE_NAME,
+            value=refresh_token,
+            max_age=max_age,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite="Lax",
+            path=REFRESH_COOKIE_PATH,
+        )
+
+        logger.info(f"✅ User {user.username} logged in via Email OTP")
+        return response
+
+

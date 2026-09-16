@@ -1,0 +1,18 @@
+{
+  "status": "healthy",
+  "service": "Monitor_Venus",
+  "type": "spa_frontend",
+  "version": "dev",
+  "build": {
+    "commit": "unknown",
+    "branch": "dev",
+    "built_at": null,
+    "environment": "development"
+  },
+  "config": {
+    "api_url": null,
+    "ws_url": null,
+    "firebase_configured": false,
+    "capacitor_app_id": "com.mtr.online"
+  }
+}

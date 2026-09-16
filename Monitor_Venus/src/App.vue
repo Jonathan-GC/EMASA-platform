@@ -13,17 +13,17 @@ import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 import API from '@/utils/api/api.js'
 import tokenManager from '@/utils/auth/tokenManager.js'
-import { usePushNotifications } from '@composables/usePushNotifications.js'
-import { useNotifications } from '@composables/useNotifications.js'
+import { parseGoogleState, postGoogleLinkCode } from '@/utils/auth/googleOAuth.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const { registerPush, listenForeground } = usePushNotifications()
-const { showNotification } = useNotifications()
 
 let appUrlListener = null
 let removeForegroundListener = null
 let appStateListener = null
+let pushRefs = null
+let notifRefs = null
+let healthHeartbeat = null
 
 async function handleAppResume() {
   const refreshToken = tokenManager.getRefreshToken()
@@ -47,18 +47,26 @@ async function handleAppResume() {
 
 function handleDeepLink(url) {
   // Native deep-link from the system browser after server-side OAuth.
-  // Backend redirects to: com.mtr.online://auth/google/callback?access=...&refresh=...
+  // Login: com.mtr.online://auth/google/callback?access=...&refresh=...
+  // Link:  com.mtr.online://auth/google/callback?code=...&state=...
   if (!url || !url.startsWith('com.mtr.online://auth/google/callback')) return
   try {
     const u = new URL(url)
-    const access = u.searchParams.get('access')
-    const refresh = u.searchParams.get('refresh')
     const oauthError = u.searchParams.get('error')
 
     if (oauthError) {
       router.replace({ name: 'login', query: { error: String(oauthError) } })
       return
     }
+
+    const code = u.searchParams.get('code')
+    if (code) {
+      handleGoogleLink(code, u.searchParams.get('state'))
+      return
+    }
+
+    const access = u.searchParams.get('access')
+    const refresh = u.searchParams.get('refresh')
     if (!access) {
       router.replace({ name: 'login', query: { error: 'No access token from Google' } })
       return
@@ -78,6 +86,29 @@ function handleDeepLink(url) {
   } catch (e) {
     console.error('❌ Failed to parse deep link:', e)
     router.replace({ name: 'login' })
+  }
+}
+
+async function handleGoogleLink(code, stateParam) {
+  const state = parseGoogleState(stateParam)
+  const next = state?.next
+  try {
+    // POST { code } → backend attaches a new OAuthAccount to the currently
+    // authenticated user. The API singleton carries the WebView's JWT.
+    await postGoogleLinkCode(code)
+    window.dispatchEvent(new CustomEvent('google-account-linked'))
+    authStore.fetchUserProfile().catch(() => {})
+    if (next) router.replace(String(next))
+    else if (authStore.needsTenantSetup) router.replace('/tenant-setup')
+    else if (authStore.isSuperUser || authStore.isGlobalUser) router.replace('/tenants')
+    else router.replace('/home')
+  } catch (e) {
+    console.error('❌ Error al vincular Google:', e)
+    window.dispatchEvent(new CustomEvent('google-account-linked-error', {
+      detail: { message: e?.message || 'No se pudo vincular la cuenta de Google.' },
+    }))
+    if (next) router.replace(String(next))
+    else router.replace('/home')
   }
 }
 
@@ -127,6 +158,24 @@ watch(
     console.log('🔔 Auth state changed:', isAuth)
     if (isAuth) {
       try {
+        // Heartbeat de salud hacia la plataforma de estado (lazy, no bloquea)
+        if (!healthHeartbeat) {
+          const { useHealthMonitor } = await import('@composables/useHealthMonitor.js')
+          healthHeartbeat = useHealthMonitor()
+          healthHeartbeat.startHeartbeat()
+        }
+        // Lazy-load firebase + push + notifications composables only after auth
+        // so the entry chunk doesn't include firebase/messaging.
+        if (!pushRefs) {
+          const { usePushNotifications } = await import('@composables/usePushNotifications.js')
+          pushRefs = usePushNotifications()
+        }
+        if (!notifRefs) {
+          const { useNotifications } = await import('@composables/useNotifications.js')
+          notifRefs = useNotifications()
+        }
+        const { registerPush, listenForeground } = pushRefs
+        const { showNotification } = notifRefs
         const registered = await registerPush()
         console.log('🔔 registerPush result:', registered)
         if (!removeForegroundListener) {
@@ -138,11 +187,18 @@ watch(
       } catch (e) {
         console.warn('⚠️ Push notification setup failed:', e)
       }
+    } else {
+      // Al cerrar sesión se detiene el heartbeat de salud
+      if (healthHeartbeat) {
+        healthHeartbeat.stopHeartbeat()
+        healthHeartbeat = null
+      }
     }
   }
 )
 
 onBeforeUnmount(() => {
+  if (healthHeartbeat) healthHeartbeat.stopHeartbeat()
   if (appUrlListener) appUrlListener.remove()
   if (appStateListener) appStateListener.remove()
   if (removeForegroundListener) removeForegroundListener()

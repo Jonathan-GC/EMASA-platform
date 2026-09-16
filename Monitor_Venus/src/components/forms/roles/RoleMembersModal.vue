@@ -40,6 +40,7 @@
               {{ member.is_active ? 'Activo' : 'Inactivo' }}
             </ion-chip>
             <ion-button 
+              v-if="props.allowRemove"
               slot="end" 
               fill="clear" 
               color="secondary"
@@ -81,6 +82,10 @@ const props = defineProps({
   role: {
     type: Object,
     required: true
+  },
+  allowRemove: {
+    type: Boolean,
+    default: false
   }
 })
 
