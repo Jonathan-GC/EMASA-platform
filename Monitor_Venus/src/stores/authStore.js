@@ -50,6 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false);
   const isLoading = ref(false);
   const isLoadingProfile = ref(false);
+  const activeTenantId = ref(localStorage.getItem('active_tenant_id') || null);
 
   // ========================================
   // GETTERS - Computed properties para acceso fácil
@@ -415,7 +416,20 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
-   * Limpia la autenticación (helper interno)
+   * Establece el tenant activo para peticiones multi-tenant (header X-Tenant-ID)
+   * @param {string|null} newTenantId 
+   */
+  const setActiveTenant = (newTenantId) => {
+    activeTenantId.value = newTenantId;
+    if (newTenantId) {
+      localStorage.setItem('active_tenant_id', newTenantId);
+    } else {
+      localStorage.removeItem('active_tenant_id');
+    }
+  };
+
+  /**
+   * Limpia toda la información de autenticación
    */
   const clearAuth = () => {
     user.value = {
@@ -636,6 +650,8 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     refreshAccessToken,
     hasRole,
-    canAccessRoute
+    canAccessRoute,
+    activeTenantId,
+    setActiveTenant
   };
 });

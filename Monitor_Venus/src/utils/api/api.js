@@ -412,6 +412,12 @@ class API {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
+        // Agregar X-Tenant-ID si hay un tenant activo en localStorage
+        const activeTenantId = localStorage.getItem('active_tenant_id');
+        if (activeTenantId && !headers['X-Tenant-ID']) {
+            headers['X-Tenant-ID'] = activeTenantId;
+        }
+
         return headers;
     }
 
