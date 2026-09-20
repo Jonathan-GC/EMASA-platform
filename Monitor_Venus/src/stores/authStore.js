@@ -42,6 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
       id:null,
       name:null,
       img:null,
+      is_global: false,
     },
     google_oauth: null, // { is_linked, email, provider_user_id, created_at }
     roles: [], // [{ id, name, description, color, is_admin, workspace }]
@@ -195,6 +196,11 @@ export const useAuthStore = defineStore('auth', () => {
    * Obtiene el nombre del tenant del perfil
    */
   const profileTenantName = computed(() => userProfile.value.tenant.name);
+
+  /**
+   * Verifica si el tenant del perfil es el tenant global de la plataforma
+   */
+  const isGlobalTenant = computed(() => userProfile.value.tenant.is_global === true);
 
   /**
    * Obtiene la imagen del tenant del perfil
@@ -391,6 +397,7 @@ export const useAuthStore = defineStore('auth', () => {
           id: userData.tenant?.id || null,
           name: userData.tenant?.name || null,
           img: userData.tenant?.img || null,
+          is_global: userData.tenant?.is_global === true,
         },
         google_oauth: userData.google_oauth || null,
         roles: Array.isArray(userData.roles) ? userData.roles : [],
@@ -637,6 +644,7 @@ export const useAuthStore = defineStore('auth', () => {
     profileTenantId,
     profileTenantName,
     profileTenantImage,
+    isGlobalTenant,
     googleLinked,
     googleEmail,
     userRoles,
