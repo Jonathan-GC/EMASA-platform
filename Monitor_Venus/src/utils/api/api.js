@@ -73,6 +73,7 @@ class API {
     }
     PERMISSION_KEY = 'roles/permission-key/'
     WORKSPACE_MEMBERSHIP = 'roles/workspace-membership/'
+    ROLE_CATALOG = 'roles/catalog/'
     ASSIGNABLE_PERMISSIONS(roleId) {
         return `roles/role/${roleId}/get_assignable_permissions/`
     }

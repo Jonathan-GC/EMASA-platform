@@ -67,14 +67,14 @@
                   class="permission-item-card"
                 >
                   <div class="item-name">
-                    <strong>{{ item.name }}</strong>
+                    <strong>{{ item.resourceLabel || item.name }}</strong>
                   </div>
                   <div class="item-permissions">
                     <ion-checkbox 
                       v-for="([permKey, permValue]) in Object.entries(item.permissions).filter(([_, v]) => v.can_assign)" 
                       :key="permKey"
-                      :checked="isPermissionChecked(category.key, item.id, permKey)"
-                      @ionChange="(e) => togglePermission(category.key, item.id, permKey, e.detail.checked)"
+                      :checked="isPermissionChecked(item.resourceModel, item.id, permKey)"
+                      @ionChange="(e) => togglePermission(item.resourceModel, item.id, permKey, e.detail.checked)"
                       class="permission-checkbox"
                     >
                       <span>
@@ -143,11 +143,41 @@ const loadingPermissions = ref(false)
 const assignablePermissions = ref(null)
 const permissions = ref({})
 const loaded = ref(false)
+const catalog = ref({ categories: [] })
 
-// Computed property to get permission categories from API response
+// Map of catalog icon names to icon keys
+const catalogIconMap = {
+  business: 'business',
+  briefcase: 'business',
+  hardwareChip: 'hardwareChip',
+  wifi: 'wifi',
+  apps: 'apps',
+  construct: 'settings',
+  location: 'location',
+  shieldCheckmark: 'shield',
+  documentText: 'document',
+  key: 'key',
+  people: 'people',
+  person: 'person',
+  shield: 'shield',
+  helpCircle: 'help',
+  chatbubble: 'chat',
+  radio: 'radio',
+  ellipse: 'ellipse'
+}
+
+// Resolve a catalog icon name into an actual ionicon component
+const resolveCategoryIcon = (iconName) => {
+  const key = catalogIconMap[iconName] || 'ellipse'
+  return icons[key] || icons.ellipse
+}
+
+// Computed property to get permission categories from the catalog response
 const permissionCategories = computed(() => {
-  console.log('🔄 Computing permission categories...')
-  console.log('📊 assignablePermissions.value:', assignablePermissions.value)
+  if (!catalog.value || !Array.isArray(catalog.value.categories)) {
+    console.warn('⚠️ No catalog categories found')
+    return []
+  }
   
   if (!assignablePermissions.value?.object) {
     console.warn('⚠️ No object property found in assignablePermissions')
@@ -157,47 +187,31 @@ const permissionCategories = computed(() => {
   const categories = []
   const objectPerms = assignablePermissions.value.object
   
-  console.log('📦 objectPerms keys:', Object.keys(objectPerms))
-  
-  // Map of category names to display labels
-  const categoryLabels = {
-    tenant: 'Tenants',
-    workspace: 'Workspaces',
-    device: 'Dispositivos',
-    gateway: 'Gateways',
-    application: 'Aplicaciones',
-    machine: 'Máquinas',
-    deviceprofile: 'Perfiles de Dispositivo',
-    apiuser: 'Usuarios API',
-    role: 'Roles',
-    workspacemembership: 'Membresías'
-  }
-  
-  // Map of category names to icons
-  const categoryIcons = {
-    tenant: icons.business,
-    workspace: icons.briefcase,
-    device: icons.hardwareChip,
-    gateway: icons.wifi,
-    application: icons.apps,
-    machine: icons.construct,
-    deviceprofile: icons.documentText,
-    apiuser: icons.key,
-    role: icons.shield,
-    workspacemembership: icons.people
-  }
-  
-  for (const [categoryKey, items] of Object.entries(objectPerms)) {
-    console.log(`🔍 Processing category: ${categoryKey}, isArray: ${Array.isArray(items)}, length: ${items?.length}`)
+  for (const category of catalog.value.categories) {
+    const items = []
     
-    if (Array.isArray(items) && items.length > 0) {
+    // Gather items for each resource model declared in the catalog
+    for (const resource of (category.resources || [])) {
+      const resourceItems = objectPerms[resource.model]
+      if (!Array.isArray(resourceItems)) continue
+      
+      for (const item of resourceItems) {
+        items.push({
+          ...item,
+          resourceModel: resource.model,
+          resourceLabel: resource.label,
+          allowedActions: resource.actions || []
+        })
+      }
+    }
+    
+    if (items.length > 0) {
       categories.push({
-        key: categoryKey,
-        label: categoryLabels[categoryKey] || categoryKey,
-        icon: categoryIcons[categoryKey] || icons.ellipse,
+        key: category.key,
+        label: category.label,
+        icon: resolveCategoryIcon(category.icon),
         items: items
       })
-      console.log(`✅ Added category: ${categoryKey} with ${items.length} items`)
     }
   }
   
@@ -206,13 +220,13 @@ const permissionCategories = computed(() => {
 })
 
 // Helper function to get permission key for an object
-const getPermissionKey = (categoryKey, itemId, permissionType) => {
-  return `${categoryKey}_${itemId}_${permissionType}`
+const getPermissionKey = (resourceModel, itemId, permissionType) => {
+  return `${resourceModel}_${itemId}_${permissionType}`
 }
 
 // Helper to check if permission is checked
-const isPermissionChecked = (categoryKey, itemId, permissionType) => {
-  const key = getPermissionKey(categoryKey, itemId, permissionType)
+const isPermissionChecked = (resourceModel, itemId, permissionType) => {
+  const key = getPermissionKey(resourceModel, itemId, permissionType)
   
   // If user has toggled this permission, use that value
   if (key in permissions.value) {
@@ -222,7 +236,7 @@ const isPermissionChecked = (categoryKey, itemId, permissionType) => {
   // Otherwise, find the initial value from API response
   if (!assignablePermissions.value?.object) return false
   
-  const categoryItems = assignablePermissions.value.object[categoryKey]
+  const categoryItems = assignablePermissions.value.object[resourceModel]
   if (!Array.isArray(categoryItems)) return false
   
   const item = categoryItems.find(i => i.id === itemId)
@@ -233,8 +247,8 @@ const isPermissionChecked = (categoryKey, itemId, permissionType) => {
 }
 
 // Helper to toggle permission
-const togglePermission = (categoryKey, itemId, permissionType, value) => {
-  const key = getPermissionKey(categoryKey, itemId, permissionType)
+const togglePermission = (resourceModel, itemId, permissionType, value) => {
+  const key = getPermissionKey(resourceModel, itemId, permissionType)
   console.log(`🔄 Toggle: ${key} = ${value}`)
   permissions.value[key] = value
   console.log('📝 Current permissions state:', permissions.value)
@@ -243,6 +257,24 @@ const togglePermission = (categoryKey, itemId, permissionType, value) => {
 const closeModal = async () => {
   const { modalController } = await import('@ionic/vue')
   await modalController.dismiss()
+}
+
+// Fetch the dynamic permission catalog (categories, resources, actions)
+const fetchCatalog = async () => {
+  try {
+    const response = await API.get(API.ROLE_CATALOG)
+    if (response && Array.isArray(response.categories)) {
+      catalog.value = response
+      console.log('✅ Catalog loaded:', response.categories.length, 'categories')
+    } else if (Array.isArray(response)) {
+      catalog.value = { categories: response }
+    } else {
+      console.warn('⚠️ Unexpected catalog response structure:', response)
+    }
+  } catch (error) {
+    console.error('❌ Error fetching catalog:', error)
+    catalog.value = { categories: [] }
+  }
 }
 
 const fetchPermissions = async () => {
@@ -256,31 +288,20 @@ const fetchPermissions = async () => {
     console.log('🔍 Fetching assignable permissions for role:', props.role.id)
     let response = await API.get(API.ASSIGNABLE_PERMISSIONS(props.role.id))
     
-    console.log('📦 Raw API response type:', Array.isArray(response) ? 'Array' : typeof response)
-    
     // Handle array response - extract first element
     if (Array.isArray(response) && response.length > 0) {
-      console.log('✅ Response is array, extracting first element')
       response = response[0]
     }
     
-    console.log('📦 Response keys:', Object.keys(response || {}))
-    
     // Handle nested structure: { assignable_permissions: { global: {}, object: {} } }
     if (response && response.assignable_permissions) {
-      console.log('✅ Found assignable_permissions in response')
       assignablePermissions.value = response.assignable_permissions
     } else if (response && response.object) {
-      console.log('✅ Found object directly in response')
       assignablePermissions.value = response
     } else {
       console.error('❌ Unexpected response structure:', response)
       assignablePermissions.value = { object: {} }
     }
-    
-    console.log('✅ Has object property:', !!assignablePermissions.value?.object)
-    console.log('✅ Permissions loaded:', Object.keys(assignablePermissions.value?.object || {}).length, 'categories')
-    console.log('🔑 Available categories:', Object.keys(assignablePermissions.value?.object || {}))
     
     // Initialize permissions state from API response
     initializePermissions()
@@ -298,7 +319,7 @@ const initializePermissions = () => {
   const objectPerms = assignablePermissions.value.object
   
   // Initialize permissions with API values (true = assignable)
-  for (const [categoryKey, items] of Object.entries(objectPerms)) {
+  for (const [resourceModel, items] of Object.entries(objectPerms)) {
     if (!Array.isArray(items)) continue
     
     for (const item of items) {
@@ -306,7 +327,7 @@ const initializePermissions = () => {
       
       for (const [permKey, value] of Object.entries(item.permissions)) {
         if (value?.assigned === true) {
-          const key = getPermissionKey(categoryKey, item.id, permKey)
+          const key = getPermissionKey(resourceModel, item.id, permKey)
           permissions.value[key] = true
         }
       }
@@ -324,43 +345,35 @@ const savePermissions = async () => {
     const assign = {}
     const revoke = {}
     
-    if (!assignablePermissions.value?.object) {
+    const categories = permissionCategories.value
+    if (categories.length === 0) {
       console.error('❌ No permissions data available')
       return
     }
     
-    const objectPerms = assignablePermissions.value.object
-    
-    // Iterate through all categories and items
-    for (const [categoryKey, items] of Object.entries(objectPerms)) {
-      if (!Array.isArray(items)) continue
-      
-      console.log(`🔍 Processing category: ${categoryKey} with ${items.length} items`)
-      
-      for (const item of items) {
+    // Iterate through all categories and items from the catalog
+    for (const category of categories) {
+      for (const item of category.items) {
+        const resourceModel = item.resourceModel
         if (!item.permissions) continue
         
         for (const [permKey, apiValue] of Object.entries(item.permissions)) {
           // Get current value using the same logic as the UI
-          const currentValue = isPermissionChecked(categoryKey, item.id, permKey)
+          const currentValue = isPermissionChecked(resourceModel, item.id, permKey)
           const initialValue = apiValue?.assigned === true
-          
-          console.log(`📊 ${categoryKey}.${item.id}.${permKey}: current=${currentValue}, initial=${initialValue}`)
           
           // Permission was added (assign)
           if (currentValue === true && initialValue === false) {
-            console.log(`✅ ASSIGN: ${categoryKey}.${permKey} for item ${item.id}`)
-            if (!assign[categoryKey]) assign[categoryKey] = {}
-            if (!assign[categoryKey][permKey]) assign[categoryKey][permKey] = []
-            assign[categoryKey][permKey].push(item.id)
+            if (!assign[resourceModel]) assign[resourceModel] = {}
+            if (!assign[resourceModel][permKey]) assign[resourceModel][permKey] = []
+            assign[resourceModel][permKey].push(item.id)
           }
           
           // Permission was removed (revoke)
           if (currentValue === false && initialValue === true) {
-            console.log(`❌ REVOKE: ${categoryKey}.${permKey} for item ${item.id}`)
-            if (!revoke[categoryKey]) revoke[categoryKey] = {}
-            if (!revoke[categoryKey][permKey]) revoke[categoryKey][permKey] = []
-            revoke[categoryKey][permKey].push(item.id)
+            if (!revoke[resourceModel]) revoke[resourceModel] = {}
+            if (!revoke[resourceModel][permKey]) revoke[resourceModel][permKey] = []
+            revoke[resourceModel][permKey].push(item.id)
           }
         }
       }
@@ -391,7 +404,7 @@ const savePermissions = async () => {
 
 onMounted(async () => {
   console.log('🔑 Role permissions manager mounted for role:', props.role.name)
-  await fetchPermissions()
+  await Promise.all([fetchCatalog(), fetchPermissions()])
   loaded.value = true
 })
 </script>
