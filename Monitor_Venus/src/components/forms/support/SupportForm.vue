@@ -175,6 +175,24 @@
               {{ errors.organization }}
             </ion-note>
           </div>
+
+          <!-- Workspace (logged-in only) -->
+          <ion-item v-if="isLoggedIn" class="custom" lines="none">
+            <ion-label position="stacked" class="!mb-2">Espacio de trabajo</ion-label>
+            <ModalSelector class="custom" v-model="ticketSelection.workspace" :options="workspaceOptions"
+              :value-field="'id'" :display-field="'name'" :search-fields="['name']"
+              title="Seleccionar espacio de trabajo" placeholder=" -" search-placeholder="Buscar espacio de trabajo..."
+              :disabled="loadingWorkspaces">
+              <template #option="{ option }">
+                <ion-label>{{ option.name }}</ion-label>
+              </template>
+            </ModalSelector>
+          </ion-item>
+          <div class="field-error" v-if="isLoggedIn">
+            <ion-note v-if="loadingWorkspaces" color="medium">Cargando espacios de trabajo...</ion-note>
+            <ion-note v-else-if="workspaceError" color="danger">{{ workspaceError }}</ion-note>
+          </div>
+
           <ion-item class="custom" lines="none">
             <ion-label position="stacked" class=" !mb-2">Descripción *</ion-label>
             <ion-textarea class="custom" fill="solid" v-model="form.description" auto-grow :rows="5"
@@ -368,6 +386,8 @@ async function loadSessionContext() {
           sessionUserLabel.value = name ? (email ? `${name} <${email}>` : name) : (email || 'Authenticated user')
         } catch { /* ignore */ }
       }
+      // Workspace selector is only relevant for logged-in users
+      if (isLoggedIn.value) fetchWorkspaces()
     }
   } catch {
     authToken.value = null
@@ -602,7 +622,7 @@ function resetForm() {
   form.guest_name = ''
   form.guest_email = ''
   // Clear ticket selections
-  try { ticketSelection.category = null; ticketSelection.infrastructure = null; ticketSelection.machine_type = null; ticketSelection.electric_subtype = null; ticketSelection.mechanical_subtype = null } catch (_) { }
+  try { ticketSelection.category = null; ticketSelection.infrastructure = null; ticketSelection.machine_type = null; ticketSelection.electric_subtype = null; ticketSelection.mechanical_subtype = null; ticketSelection.workspace = null } catch (_) { }
 
   // Clear file and file errors
   removeFile()
@@ -653,6 +673,7 @@ async function handleSubmit() {
     if (ticketSelection.machine_type) payload.machine_type = ticketSelection.machine_type
     if (ticketSelection.electric_subtype) payload.electric_machine_subtype = ticketSelection.electric_subtype
     if (ticketSelection.mechanical_subtype) payload.mechanical_machine_subtype = ticketSelection.mechanical_subtype
+    if (ticketSelection.workspace) payload.workspace = ticketSelection.workspace
 
     if (isLoggedIn.value && sessionUserId.value != null) {
       payload.user_id = sessionUserId.value // IMPORTANT: backend expects "user_id"
@@ -733,7 +754,32 @@ const ticketSelection = reactive({
   machine_type: null,
   electric_subtype: null,
   mechanical_subtype: null,
+  workspace: null,
 })
+
+// Workspaces for the optional "Espacio de trabajo" selector (logged-in users)
+const workspaces = ref([])
+const loadingWorkspaces = ref(false)
+const workspaceError = ref('')
+
+const workspaceOptions = computed(() =>
+  workspaces.value.map(w => ({ id: w.id, name: w.name || w.workspace_name || `#${w.id}` }))
+)
+
+async function fetchWorkspaces() {
+  loadingWorkspaces.value = true
+  workspaceError.value = ''
+  try {
+    const res = await API.get(API.WORKSPACE)
+    const list = Array.isArray(res) ? res : (res?.results || res?.data || [])
+    workspaces.value = list
+  } catch (err) {
+    console.error('[Support] Error fetching workspaces:', err)
+    workspaceError.value = 'No se pudieron cargar los espacios de trabajo.'
+  } finally {
+    loadingWorkspaces.value = false
+  }
+}
 
 // used to prevent watchers from marking fields as "touched" during programmatic resets
 const isResetting = ref(false)

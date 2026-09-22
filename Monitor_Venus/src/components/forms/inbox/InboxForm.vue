@@ -71,6 +71,7 @@
           :resolve-assignee-name="resolveAssigneeName"
           @open-assign-popover="openAssignPopover"
           @open-priority-popover="openPriorityPopover"
+          @open-diagnostic-pass-modal="openDiagnosticPassModal"
           @go-to-conversation="goToConversation"
         />
       </div>
@@ -117,6 +118,7 @@
         :resolve-assignee-name="resolveAssigneeName"
         @open-assign-popover="openAssignPopover"
         @open-priority-popover="openPriorityPopover"
+        @open-diagnostic-pass-modal="openDiagnosticPassModal"
         @go-to-conversation="goToConversation"
       />
     </div>
@@ -181,11 +183,12 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotifications } from '@/composables/useNotifications';
 import { useResponsiveView } from '@/composables/useResponsiveView';
-import { IonSearchbar, IonButton, IonBadge, IonSpinner, IonIcon, IonLabel, IonPopover, IonList, IonItem, IonContent } from '@ionic/vue';
+import { IonSearchbar, IonButton, IonBadge, IonSpinner, IonIcon, IonLabel, IonPopover, IonList, IonItem, IonContent, modalController } from '@ionic/vue';
 import API from '@/utils/api/api';
 import ConnectionStatus from '@/components/ConnectionStatus.vue';
 import MessageList from './MessageList.vue';
 import MessageReadingPane from './MessageReadingPane.vue';
+import DiagnosticPassModal from '@/components/forms/support/DiagnosticPassModal.vue';
 // ------------------ UI popovers (assignment & priority) ------------------
 // Using IonPopover for inline dropdown selection
 const assignPopoverOpen = ref(false);
@@ -344,6 +347,8 @@ function mapTicketToMessage(t) {
     created_at: t.created_at,
     updated_at: t.updated_at,
     assigned_to: t.assigned_to ?? null,
+    workspace: t.workspace ?? null,
+    tenant: t.tenant ?? null,
   };
 }
 
@@ -516,6 +521,26 @@ function goToConversation() {
       query: { id: selectedId.value }
     });
   }
+}
+
+// Open the diagnostic pass modal for the selected ticket
+async function openDiagnosticPassModal() {
+  if (!selectedId.value || !selectedMessage.value) return;
+  const modal = await modalController.create({
+    component: DiagnosticPassModal,
+    componentProps: {
+      ticket: {
+        id: selectedId.value,
+        title: selectedMessage.value.subject || '',
+        workspace: selectedMessage.value.workspace ?? null
+      }
+    },
+    cssClass: 'full-modal'
+  });
+  modal.onDidDismiss().then((data) => {
+    if (data?.data?.granted) fetchTickets();
+  });
+  await modal.present();
 }
 
 // If initial ticket has an assignee and we don't yet have member data, fetch it to resolve the name

@@ -200,6 +200,16 @@ class API {
         return `support/ticket/${ticketId}/delegate/`
     }
 
+    GRANT_DIAGNOSTIC_PASS(ticketId){
+        return `support/ticket/${ticketId}/grant_diagnostic_pass/`
+    }
+
+    REVOKE_DIAGNOSTIC_PASS(ticketId){
+        return `support/ticket/${ticketId}/revoke_diagnostic_pass/`
+    }
+
+    DIAGNOSTIC_PASSES = 'support/diagnostic-passes/'
+
     //----[CONVERSATION]----
 
     TICKET_CONVERSATION(ticketId) {

@@ -38,6 +38,18 @@
             <span v-if="!isMobile">Cambiar prioridad</span>
           </ion-button>
           <ion-spinner v-if="isSupportManager && updatingPriority" name="dots" />
+
+          <!-- Diagnostic pass button -->
+          <ion-button
+            v-if="isSupportManager"
+            size="small"
+            fill="outline"
+            @click="$emit('openDiagnosticPassModal', $event)"
+            :disabled="!selectedMessage"
+          >
+            <ion-icon :icon="icons.shield || icons.key || icons.lock_closed" :slot="isMobile ? 'icon-only' : 'start'" />
+            <span v-if="!isMobile">Pase diagnóstico</span>
+          </ion-button>
         </div>
       </div>
       
@@ -128,7 +140,7 @@ defineProps({
   resolveAssigneeName: { type: Function, required: true }
 });
 
-defineEmits(['openAssignPopover', 'openPriorityPopover', 'goToConversation']);
+defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModal', 'goToConversation']);
 </script>
 
 <style scoped>
