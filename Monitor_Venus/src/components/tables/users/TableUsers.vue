@@ -150,6 +150,16 @@
                   @item-toggled="handleItemRefresh"
 
                 />
+                <ion-button
+                  v-if="canTransferTenants"
+                  fill="clear"
+                  size="small"
+                  class="action transfer"
+                  title="transferir de tenant"
+                  @click="openTransferModal(user)"
+                >
+                  <ion-icon :icon="icons['swap-horizontal']" slot="icon-only"></ion-icon>
+                </ion-button>
               </ion-col>
             </ion-row>
             </ion-grid>
@@ -206,6 +216,16 @@
 
                 <!-- Card actions -->
                 <div class="card-actions">
+                  <ion-button
+                    v-if="canTransferTenants"
+                    fill="clear"
+                    size="small"
+                    class="action transfer"
+                    title="transferir de tenant"
+                    @click.stop="openTransferModal(user)"
+                  >
+                    <ion-icon :icon="icons['swap-horizontal']" slot="icon-only"></ion-icon>
+                  </ion-button>
                   <QuickActions 
                     type="user"
                     :index="user.id" 
@@ -284,10 +304,14 @@ import AvatarSVG from '@assets/svg/Avatar.svg'
 import QuickControl from '../../operators/quickControl.vue'
 import QuickActions from '../../operators/quickActions.vue'
 import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
+import { modalController } from '@ionic/vue'
+import TransferTenantModal from '@components/forms/users/TransferTenantModal.vue'
+import { useAuthStore } from '@/stores/authStore'
 
 // Inject icons
 const icons = inject('icons', {})
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Responsive view detection
 const { isMobile } = useResponsiveView(768)
@@ -367,6 +391,29 @@ const fetchUsers = async () => {
 // Handle item refresh
 const handleItemRefresh = () => {
   fetchUsers()
+}
+
+// La transferencia de tenant está disponible solo para superusuarios o admins globales
+const canTransferTenants = computed(() =>
+  authStore.isSuperUser || authStore.isGlobalUser
+)
+
+const openTransferModal = async (user) => {
+  const modal = await modalController.create({
+    component: TransferTenantModal,
+    componentProps: {
+      user
+    },
+    cssClass: 'full-modal'
+  })
+
+  modal.onDidDismiss().then(({ data }) => {
+    if (data?.transferred) {
+      handleItemRefresh()
+    }
+  })
+
+  await modal.present()
 }
 
 // Lifecycle

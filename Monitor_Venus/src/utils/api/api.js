@@ -39,6 +39,9 @@ class API {
     USER_PROFILE(userId) {
         return `users/user/${userId}/profile/`
     }
+    TRANSFER_TENANT(userId) {
+        return `users/user/${userId}/transfer_tenant/`
+    }
 
     //----[AUTH]----
     TOKEN = 'token/'
@@ -414,8 +417,10 @@ class API {
         }
 
         // Agregar X-Tenant-ID si hay un tenant activo en localStorage
+        // Los callers pueden pasar un header X-Tenant-ID explícito (incluso '')
+        // para sobrescribir o suprimir el contexto por defecto.
         const activeTenantId = localStorage.getItem('active_tenant_id');
-        if (activeTenantId && !headers['X-Tenant-ID']) {
+        if (activeTenantId && !Object.prototype.hasOwnProperty.call(headers, 'X-Tenant-ID')) {
             headers['X-Tenant-ID'] = activeTenantId;
         }
 
