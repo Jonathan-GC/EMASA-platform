@@ -248,7 +248,7 @@ const closeModal = () => {
 // Preserve initialData when fields update (e.g., after fetching dropdown options)
 watch(fields, (newFields) => {
   formValues.value = {...initializeFormValues(newFields), ...additionalData.value};
-}, { deep: true });
+}, { deep: true, immediate: true });
 
 watch(additionalData, (newData) => {
   formValues.value = { ...formValues.value, ...newData };
