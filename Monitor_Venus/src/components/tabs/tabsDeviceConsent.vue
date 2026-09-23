@@ -359,24 +359,15 @@ onMounted(load)
 }
 
 .measurement-option {
-  --padding-start: 6px;
-  --inner-padding-end: 6px;
-  border-radius: 8px;
-  margin-bottom: 4px;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  margin-bottom: 2px;
 }
 
 .measurement-option-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  border-radius: 8px;
-  background: #eff6ff;
-  color: #3b82f6;
-  font-size: 20px;
-  padding: 7px;
+  color: #111827;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 .detail-row {
