@@ -516,26 +516,22 @@ class API {
             }
 
             // Lanzar error específico según el código de estado
-            switch (response.status) {
-                case 400:
-                    throw new Error(`Bad Request (400): ${errorData.statusText} - ${endpoint}`);
-                case 401:
-                    throw new Error(`Unauthorized (401): ${errorData.statusText} - ${endpoint}`);
-                case 403:
-                    throw new Error(`Forbidden (403): ${errorData.statusText} - ${endpoint}`);
-                case 404:
-                    throw new Error(`Not Found (404): ${errorData.statusText} - ${endpoint}`);
-                case 422:
-                    throw new Error(`Unprocessable Entity (422): ${errorData.statusText} - ${endpoint}`);
-                case 500:
-                    throw new Error(`Internal Server Error (500): ${errorData.statusText} - ${endpoint}`);
-                case 502:
-                    throw new Error(`Bad Gateway (502): ${errorData.statusText} - ${endpoint}`);
-                case 503:
-                    throw new Error(`Service Unavailable (503): ${errorData.statusText} - ${endpoint}`);
-                default:
-                    throw new Error(`HTTP Error (${response.status}): ${errorData.statusText} - ${endpoint}`);
-            }
+            const statusPrefix = {
+                400: 'Bad Request (400)',
+                401: 'Unauthorized (401)',
+                403: 'Forbidden (403)',
+                404: 'Not Found (404)',
+                422: 'Unprocessable Entity (422)',
+                500: 'Internal Server Error (500)',
+                502: 'Bad Gateway (502)',
+                503: 'Service Unavailable (503)'
+            };
+            const prefix = statusPrefix[response.status] || `HTTP Error (${response.status})`;
+            const error = new Error(`${prefix}: ${errorData.statusText} - ${endpoint}`);
+            error.status = response.status;
+            error.details = errorData.details || null;
+            error.body = errorData.body || null;
+            throw error;
         }
 
         // Si la respuesta es exitosa, procesarla

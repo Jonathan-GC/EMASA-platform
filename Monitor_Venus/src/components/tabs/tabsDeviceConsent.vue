@@ -222,7 +222,9 @@ const load = async () => {
   const [consentRes, historyRes] = results
 
   if (consentRes.status === 'fulfilled') {
-    consent.value = consentRes.value || null
+    // El API client envuelve respuestas de objeto en un array; usa el primero
+    const payload = consentRes.value
+    consent.value = Array.isArray(payload) ? (payload[0] || null) : (payload || null)
     selectedIds.value = Array.isArray(consent.value?.consented_measurement_ids)
       ? consent.value.consented_measurement_ids.map(String)
       : []
@@ -270,7 +272,15 @@ const acceptConsent = async () => {
     persistSelection()
     await load()
   } catch (error) {
-    toast(error?.message || 'No se pudo guardar el consentimiento.', 'danger')
+    console.error('Error guardando consentimiento:', error)
+    let message = error?.message || 'No se pudo guardar el consentimiento.'
+    if (error?.details && typeof error.details === 'object') {
+      const firstDetail = Object.values(error.details)[0]
+      if (Array.isArray(firstDetail)) message = String(firstDetail[0])
+      else if (typeof firstDetail === 'string') message = firstDetail
+      else if (error.details.detail) message = String(error.details.detail)
+    }
+    toast(message, 'danger')
   } finally {
     submitting.value = false
   }
