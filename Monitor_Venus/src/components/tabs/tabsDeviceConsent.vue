@@ -284,22 +284,24 @@ onMounted(load)
 .section-description {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: #64748b;
-  margin: 0 0 6px 0;
+  gap: 10px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #78350f;
+  margin: 0 0 8px 0;
   line-height: 1.5;
-  padding: 12px;
-  background: #fffbeb;
-  border-left: 3px solid #f59e0b;
-  border-radius: 4px;
+  padding: 13px 14px;
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
   text-align: left;
+  box-shadow: 0 1px 2px rgba(245, 158, 11, 0.15);
 }
 
 .description-icon {
-  color: #f59e0b;
+  color: #d97706;
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .consent-loading {
