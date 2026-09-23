@@ -34,7 +34,7 @@
           </ion-card-header>
           <ion-card-content>
             <div v-if="consentableMeasurements.length" class="measurement-options">
-              <ion-item v-for="m in consentableMeasurements" :key="m.id" class="measurement-option">
+              <ion-item v-for="m in consentableMeasurements" :key="m.id" lines="none" class="measurement-option">
                 <ion-icon
                   slot="start"
                   :icon="icons[m.icon] || icons.analytics"
@@ -361,7 +361,13 @@ onMounted(load)
 .measurement-option {
   --padding-start: 0;
   --inner-padding-end: 0;
-  margin-bottom: 2px;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
+  margin-bottom: 0;
+}
+
+.measurement-option:last-child {
+  border-bottom: none;
 }
 
 .measurement-option-icon {
