@@ -262,14 +262,19 @@ const closeModal = async () => {
 // Fetch the dynamic permission catalog (categories, resources, actions)
 const fetchCatalog = async () => {
   try {
-    const response = await API.get(API.ROLE_CATALOG)
+    let response = await API.get(API.ROLE_CATALOG)
+
+    // Handle array response - extract first element
+    if (Array.isArray(response)) {
+      response = response[0] || null
+    }
+
     if (response && Array.isArray(response.categories)) {
       catalog.value = response
       console.log('✅ Catalog loaded:', response.categories.length, 'categories')
-    } else if (Array.isArray(response)) {
-      catalog.value = { categories: response }
     } else {
       console.warn('⚠️ Unexpected catalog response structure:', response)
+      catalog.value = { categories: [] }
     }
   } catch (error) {
     console.error('❌ Error fetching catalog:', error)
