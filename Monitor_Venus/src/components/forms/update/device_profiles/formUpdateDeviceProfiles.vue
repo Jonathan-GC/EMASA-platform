@@ -4,7 +4,7 @@
       <form-update
           :type="type"
           :index="index"
-          :fields="fields"
+          :fields="formFields"
           :label="label"
           :additionalData="additionalData"
           :initialData="initialData"
