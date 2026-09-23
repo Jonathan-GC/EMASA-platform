@@ -166,7 +166,7 @@
   </ion-page>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, inject, onMounted } from 'vue'
 import {
   IonPage,
@@ -180,7 +180,6 @@ import {
   IonLabel,
   IonInput,
   IonTextarea,
-  IonCheckbox,
   IonButton,
   IonSpinner,
   IonIcon,
@@ -220,7 +219,6 @@ const icons = inject('icons', {})
 const loading = ref(false)
 const loaded = ref(false)
 const workspaces = ref([])
-const permissions = ref([])
 
 // Form values
 const formValues = ref({
@@ -228,26 +226,6 @@ const formValues = ref({
   description: '',
   color: '#5865F2',
   workspace_id: null,
-  permissions: {
-    // General
-    view_dashboard: false,
-    view_analytics: false,
-    manage_settings: false,
-    
-    // Management
-    manage_users: false,
-    manage_roles: false,
-    manage_workspaces: false,
-    manage_tenants: false,
-    
-    // Devices
-    view_devices: false,
-    create_devices: false,
-    edit_devices: false,
-    delete_devices: false,
-    manage_gateways: false,
-    view_measurements: false,
-  }
 })
 
 // Discord-like predefined colors
@@ -261,94 +239,6 @@ const predefinedColors = [
   '#EB459E', // Pink
   '#99AAB5', // Grey
   '#23272A', // Dark
-]
-
-// Permission categories
-const generalPermissions = [
-  {
-    key: 'view_dashboard',
-    label: 'Ver Dashboard',
-    description: 'Permite visualizar el panel principal',
-    icon: icons.grid
-  },
-  {
-    key: 'view_analytics',
-    label: 'Ver Analíticas',
-    description: 'Acceso a reportes y análisis',
-    icon: icons.analytics
-  },
-  {
-    key: 'manage_settings',
-    label: 'Gestionar Configuración',
-    description: 'Modificar configuraciones del sistema',
-    icon: icons.settings
-  },
-]
-
-const managementPermissions = [
-  {
-    key: 'manage_users',
-    label: 'Gestionar Usuarios',
-    description: 'Crear, editar y eliminar usuarios',
-    icon: icons.people
-  },
-  {
-    key: 'manage_roles',
-    label: 'Gestionar Roles',
-    description: 'Administrar roles y permisos',
-    icon: icons.shield
-  },
-  {
-    key: 'manage_workspaces',
-    label: 'Gestionar Workspaces',
-    description: 'Administrar espacios de trabajo',
-    icon: icons.business
-  },
-  {
-    key: 'manage_tenants',
-    label: 'Gestionar Tenants',
-    description: 'Administrar organizaciones',
-    icon: icons.home
-  },
-]
-
-const devicePermissions = [
-  {
-    key: 'view_devices',
-    label: 'Ver Dispositivos',
-    description: 'Visualizar lista de dispositivos',
-    icon: icons.hardwareChip
-  },
-  {
-    key: 'create_devices',
-    label: 'Crear Dispositivos',
-    description: 'Agregar nuevos dispositivos',
-    icon: icons.add
-  },
-  {
-    key: 'edit_devices',
-    label: 'Editar Dispositivos',
-    description: 'Modificar dispositivos existentes',
-    icon: icons.create
-  },
-  {
-    key: 'delete_devices',
-    label: 'Eliminar Dispositivos',
-    description: 'Remover dispositivos del sistema',
-    icon: icons.trash
-  },
-  {
-    key: 'manage_gateways',
-    label: 'Gestionar Gateways',
-    description: 'Administrar puertas de enlace',
-    icon: icons.wifi
-  },
-  {
-    key: 'view_measurements',
-    label: 'Ver Mediciones',
-    description: 'Acceder a datos de mediciones',
-    icon: icons.pulse
-  },
 ]
 
 const selectColor = (color) => {
@@ -369,8 +259,6 @@ const createRole = async () => {
       description: formValues.value.description,
       color: formValues.value.color,
       workspace_id: formValues.value.workspace_id,
-      permissions: Object.keys(formValues.value.permissions)
-        .filter(key => formValues.value.permissions[key])
     }
 
     console.log('📤 Creating role:', payload)
@@ -397,18 +285,6 @@ const fetchWorkspaces = async () => {
   } catch (error) {
     console.error('❌ Error fetching workspaces:', error)
     workspaces.value = []
-  }
-};
-
-const fetchPermissions = async () => {
-  // Placeholder for future permission fetching logic if needed
-  try {
-    const response = await API.get(API.ASSIGNABLE_PERMISSIONS(formValues.value.id))
-    permissions.value = Array.isArray(response) ? response : []
-  } catch (error) {
-    c
-    console.error('❌ Error fetching permissions:', error)
-    permissions.value = []
   }
 };
 
