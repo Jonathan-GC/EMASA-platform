@@ -257,10 +257,6 @@ const load = async () => {
 
 const acceptConsent = async () => {
   if (!canManage.value || !props.deviceId || submitting.value) return
-  if (!selectedIds.value.length) {
-    toast('Selecciona al menos una variable para compartir.', 'warning')
-    return
-  }
 
   submitting.value = true
   try {
