@@ -26,6 +26,7 @@
     </div>
 
     <template v-else>
+      <div class="consent-grid">
       <!-- Variables disponibles -->
       <ion-card class="consent-variables-card">
         <ion-card-header>
@@ -81,6 +82,7 @@
           </div>
         </ion-card-content>
       </ion-card>
+      </div>
     </template>
   </div>
 </template>
@@ -322,6 +324,24 @@ onMounted(load)
   color: #b91c1c;
   font-size: 0.85rem;
   text-align: center;
+}
+
+.consent-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+@media (min-width: 768px) {
+  .consent-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.consent-variables-card,
+.consent-signature-card {
+  margin: 0;
 }
 
 .measurement-options {
