@@ -96,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted } from 'vue'
+import { ref, computed, inject, onMounted, watch } from 'vue'
 import { toastController } from '@ionic/vue'
 import { format } from 'date-fns'
 import API from '@/utils/api/api.js'
@@ -164,6 +164,16 @@ const persistSelection = () => {
   } catch {
     // almacenamiento no disponible
   }
+}
+
+// Filtra de la selección solo los IDs que siguen existiendo en el dispositivo,
+// sin tocar nada si las variables aún no han llegado (lista vacía ≠ sin valores).
+const validateSelection = () => {
+  if (!props.measurements || !props.measurements.length) return
+  const validIds = new Set(props.measurements.map(m => String(m.id)))
+  const before = selectedIds.value.length
+  selectedIds.value = selectedIds.value.filter(id => validIds.has(id))
+  if (selectedIds.value.length !== before) persistSelection()
 }
 
 const fmt = (value) => {
@@ -237,8 +247,7 @@ const load = async () => {
   }
 
   // Filtra valores que ya no correspondan a variables del dispositivo
-  const validIds = new Set((props.measurements || []).map(m => String(m.id)))
-  selectedIds.value = selectedIds.value.filter(id => validIds.has(id))
+  validateSelection()
 
   persistSelection()
   loading.value = false
@@ -266,6 +275,10 @@ const acceptConsent = async () => {
     submitting.value = false
   }
 }
+
+// Cuando el padre termina de cargar las variables, revalida la selección
+// para no borrar toggles activados antes de que llegaran los datos.
+watch(() => props.measurements, validateSelection)
 
 onMounted(load)
 </script>
