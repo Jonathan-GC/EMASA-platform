@@ -27,61 +27,69 @@
 
     <template v-else>
       <div class="consent-grid">
-      <!-- Variables disponibles -->
-      <ion-card class="consent-variables-card">
-        <ion-card-header>
-          <ion-card-title>Variables disponibles</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div v-if="consentableMeasurements.length" class="measurement-options">
-            <ion-item v-for="m in consentableMeasurements" :key="m.id" class="measurement-option">
-              <ion-label>{{ m.label || m.name }}</ion-label>
-              <ion-checkbox
-                :checked="isSelected(m.id)"
-                :disabled="!canManage"
-                @ionChange="toggleMeasurement(m.id)"
-              ></ion-checkbox>
-            </ion-item>
-          </div>
-          <div v-else class="consent-empty">
-            <p>No hay variables disponibles para consentimiento en este dispositivo.</p>
-          </div>
+        <!-- Variables disponibles -->
+        <ion-card class="consent-variables-card">
+          <ion-card-header>
+            <ion-card-title>Variables disponibles</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div v-if="consentableMeasurements.length" class="measurement-options">
+              <ion-item v-for="m in consentableMeasurements" :key="m.id" class="measurement-option">
+                <ion-icon
+                  slot="start"
+                  :icon="icons[m.icon] || icons.analytics"
+                  class="measurement-option-icon"
+                ></ion-icon>
+                <ion-label>{{ m.label || m.name }}</ion-label>
+                <ion-toggle
+                  slot="end"
+                  :checked="isSelected(m.id)"
+                  :disabled="!canManage"
+                  color="success"
+                  :aria-label="m.label || m.name"
+                  @ionChange="toggleMeasurement(m.id)"
+                ></ion-toggle>
+              </ion-item>
+            </div>
+            <div v-else class="consent-empty">
+              <p>No hay variables disponibles para consentimiento en este dispositivo.</p>
+            </div>
 
-          <ion-button
-            v-if="canManage"
-            expand="block"
-            color="primary"
-            :disabled="submitting || !consentableMeasurements.length"
-            @click="acceptConsent"
-          >
-            <ion-spinner v-if="submitting" name="crescent" slot="start"></ion-spinner>
-            {{ submitting ? 'Guardando...' : consent ? 'Actualizar consentimiento' : 'Guardar consentimiento' }}
-          </ion-button>
+            <ion-button
+              v-if="canManage"
+              expand="block"
+              color="primary"
+              :disabled="submitting || !consentableMeasurements.length"
+              @click="acceptConsent"
+            >
+              <ion-spinner v-if="submitting" name="crescent" slot="start"></ion-spinner>
+              {{ submitting ? 'Guardando...' : consent ? 'Actualizar consentimiento' : 'Guardar consentimiento' }}
+            </ion-button>
 
-          <p v-if="loadError" class="consent-error">{{ loadError }}</p>
-        </ion-card-content>
-      </ion-card>
+            <p v-if="loadError" class="consent-error">{{ loadError }}</p>
+          </ion-card-content>
+        </ion-card>
 
-      <!-- Detalles de firma -->
-      <ion-card class="consent-signature-card">
-        <ion-card-header>
-          <ion-card-title>Detalles de firma</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="detail-row">
-            <span class="detail-label">Firma del dispositivo</span>
-            <code :title="fullSignature" class="detail-value signature">{{ truncatedSignature }}</code>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Versión de términos</span>
-            <span class="detail-value">{{ signatureTermsVersion }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Última actualización</span>
-            <span class="detail-value">{{ signatureUpdatedAt }}</span>
-          </div>
-        </ion-card-content>
-      </ion-card>
+        <!-- Detalles de firma -->
+        <ion-card class="consent-signature-card">
+          <ion-card-header>
+            <ion-card-title>Detalles de firma</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="detail-row">
+              <span class="detail-label">Firma del dispositivo</span>
+              <code :title="fullSignature" class="detail-value signature">{{ truncatedSignature }}</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Versión de términos</span>
+              <span class="detail-value">{{ signatureTermsVersion }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Última actualización</span>
+              <span class="detail-value">{{ signatureUpdatedAt }}</span>
+            </div>
+          </ion-card-content>
+        </ion-card>
       </div>
     </template>
   </div>
@@ -351,10 +359,24 @@ onMounted(load)
 }
 
 .measurement-option {
-  --padding-start: 8px;
-  --inner-padding-end: 8px;
+  --padding-start: 6px;
+  --inner-padding-end: 6px;
   border-radius: 8px;
   margin-bottom: 4px;
+}
+
+.measurement-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #3b82f6;
+  font-size: 20px;
+  padding: 7px;
 }
 
 .detail-row {
