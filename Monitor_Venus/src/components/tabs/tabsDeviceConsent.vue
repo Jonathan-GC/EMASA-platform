@@ -11,10 +11,13 @@
       </div>
     </div>
 
-    <p class="consent-subtitle">
-      Selecciona las variables del dispositivo que el tenant autoriza
-      compartir para entrenamiento de modelos de IA.
-    </p>
+    <ion-card-subtitle class="section-description !mb-1">
+      <ion-icon :icon="icons.warning" class="description-icon"></ion-icon>
+      <span>
+        Selecciona las variables del dispositivo que el tenant autoriza
+        compartir para entrenamiento de modelos de IA.
+      </span>
+    </ion-card-subtitle>
 
     <!-- Cargando -->
     <div v-if="loading" class="consent-loading">
@@ -276,11 +279,25 @@ onMounted(load)
   font-weight: 600;
 }
 
-.consent-subtitle {
-  text-align: center;
-  color: #6b7280;
-  font-size: 0.95rem;
-  margin: 0 4px 6px 4px;
+.section-description {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 6px 0;
+  line-height: 1.5;
+  padding: 12px;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+  text-align: left;
+}
+
+.description-icon {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .consent-loading {
