@@ -129,6 +129,22 @@ class API {
     DEVICE_UPDATE_MEASUREMENTS='infrastructure/device/update_measurement/'
     DEVICE_DELETE_MEASUREMENTS='infrastructure/device/delete_measurement/'
 
+//----[CONSENT]----
+    // Consentimiento de consumo de datos del dispositivo para entrenamiento de IA
+    CONSENTS = 'infrastructure/consents/'
+    DEVICE_CONSENT(deviceId) {
+        return `infrastructure/device/${deviceId}/consent/`
+    }
+    DEVICE_CONSENT_HISTORY(deviceId) {
+        return `infrastructure/device/${deviceId}/consent/history/`
+    }
+    DEVICE_CONSENT_ACCEPT(deviceId) {
+        return `infrastructure/device/${deviceId}/consent/accept/`
+    }
+    DEVICE_CONSENT_REVOKE(deviceId) {
+        return `infrastructure/device/${deviceId}/consent/revoke/`
+    }
+
 
     //----[WEBSOCKET]----
     

@@ -22,6 +22,11 @@
           <ion-label>Activación</ion-label>
         </ion-tab-button>
 
+        <ion-tab-button tab="consent">
+          <ion-icon :icon="icons.shield"></ion-icon>
+          <ion-label>Consentimiento</ion-label>
+        </ion-tab-button>
+
         <ion-tab-button tab="measurements">
           <ion-icon :icon="icons.analytics"></ion-icon>
           <ion-label>Variables</ion-label>
@@ -316,6 +321,18 @@
               <FormActivationDevice type="device_activation" label="device activation" :device="deviceDetails ? { ...deviceDetails } : device"
                 @item-created="handleActivationCreated" @field-changed="handleActivationFieldChanged" />
             </div>
+          </div>
+        </ion-content>
+      </ion-tab>
+
+      <!-- Consent Tab -->
+      <ion-tab tab="consent">
+        <ion-content class="ion-padding custom">
+          <div class="tab-content">
+            <TabsDeviceConsent
+              :device-id="deviceId || route.params.device_id"
+              :measurements="measurements || []"
+            />
           </div>
         </ion-content>
       </ion-tab>
