@@ -65,9 +65,9 @@
 
               <ion-row v-for="member in paginatedItems" :key="member.id" class="table-row-stylized">
                 <ion-col size="3">
-                  <div class="member-info">
-                    <ion-avatar class="table-avatar" color="primary">
-                      {{ avatarInitials(member) }}
+                  <div class="member-info clickable-member" @click="getCardClickHandler(`/users/${member.user}`)(event)">
+                    <ion-avatar class="table-avatar">
+                      <img :alt="member.username" :src="member.img || AvatarSVG" />
                     </ion-avatar>
                     <div>
                       <div class="member-name">{{ member.fullName }}</div>
@@ -107,11 +107,11 @@
 
           <!-- Mobile cards -->
           <div v-else class="mobile-cards">
-            <ion-card v-for="member in paginatedItems" :key="member.id" class="member-card">
+            <ion-card v-for="member in paginatedItems" :key="member.id" class="member-card" :class="getCardClass(true)" @click="getCardClickHandler(`/users/${member.user}`)(event)">
               <ion-card-content>
                 <div class="card-header">
-                  <ion-avatar class="card-avatar" color="primary">
-                    {{ avatarInitials(member) }}
+                  <ion-avatar class="card-avatar">
+                    <img :alt="member.username" :src="member.img || AvatarSVG" />
                   </ion-avatar>
                   <div class="card-title-section">
                     <h3 class="card-title">{{ member.fullName }}</h3>
@@ -177,10 +177,13 @@ import API from '@utils/api/api'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
+import { useCardNavigation } from '@composables/useCardNavigation.js'
+import AvatarSVG from '@assets/svg/Avatar.svg'
 
 const icons = { ...{ people, chevronBack, chevronForward, alertCircle }, ...inject('icons', {}) }
 
 const { isMobile } = useResponsiveView(768)
+const { getCardClickHandler, getCardClass } = useCardNavigation()
 
 const members = ref([])
 const loading = ref(false)
@@ -218,6 +221,7 @@ const enrich = (raw, usersList, tenantsList) => {
     ...raw,
     fullName: userFullName(user) || `#${raw.user}`,
     username: user?.username || `#${raw.user}`,
+    img: user?.img || null,
     tenantName: raw.tenant ? (tenant?.name || `#${raw.tenant}`) : 'Global (sin tenant)'
   }
 }
@@ -243,11 +247,6 @@ const fetchMembers = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const avatarInitials = (member) => {
-  const parts = (member.fullName || '').split(' ').filter(Boolean)
-  return parts.length > 1 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (parts[0]?.[0] || '#').toUpperCase()
 }
 
 const setInitialData = (member) => {
@@ -362,6 +361,26 @@ onMounted(() => {
 .member-card {
   flex: 1 1 280px;
   max-width: 100%;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.clickable-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.clickable-member {
+  cursor: pointer;
 }
 
 .card-header {
