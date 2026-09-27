@@ -203,6 +203,11 @@ class API {
     SUPPORT_TICKET = 'support/ticket/'
     ATTACMEENT_CREATE = 'support/attachment/'
     GET_TYPES = 'support/ticket/get_all_types/'
+    SUPPORT_MEMBERSHIP = 'support/support_membership/'
+
+    SUPPORT_MEMBERSHIP_DETAIL(id) {
+        return `support/support_membership/${id}/`
+    }
 
 
     //----[INBOX]----

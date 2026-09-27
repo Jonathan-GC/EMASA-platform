@@ -36,5 +36,6 @@ export const paths = {
     SUPPORT: '/support',
     INBOX: '/inbox',
     CONVERSATION: '/ticket',
+    SUPPORT_MEMBERS: '/support-members',
     NOT_FOUND: '/:pathMatch(.*)*',
 }

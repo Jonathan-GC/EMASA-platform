@@ -257,6 +257,17 @@
           Inbox
         </router-link>
 
+        <router-link
+          v-if="canAccessRoute(['root', 'admin'])"
+          :to="paths.SUPPORT_MEMBERS"
+          class="nav-link"
+          :class="{ active: $route.path === paths.SUPPORT_MEMBERS }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.shield"></ion-icon>
+          Miembros de Soporte
+        </router-link>
+
         <hr class="divider"/>
 
         <!-- Enlaces de autenticación -->

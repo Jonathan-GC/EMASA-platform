@@ -250,6 +250,17 @@ export const routes = [
                     requiresAuth: true,
                     label: 'Mensajes'
                 },
+            },
+
+            {
+                path: P.SUPPORT_MEMBERS,
+                component: C.SUPPORT_MEMBERS,
+                beforeEnter: requireRoles,
+                meta: { 
+                    requiresAuth: true,
+                    roles: ['root', 'admin'],
+                    label: 'Miembros de Soporte'
+                }
             }
 
         ]

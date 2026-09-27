@@ -37,6 +37,7 @@ export const components = {
     SUPPORT: () => import('@views/support/index.vue'),
     INBOX: () => import('@views/inbox/index.vue'),
     CONVERSATION: () => import('@views/conversation/index.vue'),
+    SUPPORT_MEMBERS: () => import('@views/support-members/index.vue'),
     
 
 }
