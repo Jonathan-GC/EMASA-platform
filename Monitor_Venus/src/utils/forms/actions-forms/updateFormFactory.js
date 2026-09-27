@@ -22,6 +22,7 @@ const UpdateMeasurements = defineAsyncComponent(() => import("@components/forms/
 const UpdateRoles = defineAsyncComponent(() => import("@components/forms/update/roles/formUpdateRoles.vue"));
 const UpdateDeviceTypes = defineAsyncComponent(() => import("@components/forms/update/device_types/formUpdateDeviceType.vue"));
 const UpdateUsers = defineAsyncComponent(() => import("@components/forms/update/users/formUpdateUsers.vue"));
+const UpdateSupportMembers = defineAsyncComponent(() => import("@components/forms/support/SupportMembershipForm.vue"));
 
 export class UpdateFormFactory extends AbstractFormFactory {
   getComponentConfig(type, extraProps = {}) {
@@ -143,6 +144,16 @@ export class UpdateFormFactory extends AbstractFormFactory {
           index: extraProps?.index,
           label: 'usuario',
           fields: schema.user,
+          initialData: extraProps?.initialData || {},
+        }
+      },
+      support_member: {
+        component: UpdateSupportMembers,
+        props: {
+          type: type,
+          index: extraProps?.index,
+          label: 'miembro de soporte',
+          mode: 'edit',
           initialData: extraProps?.initialData || {},
         }
       },

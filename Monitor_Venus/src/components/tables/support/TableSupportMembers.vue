@@ -38,9 +38,7 @@
 
             <!-- Desktop button -->
             <div v-if="!isMobile" class="desktop-controls">
-              <ion-button color="secondary" fill="solid" shape="round" class="mx-2" @click="openCreate">
-                <ion-icon :icon="icons.add" slot="icon-only"></ion-icon>
-              </ion-button>
+              <QuickControl :to-create="true" type="support_member" @itemCreated="fetchMembers" />
             </div>
           </div>
 
@@ -86,15 +84,16 @@
                 </ion-col>
                 <ion-col size="3">
                   <div class="row-actions">
-                    <ion-button fill="outline" size="small" @click="openEdit(member)">
-                      <ion-icon :icon="icons.create" slot="start"></ion-icon>
-                      Editar
-                    </ion-button>
-                    <ion-button fill="outline" size="small" color="danger" :disabled="deletingId === member.id" @click="confirmDelete(member)">
-                      <ion-spinner v-if="deletingId === member.id" name="crescent"></ion-spinner>
-                      <ion-icon v-else :icon="icons.trash" slot="start"></ion-icon>
-                      Eliminar
-                    </ion-button>
+                    <quick-actions
+                      type="support_member"
+                      :index="member.id"
+                      :name="member.fullName"
+                      :initial-data="setInitialData(member)"
+                      to-edit
+                      to-delete
+                      @itemEdited="fetchMembers"
+                      @itemDeleted="fetchMembers"
+                    />
                   </div>
                 </ion-col>
               </ion-row>
@@ -126,15 +125,16 @@
                 </div>
 
                 <div class="card-actions">
-                  <ion-button fill="outline" size="small" @click="openEdit(member)">
-                    <ion-icon :icon="icons.create" slot="start"></ion-icon>
-                    Editar
-                  </ion-button>
-                  <ion-button fill="outline" size="small" color="danger" :disabled="deletingId === member.id" @click="confirmDelete(member)">
-                    <ion-spinner v-if="deletingId === member.id" name="crescent"></ion-spinner>
-                    <ion-icon v-else :icon="icons.trash" slot="start"></ion-icon>
-                    Eliminar
-                  </ion-button>
+                  <quick-actions
+                    type="support_member"
+                    :index="member.id"
+                    :name="member.fullName"
+                    :initial-data="setInitialData(member)"
+                    to-edit
+                    to-delete
+                    @itemEdited="fetchMembers"
+                    @itemDeleted="fetchMembers"
+                  />
                 </div>
               </ion-card-content>
             </ion-card>
@@ -157,10 +157,7 @@
           <ion-icon :icon="icons.people" size="large" color="medium"></ion-icon>
           <h3>No hay miembros de soporte</h3>
           <p>Aún no se han agregado usuarios al equipo de soporte.</p>
-          <ion-button color="secondary" fill="solid" shape="round" @click="openCreate">
-            <ion-icon :icon="icons.add" slot="start"></ion-icon>
-            Nuevo miembro
-          </ion-button>
+          <QuickControl :to-initial="true" type="support_member" text="Nuevo miembro" @itemCreated="fetchMembers" />
         </div>
       </ion-card-content>
     </ion-card>
@@ -169,22 +166,20 @@
 
 <script setup>
 import { ref, onMounted, inject } from 'vue'
-import { IonButton, IonCard, modalController, alertController, toastController } from '@ionic/vue'
-import { add, create, trash, people, chevronBack, chevronForward, alertCircle } from 'ionicons/icons'
+import { IonButton, IonCard } from '@ionic/vue'
+import { people, chevronBack, chevronForward, alertCircle } from 'ionicons/icons'
 import API from '@utils/api/api'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
-import SupportMembershipForm from '@components/forms/support/SupportMembershipForm.vue'
 
-const icons = { ...{ add, create, trash, people, chevronBack, chevronForward, alertCircle }, ...inject('icons', {}) }
+const icons = { ...{ people, chevronBack, chevronForward, alertCircle }, ...inject('icons', {}) }
 
 const { isMobile } = useResponsiveView(768)
 
 const members = ref([])
 const loading = ref(false)
 const error = ref(null)
-const deletingId = ref(null)
 
 const roleLabels = {
   support_agent: 'Agente de Soporte',
@@ -250,76 +245,11 @@ const avatarInitials = (member) => {
   return parts.length > 1 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (parts[0]?.[0] || '#').toUpperCase()
 }
 
-const openCreate = async () => {
-  const modal = await modalController.create({
-    component: SupportMembershipForm,
-    componentProps: { mode: 'create' },
-    cssClass: 'full-modal'
-  })
-  modal.onDidDismiss().then((res) => {
-    if (res.data?.created) fetchMembers()
-  })
-  await modal.present()
-}
-
-const openEdit = async (member) => {
-  const modal = await modalController.create({
-    component: SupportMembershipForm,
-    componentProps: {
-      mode: 'edit',
-      initialData: {
-        id: member.id,
-        role: member.role,
-        tenant: member.tenant
-      }
-    },
-    cssClass: 'full-modal'
-  })
-  modal.onDidDismiss().then((res) => {
-    if (res.data?.edited) fetchMembers()
-  })
-  await modal.present()
-}
-
-const confirmDelete = async (member) => {
-  const alert = await alertController.create({
-    header: 'Eliminar miembro de soporte',
-    message: `¿Estás seguro de que deseas remover a ${member.fullName} del equipo de soporte?`,
-    buttons: [
-      { text: 'Cancelar', role: 'cancel' },
-      {
-        text: 'Eliminar',
-        role: 'confirm',
-        handler: () => { deleteMember(member) }
-      }
-    ]
-  })
-  await alert.present()
-}
-
-const deleteMember = async (member) => {
-  deletingId.value = member.id
-  try {
-    await API.delete(API.SUPPORT_MEMBERSHIP_DETAIL(member.id))
-    const toast = await toastController.create({
-      message: 'Miembro de soporte eliminado.',
-      duration: 3000,
-      color: 'success',
-      position: 'top'
-    })
-    await toast.present()
-    fetchMembers()
-  } catch (err) {
-    console.error('Error eliminando miembro de soporte:', err)
-    const toast = await toastController.create({
-      message: err.message || 'Error al eliminar el miembro de soporte.',
-      duration: 4000,
-      color: 'danger',
-      position: 'top'
-    })
-    await toast.present()
-  } finally {
-    deletingId.value = null
+const setInitialData = (member) => {
+  return {
+    id: member.id,
+    role: member.role,
+    tenant: member.tenant
   }
 }
 

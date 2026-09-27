@@ -232,6 +232,7 @@ const closeModal = () => {
 }
 
 onMounted(() => {
+  emit('loaded')
   init()
 })
 </script>
