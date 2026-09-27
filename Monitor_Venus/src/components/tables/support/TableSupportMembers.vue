@@ -46,8 +46,11 @@
           <div v-if="!isMobile" class="table-wrapper">
             <ion-grid class="data-table">
               <ion-row class="table-header">
-                <ion-col size="4">
+                <ion-col size="3">
                   <strong>Miembro</strong>
+                </ion-col>
+                <ion-col size="2">
+                  <strong>Usuario</strong>
                 </ion-col>
                 <ion-col size="2">
                   <strong>Rol</strong>
@@ -55,34 +58,36 @@
                 <ion-col size="3">
                   <strong>Alcance</strong>
                 </ion-col>
-                <ion-col size="3">
+                <ion-col size="2">
                   <strong>Acciones</strong>
                 </ion-col>
               </ion-row>
 
               <ion-row v-for="member in paginatedItems" :key="member.id" class="table-row-stylized">
-                <ion-col size="4">
+                <ion-col size="3">
                   <div class="member-info">
                     <ion-avatar class="table-avatar" color="primary">
                       {{ avatarInitials(member) }}
                     </ion-avatar>
                     <div>
                       <div class="member-name">{{ member.fullName }}</div>
-                      <div class="member-username">@{{ member.username }}</div>
                     </div>
                   </div>
                 </ion-col>
                 <ion-col size="2">
-                  <ion-badge :color="roleColor(member.role)">
+                  <span class="member-username">@{{ member.username }}</span>
+                </ion-col>
+                <ion-col size="2">
+                  <ion-chip :color="roleColor(member.role)">
                     {{ roleLabel(member.role) }}
-                  </ion-badge>
+                  </ion-chip>
                 </ion-col>
                 <ion-col size="3">
                   <ion-chip>
                     {{ member.tenantName }}
                   </ion-chip>
                 </ion-col>
-                <ion-col size="3">
+                <ion-col size="2">
                   <div class="row-actions">
                     <quick-actions
                       type="support_member"
@@ -112,9 +117,9 @@
                     <h3 class="card-title">{{ member.fullName }}</h3>
                     <p class="card-subtitle">@{{ member.username }}</p>
                   </div>
-                  <ion-badge :color="roleColor(member.role)" class="card-chip">
+                  <ion-chip :color="roleColor(member.role)" class="card-chip">
                     {{ roleLabel(member.role) }}
-                  </ion-badge>
+                  </ion-chip>
                 </div>
 
                 <div class="card-details">
