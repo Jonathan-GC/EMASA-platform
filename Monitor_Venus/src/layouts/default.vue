@@ -61,8 +61,8 @@ const customPushAnimation = (baseEl, opts) => {
 }
 
 .sidebar {
-  width: 250px; /* Ancho fijo del sidebar */
-  min-width: 250px;
+  width: 280px; /* Ancho fijo del sidebar */
+  min-width: 280px;
   height: 100%; /* Altura completa de la pantalla */
   background-color: var(--ion-color-light, #f4f5f8); /* Sin fondo azul */
   border-right: 1px solid var(--ion-color-light, #f4f5f8);

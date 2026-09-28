@@ -95,6 +95,7 @@
   font-weight: 500;
   transition: all 0.2s ease;
   text-align: center;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
