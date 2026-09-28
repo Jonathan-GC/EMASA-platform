@@ -93,6 +93,7 @@
                       type="support_member"
                       :index="member.id"
                       :name="member.fullName"
+                      :to-view="`/users/${member.user}`"
                       :initial-data="setInitialData(member)"
                       to-edit
                       to-delete
@@ -134,6 +135,7 @@
                     type="support_member"
                     :index="member.id"
                     :name="member.fullName"
+                    :to-view="`/users/${member.user}`"
                     :initial-data="setInitialData(member)"
                     to-edit
                     to-delete
