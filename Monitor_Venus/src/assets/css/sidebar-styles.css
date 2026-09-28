@@ -104,6 +104,11 @@
   border-color: #adb5bd;
 }
 
+.nav-link ion-icon {
+  font-size: 24px;
+  min-width: 24px;
+}
+
 .nav-link.active {
   background: var(--ion-color-secondary);
   color: white;
