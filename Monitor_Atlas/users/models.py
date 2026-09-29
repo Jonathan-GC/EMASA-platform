@@ -122,9 +122,75 @@ class OAuthAccount(models.Model):
         unique_together = ("provider", "provider_user_id")
 
 
+class UserSession(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
+    refresh_token_jti = models.CharField(max_length=255, db_index=True)
+    device_name = models.CharField(max_length=255, default="Dispositivo")
+    trust_hash = models.CharField(max_length=64, null=True, blank=True, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        ordering = ["-last_activity"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.device_name} ({self.ip_address})"
+
+
+class UserTwoFactorMethod(models.Model):
+    METHOD_CHOICES = [
+        ("EMAIL", "Email"),
+        ("TOTP", "TOTP Authenticator"),
+        ("BACKUP_CODES", "Backup Codes"),
+    ]
+
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="two_factor_methods"
+    )
+    method_type = models.CharField(max_length=20, choices=METHOD_CHOICES)
+    secret = models.CharField(max_length=255, null=True, blank=True)
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("user", "method_type")
+
+    def __str__(self):
+        return f"{self.user.username} - {self.method_type} (Active: {self.is_active})"
+
+
+class UserBackupCode(models.Model):
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="backup_codes"
+    )
+    code_hash = models.CharField(max_length=128)
+    is_consumed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} - Backup Code (Consumed: {self.is_consumed})"
+
+
 from auditlog.registry import auditlog
 
 auditlog.register(User)
 auditlog.register(MainAddress)
 auditlog.register(BillingAddress)
 auditlog.register(OAuthAccount)
+auditlog.register(UserSession)
+auditlog.register(UserTwoFactorMethod)
+auditlog.register(UserBackupCode)

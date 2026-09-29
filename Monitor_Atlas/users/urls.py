@@ -9,6 +9,7 @@ routers = routers.DefaultRouter()
 routers.register(r"user", views.UserViewSet)
 routers.register(r"logs", views.LogLogsViewSet, basename="logs")
 routers.register(r"audit", views.AuditLogViewSet, basename="audit")
+routers.register(r"sessions", views.UserSessionViewSet, basename="session")
 
 urlpatterns = [
     path("<str:pk>/transfer_tenant/", views.UserViewSet.as_view({"post": "transfer_tenant"}), name="user-direct-transfer-tenant"),
@@ -64,6 +65,26 @@ urlpatterns = [
         "auth/otp/verify/",
         views.OTPVerifyView.as_view(),
         name="otp-verify",
+    ),
+    path(
+        "auth/mfa/status/",
+        views.MFAMethodsView.as_view(),
+        name="mfa-status",
+    ),
+    path(
+        "auth/mfa/totp/setup/",
+        views.TOTPSetupView.as_view(),
+        name="totp-setup",
+    ),
+    path(
+        "auth/mfa/totp/activate/",
+        views.TOTPActivateView.as_view(),
+        name="totp-activate",
+    ),
+    path(
+        "auth/mfa/totp/deactivate/",
+        views.TOTPDeactivateView.as_view(),
+        name="totp-deactivate",
     ),
 ]
 

@@ -49,6 +49,29 @@ class Tenant(models.Model):
     # Monitor
     is_global = models.BooleanField(default=False, db_index=True)
 
+    SECURITY_LEVEL_CHOICES = [
+        ("NONE", "None"),
+        ("LOW", "Low"),
+        ("MEDIUM", "Medium"),
+        ("HIGH", "High"),
+    ]
+    security_level = models.CharField(
+        max_length=10,
+        choices=SECURITY_LEVEL_CHOICES,
+        default="MEDIUM",
+        db_index=True,
+    )
+
+    @property
+    def trust_score_threshold(self) -> int:
+        mapping = {"NONE": 0, "LOW": 60, "MEDIUM": 75, "HIGH": 101}
+        return mapping.get(self.security_level, 75)
+
+    @property
+    def device_trust_ttl_days(self) -> int:
+        mapping = {"LOW": 60, "MEDIUM": 30, "HIGH": 0, "NONE": 0}
+        return mapping.get(self.security_level, 30)
+
     class Meta:
         constraints = [
             models.UniqueConstraint(

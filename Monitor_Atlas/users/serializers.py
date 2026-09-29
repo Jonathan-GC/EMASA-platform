@@ -7,8 +7,16 @@ from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
+from django.conf import settings
 from roles.models import WorkspaceMembership
-from .models import User, MainAddress, BillingAddress
+from .models import (
+    User,
+    MainAddress,
+    BillingAddress,
+    UserSession,
+    UserTwoFactorMethod,
+    UserBackupCode,
+)
 from support.models import SupportMembership
 from organizations.models import Tenant
 from drf_spectacular.utils import extend_schema_field, inline_serializer
@@ -787,10 +795,84 @@ class OTPRequestSerializer(serializers.Serializer):
 
 class OTPVerifySerializer(serializers.Serializer):
     username = serializers.CharField()
-    code = serializers.CharField(max_length=6, min_length=6)
+    code = serializers.CharField(max_length=64, min_length=4)
+    method = serializers.CharField(required=False, default="email")
+    trust_device = serializers.BooleanField(required=False, default=False)
+    device_name = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate_username(self, value):
         return value.strip()
+
+    def validate_code(self, value):
+        return value.strip()
+
+    def validate_method(self, value):
+        val = value.strip().lower()
+        if val in ["email", "totp", "backup_code", "backup_codes"]:
+            return val
+        return "email"
+
+
+class UserSessionSerializer(serializers.ModelSerializer):
+    is_current = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserSession
+        fields = [
+            "id",
+            "device_name",
+            "ip_address",
+            "user_agent",
+            "created_at",
+            "last_activity",
+            "is_active",
+            "is_current",
+        ]
+        read_only_fields = fields
+
+    def get_is_current(self, obj):
+        current_jti = self.context.get("current_jti")
+        if current_jti:
+            return obj.refresh_token_jti == current_jti
+        request = self.context.get("request")
+        if request and hasattr(request, "COOKIES"):
+            cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+            refresh_token = request.COOKIES.get(cookie_name)
+            if refresh_token:
+                try:
+                    from rest_framework_simplejwt.tokens import RefreshToken
+                    token_obj = RefreshToken(refresh_token)
+                    return obj.refresh_token_jti == str(token_obj.get("jti"))
+                except Exception:
+                    pass
+        return False
+
+
+class TOTPSetupResponseSerializer(serializers.Serializer):
+    secret = serializers.CharField()
+    otpauth_uri = serializers.CharField()
+
+
+class TOTPActivateSerializer(serializers.Serializer):
+    code = serializers.CharField(min_length=6, max_length=6)
+
+    def validate_code(self, value):
+        val = value.strip()
+        if not val.isdigit():
+            raise serializers.ValidationError("Code must contain only digits.")
+        return val
+
+
+class TOTPDeactivateSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+
+
+class UserTwoFactorMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserTwoFactorMethod
+        fields = ["id", "method_type", "is_active", "created_at", "last_used_at"]
+        read_only_fields = fields
+
 
 
 
