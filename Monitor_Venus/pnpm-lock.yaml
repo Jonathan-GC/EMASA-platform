@@ -101,6 +101,9 @@ importers:
       pinia:
         specifier: ^3.0.3
         version: 3.0.4(vue@3.5.39)
+      qrcode.vue:
+        specifier: ^3.11.0
+        version: 3.11.0(vue@3.5.39)
       tailwindcss:
         specifier: ^4.1.12
         version: 4.3.1
@@ -1058,6 +1061,7 @@ packages:
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
+    deprecated: this version has critical issues, please update to the latest version
 
   acorn@8.17.0:
     resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
@@ -1605,6 +1609,11 @@ packages:
   protobufjs@7.6.4:
     resolution: {integrity: sha512-RJJPTTpvFfHcWLkIa2JFWK4XvtSzS0yEWDmunqHXli1h3JlkbcQZXDZdcWxv+JK3Xsl5/UFDPZ0iGm7DAengYw==}
     engines: {node: '>=12.0.0'}
+
+  qrcode.vue@3.11.0:
+    resolution: {integrity: sha512-PnaO9yqcEVsH9euUmo4Nn0JZMkNwk4u6fDUosKjDTXv2Cgv7rHZhr2D8Iq54clBvSycOESwgUE/rw/tBRBjIVg==}
+    peerDependencies:
+      vue: ^3.0.0
 
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
@@ -3398,6 +3407,10 @@ snapshots:
       '@protobufjs/utf8': 1.1.1
       '@types/node': 24.13.2
       long: 5.3.2
+
+  qrcode.vue@3.11.0(vue@3.5.39):
+    dependencies:
+      vue: 3.5.39
 
   quansync@0.2.11: {}
 
