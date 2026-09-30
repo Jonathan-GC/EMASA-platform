@@ -472,6 +472,12 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                         "requires_2fa": serializers.BooleanField(default=True),
                         "username": serializers.CharField(),
                         "email": serializers.CharField(allow_null=True),
+                        "available_methods": serializers.ListField(
+                            child=serializers.CharField(), required=False
+                        ),
+                        "primary_method": serializers.CharField(required=False),
+                        "allow_device_trust": serializers.BooleanField(required=False),
+                        "device_trust_ttl_days": serializers.IntegerField(required=False),
                         "detail": serializers.CharField(),
                     },
                 ),
@@ -577,35 +583,43 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             available_methods.append("backup_code")
 
         primary_method = "totp" if has_totp else "email"
+        allow_device_trust = tenant_level not in ["HIGH", "NONE"]
+        device_trust_ttl_days = tenant.device_trust_ttl_days if tenant else 30
 
-        # Generate and send 6-digit email OTP
-        otp_code = f"{secrets.randbelow(1000000):06d}"
-        cache_key = f"otp_data_{user.username.lower()}"
-        cache.set(
-            cache_key,
-            {
-                "code": otp_code,
-                "attempts": 0,
-                "user_id": str(user.id),
-                "username": user.username.lower(),
-            },
-            timeout=300,
-        )
-
-        try:
-            send_otp_email(user, otp_code)
-        except Exception as e:
-            logger.error(f"Failed to send 2FA OTP email to {user.email}: {str(e)}")
-            return Response(
+        if primary_method == "email":
+            # Generate and send 6-digit email OTP
+            otp_code = f"{secrets.randbelow(1000000):06d}"
+            cache_key = f"otp_data_{user.username.lower()}"
+            cache.set(
+                cache_key,
                 {
-                    "detail": "Credentials valid, but error sending 2FA verification email. Please try again."
+                    "code": otp_code,
+                    "attempts": 0,
+                    "user_id": str(user.id),
+                    "username": user.username.lower(),
                 },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                timeout=300,
             )
 
-        logger.info(
-            f"🔐 Adaptive 2FA required for user {user.username} (score={score}, tier={tenant_level}). OTP sent to {user.email}"
-        )
+            try:
+                send_otp_email(user, otp_code)
+            except Exception as e:
+                logger.error(f"Failed to send 2FA OTP email to {user.email}: {str(e)}")
+                return Response(
+                    {
+                        "detail": "Credentials valid, but error sending 2FA verification email. Please try again."
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            logger.info(
+                f"🔐 Adaptive 2FA required for user {user.username} (score={score}, tier={tenant_level}). OTP sent to {user.email}"
+            )
+        else:
+            logger.info(
+                f"🔐 Adaptive 2FA required for user {user.username} (score={score}, tier={tenant_level}). Primary method is {primary_method} (email OTP not sent automatically)."
+            )
+
         return Response(
             {
                 "requires_2fa": True,
@@ -613,6 +627,8 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 "email": user.email,
                 "available_methods": available_methods,
                 "primary_method": primary_method,
+                "allow_device_trust": allow_device_trust,
+                "device_trust_ttl_days": device_trust_ttl_days,
                 "detail": "Password verified. Multi-factor authentication required.",
             },
             status=status.HTTP_200_OK,
@@ -2293,7 +2309,10 @@ class OTPVerifyView(APIView):
         )
 
         response = Response(
-            {"access": access_token},
+            {
+                "access": access_token,
+                "device_trusted": bool(trust_cookie_val),
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -2470,7 +2489,10 @@ class TOTPActivateView(APIView):
         )
 
         return Response(
-            {"backup_codes": [plaintext for plaintext, _ in codes]},
+            {
+                "detail": "TOTP authenticator activated successfully.",
+                "backup_codes": [plaintext for plaintext, _ in codes],
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -2509,13 +2531,28 @@ class MFAMethodsView(APIView):
 
     @extend_schema(
         tags=["Authentication - MFA"],
-        summary="List active MFA methods",
-        description="Lists all active multi-factor authentication methods for the authenticated user.",
-        responses={200: UserTwoFactorMethodSerializer(many=True)},
+        summary="List active MFA methods and status",
+        description="Lists all active multi-factor authentication methods and status summary for the authenticated user.",
+        responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request):
+        totp_active = UserTwoFactorMethod.objects.filter(
+            user=request.user, method_type="TOTP", is_active=True
+        ).exists()
+        email_active = bool(request.user.email)
+        backup_codes_remaining = request.user.backup_codes.filter(
+            is_consumed=False
+        ).count()
         methods = UserTwoFactorMethod.objects.filter(user=request.user, is_active=True)
         serializer = UserTwoFactorMethodSerializer(methods, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "totp_active": totp_active,
+                "email_active": email_active,
+                "backup_codes_remaining": backup_codes_remaining,
+                "methods": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 

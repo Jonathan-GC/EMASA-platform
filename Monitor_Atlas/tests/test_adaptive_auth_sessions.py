@@ -580,12 +580,16 @@ class AdaptiveAuthSessionsTests(TestCase):
             format="json",
         )
         self.assertEqual(resp_act.status_code, status.HTTP_200_OK)
+        self.assertIn("detail", resp_act.data)
+        self.assertEqual(resp_act.data["detail"], "TOTP authenticator activated successfully.")
         self.assertEqual(len(resp_act.data["backup_codes"]), 8)
 
         # Status check
         resp_status = self.client.get("/api/v1/users/auth/mfa/status/")
         self.assertEqual(resp_status.status_code, status.HTTP_200_OK)
-        methods = [m["method_type"] for m in resp_status.data]
+        self.assertTrue(resp_status.data["totp_active"])
+        self.assertEqual(resp_status.data["backup_codes_remaining"], 8)
+        methods = [m["method_type"] for m in resp_status.data["methods"]]
         self.assertIn("TOTP", methods)
         self.assertIn("BACKUP_CODES", methods)
 
@@ -628,3 +632,76 @@ class AdaptiveAuthSessionsTests(TestCase):
             action=LogEntry.Action.CREATE,
         ).first()
         self.assertIsNotNone(audit_mfa)
+
+    @patch("users.views.send_otp_email")
+    def test_login_step_1_metadata_and_totp_email_suppression(self, mock_send_email):
+        """Step 1 returns allow_device_trust and device_trust_ttl_days; suppresses email when primary is TOTP."""
+        # Enable TOTP for user
+        UserTwoFactorMethod.objects.create(
+            user=self.user_medium,
+            method_type="TOTP",
+            secret="TESTSECRET",
+            is_active=True,
+        )
+
+        resp = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_medium.username, "password": self.password},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data["requires_2fa"])
+        self.assertEqual(resp.data["primary_method"], "totp")
+        self.assertTrue(resp.data["allow_device_trust"])
+        self.assertEqual(resp.data["device_trust_ttl_days"], 30)
+        # Verify email was NOT sent
+        mock_send_email.assert_not_called()
+
+    def test_otp_verify_returns_device_trusted(self):
+        """OTPVerifyView returns device_trusted: true when trust is granted, false otherwise."""
+        # 1. High security tenant - trust_device requested but policy forbids it
+        from users.totp_service import generate_totp_code
+        secret = "JBSWY3DPEHPK3PXP"
+        UserTwoFactorMethod.objects.create(
+            user=self.user_high,
+            method_type="TOTP",
+            secret=secret,
+            is_active=True,
+        )
+        code = generate_totp_code(secret)
+        resp_high = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_high.username,
+                "code": code,
+                "method": "totp",
+                "trust_device": True,
+            },
+            format="json",
+        )
+        self.assertEqual(resp_high.status_code, status.HTTP_200_OK)
+        self.assertIn("device_trusted", resp_high.data)
+        self.assertFalse(resp_high.data["device_trusted"])
+
+        # 2. Medium security tenant - trust_device requested and allowed
+        UserTwoFactorMethod.objects.create(
+            user=self.user_medium,
+            method_type="TOTP",
+            secret=secret,
+            is_active=True,
+        )
+        code_med = generate_totp_code(secret)
+        resp_med = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_medium.username,
+                "code": code_med,
+                "method": "totp",
+                "trust_device": True,
+            },
+            format="json",
+        )
+        self.assertEqual(resp_med.status_code, status.HTTP_200_OK)
+        self.assertIn("device_trusted", resp_med.data)
+        self.assertTrue(resp_med.data["device_trusted"])
+
