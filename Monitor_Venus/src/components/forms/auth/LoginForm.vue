@@ -211,7 +211,8 @@ const handleLogin = async () => {
 
     const loginData = (Array.isArray(response) && response.length > 0) ? response[0] : response;
 
-    // Compatibilidad: si el backend devuelve access directamente, completar login
+    // El backend evalúa el motor de confianza: si el dispositivo (o el tenant)
+    // lo permite, devuelve los tokens directamente y omite el 2FA.
     if (loginData?.access) {
       const loginSuccess = authStore.login(loginData.access, loginData.refresh || null);
 
@@ -256,13 +257,24 @@ const handleLogin = async () => {
       return;
     }
 
-    // Nuevo flujo: el backend envía un código OTP al correo del usuario.
-    // Guardamos las credenciales en memoria (solo para reenviar el código)
-    // y redirigimos a la página de verificación OTP (no requiere access token).
-    otpStore.setPendingLogin(credentials.value.username, credentials.value.password);
-    console.log('📧 Código OTP enviado al correo, redirigiendo a verificación...');
+    // Flujo 2FA: el backend exige un código de verificación. Guardamos las
+    // credenciales en memoria (solo para contexto) y el método de
+    // verificación preferido, y redirigimos a la pantalla de verificación.
+    otpStore.setPendingLogin(credentials.value.username, credentials.value.password, {
+      available_methods: loginData?.available_methods,
+      primary_method: loginData?.primary_method,
+      allow_device_trust: loginData?.allow_device_trust,
+      device_trust_ttl_days: loginData?.device_trust_ttl_days,
+      email: loginData?.email
+    });
 
-    success.value = '¡Credenciales correctas! Verificando código...'
+    console.log('🔐 2FA requerido. Métodos:', otpStore.availableMethods,
+      '| preferido:', otpStore.primaryMethod);
+
+    success.value = otpStore.primaryMethod === 'totp'
+      ? '¡Credenciales correctas! Confirma tu código de seguridad.'
+      : '¡Credenciales correctas! Revisa tu correo.';
+
     router.push(paths.OTP);
 
   } catch (err) {
