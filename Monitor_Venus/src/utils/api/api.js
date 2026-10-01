@@ -47,7 +47,12 @@ class API {
     TOKEN = 'token/'
     REFRESH_TOKEN = 'token/refresh/'
     CSRF_TOKEN = 'csrf/'
+    OTP_REQUEST = 'users/auth/otp/request/'
     OTP_VERIFY = 'users/auth/otp/verify/'
+    MFA_STATUS = 'users/auth/mfa/status/'
+    MFA_TOTP_SETUP = 'users/auth/mfa/totp/setup/'
+    MFA_TOTP_ACTIVATE = 'users/auth/mfa/totp/activate/'
+    MFA_TOTP_DEACTIVATE = 'users/auth/mfa/totp/deactivate/'
     LOGOUT = 'logout/';
     GOOGLE_LOGIN_URL = 'users/auth/google/url/';
     GOOGLE_CALLBACK = 'users/auth/google/callback/';
@@ -63,6 +68,14 @@ class API {
     TENANT = 'organizations/tenant/'
     WORKSPACE = 'organizations/workspace/'
     SUBSCRIPTION = 'organizations/subscription/'
+
+    //----[SESSIONS]----
+    SESSIONS = 'users/sessions/'
+    SESSIONS_REVOKE_OTHERS = 'users/sessions/revoke_others/'
+    SESSIONS_TRUST_CURRENT = 'users/sessions/trust_current/'
+    SESSIONS_REVOKE(sessionId) {
+        return `users/sessions/${sessionId}/revoke/`
+    }
 
     //----[ROLES]----
     ROLE = 'roles/role/'
@@ -250,6 +263,13 @@ class API {
     MODEL = 'system/models/'
     APPS = 'system/apps/'
     SYSTEM_HEALTH = 'system/health/'
+    BACKUPS = 'system/backups/'
+    BACKUP_DETAIL(backupId) {
+        return `system/backups/${backupId}/`
+    }
+    BACKUP_DOWNLOAD_URL(backupId) {
+        return `system/backups/${backupId}/download_url/`
+    }
 
     static instance;
 
