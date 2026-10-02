@@ -36,6 +36,16 @@
                 <ion-icon :icon="icons.link"></ion-icon>
                 Conexiones
               </button>
+              <button v-if="isOwnProfile" class="tab-btn" :class="{ active: selectedTab === 'security' }"
+                @click="selectedTab = 'security'">
+                <ion-icon :icon="icons.shield"></ion-icon>
+                Seguridad
+              </button>
+              <button v-if="isOwnProfile" class="tab-btn" :class="{ active: selectedTab === 'sessions' }"
+                @click="selectedTab = 'sessions'">
+                <ion-icon :icon="icons.server"></ion-icon>
+                Sesiones
+              </button>
             </div>
 
             <!-- Tab Content -->
@@ -43,6 +53,8 @@
               <UserOverviewTab v-if="selectedTab === 'overview'" :user-id="userId" />
               <UserTeamsTab v-if="selectedTab === 'teams'" :roles="userRoles" />
               <UserConnectionsTab v-if="isOwnProfile && selectedTab === 'connections'" :user-id="userId" />
+              <UserSecurityTab v-if="isOwnProfile && selectedTab === 'security'" />
+              <UserSessionsTab v-if="isOwnProfile && selectedTab === 'sessions'" />
             </div>
           </main>
         </div>
