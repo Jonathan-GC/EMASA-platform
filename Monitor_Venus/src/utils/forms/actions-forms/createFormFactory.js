@@ -31,6 +31,7 @@ const CreateUsers = defineAsyncComponent(() => import("@components/forms/create/
 const CreateMeasurements = defineAsyncComponent(() => import("@components/forms/create/measurements/formCreateMeasurements.vue"));
 const CreateRoles = defineAsyncComponent(() => import("@components/forms/create/roles/formCreateRoles.vue"));
 const CreateDeviceTypes = defineAsyncComponent(() => import("@components/forms/create/deviceTypes/formCreateDeviceTypes.vue"));
+const CreateBackups = defineAsyncComponent(() => import("@components/forms/create/backups/formCreateBackups.vue"))
 const CreateSupportMembers = defineAsyncComponent(() => import("@components/forms/support/SupportMembershipForm.vue"));
 
 
@@ -157,6 +158,13 @@ export class CreateFormFactory extends AbstractFormFactory {
                     type: type,
                     label: 'miembro de soporte',
                     mode: 'create',
+                }
+            },
+            backup: {
+                component: CreateBackups,
+                props: {
+                    type: type,
+                    label: 'backup',
                 }
             },   
         }
