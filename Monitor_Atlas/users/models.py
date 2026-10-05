@@ -128,6 +128,7 @@ class UserSession(models.Model):
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
     refresh_token_jti = models.CharField(max_length=255, db_index=True)
+    access_token_jti = models.CharField(max_length=255, db_index=True, blank=True, default="")
     device_name = models.CharField(max_length=255, default="Dispositivo")
     trust_hash = models.CharField(max_length=64, null=True, blank=True, db_index=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)

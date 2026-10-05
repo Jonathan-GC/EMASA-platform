@@ -67,6 +67,8 @@ from django.utils import timezone
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from users.tokens import SessionAccessToken
+
 
 from drf_spectacular.utils import (
     extend_schema_view,
@@ -505,6 +507,27 @@ class CookieTokenObtainPairView(TokenObtainPairView):
         allow_bypass, score, details = AdaptiveTrustEngine.evaluate(request, user, tenant_level)
 
         if allow_bypass:
+            client_ip = get_client_ip(request)
+            user_agent = request.META.get("HTTP_USER_AGENT", "")
+            device_name = parse_device_name(user_agent)
+            trust_cookie = request.COOKIES.get("device_trust_token")
+            trust_hash = (
+                hashlib.sha256(trust_cookie.encode("utf-8")).hexdigest()
+                if trust_cookie
+                else None
+            )
+
+            session = UserSession.objects.create(
+                user=user,
+                refresh_token_jti="",
+                access_token_jti="",
+                device_name=device_name,
+                trust_hash=trust_hash,
+                ip_address=client_ip,
+                user_agent=user_agent,
+                is_active=True,
+            )
+
             refresh = RefreshToken.for_user(user)
             token_data = CustomTokenObtainPairSerializer.get_token(user)
             for claim_key in [
@@ -519,29 +542,16 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 if claim_key in token_data:
                     refresh[claim_key] = token_data[claim_key]
 
-            access_token = str(refresh.access_token)
+            refresh["session_id"] = str(session.id)
+            access = refresh.access_token
+            access["session_id"] = str(session.id)
+
+            session.refresh_token_jti = str(refresh.get("jti"))
+            session.access_token_jti = str(access.get("jti"))
+            session.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+            access_token = str(access)
             refresh_token = str(refresh)
-            refresh_jti = str(refresh.get("jti"))
-
-            client_ip = get_client_ip(request)
-            user_agent = request.META.get("HTTP_USER_AGENT", "")
-            device_name = parse_device_name(user_agent)
-            trust_cookie = request.COOKIES.get("device_trust_token")
-            trust_hash = (
-                hashlib.sha256(trust_cookie.encode("utf-8")).hexdigest()
-                if trust_cookie
-                else None
-            )
-
-            UserSession.objects.create(
-                user=user,
-                refresh_token_jti=refresh_jti,
-                device_name=device_name,
-                trust_hash=trust_hash,
-                ip_address=client_ip,
-                user_agent=user_agent,
-                is_active=True,
-            )
 
             response = Response(
                 {
@@ -669,6 +679,10 @@ class CookieTokenRefreshView(TokenRefreshView):
             old_token = RefreshToken(refresh_token)
             old_jti = str(old_token.get("jti"))
             session = UserSession.objects.filter(refresh_token_jti=old_jti).first()
+            if not session and old_token.payload.get("session_id"):
+                session = UserSession.objects.filter(
+                    id=old_token.payload.get("session_id")
+                ).first()
             if session and not session.is_active:
                 return Response(
                     {"detail": "Session has been revoked."},
@@ -687,17 +701,35 @@ class CookieTokenRefreshView(TokenRefreshView):
         response = Response(data, status=status.HTTP_200_OK)
 
         new_refresh = response.data.get("refresh")
+        new_access = response.data.get("access")
 
-        if new_refresh:
-            if session:
-                try:
+        if not session and new_access:
+            try:
+                sess_id = SessionAccessToken(new_access).payload.get("session_id")
+                if sess_id:
+                    session = UserSession.objects.filter(id=sess_id).first()
+            except Exception:
+                pass
+
+        if session:
+            try:
+                update_fields = []
+                if new_refresh:
                     new_token = RefreshToken(new_refresh)
                     session.refresh_token_jti = str(new_token.get("jti"))
-                    session.last_activity = timezone.now()
-                    session.save(update_fields=["refresh_token_jti", "last_activity"])
-                except Exception:
-                    pass
+                    update_fields.append("refresh_token_jti")
+                if new_access:
+                    session.access_token_jti = str(
+                        SessionAccessToken(new_access).get("jti")
+                    )
+                    update_fields.append("access_token_jti")
+                session.last_activity = timezone.now()
+                update_fields.append("last_activity")
+                session.save(update_fields=update_fields)
+            except Exception as e:
+                logger.error(f"Error updating session tokens on refresh: {e}")
 
+        if new_refresh:
             max_age = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
             response.set_cookie(
                 key=REFRESH_COOKIE_NAME,
@@ -2264,25 +2296,6 @@ class OTPVerifyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Generate tokens using CustomTokenObtainPairSerializer logic
-        refresh = RefreshToken.for_user(user)
-        token_data = CustomTokenObtainPairSerializer.get_token(user)
-        for claim_key in [
-            "user_id",
-            "username",
-            "is_global",
-            "cs_tenant_id",
-            "is_superuser",
-            "is_support",
-            "is_tenant_admin",
-        ]:
-            if claim_key in token_data:
-                refresh[claim_key] = token_data[claim_key]
-
-        access_token = str(refresh.access_token)
-        refresh_token = str(refresh)
-        refresh_jti = str(refresh.get("jti"))
-
         client_ip = get_client_ip(request)
         user_agent = request.META.get("HTTP_USER_AGENT", "")
         device_name = custom_device_name or parse_device_name(user_agent)
@@ -2298,15 +2311,42 @@ class OTPVerifyView(APIView):
             trust_cookie_val = secrets.token_urlsafe(32)
             trust_hash = hashlib.sha256(trust_cookie_val.encode("utf-8")).hexdigest()
 
-        UserSession.objects.create(
+        session = UserSession.objects.create(
             user=user,
-            refresh_token_jti=refresh_jti,
+            refresh_token_jti="",
+            access_token_jti="",
             device_name=device_name,
             trust_hash=trust_hash,
             ip_address=client_ip,
             user_agent=user_agent,
             is_active=True,
         )
+
+        # Generate tokens using CustomTokenObtainPairSerializer logic
+        refresh = RefreshToken.for_user(user)
+        token_data = CustomTokenObtainPairSerializer.get_token(user)
+        for claim_key in [
+            "user_id",
+            "username",
+            "is_global",
+            "cs_tenant_id",
+            "is_superuser",
+            "is_support",
+            "is_tenant_admin",
+        ]:
+            if claim_key in token_data:
+                refresh[claim_key] = token_data[claim_key]
+
+        refresh["session_id"] = str(session.id)
+        access = refresh.access_token
+        access["session_id"] = str(session.id)
+
+        session.refresh_token_jti = str(refresh.get("jti"))
+        session.access_token_jti = str(access.get("jti"))
+        session.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+        access_token = str(access)
+        refresh_token = str(refresh)
 
         response = Response(
             {
@@ -2348,9 +2388,38 @@ class OTPVerifyView(APIView):
         return response
 
 
+UserTwoFactorVerifyView = OTPVerifyView
+
+
+def _blacklist_session_tokens(session):
+    """
+    Deactivates a session and atomically blacklists its entire token family
+    (both refresh_token_jti and access_token_jti).
+    """
+    session.is_active = False
+    session.save(update_fields=["is_active"])
+
+    now = timezone.now()
+    expires = now + timedelta(days=365)
+    for jti in [session.refresh_token_jti, session.access_token_jti]:
+        if jti:
+            outstanding, _ = OutstandingToken.objects.get_or_create(
+                jti=jti,
+                defaults={
+                    "user": session.user,
+                    "created_at": now,
+                    "expires_at": expires,
+                    "token": f"token_{jti}",
+                },
+            )
+            BlacklistedToken.objects.get_or_create(token=outstanding)
+
+
 class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserSessionSerializer
     permission_classes = [IsAuthenticated]
+
+    _blacklist_session_tokens = staticmethod(_blacklist_session_tokens)
 
     def get_queryset(self):
         return (
@@ -2373,15 +2442,7 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
         session = get_object_or_404(
             request.user.sessions.filter(is_active=True), pk=pk
         )
-        session.is_active = False
-        session.save(update_fields=["is_active"])
-
-        outstanding = OutstandingToken.objects.filter(
-            jti=session.refresh_token_jti
-        ).first()
-        if outstanding:
-            BlacklistedToken.objects.get_or_create(token=outstanding)
-
+        _blacklist_session_tokens(session)
         return Response({"status": "session_revoked"}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["post"])
@@ -2402,15 +2463,92 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         for sess in sessions_to_revoke:
-            sess.is_active = False
-            sess.save(update_fields=["is_active"])
-            outstanding = OutstandingToken.objects.filter(
-                jti=sess.refresh_token_jti
-            ).first()
-            if outstanding:
-                BlacklistedToken.objects.get_or_create(token=outstanding)
+            _blacklist_session_tokens(sess)
 
         return Response({"status": "other_sessions_revoked"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"])
+    def revoke_all(self, request):
+        sessions_to_revoke = request.user.sessions.filter(is_active=True)
+        for sess in sessions_to_revoke:
+            _blacklist_session_tokens(sess)
+
+        response = Response(
+            {"status": "all_sessions_revoked"}, status=status.HTTP_200_OK
+        )
+        cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+        cookie_path = getattr(settings, "REFRESH_COOKIE_PATH", "/")
+        response.delete_cookie(cookie_name, path=cookie_path)
+        return response
+
+    @action(detail=False, methods=["post"])
+    def trust_current(self, request):
+        cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+        refresh_token = request.COOKIES.get(cookie_name)
+        current_jti = None
+        if refresh_token:
+            try:
+                current_jti = str(RefreshToken(refresh_token).get("jti"))
+            except Exception:
+                pass
+
+        session = None
+        if current_jti:
+            session = request.user.sessions.filter(
+                refresh_token_jti=current_jti, is_active=True
+            ).first()
+
+        if not session:
+            return Response(
+                {"detail": "Active session for current device not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        trust = request.data.get("trust", True)
+        if isinstance(trust, str):
+            trust = trust in (True, "true", "True", "1")
+        else:
+            trust = bool(trust)
+
+        if trust:
+            tenant = getattr(request.user, "tenant", None)
+            tenant_level = (
+                getattr(tenant, "security_level", "MEDIUM") if tenant else "MEDIUM"
+            )
+            if tenant_level == "HIGH":
+                return Response(
+                    {
+                        "device_trusted": False,
+                        "detail": "Device trust is not allowed for high-security tenants.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            token_val = secrets.token_urlsafe(32)
+            session.trust_hash = hashlib.sha256(token_val.encode("utf-8")).hexdigest()
+            session.save(update_fields=["trust_hash"])
+
+            ttl_days = tenant.device_trust_ttl_days if tenant else 30
+            max_age = ttl_days * 86400
+
+            response = Response({"device_trusted": True}, status=status.HTTP_200_OK)
+            response.set_cookie(
+                key="device_trust_token",
+                value=token_val,
+                max_age=max_age,
+                httponly=True,
+                secure=getattr(settings, "COOKIE_SECURE", False),
+                samesite="Lax",
+                path="/",
+            )
+            return response
+        else:
+            session.trust_hash = None
+            session.save(update_fields=["trust_hash"])
+
+            response = Response({"device_trusted": False}, status=status.HTTP_200_OK)
+            response.delete_cookie("device_trust_token", path="/")
+            return response
 
 
 class TOTPSetupView(APIView):
