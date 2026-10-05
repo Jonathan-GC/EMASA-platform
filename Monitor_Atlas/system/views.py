@@ -418,3 +418,163 @@ class AtlasHealthView(APIView):
     def get(self, request, *args, **kwargs):
         atlas_health = get_atlas_services_health()
         return Response(atlas_health, status=status.HTTP_200_OK)
+
+
+# ============================================================================
+# DATABASE BACKUP VIEWSET
+# ============================================================================
+from rest_framework import viewsets, mixins
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.pagination import PageNumberPagination
+
+from system.models import DatabaseBackup
+from system.permissions import IsSuperUser
+from system.serializers import (
+    DatabaseBackupSerializer,
+    DatabaseBackupDetailSerializer,
+    CreateBackupRequestSerializer,
+    DownloadUrlResponseSerializer,
+)
+from system.services.backup_service import (
+    BackupService,
+    BackupInProgressError,
+)
+
+
+class DatabaseBackupPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
+class DatabaseBackupViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    Superuser-only viewset for inspecting, triggering, generating pre-signed URLs,
+    and deleting database backups. Restoration via REST is strictly forbidden.
+    """
+
+    permission_classes = [IsAuthenticated, IsSuperUser]
+    pagination_class = DatabaseBackupPagination
+    queryset = DatabaseBackup.objects.all().order_by("-created_at")
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return DatabaseBackupDetailSerializer
+        if self.action == "create":
+            return CreateBackupRequestSerializer
+        if self.action == "download_url":
+            return DownloadUrlResponseSerializer
+        return DatabaseBackupSerializer
+
+    def get_queryset(self):
+        qs = DatabaseBackup.objects.all()
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            qs = qs.filter(status=status_param)
+
+        trigger_param = self.request.query_params.get("trigger_type")
+        if trigger_param:
+            qs = qs.filter(trigger_type=trigger_param)
+
+        ordering = self.request.query_params.get("ordering", "-created_at")
+        allowed_orderings = [
+            "created_at",
+            "-created_at",
+            "size_bytes",
+            "-size_bytes",
+            "started_at",
+            "-started_at",
+            "completed_at",
+            "-completed_at",
+        ]
+        if ordering in allowed_orderings:
+            qs = qs.order_by(ordering)
+        else:
+            qs = qs.order_by("-created_at")
+
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateBackupRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        notes = serializer.validated_data.get("notes", "")
+
+        service = BackupService()
+        try:
+            backup = service.create_backup(
+                trigger_type="MANUAL_API",
+                user=request.user,
+                notes=notes,
+            )
+        except BackupInProgressError:
+            return Response(
+                {"detail": "A database backup is already in progress."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except Exception as exc:
+            return Response(
+                {"detail": f"Backup execution failed: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        output_serializer = DatabaseBackupDetailSerializer(backup)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="download_url")
+    def download_url(self, request, pk=None):
+        backup = self.get_object()
+        if backup.status != "COMPLETED":
+            return Response(
+                {"detail": "Backup is not in completed state."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        service = BackupService()
+        try:
+            url = service.generate_presigned_download_url(backup, expires_in=900)
+        except Exception as exc:
+            return Response(
+                {"detail": f"Failed to generate download URL: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        response_data = {
+            "download_url": url,
+            "expires_in": 900,
+            "filename": backup.filename,
+            "size_bytes": backup.size_bytes,
+            "checksum_sha256": backup.checksum_sha256,
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        backup = self.get_object()
+        if backup.status == "IN_PROGRESS":
+            return Response(
+                {"detail": "Cannot delete a backup currently in progress."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        service = BackupService()
+        service.delete_backup(backup, actor=request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"], url_path="restore")
+    def restore(self, request, pk=None):
+        return Response(
+            {
+                "detail": (
+                    "Database restoration via REST API is strictly forbidden. "
+                    "Use CLI command 'restore_database'."
+                )
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+

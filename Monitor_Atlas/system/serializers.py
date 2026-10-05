@@ -103,3 +103,64 @@ class SystemHealthResponseSerializer(serializers.Serializer):
     timestamp = serializers.DateTimeField(help_text="ISO 8601 UTC timestamp of the health check.")
     version = serializers.CharField(help_text="Platform API version.")
     services = PlatformServicesHealthSerializer(help_text="Breakdown of Atlas and Hermes services.")
+
+
+# ============================================================================
+# DATABASE BACKUP SERIALIZERS
+# ============================================================================
+from django.contrib.auth import get_user_model
+from system.models import DatabaseBackup
+
+
+class BackupUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ["id", "username", "email"]
+
+
+class DatabaseBackupSerializer(serializers.ModelSerializer):
+    duration_seconds = serializers.FloatField(read_only=True)
+    size_formatted = serializers.CharField(read_only=True)
+    triggered_by = BackupUserSerializer(read_only=True)
+
+    class Meta:
+        model = DatabaseBackup
+        fields = [
+            "id",
+            "filename",
+            "size_bytes",
+            "size_formatted",
+            "status",
+            "trigger_type",
+            "triggered_by",
+            "started_at",
+            "completed_at",
+            "duration_seconds",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class DatabaseBackupDetailSerializer(DatabaseBackupSerializer):
+    class Meta(DatabaseBackupSerializer.Meta):
+        fields = DatabaseBackupSerializer.Meta.fields + [
+            "s3_key",
+            "checksum_sha256",
+            "notes",
+            "error_message",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class CreateBackupRequestSerializer(serializers.Serializer):
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class DownloadUrlResponseSerializer(serializers.Serializer):
+    download_url = serializers.CharField()
+    expires_in = serializers.IntegerField(default=900)
+    filename = serializers.CharField(required=False)
+    size_bytes = serializers.IntegerField(required=False)
+    checksum_sha256 = serializers.CharField(required=False)
+

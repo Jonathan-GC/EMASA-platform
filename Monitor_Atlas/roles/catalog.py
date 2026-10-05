@@ -285,6 +285,15 @@ class PermissionCatalogRegistry:
             scopes=["workspace"],
             actions=["view", "add", "change", "delete"],
         )
+        cls.register_resource(
+            category_key="infrastructure",
+            app_label="system",
+            model="databasebackup",
+            label="Copias de Seguridad",
+            icon="server",
+            scopes=["global"],
+            actions=["view", "change", "delete"],
+        )
 
         # 3. ChirpStack
         cls.register_category("chirpstack", "ChirpStack", "radio")
