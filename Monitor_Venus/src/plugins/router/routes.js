@@ -90,6 +90,16 @@ export const routes = [
                 }
             },
             {
+                path: P.BACKUPS,
+                component: C.BACKUPS,
+                beforeEnter: requireRoles,
+                meta: {
+                    requiresAuth: true,
+                    roles: ['root'],
+                    label: 'Backups'
+                }
+            },
+            {
                 path: P.USERS,
                 component: C.USERS,
                 beforeEnter: requireRoles,
@@ -290,6 +300,15 @@ export const routes = [
             {
                 path: P.OTP,
                 component: C.OTP,
+                beforeEnter: allowAll,
+                meta: { public: true }
+            },
+            {
+                // Pantalla obligatoria de confianza de dispositivo. Solo es
+                // alcanzable tras verificar el código OTP; el propio componente
+                // bloquea la salida hasta que se decida.
+                path: P.TRUST,
+                component: C.TRUST,
                 beforeEnter: allowAll,
                 meta: { public: true }
             },

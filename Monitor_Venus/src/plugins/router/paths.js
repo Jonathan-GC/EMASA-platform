@@ -18,10 +18,12 @@ export const paths = {
     ROLES: '/roles',
     LOGIN: '/login',
     OTP: '/otp',
+    TRUST: '/trust',
     GOOGLE_AUTH: '/auth/callback',
     SIGNUP: '/signup',
     TENANT_SETUP: '/tenant-setup',
     AUDIT: '/audit',
+    BACKUPS: '/backups',
     RESET_PASSWORD_REQUEST: '/forgot-password',
     RESET_PASSWORD_CONFIRM: '/reset-password',
 
