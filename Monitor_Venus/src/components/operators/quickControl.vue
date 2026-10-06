@@ -1,18 +1,19 @@
 <template>
-  <!--
-    Refresh button (toRefresh):
-    Emits 'refresh' so the parent table reloads its data.
-  -->
-  <ion-button v-if="toRefresh" fill="clear" shape="round" class="mx-2" @click="$emit('refresh')">
-    <ion-icon :icon="refreshOutline" slot="icon-only"></ion-icon>
-  </ion-button>
 
-  <!--
+    <!--
     Clear button (toClear):
     Emits 'clear' so the parent table resets its search/filters.
   -->
   <ion-button v-if="toClear" fill="outline" shape="round" class="mx-2" @click="$emit('clear')">
     <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+  </ion-button>
+
+  <!--
+    Refresh button (toRefresh):
+    Emits 'refresh' so the parent table reloads its data.
+  -->
+  <ion-button v-if="toRefresh" fill="clear" shape="round" class="mx-2 quick-control-refresh" @click="$emit('refresh')">
+    <ion-icon :icon="refreshOutline" slot="icon-only"></ion-icon>
   </ion-button>
 
   <!--
