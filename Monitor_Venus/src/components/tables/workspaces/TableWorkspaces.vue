@@ -66,7 +66,8 @@
 
             <!-- Data rows -->
             <ion-row v-for="workspace in paginatedItems" :key="workspace.id" class="table-row-stylized"
-              :class="{ 'row-selected': selectedApplication?.id === workspace.id }">
+              :class="{ 'row-selected': selectedApplication?.id === workspace.id }"
+              v-bind="getItemActivateProps(`/tenants/${workspace.id}`, { label: `Ver workspace ${workspace.name}` })">
               <ion-col size="3">
                 <div class="gateway-info">
                   <div>
@@ -109,6 +110,7 @@
               :key="workspace.id" 
               class="workspace-card"
               :class="getCardClass(true)"
+              v-bind="getItemActivateProps(`/tenants/${workspace.id}`, { label: `Ver workspace ${workspace.name}` })"
             >
               <ion-card-content>
                 <!-- Header with name -->
@@ -180,9 +182,8 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
-      entity-type="workspace"
-      @refresh="fetchGateways"
+            entity-type="workspace"
+            @refresh="fetchWorkspaces"
       @itemCreated="handleItemRefresh"
     />
   </div>
@@ -205,7 +206,7 @@ import QuickActions from '../../operators/quickActions.vue'
 const icons = inject('icons', {})
 
 // Card navigation composable
-const { getCardClickHandler, getCardClass } = useCardNavigation()
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
@@ -382,6 +383,13 @@ onMounted(async () => {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
 }
 
 .table-row-stylized:hover {

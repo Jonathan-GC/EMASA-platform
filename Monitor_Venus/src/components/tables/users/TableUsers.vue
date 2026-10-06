@@ -102,6 +102,7 @@
               :key="user.id"
               class="table-row-stylized"
               :class="{ 'row-selected': selectedUser?.id === user.id }"
+              v-bind="getItemActivateProps(`/users/${user.id}`, { label: `Ver usuario ${user.username}` })"
             >
               <ion-col size="2">
                 <div class="user-info">
@@ -172,7 +173,7 @@
               :key="user.id" 
               class="user-card"
               :class="getCardClass(true)"
-              @click="(event) => getCardClickHandler(`/users/${user.id}`)(event)"
+              v-bind="getItemActivateProps(`/users/${user.id}`, { label: `Ver usuario ${user.username}` })"
             >
               <ion-card-content>
                 <!-- Header with avatar and name -->
@@ -282,7 +283,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="user"
       @refresh="fetchUsers"
       @itemCreated="handleItemRefresh"
@@ -317,7 +317,7 @@ const authStore = useAuthStore()
 const { isMobile } = useResponsiveView(768)
 
 // Card navigation composable
-const { getCardClickHandler, getCardClass } = useCardNavigation()
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Component-specific state
 const users = ref([])
@@ -495,6 +495,13 @@ onMounted(async () => {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
 }
 
 .table-row-stylized:hover {

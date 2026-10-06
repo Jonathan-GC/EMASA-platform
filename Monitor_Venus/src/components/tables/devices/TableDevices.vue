@@ -19,7 +19,7 @@
         <div v-else-if="error" class="error-container">
           <ion-icon :icon="icons.alertCircle" color="danger"></ion-icon>
           <p>Error: {{ error }}</p>
-          <ion-button @click="fetchApplications" fill="outline" color="danger">
+          <ion-button @click="fetchDevices" fill="outline" color="danger">
             Reintentar
           </ion-button>
         </div>
@@ -43,7 +43,7 @@
                   :toRefresh="true"
                   type="device"
                   @itemCreated="handleItemRefresh"
-                  @refresh="fetchApplications"
+                  @refresh="fetchDevices"
               />
             </div>
           </div>
@@ -99,6 +99,7 @@
                 v-for="device in paginatedItems"
                 :key="device.id"
                 class="table-row-stylized"
+                v-bind="getItemActivateProps(`devices/${device.id}`, { label: `Ver dispositivo ${device.name}` })"
 
                 :class="{ 'row-selected': selectedApplication?.id === device.id }"
             >
@@ -163,7 +164,7 @@
               :key="device.id" 
               class="device-card"
               :class="getCardClass(true)"
-              @click="(event) => getCardClickHandler(`devices/${device.id}`)(event)"
+              v-bind="getItemActivateProps(`devices/${device.id}`, { label: `Ver dispositivo ${device.name}` })"
             >
               <ion-card-content>
                 <!-- Header with name and sync status -->
@@ -258,9 +259,8 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="device"
-      @refresh="fetchApplications"
+      @refresh="fetchDevices"
       @itemCreated="handleItemRefresh"
     />
   </div>
@@ -287,7 +287,7 @@ const router = useRouter()
 const route = useRoute()
 
 // Card navigation composable
-const { getCardClickHandler, getCardClass } = useCardNavigation()
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
@@ -311,7 +311,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ejemplo.com'
 
 
 // Fetch data from API
-const fetchApplications = async () => {
+const fetchDevices = async () => {
   // Ensure component is mounted before fetching
   if (!isMounted.value) {
     console.log('⏳ Component not ready, waiting...')
@@ -369,7 +369,7 @@ const viewGateway = (gateway) => {
 }
 
 const handleItemRefresh = () => {
-  fetchApplications();
+  fetchDevices();
 };
 
 // Lifecycle
@@ -384,7 +384,7 @@ onMounted(async () => {
 
   // Small delay to ensure Ionic page transition is complete
   setTimeout(() => {
-    fetchApplications()
+    fetchDevices()
   }, 100)
 })
 </script>
@@ -467,6 +467,13 @@ onMounted(async () => {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
 }
 
 .table-row-stylized:hover {

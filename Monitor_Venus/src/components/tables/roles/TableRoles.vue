@@ -88,6 +88,7 @@
               :key="role.id"
               class="table-row-stylized"
               :class="{ 'row-selected': selectedRole?.id === role.id }"
+              v-bind="getItemActivateProps(null, { callback: () => openRoleMembersModal(role), label: `Ver miembros de ${role.name}` })"
             >
               <ion-col size="2">
                 <div class="role-info">
@@ -159,6 +160,8 @@
               v-for="role in paginatedItems" 
               :key="role.id" 
               class="role-card"
+              :class="getCardClass(true)"
+              v-bind="getItemActivateProps(null, { callback: () => openRoleMembersModal(role), label: `Ver miembros de ${role.name}` })"
             >
               <ion-card-content>
                 <!-- Header with avatar and name -->
@@ -255,7 +258,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="role"
       @refresh="fetchRoles"
       @itemCreated="handleItemRefresh"
@@ -270,6 +272,7 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
+import { useCardNavigation } from '@composables/useCardNavigation.js'
 import FloatingActionButtons from '@components/operators/FloatingActionButtons.vue'
 import QuickControl from '@components/operators/quickControl.vue'
 import QuickActions from '@components/operators/quickActions.vue'
@@ -283,6 +286,7 @@ const icons = inject('icons', {})
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Component state
 const roles = ref([])
@@ -511,6 +515,27 @@ onMounted(async () => {
 .table-row-stylized {
   border-bottom: 1px solid var(--ion-color-light-shade);
   transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.clickable-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .table-row-stylized:hover {

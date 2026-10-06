@@ -19,7 +19,7 @@
         <div v-else-if="error" class="error-container">
           <ion-icon :icon="icons.alertCircle" color="danger"></ion-icon>
           <p>Error: {{ error }}</p>
-          <ion-button @click="fetchmáquinas" fill="outline" color="danger">
+          <ion-button @click="fetchMachines" fill="outline" color="danger">
             Reintentar
           </ion-button>
         </div>
@@ -88,6 +88,7 @@
               v-for="machine in paginatedItems" 
               :key="machine.id"
               class="table-row-stylized"
+              v-bind="getItemActivateProps(null, { callback: () => openMachineModal(machine.id), label: `Ver detalles de ${machine.name}` })"
              
               :class="{ 'row-selected': selectedmachine?.id === machine.id }"
             >
@@ -140,7 +141,13 @@
 
           <!-- Mobile Card View -->
           <div v-else class="mobile-cards">
-            <ion-card v-for="machine in paginatedItems" :key="machine.id" class="machine-card">
+            <ion-card
+              v-for="machine in paginatedItems"
+              :key="machine.id"
+              class="machine-card"
+              :class="getCardClass(true)"
+              v-bind="getItemActivateProps(null, { callback: () => openMachineModal(machine.id), label: `Ver detalles de ${machine.name}` })"
+            >
               <ion-card-content>
                 <!-- Header with icon and name -->
                 <div class="card-header">
@@ -230,9 +237,8 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
-      entity-type="machine"
-      @refresh="fetchmáquinas"
+            entity-type="machine"
+            @refresh="fetchMachines"
       @itemCreated="handleItemRefresh"
     />
 
@@ -355,6 +361,7 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
+import { useCardNavigation } from '@composables/useCardNavigation.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 import QuickControl from '../../operators/quickControl.vue'
 import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
@@ -364,6 +371,7 @@ const icons = inject('icons', {})
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Component-specific state
 const machines = ref([])
@@ -581,6 +589,26 @@ onMounted(async () => {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.clickable-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .table-row-stylized:hover {
