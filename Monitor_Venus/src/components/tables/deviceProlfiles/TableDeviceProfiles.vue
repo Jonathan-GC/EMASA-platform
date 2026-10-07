@@ -195,7 +195,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="device_profile"
       @refresh="GetDeviceProfiles"
       @itemCreated="handleItemRefresh"

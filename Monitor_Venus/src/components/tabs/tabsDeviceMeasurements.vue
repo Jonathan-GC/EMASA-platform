@@ -484,8 +484,9 @@
             </div>
           </div>
 
-          <!-- Floating Action Buttons -->
+          <!-- Floating Action Buttons (mobile + desktop by design) -->
           <FloatingActionButtons 
+            :mobile-only="false"
             entity-type="measurement"
             @refresh="fetchMeasurements(true)"
             @itemCreated="handleMeasurementCreated"

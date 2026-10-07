@@ -180,7 +180,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="manager"
       @refresh="fetchUsers"
       @itemCreated="handleItemRefresh"

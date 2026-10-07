@@ -204,7 +204,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="device_type"
       @refresh="fetchDeviceTypes"
       @itemCreated="handleItemRefresh"

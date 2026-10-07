@@ -214,7 +214,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="tenant"
       @refresh="fetchTenants"
       @itemCreated="handleItemRefresh"
@@ -300,7 +299,8 @@ const setInitialData = (gateway) => {
     name: gateway.name,
     description: gateway.description,
     subscription_id: gateway.subscription.id,
-    img: gateway.img
+    img: gateway.img,
+    security_level: gateway.security_level || 'MEDIUM'
   }
 }
 

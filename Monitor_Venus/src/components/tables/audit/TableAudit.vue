@@ -60,14 +60,7 @@
           </div>
         </div>
 
-        <!-- Mobile: single Filters button -->
-        <div v-else class="mobile-controls">
-          <ion-button @click="openFiltersModal" fill="outline" color="primary">
-            <ion-icon :icon="icons.options" slot="start"></ion-icon>
-            Filtros
-          </ion-button>
-          <QuickControl type="audit" :toRefresh="true" :toClear="true" @refresh="fetchLogs" @clear="clearFilters" />
-        </div>
+        <!-- Mobile: controls moved to the floating action buttons -->
 
         <!-- Error state -->
         <div v-if="error" class="error-container">
@@ -381,6 +374,17 @@
         </div>
       </ion-content>
     </ion-modal>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons
+      entity-type="audit"
+      :show-create="false"
+      show-filter
+      show-clear
+      @refresh="fetchLogs"
+      @clear="clearFilters"
+      @filter="openFiltersModal"
+    />
   </div>
 </template>
 
@@ -391,6 +395,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { useServerPagination } from '@composables/Tables/useServerPagination.js'
 import QuickControl from '@components/operators/quickControl.vue'
+import FloatingActionButtons from '@components/operators/FloatingActionButtons.vue'
 
 const authStore = useAuthStore()
 const icons = inject('icons', {})
