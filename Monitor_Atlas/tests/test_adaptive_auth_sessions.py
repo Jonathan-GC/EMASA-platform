@@ -884,4 +884,139 @@ class AdaptiveAuthSessionsTests(TestCase):
         self.assertIsNone(session.trust_hash)
         self.assertNotIn("device_trust_token", resp.cookies)
 
+    def test_adaptive_trust_engine_roaming_trusted_device_threat_guarded(self):
+        """A request with valid device_trust_token cookie but 0 matching IP/UA (roaming) gets allow_bypass=True on MEDIUM tier, but allow_bypass=False when threats flagged."""
+        trust_token = "roaming_engine_test_token"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_roaming_seed",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="192.168.1.50",
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+            is_active=True,
+        )
+
+        # Roaming request: different IP, different UA
+        req_roaming = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="198.51.100.99",
+            HTTP_USER_AGENT="DifferentBrowser/1.0",
+        )
+        req_roaming.COOKIES["device_trust_token"] = trust_token
+
+        # On MEDIUM tier without threats: bypass allowed despite score < 75
+        bypass, score, details = AdaptiveTrustEngine.evaluate(req_roaming, self.user_medium)
+        self.assertTrue(bypass)
+        self.assertFalse(details["has_critical_threat"])
+        self.assertIn("verified trusted device", details["decision"])
+
+        # With HTTP_X_IMPOSSIBLE_TRAVEL
+        req_travel = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="198.51.100.99",
+            HTTP_USER_AGENT="DifferentBrowser/1.0",
+            HTTP_X_IMPOSSIBLE_TRAVEL="true",
+        )
+        req_travel.COOKIES["device_trust_token"] = trust_token
+        bypass_travel, _, details_travel = AdaptiveTrustEngine.evaluate(req_travel, self.user_medium)
+        self.assertFalse(bypass_travel)
+        self.assertTrue(details_travel["has_critical_threat"])
+        self.assertIn("impossible travel", details_travel["decision"])
+
+        # With HTTP_X_SUSPICIOUS_IP
+        req_suspicious = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="198.51.100.99",
+            HTTP_USER_AGENT="DifferentBrowser/1.0",
+            HTTP_X_SUSPICIOUS_IP="true",
+        )
+        req_suspicious.COOKIES["device_trust_token"] = trust_token
+        bypass_suspicious, _, details_suspicious = AdaptiveTrustEngine.evaluate(req_suspicious, self.user_medium)
+        self.assertFalse(bypass_suspicious)
+        self.assertTrue(details_suspicious["has_critical_threat"])
+        self.assertIn("suspicious IP", details_suspicious["decision"])
+
+    def test_login_step_1_roaming_ip_trusted_device_bypasses_2fa(self):
+        """POST /api/v1/token/ from a roaming IP with a valid device_trust_token cookie bypasses 2FA directly."""
+        trust_token = "roaming_login_token_valid"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_roaming_init",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="192.168.1.1",
+            user_agent="OriginalBrowser/1.0",
+            is_active=True,
+        )
+
+        self.client.cookies["device_trust_token"] = trust_token
+
+        response = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_medium.username, "password": self.password},
+            format="json",
+            REMOTE_ADDR="203.0.113.77",
+            HTTP_USER_AGENT="RoamingBrowser/2.0",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data.get("requires_2fa"))
+        self.assertIn("access", response.data)
+
+        # Check a new session was created with roaming IP
+        new_session = UserSession.objects.filter(user=self.user_medium).order_by("-created_at").first()
+        self.assertIsNotNone(new_session)
+        self.assertEqual(new_session.ip_address, "203.0.113.77")
+        self.assertTrue(new_session.is_active)
+
+    @patch("users.views.send_otp_email")
+    def test_login_step_1_trusted_device_with_critical_threat_requires_2fa(self, mock_send_email):
+        """POST /api/v1/token/ requires 2FA when valid device_trust_token cookie presents impossible travel or suspicious IP."""
+        trust_token = "threat_login_token_valid"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_threat_init",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="192.168.1.1",
+            user_agent="OriginalBrowser/1.0",
+            is_active=True,
+        )
+
+        self.client.cookies["device_trust_token"] = trust_token
+
+        # Case 1: Impossible travel
+        resp_travel = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_medium.username, "password": self.password},
+            format="json",
+            REMOTE_ADDR="203.0.113.77",
+            HTTP_USER_AGENT="RoamingBrowser/2.0",
+            HTTP_X_IMPOSSIBLE_TRAVEL="true",
+        )
+        self.assertEqual(resp_travel.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_travel.data.get("requires_2fa"))
+        self.assertNotIn("access", resp_travel.data)
+        mock_send_email.assert_called_once()
+        mock_send_email.reset_mock()
+
+        # Case 2: Suspicious IP
+        resp_suspicious = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_medium.username, "password": self.password},
+            format="json",
+            REMOTE_ADDR="203.0.113.88",
+            HTTP_USER_AGENT="RoamingBrowser/2.0",
+            HTTP_X_SUSPICIOUS_IP="true",
+        )
+        self.assertEqual(resp_suspicious.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_suspicious.data.get("requires_2fa"))
+        self.assertNotIn("access", resp_suspicious.data)
+        mock_send_email.assert_called_once()
+
+
 

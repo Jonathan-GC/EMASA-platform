@@ -39,17 +39,46 @@ The system MUST validate updates to `Tenant.security_level` to permit only defin
 - AND the system MUST return JWT access and refresh tokens.
 
 ### Requirement: Adaptive Device Trust Scoring Engine
-The system MUST provide an in-memory `AdaptiveTrustEngine` that computes a normalized device trust score bounded within the range `[0, 100]` for every login attempt. The engine MUST evaluate telemetry factors and apply deterministic positive and negative weights:
-- Valid `device_trust_token` cookie matching an active trusted device record: `+40` points.
-- Exact match of client IP address against user's prior active sessions: `+20` points.
-- Match of client IP /24 subnet or ASN against user's prior sessions: `+15` points (applied if exact IP did not match).
-- Exact match of User-Agent string against user's prior sessions: `+15` points.
-- Activity within the last 7 days from the same device or IP: `+10` points.
-- Operating system or platform mismatch compared to registered device fingerprint: `-25` points.
-- Impossible travel anomaly (speed exceeding 800 km/h between consecutive session locations or unexpected geo-shift): `-60` points.
-- Client IP identified as a public datacenter, VPN, Tor exit node, or flagged threat: `-40` points.
+The system MUST provide an in-memory `AdaptiveTrustEngine` that evaluates risk telemetry for every login attempt and computes a normalized device trust score bounded within `[0, 100]`.
 
-The engine MUST clamp the accumulated score strictly between 0 and 100. The engine MUST compare the resulting score against the tenant's security tier threshold to decide whether 2FA verification can be safely bypassed or MUST be enforced.
+For 2FA bypass determination:
+1. If tenant security level is `HIGH`, the engine MUST strictly enforce multi-factor authentication (`allow_bypass = False`) regardless of device trust or score.
+2. If critical threat indicators are detected (impossible travel anomaly or suspicious/threat-flagged client IP), the engine MUST strictly enforce multi-factor authentication (`allow_bypass = False`) regardless of device trust.
+3. If an unexpired, valid device trust token cookie (`device_trust_token`) matches an active session (`cookie_matched`), the engine MUST permit 2FA bypass (`allow_bypass = True`), provided neither a `HIGH` security tier nor a critical threat is active.
+4. For untrusted or unrecognized devices, the engine MUST evaluate telemetry factors against the tenant's security tier threshold:
+   - Valid device trust cookie: +40 points.
+   - Exact client IP match: +20 points.
+   - /24 Subnet match: +15 points.
+   - User-Agent exact match: +15 points.
+   - Recency (<7 days): +10 points.
+   - Operating system mismatch: -25 points.
+   - Impossible travel anomaly: -60 points.
+   - Suspicious IP / threat detected: -40 points.
+   The score MUST be clamped strictly between 0 and 100. 2FA bypass SHALL be permitted only if the clamped score meets or exceeds the tenant's threshold (`threshold = 60` for `LOW`, `75` for `MEDIUM`).
+
+#### Scenario: Trusted device roaming across IP addresses bypasses 2FA
+- GIVEN a tenant configured with `security_level="MEDIUM"`
+- AND an incoming login request presenting a valid unexpired device trust token cookie
+- AND originating from an unrecognized IP address with no prior session history
+- AND without impossible travel or suspicious IP threat flags
+- WHEN `AdaptiveTrustEngine` evaluates the request
+- THEN the engine MUST grant 2FA bypass (`allow_bypass: true`)
+- AND the decision MUST indicate bypass based on trusted device verification.
+
+#### Scenario: Trusted device with critical threat anomaly enforces 2FA
+- GIVEN a tenant configured with `security_level="MEDIUM"`
+- AND an incoming login request presenting a valid unexpired device trust token cookie
+- AND an impossible travel anomaly or threat-flagged IP is detected
+- WHEN `AdaptiveTrustEngine` evaluates the request
+- THEN the engine MUST reject 2FA bypass (`allow_bypass: false`)
+- AND the system MUST require multi-factor verification.
+
+#### Scenario: Trusted device under high security tier enforces 2FA
+- GIVEN a tenant configured with `security_level="HIGH"`
+- AND an incoming login request presenting a valid unexpired device trust token cookie
+- WHEN `AdaptiveTrustEngine` evaluates the request
+- THEN the engine MUST reject 2FA bypass (`allow_bypass: false`)
+- AND the system MUST require multi-factor verification.
 
 #### Scenario: Maximum trust score computation for recognized device on matching IP
 - GIVEN an incoming login request presenting a valid device trust token cookie (+40), an identical client IP address (+20), an identical User-Agent (+15), and recorded activity 2 days ago (+10)

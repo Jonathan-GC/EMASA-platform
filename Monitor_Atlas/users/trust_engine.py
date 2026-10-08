@@ -252,6 +252,9 @@ class AdaptiveTrustEngine:
         details["raw_score"] = score
         details["score"] = clamped_score
 
+        has_critical_threat = is_impossible_travel or is_suspicious_ip
+        details["has_critical_threat"] = has_critical_threat
+
         # Determine 2FA bypass based on tenant threshold
         # HIGH: strictly no bypass regardless of score
         # LOW: threshold 60
@@ -262,6 +265,19 @@ class AdaptiveTrustEngine:
         if level == "HIGH":
             allow_bypass = False
             details["decision"] = "2FA enforced: HIGH security tier strictly requires MFA."
+        elif has_critical_threat:
+            allow_bypass = False
+            threat_reasons = []
+            if is_impossible_travel:
+                threat_reasons.append("impossible travel")
+            if is_suspicious_ip:
+                threat_reasons.append("suspicious IP")
+            details["decision"] = (
+                f"2FA enforced: critical threat detected ({', '.join(threat_reasons)})."
+            )
+        elif cookie_matched:
+            allow_bypass = True
+            details["decision"] = "2FA bypassed: verified trusted device with active trust token."
         else:
             allow_bypass = clamped_score >= threshold
             details["decision"] = (
