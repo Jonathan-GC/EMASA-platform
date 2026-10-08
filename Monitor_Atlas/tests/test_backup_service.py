@@ -1,6 +1,8 @@
 import gzip
 import hashlib
 import io
+import os
+import tempfile
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -278,3 +280,181 @@ class BackupServiceTests(TestCase):
         self.assertEqual(result["checksum_sha256"], expected_sha256)
         self.assertEqual(result["size_bytes"], len(compressed))
         self.assertIn("duration_seconds", result)
+
+    @override_settings(
+        R2_ACCESS_KEY_ID="test_key",
+        R2_SECRET_ACCESS_KEY="test_secret",
+        R2_ENDPOINT_URL="https://account.r2.cloudflarestorage.com",
+        R2_BUCKET_NAME="test-bucket",
+    )
+    def test_is_r2_configured_returns_true_when_configured(self):
+        self.assertTrue(self.service.is_r2_configured())
+
+    @override_settings(
+        R2_ACCESS_KEY_ID=None,
+        R2_SECRET_ACCESS_KEY="test_secret",
+        R2_ENDPOINT_URL="https://account.r2.cloudflarestorage.com",
+        R2_BUCKET_NAME="test-bucket",
+    )
+    def test_is_r2_configured_returns_false_when_none(self):
+        self.assertFalse(self.service.is_r2_configured())
+
+    @override_settings(
+        R2_ACCESS_KEY_ID="",
+        R2_SECRET_ACCESS_KEY="test_secret",
+        R2_ENDPOINT_URL="https://account.r2.cloudflarestorage.com",
+        R2_BUCKET_NAME="test-bucket",
+    )
+    def test_is_r2_configured_returns_false_when_empty_string(self):
+        self.assertFalse(self.service.is_r2_configured())
+
+    @override_settings(
+        R2_ACCESS_KEY_ID="   ",
+        R2_SECRET_ACCESS_KEY="test_secret",
+        R2_ENDPOINT_URL="https://account.r2.cloudflarestorage.com",
+        R2_BUCKET_NAME="test-bucket",
+    )
+    def test_is_r2_configured_returns_false_when_whitespace_only(self):
+        self.assertFalse(self.service.is_r2_configured())
+
+    @patch("system.services.backup_service.subprocess.Popen")
+    def test_create_backup_fallback_to_local_file_when_r2_unconfigured(self, mock_popen):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(
+                R2_ACCESS_KEY_ID=None,
+                R2_SECRET_ACCESS_KEY=None,
+                R2_ENDPOINT_URL=None,
+                R2_BUCKET_NAME=None,
+                BACKUP_LOCAL_DIR=temp_dir,
+            ):
+                raw_sql = b"SELECT 1;\n" * 50
+                mock_proc = MagicMock()
+                mock_proc.stdout = io.BytesIO(raw_sql)
+                mock_proc.wait.return_value = 0
+                mock_popen.return_value = mock_proc
+
+                backup = self.service.create_backup(
+                    trigger_type="MANUAL_CLI",
+                    user=self.user,
+                    notes="Local fallback unit test",
+                )
+
+                self.assertEqual(backup.status, "COMPLETED")
+                local_path = self.service.get_local_path(backup.s3_key)
+                self.assertTrue(os.path.exists(local_path))
+
+                with open(local_path, "rb") as f:
+                    compressed_bytes = f.read()
+                decompressed = gzip.decompress(compressed_bytes)
+                self.assertEqual(decompressed, raw_sql)
+                self.assertEqual(backup.checksum_sha256, hashlib.sha256(compressed_bytes).hexdigest())
+                self.assertEqual(backup.size_bytes, len(compressed_bytes))
+
+    @patch("system.services.backup_service.subprocess.Popen")
+    def test_create_backup_local_failure_cleans_up_partial_file(self, mock_popen):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(
+                R2_ACCESS_KEY_ID=None,
+                R2_SECRET_ACCESS_KEY=None,
+                R2_ENDPOINT_URL=None,
+                R2_BUCKET_NAME=None,
+                BACKUP_LOCAL_DIR=temp_dir,
+            ):
+                mock_proc = MagicMock()
+                mock_proc.stdout = io.BytesIO(b"PARTIAL DUMP DATA")
+                mock_proc.wait.return_value = 1
+                mock_proc.stderr.read.return_value = b"pg_dump: disk full or query failed"
+                mock_proc.poll.return_value = 1
+                mock_popen.return_value = mock_proc
+
+                with self.assertRaises(BackupExecutionError):
+                    self.service.create_backup(trigger_type="MANUAL_CLI")
+
+                failed_backup = DatabaseBackup.objects.first()
+                self.assertIsNotNone(failed_backup)
+                self.assertEqual(failed_backup.status, "FAILED")
+                self.assertIn("disk full or query failed", failed_backup.error_message)
+
+                local_path = self.service.get_local_path(failed_backup.s3_key)
+                self.assertFalse(os.path.exists(local_path))
+
+    @patch("system.services.backup_service.subprocess.Popen")
+    def test_restore_database_using_local_file_when_r2_unconfigured(self, mock_popen):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(
+                R2_ACCESS_KEY_ID=None,
+                R2_SECRET_ACCESS_KEY=None,
+                R2_ENDPOINT_URL=None,
+                R2_BUCKET_NAME=None,
+                BACKUP_LOCAL_DIR=temp_dir,
+            ):
+                raw_sql = b"DROP TABLE IF EXISTS test_tbl; CREATE TABLE test_tbl (id int);"
+                compressed = gzip.compress(raw_sql)
+                expected_sha256 = hashlib.sha256(compressed).hexdigest()
+
+                local_path = self.service.get_local_path("backups/postgresql/2026/10/local_restore.sql.gz")
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                with open(local_path, "wb") as f:
+                    f.write(compressed)
+
+                mock_proc = MagicMock()
+                mock_proc.communicate.return_value = (b"", b"")
+                mock_proc.returncode = 0
+                mock_popen.return_value = mock_proc
+
+                backup = DatabaseBackup.objects.create(
+                    filename="local_restore.sql.gz",
+                    s3_key="backups/postgresql/2026/10/local_restore.sql.gz",
+                    status="COMPLETED",
+                    size_bytes=len(compressed),
+                    checksum_sha256=expected_sha256,
+                )
+
+                result = self.service.restore_database(backup.id, confirm=True)
+                self.assertEqual(result["status"], "SUCCESS")
+                self.assertEqual(result["checksum_sha256"], expected_sha256)
+                self.assertEqual(result["size_bytes"], len(compressed))
+                # Persistent local file should not be deleted upon successful restore
+                self.assertTrue(os.path.exists(local_path))
+
+    def test_delete_backup_deletes_local_file_when_present(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(
+                R2_ACCESS_KEY_ID=None,
+                R2_SECRET_ACCESS_KEY=None,
+                R2_ENDPOINT_URL=None,
+                R2_BUCKET_NAME=None,
+                BACKUP_LOCAL_DIR=temp_dir,
+            ):
+                local_path = self.service.get_local_path("backups/to_del.sql.gz")
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                with open(local_path, "wb") as f:
+                    f.write(b"backup payload")
+
+                backup = DatabaseBackup.objects.create(
+                    filename="to_del.sql.gz",
+                    s3_key="backups/to_del.sql.gz",
+                    status="COMPLETED",
+                )
+                backup_id = backup.id
+
+                self.assertTrue(os.path.exists(local_path))
+                self.service.delete_backup(backup)
+                self.assertFalse(os.path.exists(local_path))
+                self.assertFalse(DatabaseBackup.objects.filter(id=backup_id).exists())
+
+    @override_settings(
+        R2_ACCESS_KEY_ID=None,
+        R2_SECRET_ACCESS_KEY=None,
+        R2_ENDPOINT_URL=None,
+        R2_BUCKET_NAME=None,
+    )
+    def test_generate_presigned_download_url_returns_local_path_when_r2_unconfigured(self):
+        backup = DatabaseBackup.objects.create(
+            filename="local_dl.sql.gz",
+            s3_key="backups/local_dl.sql.gz",
+            status="COMPLETED",
+        )
+        url = self.service.generate_presigned_download_url(backup)
+        self.assertEqual(url, f"/api/v1/system/backups/{backup.id}/download/")
+

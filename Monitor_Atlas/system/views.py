@@ -1,3 +1,4 @@
+import os
 from django.apps import apps
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -553,6 +554,31 @@ class DatabaseBackupViewSet(
             "checksum_sha256": backup.checksum_sha256,
         }
         return Response(response_data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="download")
+    def download(self, request, pk=None):
+        backup = self.get_object()
+        if backup.status != "COMPLETED":
+            return Response(
+                {"detail": "Backup is not in completed state."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        service = BackupService()
+        local_path = service.get_local_path(backup.s3_key)
+        if os.path.isfile(local_path):
+            from django.http import FileResponse
+            return FileResponse(open(local_path, "rb"), as_attachment=True, filename=backup.filename)
+
+        if service.is_r2_configured():
+            from django.shortcuts import redirect
+            url = service.generate_presigned_download_url(backup, expires_in=900)
+            return redirect(url)
+
+        return Response(
+            {"detail": "Backup archive file not found locally and cloud storage is unconfigured."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     def destroy(self, request, *args, **kwargs):
         backup = self.get_object()

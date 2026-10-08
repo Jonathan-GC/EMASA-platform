@@ -135,6 +135,37 @@ class BackupService:
     def bucket_name(self) -> str:
         return getattr(settings, "R2_BUCKET_NAME", "emasa-backups") or "emasa-backups"
 
+    def is_r2_configured(self) -> bool:
+        """
+        Checks that settings.R2_ACCESS_KEY_ID, settings.R2_SECRET_ACCESS_KEY,
+        settings.R2_ENDPOINT_URL, and settings.R2_BUCKET_NAME are all configured,
+        truthy, non-empty strings.
+        """
+        required_keys = [
+            "R2_ACCESS_KEY_ID",
+            "R2_SECRET_ACCESS_KEY",
+            "R2_ENDPOINT_URL",
+            "R2_BUCKET_NAME",
+        ]
+        for key in required_keys:
+            val = getattr(settings, key, None)
+            if not val or not isinstance(val, str) or not val.strip():
+                return False
+        return True
+
+    def get_local_path(self, key_or_backup: Any) -> str:
+        """
+        Resolves the local absolute path for a backup key or DatabaseBackup instance.
+        Uses BACKUP_LOCAL_DIR if defined, falling back to BASE_DIR.
+        """
+        if hasattr(key_or_backup, "s3_key"):
+            s3_key = key_or_backup.s3_key
+        else:
+            s3_key = str(key_or_backup)
+        base_dir = getattr(settings, "BACKUP_LOCAL_DIR", None) or settings.BASE_DIR
+        clean_key = s3_key.lstrip("/\\")
+        return os.path.join(str(base_dir), clean_key)
+
     def acquire_concurrency_lock(self) -> None:
         """
         Ensures no concurrent backup is executing. Stale in-progress records older
@@ -223,6 +254,7 @@ class BackupService:
         ]
 
         proc = None
+        local_dest = None
         try:
             proc = subprocess.Popen(
                 cmd,
@@ -232,8 +264,15 @@ class BackupService:
             )
 
             stream = GzipHashingStream(proc.stdout)
-            client = self._get_r2_client()
-            client.upload_fileobj(stream, self.bucket_name, s3_key)
+            if self.is_r2_configured():
+                client = self._get_r2_client()
+                client.upload_fileobj(stream, self.bucket_name, s3_key)
+            else:
+                local_dest = self.get_local_path(s3_key)
+                os.makedirs(os.path.dirname(local_dest), exist_ok=True)
+                with open(local_dest, "wb") as f:
+                    while chunk := stream.read(65536):
+                        f.write(chunk)
 
             returncode = proc.wait()
             if returncode != 0:
@@ -250,11 +289,17 @@ class BackupService:
         except Exception as exc:
             if proc and proc.poll() is None:
                 proc.terminate()
-            try:
-                client = self._get_r2_client()
-                client.delete_object(Bucket=self.bucket_name, Key=s3_key)
-            except Exception:
-                pass
+            if self.is_r2_configured():
+                try:
+                    client = self._get_r2_client()
+                    client.delete_object(Bucket=self.bucket_name, Key=s3_key)
+                except Exception:
+                    pass
+            if local_dest and os.path.exists(local_dest):
+                try:
+                    os.unlink(local_dest)
+                except OSError:
+                    pass
 
             backup.status = "FAILED"
             backup.error_message = str(exc)
@@ -267,12 +312,15 @@ class BackupService:
         backup: Any,
         expires_in: int = 900,
     ) -> str:
-        """Generates a secure 15-minute HTTPS pre-signed download URL for a completed backup."""
+        """Generates a secure 15-minute HTTPS pre-signed download URL or local download path for a completed backup."""
         if isinstance(backup, str):
             backup = DatabaseBackup.objects.get(id=backup)
 
         if backup.status != "COMPLETED":
             raise ValueError("Pre-signed download URL can only be generated for completed backups.")
+
+        if not self.is_r2_configured():
+            return f"/api/v1/system/backups/{backup.id}/download/"
 
         client = self._get_r2_client()
         url = client.generate_presigned_url(
@@ -283,20 +331,28 @@ class BackupService:
         return url
 
     def delete_backup(self, backup: Any, actor: Any = None) -> None:
-        """Deletes backup file from Cloudflare R2 and removes record from database."""
+        """Deletes backup file from Cloudflare R2 or local filesystem and removes record from database."""
         if isinstance(backup, str):
             backup = DatabaseBackup.objects.get(id=backup)
 
         if backup.status == "IN_PROGRESS":
             raise BackupInProgressError("Cannot delete a backup currently in progress.")
 
-        try:
-            client = self._get_r2_client()
-            client.delete_object(Bucket=self.bucket_name, Key=backup.s3_key)
-        except ClientError as exc:
-            logger.warning(f"R2 delete_object error for key {backup.s3_key}: {exc}")
-        except Exception as exc:
-            logger.warning(f"Unexpected error while deleting R2 object {backup.s3_key}: {exc}")
+        local_path = self.get_local_path(backup.s3_key)
+        if os.path.isfile(local_path):
+            try:
+                os.unlink(local_path)
+            except OSError as exc:
+                logger.warning(f"Failed to delete local backup file {local_path}: {exc}")
+
+        if self.is_r2_configured():
+            try:
+                client = self._get_r2_client()
+                client.delete_object(Bucket=self.bucket_name, Key=backup.s3_key)
+            except ClientError as exc:
+                logger.warning(f"R2 delete_object error for key {backup.s3_key}: {exc}")
+            except Exception as exc:
+                logger.warning(f"Unexpected error while deleting R2 object {backup.s3_key}: {exc}")
 
         backup.delete()
 
@@ -323,13 +379,18 @@ class BackupService:
                 archive_size = os.path.getsize(local_archive_path)
             else:
                 backup = DatabaseBackup.objects.get(id=backup_id_or_file)
-                temp_file = tempfile.NamedTemporaryFile(suffix=".sql.gz", delete=False)
-                local_archive_path = temp_file.name
-                temp_file.close()
-                cleanup_temp = True
+                local_path = self.get_local_path(backup.s3_key)
+                if os.path.isfile(local_path):
+                    local_archive_path = local_path
+                    cleanup_temp = False
+                else:
+                    temp_file = tempfile.NamedTemporaryFile(suffix=".sql.gz", delete=False)
+                    local_archive_path = temp_file.name
+                    temp_file.close()
+                    cleanup_temp = True
 
-                client = self._get_r2_client()
-                client.download_file(self.bucket_name, backup.s3_key, local_archive_path)
+                    client = self._get_r2_client()
+                    client.download_file(self.bucket_name, backup.s3_key, local_archive_path)
 
                 hasher = hashlib.sha256()
                 with open(local_archive_path, "rb") as f:
@@ -391,3 +452,4 @@ class BackupService:
                     os.unlink(local_archive_path)
                 except OSError:
                     pass
+

@@ -1,13 +1,15 @@
+import os
+import tempfile
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from system.models import DatabaseBackup
-from system.services.backup_service import BackupInProgressError
+from system.services.backup_service import BackupInProgressError, BackupService
 
 User = get_user_model()
 
@@ -239,3 +241,93 @@ class DatabaseBackupAPITests(TestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         self.assertIn("Database restoration via REST API is strictly forbidden", response.json()["detail"])
+
+    def test_download_action_returns_file_response_for_local_backup(self):
+        self.client.force_authenticate(user=self.superuser)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(
+                R2_ACCESS_KEY_ID=None,
+                R2_SECRET_ACCESS_KEY=None,
+                R2_ENDPOINT_URL=None,
+                R2_BUCKET_NAME=None,
+                BACKUP_LOCAL_DIR=temp_dir,
+            ):
+                backup = DatabaseBackup.objects.create(
+                    filename="local_download_test.sql.gz",
+                    s3_key="backups/local_download_test.sql.gz",
+                    status="COMPLETED",
+                    size_bytes=100,
+                )
+                local_path = BackupService().get_local_path(backup.s3_key)
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                test_content = b"compressed-gzip-dummy-content-12345"
+                with open(local_path, "wb") as f:
+                    f.write(test_content)
+
+                url = f"/api/v1/system/backups/{backup.id}/download/"
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                content = b"".join(response.streaming_content) if hasattr(response, "streaming_content") else response.content
+                self.assertEqual(content, test_content)
+                self.assertIn('filename="local_download_test.sql.gz"', response.headers.get("Content-Disposition", ""))
+
+    def test_download_action_returns_400_when_backup_not_completed(self):
+        self.client.force_authenticate(user=self.superuser)
+        backup = DatabaseBackup.objects.create(
+            filename="incomplete.sql.gz",
+            s3_key="backups/incomplete.sql.gz",
+            status="IN_PROGRESS",
+        )
+        url = f"/api/v1/system/backups/{backup.id}/download/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json()["detail"], "Backup is not in completed state.")
+
+    def test_download_action_returns_404_when_file_not_found_locally_and_r2_unconfigured(self):
+        self.client.force_authenticate(user=self.superuser)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(
+                R2_ACCESS_KEY_ID=None,
+                R2_SECRET_ACCESS_KEY=None,
+                R2_ENDPOINT_URL=None,
+                R2_BUCKET_NAME=None,
+                BACKUP_LOCAL_DIR=temp_dir,
+            ):
+                backup = DatabaseBackup.objects.create(
+                    filename="missing.sql.gz",
+                    s3_key="backups/missing.sql.gz",
+                    status="COMPLETED",
+                )
+                url = f"/api/v1/system/backups/{backup.id}/download/"
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+                self.assertEqual(
+                    response.json()["detail"],
+                    "Backup archive file not found locally and cloud storage is unconfigured.",
+                )
+
+    @patch.object(BackupService, "generate_presigned_download_url")
+    @patch.object(BackupService, "is_r2_configured", return_value=True)
+    def test_download_action_redirects_to_presigned_url_when_r2_configured(self, mock_is_r2, mock_gen_url):
+        self.client.force_authenticate(user=self.superuser)
+        mock_gen_url.return_value = "https://r2.storage/signed-download-link"
+        backup = DatabaseBackup.objects.create(
+            filename="cloud.sql.gz",
+            s3_key="backups/cloud.sql.gz",
+            status="COMPLETED",
+        )
+        url = f"/api/v1/system/backups/{backup.id}/download/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertEqual(response.headers["Location"], "https://r2.storage/signed-download-link")
+
+    def test_download_action_requires_superuser(self):
+        self.client.force_authenticate(user=self.regular_user)
+        backup = DatabaseBackup.objects.create(
+            filename="auth_test.sql.gz",
+            s3_key="backups/auth_test.sql.gz",
+            status="COMPLETED",
+        )
+        response = self.client.get(f"/api/v1/system/backups/{backup.id}/download/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
