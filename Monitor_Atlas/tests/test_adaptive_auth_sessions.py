@@ -1177,13 +1177,21 @@ class AdaptiveAuthSessionsTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
 
-    def test_cookie_token_refresh_web_client_without_cookie_rejected(self):
-        """POST /api/v1/token/refresh/ with {"refresh": "<valid_refresh>"} without cookie and with web origin HTTP_ORIGIN="https://app.emasa.com"."""
+    def test_cookie_token_refresh_missing_cookie_and_body_rejected(self):
+        """POST /api/v1/token/refresh/ without cookie and without body refresh token returns 401."""
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post("/api/v1/token/refresh/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data.get("detail"), "Refresh token not found.")
+
+    def test_cookie_token_refresh_standard_body_success(self):
+        """POST /api/v1/token/refresh/ with {"refresh": "<valid_refresh>"} without cookie or custom headers succeeds."""
         refresh = RefreshToken.for_user(self.user_medium)
         session = UserSession.objects.create(
             user=self.user_medium,
             refresh_token_jti=str(refresh.get("jti")),
-            device_name="Web Browser",
+            device_name="Standard Client",
             is_active=True,
         )
         refresh["session_id"] = str(session.id)
@@ -1194,10 +1202,9 @@ class AdaptiveAuthSessionsTests(TestCase):
             "/api/v1/token/refresh/",
             {"refresh": str(refresh)},
             format="json",
-            HTTP_ORIGIN="https://app.emasa.com",
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(response.data.get("detail"), "Refresh token not found.")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
 
 
 

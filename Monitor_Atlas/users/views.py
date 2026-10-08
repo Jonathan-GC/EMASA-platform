@@ -744,14 +744,8 @@ class CookieTokenRefreshView(TokenRefreshView):
     )
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
-
-        if not refresh_token:
-            if is_capacitor_request(request):
-                refresh_token = (
-                    request.data.get("refresh")
-                    if hasattr(request, "data") and hasattr(request.data, "get")
-                    else None
-                )
+        if not refresh_token and hasattr(request, "data") and hasattr(request.data, "get"):
+            refresh_token = request.data.get("refresh")
 
         if not refresh_token:
             return Response(

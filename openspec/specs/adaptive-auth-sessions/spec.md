@@ -166,7 +166,7 @@ The system MUST provide REST endpoints:
 2. `POST /api/v1/users/sessions/{id}/revoke/`: revokes a specific session. The system MUST mark `is_active=False` and immediately blacklist the session's tokens.
 3. `POST /api/v1/users/sessions/revoke_others/`: revokes all active sessions belonging to the user except the caller's active session. The active session MUST be resolved primarily from the access token `session_id`, falling back to the refresh cookie JTI.
 4. `POST /api/v1/users/sessions/trust_current/`: marks the caller's active session as trusted. The active session MUST be resolved primarily from the access token `session_id`, falling back to the refresh cookie JTI.
-5. `POST /api/v1/users/token/refresh/` (`CookieTokenRefreshView`): refreshes JWT tokens. The view MUST inspect the `refresh_token` HttpOnly cookie. If the cookie is absent, the view SHALL accept `refresh` from the request JSON body ONLY IF the request is identified as originating from a Capacitor/mobile client (via `X-Client-Platform: capacitor` header or Capacitor origin `capacitor://localhost`, `http://localhost`, `https://localhost`, `ionic://localhost`). Web browser requests lacking cookies MUST be rejected with HTTP 401 Unauthorized.
+5. `POST /api/v1/users/token/refresh/` (`CookieTokenRefreshView`): refreshes JWT tokens. The view MUST inspect the `refresh_token` HttpOnly cookie or the request JSON body (`refresh`). If neither is present, the request MUST be rejected with HTTP 401 Unauthorized (`Refresh token not found.`).
 
 #### Scenario: Session record created on successful login
 - GIVEN a user completing authentication
@@ -200,18 +200,17 @@ The system MUST provide REST endpoints:
 - THEN the system MUST resolve the active session from the access token
 - AND update the session with a device trust token.
 
-#### Scenario: Capacitor client refreshes token using request body
-- GIVEN a Capacitor mobile client request to `POST /api/v1/users/token/refresh/`
+#### Scenario: Client refreshes token using request body
+- GIVEN a client request to `POST /api/v1/users/token/refresh/`
 - AND presenting a valid `refresh` token in the JSON request body without cookies
-- AND presenting `X-Client-Platform: capacitor` or a Capacitor origin
 - WHEN the request is processed
 - THEN the system MUST accept the refresh token from the body and issue new tokens.
 
-#### Scenario: Web client refresh without cookie is rejected
-- GIVEN a standard web client request to `POST /api/v1/users/token/refresh/` without a refresh cookie
-- AND without Capacitor identification headers or origins
+#### Scenario: Token refresh missing cookie and body is rejected
+- GIVEN a request to `POST /api/v1/users/token/refresh/` without a refresh token cookie
+- AND without a `refresh` token in the JSON request body
 - WHEN the request is processed
-- THEN the system MUST reject the request with HTTP 401 Unauthorized.
+- THEN the system MUST reject the request with HTTP 401 Unauthorized (`Refresh token not found.`).
 
 #### Scenario: Remote revocation of a specific session blacklists refresh token
 - GIVEN an active session "Session-Remote" belonging to the authenticated user
