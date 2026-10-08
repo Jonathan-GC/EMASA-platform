@@ -112,7 +112,7 @@ const icons = { ...{ close, checkmark, alertCircle }, ...inject('icons', {}) }
 const roleOptions = {
   support_agent: 'Agente de Soporte',
   support_manager: 'Gestor de Soporte',
-  technician: 'Técnico',
+  technician: 'Técnico de Soporte',
   other: 'Otro'
 }
 
@@ -157,7 +157,8 @@ const init = async () => {
   try {
     await Promise.all([fetchUsers(), fetchTenants()])
     if (isEdit.value && props.initialData) {
-      role.value = props.initialData.role || null
+      const r = props.initialData.role
+      role.value = r === 'support_technician' ? 'technician' : (r || null)
       scope.value = props.initialData.tenant ? String(props.initialData.tenant) : GLOBAL_SCOPE
     }
   } catch (err) {

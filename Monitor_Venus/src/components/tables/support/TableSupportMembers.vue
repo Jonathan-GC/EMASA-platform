@@ -38,7 +38,7 @@
 
             <!-- Desktop button -->
             <div v-if="!isMobile" class="desktop-controls">
-              <QuickControl :to-create="true" type="support_member" @itemCreated="fetchMembers" />
+              <QuickControl :to-create="true" :to-refresh="true" type="support_member" @itemCreated="fetchMembers" @refresh="fetchMembers" />
             </div>
           </div>
 
@@ -63,9 +63,14 @@
                 </ion-col>
               </ion-row>
 
-              <ion-row v-for="member in paginatedItems" :key="member.id" class="table-row-stylized">
+              <ion-row
+                v-for="member in paginatedItems"
+                :key="member.id"
+                class="table-row-stylized"
+                v-bind="getItemActivateProps(`/users/${member.user}`, { label: `Ver usuario ${member.username}` })"
+              >
                 <ion-col size="3">
-                  <div class="member-info clickable-member" @click="getCardClickHandler(`/users/${member.user}`)(event)">
+                  <div class="member-info clickable-member">
                     <ion-avatar class="table-avatar">
                       <img :alt="member.username" :src="member.img || AvatarSVG" />
                     </ion-avatar>
@@ -78,7 +83,7 @@
                   <span class="member-username">@{{ member.username }}</span>
                 </ion-col>
                 <ion-col size="2">
-                  <ion-chip :color="roleColor(member.role)">
+                  <ion-chip class="role-chip--dark">
                     {{ roleLabel(member.role) }}
                   </ion-chip>
                 </ion-col>
@@ -108,7 +113,13 @@
 
           <!-- Mobile cards -->
           <div v-else class="mobile-cards">
-            <ion-card v-for="member in paginatedItems" :key="member.id" class="member-card" :class="getCardClass(true)" @click="getCardClickHandler(`/users/${member.user}`)(event)">
+            <ion-card
+              v-for="member in paginatedItems"
+              :key="member.id"
+              class="member-card"
+              :class="getCardClass(true)"
+              v-bind="getItemActivateProps(`/users/${member.user}`, { label: `Ver usuario ${member.username}` })"
+            >
               <ion-card-content>
                 <div class="card-header">
                   <ion-avatar class="card-avatar">
@@ -118,15 +129,23 @@
                     <h3 class="card-title">{{ member.fullName }}</h3>
                     <p class="card-subtitle">@{{ member.username }}</p>
                   </div>
-                  <ion-chip :color="roleColor(member.role)" class="card-chip">
-                    {{ roleLabel(member.role) }}
-                  </ion-chip>
                 </div>
 
                 <div class="card-details">
                   <div class="card-detail-row">
+                    <span class="detail-label">Rol:</span>
+                    <span class="detail-value">
+                      <ion-chip size="small" class="role-chip--dark">
+                        {{ roleLabel(member.role) }}
+                      </ion-chip>
+                    </span>
+                  </div>
+
+                  <div class="card-detail-row">
                     <span class="detail-label">Alcance:</span>
-                    <span class="detail-value">{{ member.tenantName }}</span>
+                    <span class="detail-value">
+                      <ion-chip size="small" color="primary">{{ member.tenantName }}</ion-chip>
+                    </span>
                   </div>
                 </div>
 
@@ -168,6 +187,13 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons
+      entity-type="support_member"
+      @refresh="fetchMembers"
+      @itemCreated="fetchMembers"
+    />
   </div>
 </template>
 
@@ -185,7 +211,7 @@ import AvatarSVG from '@assets/svg/Avatar.svg'
 const icons = { ...{ people, chevronBack, chevronForward, alertCircle }, ...inject('icons', {}) }
 
 const { isMobile } = useResponsiveView(768)
-const { getCardClickHandler, getCardClass } = useCardNavigation()
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 const members = ref([])
 const loading = ref(false)
@@ -194,19 +220,12 @@ const error = ref(null)
 const roleLabels = {
   support_agent: 'Agente de Soporte',
   support_manager: 'Gestor de Soporte',
-  technician: 'Técnico',
+  technician: 'Técnico de Soporte',
+  support_technician: 'Técnico de Soporte', // defensive read alias (not from backend)
   other: 'Otro'
 }
 
-const roleColors = {
-  support_agent: 'medium',
-  support_manager: 'secondary',
-  technician: 'success',
-  other: 'medium'
-}
-
 const roleLabel = (role) => roleLabels[role] || role || 'Desconocido'
-const roleColor = (role) => roleColors[role] || 'medium'
 
 const toList = (res) => Array.isArray(res) ? res : (res?.results || res?.data || [])
 
@@ -311,6 +330,14 @@ onMounted(() => {
 .table-row-stylized {
   border-bottom: 1px solid var(--ion-color-light-shade);
   transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
 }
 
 .table-row-stylized:hover {
@@ -389,9 +416,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ion-color-light);
 }
 
 .card-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
   --background: var(--ion-color-primary);
   color: #fff;
   font-weight: 600;
@@ -405,34 +438,58 @@ onMounted(() => {
 .card-title {
   margin: 0;
   font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .card-subtitle {
-  margin: 2px 0 0;
+  margin: 4px 0 0 0;
   color: var(--ion-color-medium);
   font-size: 0.85rem;
 }
 
+.card-chip {
+  flex-shrink: 0;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
 .card-details {
-  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .card-detail-row {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
 }
 
 .detail-label {
   color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.detail-value {
+  color: var(--ion-color-dark);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
 }
 
 .pagination {
@@ -479,5 +536,18 @@ onMounted(() => {
   justify-content: center;
   gap: 12px;
   padding: 40px;
+}
+
+ion-chip.role-chip--dark {
+  --background: #27272a; /* zinc-800 */
+  --color: #ffffff;
+  --background-activated: #27272a;
+  color: #ffffff;
+}
+
+ion-chip.role-chip--dark:hover,
+ion-chip.role-chip--dark:focus {
+  --background: #3f3f46; /* zinc-700 */
+  color: #ffffff;
 }
 </style>
