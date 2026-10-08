@@ -411,6 +411,85 @@ REFRESH_COOKIE_PATH = settings.REFRESH_COOKIE_PATH
 # ============================================================================
 
 
+def is_capacitor_request(request) -> bool:
+    """
+    Checks if the request originates from a Capacitor/Ionic mobile application.
+    """
+    if not hasattr(request, "META"):
+        return False
+
+    platform = request.META.get("HTTP_X_CLIENT_PLATFORM", "").lower()
+    if platform in ("capacitor", "mobile", "ios", "android"):
+        return True
+
+    origin = request.META.get("HTTP_ORIGIN", "").lower()
+    if (
+        origin.startswith("capacitor://")
+        or origin.startswith("ionic://")
+        or origin in ("http://localhost", "https://localhost")
+        or origin.rstrip("/") in ("http://localhost", "https://localhost")
+    ):
+        return True
+
+    x_requested_with = request.META.get("HTTP_X_REQUESTED_WITH", "").lower()
+    if "emasa" in x_requested_with:
+        return True
+
+    return False
+
+
+def get_current_session_for_request(request):
+    """
+    Resolves active UserSession for user.
+    Primary: request.auth.payload.get("session_id") from validated access token (if user is authenticated).
+    Fallback: request.COOKIES.get(REFRESH_COOKIE_NAME) JTI.
+    """
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return None
+
+    # Primary: session_id from validated access token
+    auth = getattr(request, "auth", None)
+    if auth is not None:
+        payload = getattr(auth, "payload", None)
+        session_id = None
+        if isinstance(payload, dict):
+            session_id = payload.get("session_id")
+        elif hasattr(auth, "get"):
+            session_id = auth.get("session_id")
+
+        if session_id:
+            session = user.sessions.filter(id=session_id, is_active=True).first()
+            if session:
+                return session
+
+    # Fallback: request.COOKIES.get(REFRESH_COOKIE_NAME) JTI
+    cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", REFRESH_COOKIE_NAME)
+    if hasattr(request, "COOKIES"):
+        refresh_token = request.COOKIES.get(cookie_name)
+        if refresh_token:
+            try:
+                token_obj = RefreshToken(refresh_token)
+                current_jti = str(token_obj.get("jti"))
+                if current_jti:
+                    session = user.sessions.filter(
+                        refresh_token_jti=current_jti, is_active=True
+                    ).first()
+                    if session:
+                        return session
+                sess_id = token_obj.payload.get("session_id")
+                if sess_id:
+                    session = user.sessions.filter(
+                        id=sess_id, is_active=True
+                    ).first()
+                    if session:
+                        return session
+            except Exception:
+                pass
+
+    return None
+
+
 def conditional_csrf_protect(view_func):
     """
     Decorator that applies CSRF protection only for web browsers.
@@ -430,7 +509,8 @@ def conditional_csrf_protect(view_func):
         x_requested_with = request.META.get("HTTP_X_REQUESTED_WITH", "").lower()
 
         is_native_app = (
-            "capacitor" in user_agent
+            is_capacitor_request(request)
+            or "capacitor" in user_agent
             or "ionic" in user_agent
             or "capacitor://" in origin
             or "ionic://" in origin
@@ -441,8 +521,6 @@ def conditional_csrf_protect(view_func):
 
         if is_native_app:
             logger.info(f"🔓 Native app detected - CSRF exempt | UA: {user_agent[:50]}")
-
-        if is_native_app:
             return view_func(request, *args, **kwargs)
 
         logger.info("🔒 Web browser detected - CSRF protection applied")
@@ -666,6 +744,14 @@ class CookieTokenRefreshView(TokenRefreshView):
     )
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
+
+        if not refresh_token:
+            if is_capacitor_request(request):
+                refresh_token = (
+                    request.data.get("refresh")
+                    if hasattr(request, "data") and hasattr(request.data, "get")
+                    else None
+                )
 
         if not refresh_token:
             return Response(
@@ -2428,13 +2514,19 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
-        refresh_token = self.request.COOKIES.get(cookie_name)
-        if refresh_token:
-            try:
-                context["current_jti"] = str(RefreshToken(refresh_token).get("jti"))
-            except Exception:
-                pass
+        session = get_current_session_for_request(self.request)
+        if session:
+            context["current_session_id"] = str(session.id)
+            context["current_jti"] = session.refresh_token_jti
+        else:
+            cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+            if hasattr(self.request, "COOKIES"):
+                refresh_token = self.request.COOKIES.get(cookie_name)
+                if refresh_token:
+                    try:
+                        context["current_jti"] = str(RefreshToken(refresh_token).get("jti"))
+                    except Exception:
+                        pass
         return context
 
     @action(detail=True, methods=["post"])
@@ -2447,20 +2539,10 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["post"])
     def revoke_others(self, request):
-        cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
-        refresh_token = request.COOKIES.get(cookie_name)
-        current_jti = None
-        if refresh_token:
-            try:
-                current_jti = str(RefreshToken(refresh_token).get("jti"))
-            except Exception:
-                pass
-
+        current_session = get_current_session_for_request(request)
         sessions_to_revoke = request.user.sessions.filter(is_active=True)
-        if current_jti:
-            sessions_to_revoke = sessions_to_revoke.exclude(
-                refresh_token_jti=current_jti
-            )
+        if current_session:
+            sessions_to_revoke = sessions_to_revoke.exclude(id=current_session.id)
 
         for sess in sessions_to_revoke:
             _blacklist_session_tokens(sess)
@@ -2483,20 +2565,7 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["post"])
     def trust_current(self, request):
-        cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
-        refresh_token = request.COOKIES.get(cookie_name)
-        current_jti = None
-        if refresh_token:
-            try:
-                current_jti = str(RefreshToken(refresh_token).get("jti"))
-            except Exception:
-                pass
-
-        session = None
-        if current_jti:
-            session = request.user.sessions.filter(
-                refresh_token_jti=current_jti, is_active=True
-            ).first()
+        session = get_current_session_for_request(request)
 
         if not session:
             return Response(

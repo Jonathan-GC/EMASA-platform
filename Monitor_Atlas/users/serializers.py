@@ -831,20 +831,40 @@ class UserSessionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_is_current(self, obj):
+        current_session_id = self.context.get("current_session_id")
+        if current_session_id and str(current_session_id) == str(obj.id):
+            return True
+
         current_jti = self.context.get("current_jti")
-        if current_jti:
-            return obj.refresh_token_jti == current_jti
+        if current_jti and obj.refresh_token_jti and current_jti == obj.refresh_token_jti:
+            return True
+
         request = self.context.get("request")
-        if request and hasattr(request, "COOKIES"):
-            cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
-            refresh_token = request.COOKIES.get(cookie_name)
-            if refresh_token:
-                try:
-                    from rest_framework_simplejwt.tokens import RefreshToken
-                    token_obj = RefreshToken(refresh_token)
-                    return obj.refresh_token_jti == str(token_obj.get("jti"))
-                except Exception:
-                    pass
+        if request:
+            auth = getattr(request, "auth", None)
+            if auth is not None:
+                payload = getattr(auth, "payload", None)
+                sess_id = None
+                if isinstance(payload, dict):
+                    sess_id = payload.get("session_id")
+                elif hasattr(auth, "get"):
+                    sess_id = auth.get("session_id")
+                if sess_id and str(sess_id) == str(obj.id):
+                    return True
+
+            if hasattr(request, "COOKIES"):
+                cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+                refresh_token = request.COOKIES.get(cookie_name)
+                if refresh_token:
+                    try:
+                        from rest_framework_simplejwt.tokens import RefreshToken
+
+                        token_obj = RefreshToken(refresh_token)
+                        if obj.refresh_token_jti and obj.refresh_token_jti == str(token_obj.get("jti")):
+                            return True
+                    except Exception:
+                        pass
+
         return False
 
 

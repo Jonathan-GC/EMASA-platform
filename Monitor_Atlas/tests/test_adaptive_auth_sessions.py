@@ -1018,5 +1018,186 @@ class AdaptiveAuthSessionsTests(TestCase):
         self.assertNotIn("access", resp_suspicious.data)
         mock_send_email.assert_called_once()
 
+    def test_user_session_listing_via_bearer_token_without_cookie(self):
+        """User with multiple sessions calls GET /api/v1/users/sessions/ using HTTP_AUTHORIZATION=Bearer <access_token> without cookies."""
+        sess_current = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_cur_list",
+            device_name="Current Laptop",
+            is_active=True,
+        )
+        sess_other = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_oth_list",
+            device_name="Mobile Phone",
+            is_active=True,
+        )
+
+        refresh = RefreshToken.for_user(self.user_medium)
+        refresh["session_id"] = str(sess_current.id)
+        access = refresh.access_token
+        access["session_id"] = str(sess_current.id)
+
+        sess_current.refresh_token_jti = str(refresh.get("jti"))
+        sess_current.access_token_jti = str(access.get("jti"))
+        sess_current.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.get(
+            "/api/v1/users/sessions/",
+            HTTP_AUTHORIZATION=f"Bearer {str(access)}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sessions_data = (
+            response.data
+            if isinstance(response.data, list)
+            else response.data.get("results", [])
+        )
+        self.assertEqual(len(sessions_data), 2)
+
+        data_current = next(s for s in sessions_data if s["id"] == str(sess_current.id))
+        data_other = next(s for s in sessions_data if s["id"] == str(sess_other.id))
+
+        self.assertTrue(data_current["is_current"])
+        self.assertFalse(data_other["is_current"])
+
+    def test_user_session_revoke_others_via_bearer_token_without_cookie(self):
+        """User calls POST /api/v1/users/sessions/revoke_others/ using HTTP_AUTHORIZATION=Bearer <access_token> without cookies."""
+        sess_current = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_cur_rev",
+            device_name="Current PC",
+            is_active=True,
+        )
+        sess_other = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_oth_rev",
+            device_name="Remote PC",
+            is_active=True,
+        )
+
+        refresh = RefreshToken.for_user(self.user_medium)
+        refresh["session_id"] = str(sess_current.id)
+        access = refresh.access_token
+        access["session_id"] = str(sess_current.id)
+
+        sess_current.refresh_token_jti = str(refresh.get("jti"))
+        sess_current.access_token_jti = str(access.get("jti"))
+        sess_current.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/users/sessions/revoke_others/",
+            HTTP_AUTHORIZATION=f"Bearer {str(access)}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sess_current.refresh_from_db()
+        sess_other.refresh_from_db()
+
+        self.assertTrue(sess_current.is_active)
+        self.assertFalse(sess_other.is_active)
+
+    def test_user_session_trust_current_via_bearer_token_without_cookie(self):
+        """User calls POST /api/v1/users/sessions/trust_current/ using HTTP_AUTHORIZATION=Bearer <access_token> without cookies."""
+        sess_current = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_cur_trust",
+            device_name="Current Device",
+            is_active=True,
+        )
+
+        refresh = RefreshToken.for_user(self.user_medium)
+        refresh["session_id"] = str(sess_current.id)
+        access = refresh.access_token
+        access["session_id"] = str(sess_current.id)
+
+        sess_current.refresh_token_jti = str(refresh.get("jti"))
+        sess_current.access_token_jti = str(access.get("jti"))
+        sess_current.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/users/sessions/trust_current/",
+            {"trust": True},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {str(access)}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get("device_trusted"))
+
+        sess_current.refresh_from_db()
+        self.assertIsNotNone(sess_current.trust_hash)
+
+    def test_cookie_token_refresh_capacitor_body_fallback(self):
+        """POST /api/v1/token/refresh/ with {"refresh": "<valid_refresh>"} without cookie, but with HTTP_X_CLIENT_PLATFORM="capacitor"."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=str(refresh.get("jti")),
+            device_name="Capacitor Device",
+            is_active=True,
+        )
+        refresh["session_id"] = str(session.id)
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/token/refresh/",
+            {"refresh": str(refresh)},
+            format="json",
+            HTTP_X_CLIENT_PLATFORM="capacitor",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+    def test_cookie_token_refresh_capacitor_origin_fallback(self):
+        """POST /api/v1/token/refresh/ with {"refresh": "<valid_refresh>"} without cookie, but with HTTP_ORIGIN="capacitor://localhost"."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=str(refresh.get("jti")),
+            device_name="Capacitor Device",
+            is_active=True,
+        )
+        refresh["session_id"] = str(session.id)
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/token/refresh/",
+            {"refresh": str(refresh)},
+            format="json",
+            HTTP_ORIGIN="capacitor://localhost",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+    def test_cookie_token_refresh_web_client_without_cookie_rejected(self):
+        """POST /api/v1/token/refresh/ with {"refresh": "<valid_refresh>"} without cookie and with web origin HTTP_ORIGIN="https://app.emasa.com"."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=str(refresh.get("jti")),
+            device_name="Web Browser",
+            is_active=True,
+        )
+        refresh["session_id"] = str(session.id)
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/token/refresh/",
+            {"refresh": str(refresh)},
+            format="json",
+            HTTP_ORIGIN="https://app.emasa.com",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data.get("detail"), "Refresh token not found.")
+
 
 
