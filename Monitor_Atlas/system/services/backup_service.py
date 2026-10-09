@@ -137,10 +137,13 @@ class BackupService:
 
     def is_r2_configured(self) -> bool:
         """
-        Checks that settings.R2_ACCESS_KEY_ID, settings.R2_SECRET_ACCESS_KEY,
-        settings.R2_ENDPOINT_URL, and settings.R2_BUCKET_NAME are all configured,
-        truthy, non-empty strings.
+        Checks that settings.USE_R2 is True and that settings.R2_ACCESS_KEY_ID,
+        settings.R2_SECRET_ACCESS_KEY, settings.R2_ENDPOINT_URL, and settings.R2_BUCKET_NAME
+        are all configured, truthy, non-empty strings.
         """
+        if not getattr(settings, "USE_R2", False):
+            return False
+
         required_keys = [
             "R2_ACCESS_KEY_ID",
             "R2_SECRET_ACCESS_KEY",

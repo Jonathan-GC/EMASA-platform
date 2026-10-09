@@ -101,6 +101,7 @@ class BackupServiceTests(TestCase):
         self.assertIn("exceeded 2-hour timeout", stale_backup.error_message)
         self.assertIsNotNone(stale_backup.completed_at)
 
+    @override_settings(USE_R2=True)
     @patch("system.services.backup_service.subprocess.Popen")
     @patch.object(BackupService, "_get_r2_client")
     def test_create_backup_success(self, mock_get_client, mock_popen):
@@ -139,6 +140,7 @@ class BackupServiceTests(TestCase):
         uploaded_stream = mock_client.upload_fileobj.call_args[0][0]
         self.assertIsInstance(uploaded_stream, GzipHashingStream)
 
+    @override_settings(USE_R2=True)
     @patch("system.services.backup_service.subprocess.Popen")
     @patch.object(BackupService, "_get_r2_client")
     def test_create_backup_failure_teardown(self, mock_get_client, mock_popen):
@@ -161,6 +163,7 @@ class BackupServiceTests(TestCase):
         self.assertIn("connection error to server", failed_backup.error_message)
         mock_client.delete_object.assert_called_once()
 
+    @override_settings(USE_R2=True)
     @patch.object(BackupService, "_get_r2_client")
     def test_generate_presigned_download_url_success(self, mock_get_client):
         mock_client = MagicMock()
@@ -192,6 +195,7 @@ class BackupServiceTests(TestCase):
         with self.assertRaises(ValueError):
             self.service.generate_presigned_download_url(failed_backup)
 
+    @override_settings(USE_R2=True)
     @patch.object(BackupService, "_get_r2_client")
     def test_delete_backup_success(self, mock_get_client):
         mock_client = MagicMock()
@@ -282,6 +286,7 @@ class BackupServiceTests(TestCase):
         self.assertIn("duration_seconds", result)
 
     @override_settings(
+        USE_R2=True,
         R2_ACCESS_KEY_ID="test_key",
         R2_SECRET_ACCESS_KEY="test_secret",
         R2_ENDPOINT_URL="https://account.r2.cloudflarestorage.com",
@@ -289,6 +294,16 @@ class BackupServiceTests(TestCase):
     )
     def test_is_r2_configured_returns_true_when_configured(self):
         self.assertTrue(self.service.is_r2_configured())
+
+    @override_settings(
+        USE_R2=False,
+        R2_ACCESS_KEY_ID="test_key",
+        R2_SECRET_ACCESS_KEY="test_secret",
+        R2_ENDPOINT_URL="https://account.r2.cloudflarestorage.com",
+        R2_BUCKET_NAME="test-bucket",
+    )
+    def test_is_r2_configured_returns_false_when_use_r2_is_false(self):
+        self.assertFalse(self.service.is_r2_configured())
 
     @override_settings(
         R2_ACCESS_KEY_ID=None,
