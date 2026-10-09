@@ -476,7 +476,7 @@ defineExpose({ fetchBackups })
 
 <style scoped>
 .table-card {
-  margin: 16px;
+  margin: 0 auto;
 }
 
 ion-card-header {
@@ -836,7 +836,7 @@ ion-card-subtitle {
 
 @media (max-width: 768px) {
   .table-card {
-    margin: 8px;
+    margin: 0 auto;
   }
 
   .pagination {
