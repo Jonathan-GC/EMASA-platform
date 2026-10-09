@@ -7,7 +7,7 @@
             <ion-back-button default-href="/home"></ion-back-button>
             <h1>
               <ion-icon :icon="icons.server"></ion-icon>
-              Backups de Base de Datos
+              Backups
             </h1>
           </div>
         </div>

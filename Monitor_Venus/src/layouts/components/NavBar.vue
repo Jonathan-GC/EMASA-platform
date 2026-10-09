@@ -89,7 +89,7 @@
             <ion-icon
                 :icon="icons.server"
             ></ion-icon>
-            Backups BD
+            Backups
           </router-link>
         </template>
         
