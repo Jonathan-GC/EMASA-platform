@@ -48,7 +48,7 @@
                 type="backup"
                 :toCreate="true"
                 :toRefresh="true"
-                :toClear="true"
+                :toClear="hasFilters"
                 @refresh="fetchBackups"
                 @clear="clearFilters"
                 @itemCreated="fetchBackups"
@@ -248,7 +248,7 @@
     <FloatingActionButtons
       entity-type="backup"
       show-filter
-      show-clear
+      :show-clear="hasFilters"
       @refresh="fetchBackups"
       @clear="clearFilters"
       @filter="openFiltersModal"
@@ -283,6 +283,10 @@ const polling = ref(false)
 const statusFilter = ref('')
 const triggerTypeFilter = ref('')
 const orderingFilter = ref('-created_at')
+
+const hasFilters = computed(() =>
+  statusFilter.value !== '' || triggerTypeFilter.value !== ''
+)
 
 let pollTimer = null
 
@@ -429,17 +433,36 @@ const closeDetail = () => { selectedBackup.value = null }
 const openFiltersModal = () => { isFiltersModalOpen.value = true }
 const closeFiltersModal = () => { isFiltersModalOpen.value = false }
 
+const triggerBrowserDownload = (blob, filename) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 const downloadBackup = async (backup) => {
   try {
     const resp = await API.post(API.BACKUP_DOWNLOAD_URL(backup.id), {})
     const payload = Array.isArray(resp) ? resp[0] : resp
-    if (payload.download_url) {
-      window.open(payload.download_url, '_blank')
-      const toast = await toastController.create({ message: 'URL de descarga generada (válida 15 min)', duration: 2500, color: 'success', position: 'bottom' })
-      toast.present()
-      return
+    const downloadUrl = payload.download_url
+    if (!downloadUrl) throw new Error('URL no disponible')
+
+    const filename = payload.filename || backup.filename || 'backup.dump'
+
+    if (/^https?:\/\//.test(downloadUrl)) {
+      window.open(downloadUrl, '_blank')
+    } else {
+      // Vía local (cloud storage no configurada): traer con auth como blob
+      const endpoint = downloadUrl.replace(/^\/api\/v1\//, '')
+      const blob = await API.get(endpoint, {}, { responseType: 'blob' })
+      triggerBrowserDownload(blob, filename)
     }
-    throw new Error('URL no disponible')
+    const toast = await toastController.create({ message: 'Descarga iniciada', duration: 2500, color: 'success', position: 'bottom' })
+    toast.present()
   } catch (err) {
     const toast = await toastController.create({ message: err.message || 'Error al generar URL', duration: 3000, color: 'danger', position: 'bottom' })
     toast.present()
@@ -592,8 +615,6 @@ ion-card-subtitle {
 }
 
 .table-header {
-  background: var(--ion-color-light-tint, #f3f4f6);
-  border-bottom: 2px solid var(--ion-color-medium);
   font-weight: 600;
 }
 

@@ -318,9 +318,7 @@ onMounted(() => {
 }
 
 .table-header {
-  background-color: var(--ion-color-light);
   font-weight: 600;
-  border-bottom: 2px solid var(--ion-color-medium);
 }
 
 .table-header ion-col {

@@ -55,7 +55,7 @@
               <input v-model="endDate" type="datetime-local" @change="triggerFetch" class="date-input" />
             </label>
             <div class="filter-actions">
-              <QuickControl type="audit" :toRefresh="true" :toClear="true" @refresh="fetchLogs" @clear="clearFilters" />
+              <QuickControl type="audit" :toRefresh="true" :toClear="hasFilters" @refresh="fetchLogs" @clear="clearFilters" />
             </div>
           </div>
         </div>
@@ -380,7 +380,7 @@
       entity-type="audit"
       :show-create="false"
       show-filter
-      show-clear
+      :show-clear="hasFilters"
       @refresh="fetchLogs"
       @clear="clearFilters"
       @filter="openFiltersModal"
@@ -415,6 +415,17 @@ const modelFilter = ref('')
 const objectPkFilter = ref('')
 const startDate = ref('')
 const endDate = ref('')
+
+const hasFilters = computed(() =>
+  searchText.value !== '' ||
+  actionFilter.value !== null ||
+  actorFilter.value !== '' ||
+  appFilter.value !== '' ||
+  modelFilter.value !== '' ||
+  objectPkFilter.value !== '' ||
+  startDate.value !== '' ||
+  endDate.value !== ''
+)
 const appsMeta = ref([])
 
 let debounceTimer = null
@@ -738,15 +749,23 @@ ion-card-subtitle {
 }
 
 .table-header {
-  background: var(--ion-color-light-tint, #f3f4f6);
-  border-bottom: 2px solid var(--ion-color-medium);
   font-weight: 600;
+}
+
+.table-header ion-col {
+  padding: 16px 12px;
 }
 
 .log-row {
   cursor: pointer;
   border-bottom: 1px solid var(--ion-color-light-shade, #e5e7eb);
   transition: background-color 0.15s ease;
+}
+
+.log-row ion-col {
+  padding: 12px;
+  display: flex;
+  align-items: center;
 }
 
 .log-row:hover {
