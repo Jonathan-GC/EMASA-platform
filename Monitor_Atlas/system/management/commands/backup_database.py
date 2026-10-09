@@ -21,13 +21,17 @@ class Command(BaseCommand):
         service = BackupService()
         try:
             backup = service.create_backup(trigger_type="MANUAL_CLI", notes=notes)
-            self.stdout.write(self.style.SUCCESS("Database backup completed successfully!"))
+            self.stdout.write(
+                self.style.SUCCESS("Database backup completed successfully!")
+            )
             self.stdout.write("=" * 60)
             self.stdout.write(f"Backup ID:          {backup.id}")
             self.stdout.write(f"Filename:           {backup.filename}")
             self.stdout.write(f"S3 Key:             {backup.s3_key}")
             self.stdout.write(f"Status:             {backup.status}")
-            self.stdout.write(f"Size:               {backup.size_formatted} ({backup.size_bytes} bytes)")
+            self.stdout.write(
+                f"Size:               {backup.size_formatted} ({backup.size_bytes} bytes)"
+            )
             self.stdout.write(f"SHA-256 Checksum:   {backup.checksum_sha256}")
             self.stdout.write(f"Execution Duration: {backup.duration_seconds}s")
             if backup.notes:
