@@ -4,8 +4,8 @@
     Clear button (toClear):
     Emits 'clear' so the parent table resets its search/filters.
   -->
-  <ion-button v-if="toClear" fill="outline" shape="round" class="mx-2" @click="$emit('clear')">
-    <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+  <ion-button v-if="toClear" fill="clear" shape="round" class="mx-2" @click="$emit('clear')">
+    <ion-icon :icon="icons.funnel_clear" slot="icon-only"></ion-icon>
   </ion-button>
 
   <!--
@@ -13,7 +13,7 @@
     Emits 'refresh' so the parent table reloads its data.
   -->
   <ion-button v-if="toRefresh" fill="clear" shape="round" class="mx-2 quick-control-refresh" @click="$emit('refresh')">
-    <ion-icon :icon="refreshOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.refresh" slot="icon-only"></ion-icon>
   </ion-button>
 
   <!--
@@ -22,7 +22,7 @@
   -->
   
   <ion-button color="secondary" v-if="toCreate && canCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
-    <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.add" slot="icon-only"></ion-icon>
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
@@ -34,7 +34,7 @@
   </ion-button>
 
   <ion-button color="primary" v-if="toInitial && canCreate" fill="solid" shape="round" class="mx-2" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
-    <ion-icon :icon="addOutline" slot="start"></ion-icon>
+    <ion-icon :icon="icons.add" slot="start"></ion-icon>
     {{ text }}
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
@@ -51,7 +51,7 @@
     Opens a modal containing the appropriate edit form component.
   -->
   <ion-button v-if="toEdit && canEdit" fill="outline" class="mx-2" @click="overlayEdit = !overlayEdit; selectedAction = 'update';">
-    <ion-icon :icon="pencilOutline" slot="start"></ion-icon>
+    <ion-icon :icon="icons.edit" slot="start"></ion-icon>
     Editar
     <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
       <ion-content>
@@ -68,7 +68,6 @@
 <script lang="ts">
 import { defineComponent, inject } from 'vue';
 import { IonButton, IonIcon, IonModal, IonContent, IonSpinner } from '@ionic/vue';
-import { addOutline, pencilOutline, refreshOutline, closeOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from  '@utils/forms/form-types/formsTypes';
 import { useAuthStore } from '@/stores/authStore'
@@ -163,11 +162,9 @@ export default defineComponent({
 
   setup() {
     const authStore = useAuthStore();
+    const icons = inject('icons', {});
     return {
-      addOutline,
-      pencilOutline,
-      refreshOutline,
-      closeOutline,
+      icons,
       authStore
     };
   },

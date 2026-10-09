@@ -6,15 +6,15 @@
   -->
  <ion-buttons>
    <ion-button v-if="toView && typeof toView === 'string'" fill="clear" size="small" :router-link="toView" title="ver">
-    <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.eye" slot="icon-only"></ion-icon>
   </ion-button>
   
    <ion-button v-else-if="toView" fill="clear" size="small" @click="handleViewClick" title="ver">
-    <ion-icon :icon="eyeOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.eye" slot="icon-only"></ion-icon>
   </ion-button>
 
   <ion-button v-if="toCreate && canPerformAction" fill="clear" class="mx-2 rounded-full" @click="overlayCreate = !overlayCreate ; selectedAction = 'create'">
-    <ion-icon :icon="addOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.add" slot="icon-only"></ion-icon>
     Agregar
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
@@ -31,7 +31,7 @@
     Displays a key icon that emits permissions-clicked event.
   -->
   <ion-button v-if="toPermissions && canPerformAction" fill="clear" size="small" @click="handlePermissionsClick" title="permisos">
-    <ion-icon :icon="keyOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.key" slot="icon-only"></ion-icon>
   </ion-button>
 
   <!--
@@ -39,7 +39,7 @@
     Displays a person-add icon that emits membership-clicked event.
   -->
   <ion-button v-if="toMembership && canPerformAction" fill="clear" size="small" @click="handleMembershipClick" title="miembros">
-    <ion-icon :icon="personAddOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.person_add" slot="icon-only"></ion-icon>
   </ion-button>
 
   <!--
@@ -47,7 +47,7 @@
     Opens a modal containing FormUpdateGeneral to update the item.
   -->
   <ion-button v-if="toEdit && canPerformAction" fill="clear" size="small" class="action edit" @click="overlayEdit = !overlayEdit; selectedAction = 'update';" title="editar">
-    <ion-icon :icon="createOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.edit" slot="icon-only"></ion-icon>
     <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
@@ -66,7 +66,7 @@
     Opens a modal with FormDeleteGeneral to perform a delete action.
   -->
   <ion-button v-if="toToggle && canPerformAction" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'toggle'" :title="$props.status ? 'desactivar' : 'activar'">
-    <ion-icon :icon="$props.status ? closeCircleOutline: checkmarkCircleOutline" slot="icon-only"></ion-icon> 
+    <ion-icon :icon="$props.status ? icons.error : icons.success" slot="icon-only"></ion-icon> 
     <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
@@ -85,7 +85,7 @@
     Opens a modal with FormDeleteGeneral to perform a delete action.
   -->
   <ion-button v-if="toDelete && canPerformAction" fill="clear" size="small" class="action delete" @click="overlayDelete = !overlayDelete ; selectedAction = 'delete'" title="eliminar">
-    <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
+    <ion-icon :icon="icons.delete" slot="icon-only"></ion-icon>
     <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
@@ -104,9 +104,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, inject } from 'vue';
 import { IonButton, IonIcon, IonModal, IonContent, IonSpinner, IonButtons } from '@ionic/vue';
-import { eyeOutline, addOutline, createOutline, trashOutline, keyOutline, personAddOutline, closeCircleOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { FormFactory } from '@utils/forms/FormFactory';
 import type { ActionType, EntityType } from '@utils/forms/form-types/formsTypes';
 import { useAuthStore } from '@/stores/authStore'
@@ -203,15 +202,9 @@ export default defineComponent({
   },
   setup() {
     const authStore = useAuthStore()
+    const icons = inject('icons', {})
     return {
-      eyeOutline,
-      addOutline,
-      createOutline,
-      trashOutline,
-      keyOutline,
-      personAddOutline,
-      closeCircleOutline,
-      checkmarkCircleOutline,
+      icons,
       authStore
     };
   },

@@ -9,7 +9,7 @@
       aria-label="Limpiar filtros"
       @click="$emit('clear')"
     >
-      <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+      <ion-icon :icon="icons.funnel_clear" slot="icon-only"></ion-icon>
     </ion-button>
 
     <ion-button
@@ -21,7 +21,7 @@
       aria-label="Filtros"
       @click="$emit('filter')"
     >
-      <ion-icon :icon="optionsOutline" slot="icon-only"></ion-icon>
+      <ion-icon :icon="icons.funnel" slot="icon-only"></ion-icon>
     </ion-button>
 
     <QuickControl 
@@ -35,13 +35,13 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { optionsOutline, closeOutline } from 'ionicons/icons'
+import { computed, inject } from 'vue'
 import QuickControl from './quickControl.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useResponsiveView } from '@/composables/useResponsiveView.js'
 
 const authStore = useAuthStore()
+const icons = inject('icons', {})
 
 // Props
 const props = defineProps({

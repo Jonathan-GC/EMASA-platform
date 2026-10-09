@@ -135,7 +135,7 @@ import {
   locateOutline,
   shapesOutline,
   calendarOutline,
-  pricetagOutline
+  pricetagOutline,
 } from 'ionicons/icons'
 
 // Custom SVG icon
@@ -147,7 +147,8 @@ import antenna from '@assets/icons/antenna.svg'
 import functionIco from '@assets/icons/function.svg'
 import target from '@assets/icons/target.svg'
 import voltage from '@assets/icons/voltage.svg'
-
+import funnel from '@assets/icons/funnel.svg'
+import funnelClear from '@assets/icons/funnel_clear.svg'
 
 export const icons = {
   // Action icons
@@ -294,7 +295,9 @@ export const icons = {
   'locate': locateOutline,
   'shapes': shapesOutline,
   'calendar': calendarOutline,
-  'pricetag': pricetagOutline 
+  'pricetag': pricetagOutline,
+  'funnel': funnel,
+  'funnel_clear': funnelClear,
 }
 
 // Helper function to get icon by name
