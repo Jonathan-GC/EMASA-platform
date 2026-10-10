@@ -428,19 +428,50 @@ class BackupService:
             if db_password:
                 env["PGPASSWORD"] = db_password
 
-            cmd = ["psql", "-h", host, "-p", port, "-U", db_user, "-d", dbname]
-            with gzip.open(local_archive_path, "rb") as gz_in:
-                proc = subprocess.Popen(
-                    cmd,
-                    stdin=gz_in,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    env=env,
-                )
-                stdout, stderr = proc.communicate()
-                if proc.returncode != 0:
-                    err_msg = stderr.decode("utf-8", errors="replace") if stderr else ""
-                    raise RestoreExecutionError(f"psql restore failed with code {proc.returncode}: {err_msg}")
+            cmd = [
+                "psql",
+                "-h", host,
+                "-p", port,
+                "-U", db_user,
+                "-d", dbname,
+                "-v", "ON_ERROR_STOP=1",
+            ]
+
+            is_gzip = False
+            with open(local_archive_path, "rb") as check_f:
+                magic = check_f.read(2)
+                is_gzip = (magic == b"\x1f\x8b")
+
+            proc = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env,
+            )
+
+            try:
+                open_fn = gzip.open if is_gzip else open
+                with open_fn(local_archive_path, "rt", encoding="utf-8", errors="replace") as stream_in:
+                    for line in stream_in:
+                        # Skip Postgres 17+ parameters that fail on Postgres <= 16
+                        if line.startswith("SET transaction_timeout"):
+                            continue
+                        proc.stdin.write(line.encode("utf-8"))
+            except (BrokenPipeError, OSError):
+                pass
+            finally:
+                try:
+                    if proc.stdin:
+                        proc.stdin.close()
+                except (BrokenPipeError, OSError):
+                    pass
+                proc.stdin = None
+
+            stdout, stderr = proc.communicate()
+            if proc.returncode != 0:
+                err_msg = stderr.decode("utf-8", errors="replace") if stderr else ""
+                raise RestoreExecutionError(f"psql restore failed with code {proc.returncode}: {err_msg}")
 
             elapsed = round((timezone.now() - start_time).total_seconds(), 2)
             return {
