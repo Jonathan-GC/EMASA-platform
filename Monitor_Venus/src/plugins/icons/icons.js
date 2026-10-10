@@ -149,6 +149,7 @@ import target from '@assets/icons/target.svg'
 import voltage from '@assets/icons/voltage.svg'
 import funnel from '@assets/icons/funnel.svg'
 import funnelClear from '@assets/icons/funnel_clear.svg'
+import restore from '@assets/icons/restore.svg'
 
 export const icons = {
   // Action icons
@@ -203,6 +204,7 @@ export const icons = {
   'bookmark': bookmarkOutline,
   'analytics': analyticsOutline,
   'package': packageOutline,
+  'restore': restore,
   
 
   // Hardware icons
