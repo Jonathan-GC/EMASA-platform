@@ -514,7 +514,7 @@ class API {
     }
 
     // Método auxiliar para manejar respuestas HTTP
-    async handleResponse(response, endpoint) {
+    async handleResponse(response, endpoint, responseType = null) {
         // Verificar si la respuesta fue exitosa (status 200-299)
         if (!response.ok) {
             // Crear error personalizado basado en el código de estado
@@ -560,6 +560,10 @@ class API {
         }
 
         // Si la respuesta es exitosa, procesarla
+        if (responseType === 'blob') {
+            return await response.blob();
+        }
+
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
@@ -643,7 +647,7 @@ class API {
                         throw new Error('SESSION_INVALID');
                     }
                     
-                    return await this.handleResponse(retryResponse, endpoint);
+                    return await this.handleResponse(retryResponse, endpoint, options.responseType);
                 } catch (refreshError) {
                     console.error('❌ Error en refresh:', refreshError.message);
                     
@@ -670,7 +674,7 @@ class API {
                 }
             }
 
-            return await this.handleResponse(response, endpoint);
+            return await this.handleResponse(response, endpoint, options.responseType);
         } catch (error) {
             if (error.name === 'AbortError') {
                 throw new Error(`Request timeout: ${endpoint}`);
