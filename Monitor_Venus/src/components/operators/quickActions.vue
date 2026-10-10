@@ -19,7 +19,7 @@
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
-          <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
+          <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
           <component :is="ComponentToRender.component" :key="`create-${type}-${modalKey}`" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
         </div>
       </ion-content>
@@ -51,7 +51,7 @@
     <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
-          <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
+          <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
           <component :is="ComponentToRender.component" :key="`edit-${type}-${index}-${modalKey}`" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true" @closed="overlayEdit = false"/>
         </div>
       </ion-content>
@@ -70,7 +70,7 @@
     <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
-          <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
+          <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
           <component :is="ComponentToRender.component" :key="`toggle-${type}-${index}-${modalKey}`" v-bind="ComponentToRender.props" @itemToggled="handleItemToggled" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
         </div>
       </ion-content>
@@ -89,7 +89,7 @@
     <ion-modal :is-open="overlayDelete" @did-dismiss="overlayDelete = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
-          <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
+          <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
           <component :is="ComponentToRender.component" :key="`delete-${type}-${index}-${modalKey}`" v-bind="ComponentToRender.props" @itemDeleted="handleItemDeleted" @loaded="componentLoaded = true" @closed="overlayDelete = false"/>
         </div>
       </ion-content>
@@ -328,3 +328,15 @@ export default defineComponent({
   }
 });
 </script>
+
+<style scoped>
+.modal-loader {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+}
+</style>

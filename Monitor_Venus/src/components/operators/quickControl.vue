@@ -26,7 +26,7 @@
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
-          <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
+          <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
           <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
         </div>
       </ion-content>
@@ -39,7 +39,7 @@
     <ion-modal :is-open="overlayCreate" @did-dismiss="overlayCreate = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
-          <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
+          <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
           <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
         </div>
       </ion-content>
@@ -56,7 +56,7 @@
     <ion-modal :is-open="overlayEdit" @did-dismiss="overlayEdit = false" class="form-modal">
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
-          <ion-spinner v-if="!componentLoaded" name="circular" color="primary"></ion-spinner>
+          <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
           <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true"/>
         </div>
       </ion-content>
@@ -238,3 +238,15 @@ export default defineComponent({
   }
 });
 </script>
+
+<style scoped>
+.modal-loader {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+}
+</style>
