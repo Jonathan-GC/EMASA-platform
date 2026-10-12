@@ -22,7 +22,12 @@
               <!-- Estado inicial: eligiendo -->
               <template v-if="!loading">
                 <div class="device-banner">
-                  <ion-icon :icon="icons.phone_portrait"></ion-icon>
+                  <DeviceIcon
+                    current
+                    :circle="false"
+                    :size="24"
+                    color="var(--ion-color-warning)"
+                  />
                   <div class="device-banner-text">
                     <span class="device-banner-label">Dispositivo actual</span>
                     <span class="device-banner-name">{{ deviceName }}</span>
@@ -286,12 +291,6 @@ onMounted(() => {
   margin-bottom: 16px;
   border-radius: 10px;
   background: var(--ion-color-light, #f4f4f5);
-}
-
-.device-banner ion-icon {
-  color: var(--ion-color-warning);
-  font-size: 24px;
-  flex-shrink: 0;
 }
 
 .device-banner-text {

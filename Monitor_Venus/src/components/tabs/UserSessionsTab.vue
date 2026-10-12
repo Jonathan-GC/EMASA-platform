@@ -40,9 +40,10 @@
         :class="{ current: session.is_current }"
       >
         <div class="session-info">
-          <div class="session-icon">
-            <ion-icon :icon="session.is_current ? icons.globe : icons.phone_portrait"></ion-icon>
-          </div>
+          <DeviceIcon
+            :user-agent="session.user_agent"
+            :device-name="session.device_name"
+          />
           <div class="session-text">
             <span class="session-name">
               {{ session.device_name || 'Dispositivo desconocido' }}
@@ -288,19 +289,6 @@ onMounted(fetchSessions)
   align-items: flex-start;
   gap: 12px;
   min-width: 0;
-}
-
-.session-icon {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--ion-color-light, #f3f4f6);
-  color: var(--ion-color-medium);
-  font-size: 1.1rem;
 }
 
 .session-text {

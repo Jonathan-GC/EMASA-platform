@@ -47,6 +47,9 @@ importers:
       '@codetrix-studio/capacitor-google-auth':
         specifier: ^3.4.0-rc.4
         version: 3.4.0-rc.4(@capacitor/core@8.4.1)
+      '@fortawesome/fontawesome-free':
+        specifier: ^7.3.1
+        version: 7.3.1
       '@ionic/vue':
         specifier: ^8.6.2
         version: 8.8.12(@stencil/core@4.43.5)(vue-router@4.6.4(vue@3.5.39))(vue@3.5.39)
@@ -585,6 +588,10 @@ packages:
 
   '@firebase/webchannel-wrapper@1.0.6':
     resolution: {integrity: sha512-Vr/Mqu79dMwGRAyGbJ4uN4+BtXB3/mRTdzetD1daWNeG8QaWuzhhbG77GltO5c0yYmYls8i250iX73624GJd7Q==}
+
+  '@fortawesome/fontawesome-free@7.3.1':
+    resolution: {integrity: sha512-wmglKKPDIkgV3aWlZzWECCPoGIkYCulzBwxG9+w7rc5BGapZ6cPMpoPOT8k36J0Ni7PPX6c/rsoMWfS4d1MUMg==}
+    engines: {node: '>=6'}
 
   '@grpc/grpc-js@1.9.16':
     resolution: {integrity: sha512-wE4Ut/olIzfKqp631XrG+wbF0v1vWFN4YL9FyXC2LJiG33DsV7PLzURjrCvY/6je2ntdRkeLpPDluzSRGaVltQ==}
@@ -2408,6 +2415,8 @@ snapshots:
       tslib: 2.8.1
 
   '@firebase/webchannel-wrapper@1.0.6': {}
+
+  '@fortawesome/fontawesome-free@7.3.1': {}
 
   '@grpc/grpc-js@1.9.16':
     dependencies:
