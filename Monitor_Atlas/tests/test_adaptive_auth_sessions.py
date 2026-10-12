@@ -1383,5 +1383,150 @@ class AdaptiveAuthSessionsTests(TestCase):
         for session_item in sessions_data:
             self.assertNotIn("trust_hash", session_item)
 
+    def test_user_session_devices_aggregation(self):
+        """GET /api/v1/users/sessions/devices/ aggregates active sessions by trust_hash or (device_name, user_agent)."""
+        self.client.force_authenticate(user=self.user_medium)
+        caller_refresh = RefreshToken.for_user(self.user_medium)
+        caller_jti = str(caller_refresh.get("jti"))
+        self.client.cookies["refresh_token"] = str(caller_refresh)
+
+        # Create 2 sessions sharing trust_hash="hash_alpha", device_name="Chrome on Linux"
+        sess_trusted_1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=caller_jti,
+            access_token_jti="acc_caller",
+            trust_hash="hash_alpha",
+            device_name="Chrome on Linux",
+            ip_address="192.168.1.10",
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+            is_active=True,
+            last_activity=timezone.now() - timedelta(minutes=10),
+        )
+        sess_trusted_2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_trusted_2",
+            access_token_jti="acc_trusted_2",
+            trust_hash="hash_alpha",
+            device_name="Chrome on Linux",
+            ip_address="192.168.1.11",
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+            is_active=True,
+            last_activity=timezone.now() - timedelta(minutes=5),
+        )
+
+        # Create 2 untrusted sessions without trust_hash sharing device_name="Safari on macOS", user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)..."
+        ua_safari = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+        sess_untrusted_1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted_1",
+            access_token_jti="acc_untrusted_1",
+            trust_hash=None,
+            device_name="Safari on macOS",
+            ip_address="10.0.0.1",
+            user_agent=ua_safari,
+            is_active=True,
+            last_activity=timezone.now() - timedelta(hours=1),
+        )
+        sess_untrusted_2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted_2",
+            access_token_jti="acc_untrusted_2",
+            trust_hash=None,
+            device_name="Safari on macOS",
+            ip_address="10.0.0.2",
+            user_agent=ua_safari,
+            is_active=True,
+            last_activity=timezone.now() - timedelta(hours=2),
+        )
+
+        # Create 1 distinct untrusted session with device_name="Firefox on Windows", user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
+        ua_firefox = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
+        sess_untrusted_3 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted_3",
+            access_token_jti="acc_untrusted_3",
+            trust_hash=None,
+            device_name="Firefox on Windows",
+            ip_address="172.16.0.5",
+            user_agent=ua_firefox,
+            is_active=True,
+            last_activity=timezone.now() - timedelta(days=1),
+        )
+
+        response = self.client.get("/api/v1/users/sessions/devices/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        devices = response.data
+        self.assertEqual(len(devices), 3)
+
+        expected_fields = {
+            "id",
+            "device_name",
+            "ip_address",
+            "last_activity",
+            "is_trusted",
+            "is_current",
+            "sessions_count",
+        }
+        for dev in devices:
+            self.assertTrue(expected_fields.issubset(dev.keys()))
+
+        trusted_dev = next(d for d in devices if d["device_name"] == "Chrome on Linux")
+        safari_dev = next(d for d in devices if d["device_name"] == "Safari on macOS")
+        firefox_dev = next(d for d in devices if d["device_name"] == "Firefox on Windows")
+
+        self.assertEqual(trusted_dev["sessions_count"], 2)
+        self.assertTrue(trusted_dev["is_trusted"])
+        self.assertTrue(trusted_dev["is_current"])
+
+        self.assertEqual(safari_dev["sessions_count"], 2)
+        self.assertFalse(safari_dev["is_trusted"])
+        self.assertFalse(safari_dev["is_current"])
+
+        self.assertEqual(firefox_dev["sessions_count"], 1)
+        self.assertFalse(firefox_dev["is_trusted"])
+        self.assertFalse(firefox_dev["is_current"])
+
+    def test_user_session_revoke_trust_cleans_up_sibling_sessions(self):
+        """POST /api/v1/users/sessions/{id}/revoke_trust/ revokes trust and deactivates all sibling sessions sharing trust_hash."""
+        refresh1 = RefreshToken.for_user(self.user_medium)
+        jti1 = str(refresh1.get("jti"))
+        sess1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti1,
+            access_token_jti="acc_sess1",
+            trust_hash="shared_hash_beta",
+            device_name="Device Tab 1",
+            is_active=True,
+        )
+
+        refresh2 = RefreshToken.for_user(self.user_medium)
+        jti2 = str(refresh2.get("jti"))
+        sess2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti2,
+            access_token_jti="acc_sess2",
+            trust_hash="shared_hash_beta",
+            device_name="Device Tab 2",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.post(f"/api/v1/users/sessions/{sess1.id}/revoke_trust/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sess1.refresh_from_db()
+        sess2.refresh_from_db()
+
+        self.assertIsNone(sess1.trust_hash)
+        self.assertFalse(sess1.is_active)
+        self.assertIsNone(sess2.trust_hash)
+        self.assertFalse(sess2.is_active)
+
+        self.client.logout()
+        self.client.cookies["refresh_token"] = str(refresh2)
+        resp_refresh = self.client.post("/api/v1/token/refresh/")
+        self.assertEqual(resp_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
 
 

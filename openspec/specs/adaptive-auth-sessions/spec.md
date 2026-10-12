@@ -166,9 +166,10 @@ The system MUST provide REST endpoints:
 2. `POST /api/v1/users/sessions/{id}/revoke/`: revokes a specific session. The system MUST mark `is_active=False` and immediately blacklist the session's tokens.
 3. `POST /api/v1/users/sessions/revoke_others/`: revokes all active sessions belonging to the user except the caller's active session. The active session MUST be resolved primarily from the access token `session_id`, falling back to the refresh cookie JTI.
 4. `POST /api/v1/users/sessions/trust_current/`: marks the caller's active session as trusted or untrusted based on `trust` payload. The active session MUST be resolved primarily from the access token `session_id`, falling back to the refresh cookie JTI.
-5. `POST /api/v1/users/sessions/{id}/revoke_trust/`: revokes trust for a specific session. The system MUST set `trust_hash=None`, mark `is_active=False`, and atomically blacklist the session's tokens. If the revoked session matches the caller's current session, the system MUST clear `device_trust_token` and `refresh_token` cookies.
+5. `POST /api/v1/users/sessions/{id}/revoke_trust/`: revokes trust for a specific session. The system MUST set `trust_hash=None`, mark `is_active=False`, and atomically blacklist the session's tokens. If the session has a `trust_hash`, the system MUST also revoke and blacklist all active sibling sessions belonging to that user sharing the same `trust_hash`. If any revoked session matches the caller's current session, the system MUST clear `device_trust_token` and `refresh_token` cookies.
 6. `POST /api/v1/users/sessions/revoke_trust_all/`: revokes trust for all sessions belonging to the user that are trusted (`trust_hash__isnull=False`). The system MUST clear `trust_hash=None`, mark `is_active=False`, blacklist their tokens, and delete the `device_trust_token` cookie.
 7. `POST /api/v1/users/token/refresh/` (`CookieTokenRefreshView`): refreshes JWT tokens. The view MUST inspect the `refresh_token` HttpOnly cookie or the request JSON body (`refresh`). If neither is present, the request MUST be rejected with HTTP 401 Unauthorized (`Refresh token not found.`).
+8. `GET /api/v1/users/sessions/devices/`: returns active user sessions aggregated by device identity. Trusted sessions are grouped by `trust_hash` and untrusted sessions are grouped by `(device_name, user_agent)`. Each aggregated device entry MUST include the most recent session `id`, `device_name`, latest `ip_address`, latest `last_activity`, `is_trusted`, `is_current` (if any session in the group is current), and `sessions_count`.
 
 #### Scenario: Session record created on successful login
 - GIVEN a user completing authentication
@@ -254,6 +255,19 @@ The system MUST provide REST endpoints:
 - WHEN the user sends a `GET /api/v1/users/sessions/` request
 - THEN the session representation MUST include `"is_trusted": true`
 - AND the session representation MUST NOT contain `"trust_hash"`.
+
+#### Scenario: List devices aggregates multiple sessions for the same physical device
+- GIVEN an authenticated user with multiple active sessions sharing the same device trust token
+- AND multiple active sessions sharing the same untrusted User-Agent
+- WHEN the user sends a `GET /api/v1/users/sessions/devices/` request
+- THEN the system MUST aggregate the sessions into single device entries
+- AND the response MUST indicate the correct `sessions_count`, `is_trusted`, `is_current`, and most recent `last_activity`.
+
+#### Scenario: Targeted device trust revocation cleans up sibling sessions sharing trust hash
+- GIVEN an authenticated user with two active sessions sharing the same `trust_hash`
+- WHEN the user revokes one of the sessions via `POST /api/v1/users/sessions/{id}/revoke_trust/`
+- THEN both sessions sharing that `trust_hash` MUST be deactivated (`is_active = False`)
+- AND both sessions MUST have their `trust_hash` cleared and tokens blacklisted.
 
 ### Requirement: Unified Login and Verification Flow
 The system MUST provide a unified two-step adaptive login workflow through `CookieTokenObtainPairView` and `OTPVerifyView`:

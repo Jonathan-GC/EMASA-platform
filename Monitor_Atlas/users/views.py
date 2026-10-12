@@ -2614,6 +2614,53 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
             return response
 
     @extend_schema(
+        summary="List active user sessions aggregated by device",
+        description="Aggregates active user sessions by device identity (trust_hash for trusted devices, device_name and user_agent for untrusted devices).",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    @action(detail=False, methods=["get"])
+    def devices(self, request):
+        sessions = self.get_queryset()
+        serializer_context = self.get_serializer_context()
+        current_session_id = serializer_context.get("current_session_id")
+        current_jti = serializer_context.get("current_jti")
+
+        grouped = {}
+        for sess in sessions:
+            is_current = False
+            if current_session_id and str(current_session_id) == str(sess.id):
+                is_current = True
+            elif current_jti and sess.refresh_token_jti and current_jti == sess.refresh_token_jti:
+                is_current = True
+
+            if sess.trust_hash:
+                key = f"trust:{sess.trust_hash}"
+            else:
+                key = f"ua:{sess.device_name}::{sess.user_agent}"
+
+            if key not in grouped:
+                grouped[key] = {
+                    "id": str(sess.id),
+                    "device_name": sess.device_name,
+                    "ip_address": sess.ip_address,
+                    "last_activity": sess.last_activity,
+                    "is_trusted": bool(sess.trust_hash),
+                    "is_current": is_current,
+                    "sessions_count": 1,
+                }
+            else:
+                grouped[key]["sessions_count"] += 1
+                if is_current:
+                    grouped[key]["is_current"] = True
+                if sess.last_activity and (
+                    not grouped[key]["last_activity"]
+                    or sess.last_activity > grouped[key]["last_activity"]
+                ):
+                    grouped[key]["last_activity"] = sess.last_activity
+
+        return Response(list(grouped.values()), status=status.HTTP_200_OK)
+
+    @extend_schema(
         summary="Revoke device trust and terminate session",
         description="Revokes device trust, sets trust_hash=None, marks session inactive, and blacklists tokens.",
         responses={200: OpenApiTypes.OBJECT},
@@ -2624,17 +2671,28 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
             request.user.sessions.filter(is_active=True), pk=pk
         )
         current_session = get_current_session_for_request(request)
-        is_current = bool(current_session and str(session.id) == str(current_session.id))
 
-        session.trust_hash = None
-        session.save(update_fields=["trust_hash"])
-        _blacklist_session_tokens(session)
+        if session.trust_hash:
+            target_hash = session.trust_hash
+            sessions_to_revoke = list(
+                request.user.sessions.filter(is_active=True, trust_hash=target_hash)
+            )
+        else:
+            sessions_to_revoke = [session]
+
+        current_revoked = False
+        for s in sessions_to_revoke:
+            if current_session and str(s.id) == str(current_session.id):
+                current_revoked = True
+            s.trust_hash = None
+            s.save(update_fields=["trust_hash"])
+            _blacklist_session_tokens(s)
 
         response = Response(
             {"status": "device_trust_and_session_revoked"},
             status=status.HTTP_200_OK,
         )
-        if is_current:
+        if current_revoked:
             response.delete_cookie("device_trust_token", path="/")
             cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
             cookie_path = getattr(settings, "REFRESH_COOKIE_PATH", "/")
