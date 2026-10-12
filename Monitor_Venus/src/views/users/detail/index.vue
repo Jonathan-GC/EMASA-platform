@@ -44,7 +44,7 @@
               <button v-if="isOwnProfile" class="tab-btn" :class="{ active: selectedTab === 'sessions' }"
                 @click="selectedTab = 'sessions'">
                 <ion-icon :icon="icons.server"></ion-icon>
-                Sesiones
+                Dispositivos
               </button>
             </div>
 

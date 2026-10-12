@@ -3,75 +3,130 @@
     <div class="card-header-row">
       <h3 class="content-card-title">
         <ion-icon :icon="icons.server"></ion-icon>
-        Sesiones activas
+        Dispositivos activos
       </h3>
-      <ion-button
-        v-if="hasOtherSessions"
-        fill="outline"
-        size="small"
-        color="danger"
-        class="revoke-others-btn"
-        :disabled="loading"
-        @click="confirmRevokeOthers"
-      >
-        <ion-icon :icon="icons.logOut" slot="start"></ion-icon>
-        Cerrar otras
-      </ion-button>
+      <div class="header-actions">
+        <ion-button
+          v-if="hasTrustedDevices"
+          fill="outline"
+          size="small"
+          color="danger"
+          class="header-btn"
+          :disabled="loading"
+          @click="confirmRevokeTrustAll"
+        >
+          <ion-icon :icon="icons.shield" slot="start"></ion-icon>
+          Quitar confianza de todas
+        </ion-button>
+        <ion-button
+          v-if="hasOtherDevices"
+          fill="outline"
+          size="small"
+          color="danger"
+          class="header-btn"
+          :disabled="loading"
+          @click="confirmRevokeOthers"
+        >
+          <ion-icon :icon="icons.logOut" slot="start"></ion-icon>
+          Cerrar otras
+        </ion-button>
+      </div>
     </div>
 
     <p class="card-desc">
-      Dispositivos con una sesión iniciada en tu cuenta. Si ves uno que no
-      reconoces, ciérralo y cambia tu contraseña.
+      Dispositivos con una sesión iniciada en tu cuenta; varios navegadores o
+      pestañas del mismo equipo se agrupan en un solo dispositivo. Los marcados
+      como de confianza omiten el código de verificación al entrar. Si ves uno
+      que no reconoces, quítale la confianza y cambia tu contraseña.
     </p>
 
     <div v-if="loading" class="loading-state">
       <ion-spinner name="crescent"></ion-spinner>
     </div>
 
-    <p v-else-if="sessions.length === 0" class="empty-state">
-      No hay sesiones activas registradas.
+    <p v-else-if="devices.length === 0" class="empty-state">
+      No hay dispositivos activos registrados.
     </p>
 
-    <div v-else class="session-list">
+    <div v-else class="device-list">
       <div
-        v-for="session in sessions"
-        :key="session.id"
-        class="session-item"
-        :class="{ current: session.is_current }"
+        v-for="device in devices"
+        :key="device.id"
+        class="device-item"
+        :class="{ current: device.is_current }"
       >
-        <div class="session-info">
+        <div class="device-info">
           <DeviceIcon
-            :user-agent="session.user_agent"
-            :device-name="session.device_name"
+            :current="device.is_current"
+            :device-name="device.device_name"
           />
-          <div class="session-text">
-            <span class="session-name">
-              {{ session.device_name || 'Dispositivo desconocido' }}
-              <ion-chip v-if="session.is_current" color="primary" size="small">Este dispositivo</ion-chip>
+          <div class="device-text">
+            <span class="device-name">
+              {{ device.device_name || 'Dispositivo desconocido' }}
+              <ion-chip v-if="device.is_current" color="primary" size="small">Este dispositivo</ion-chip>
+              <ion-chip v-if="device.is_trusted" color="success" size="small">
+                <ion-icon :icon="icons.shield"></ion-icon>
+                De confianza
+              </ion-chip>
+              <ion-chip v-if="device.sessions_count > 1" color="medium" size="small">
+                {{ device.sessions_count }} sesiones
+              </ion-chip>
             </span>
-            <span class="session-meta">
+            <span class="device-meta">
               <ion-icon :icon="icons.globe"></ion-icon>
-              {{ session.ip_address || 'IP desconocida' }}
+              {{ device.ip_address || 'IP desconocida' }}
             </span>
-            <span class="session-meta">
+            <span class="device-meta">
               <ion-icon :icon="icons.info"></ion-icon>
-              Última actividad: {{ formatDate(session.last_activity) }}
+              Última actividad: {{ formatDate(device.last_activity) }}
             </span>
-            <span v-if="session.user_agent" class="session-ua">{{ session.user_agent }}</span>
           </div>
         </div>
 
+        <!-- Otro dispositivo con confianza: revocar la confianza termina
+             todas sus sesiones, así que es la acción completa. -->
         <ion-button
-          v-if="!session.is_current"
+          v-if="!device.is_current && device.is_trusted"
           fill="clear"
           size="small"
           color="danger"
-          class="revoke-btn"
-          :disabled="loading || revokingId === session.id"
-          @click="confirmRevoke(session)"
+          class="device-btn"
+          :disabled="loading || revokingId === device.id"
+          @click="confirmRevokeTrust(device)"
         >
-          <ion-spinner v-if="revokingId === session.id" name="dots" slot="start"></ion-spinner>
+          <ion-spinner v-if="revokingId === device.id" name="dots" slot="start"></ion-spinner>
+          <ion-icon v-else :icon="icons.shield" slot="start"></ion-icon>
+          Quitar confianza
+        </ion-button>
+
+        <!-- Otro dispositivo sin confianza: cerrar una de sus sesiones. -->
+        <ion-button
+          v-else-if="!device.is_current"
+          fill="clear"
+          size="small"
+          color="danger"
+          class="device-btn"
+          :disabled="loading || revokingId === device.id"
+          @click="confirmRevoke(device)"
+        >
+          <ion-spinner v-if="revokingId === device.id" name="dots" slot="start"></ion-spinner>
           Cerrar
+        </ion-button>
+
+        <!-- Este dispositivo cuando es de confianza: quitar la confianza
+             cierra la sesión actual (logout intencional). -->
+        <ion-button
+          v-else-if="device.is_trusted"
+          fill="clear"
+          size="small"
+          color="danger"
+          class="device-btn"
+          :disabled="loading || revokingId === device.id"
+          @click="confirmRevokeTrust(device)"
+        >
+          <ion-spinner v-if="revokingId === device.id" name="dots" slot="start"></ion-spinner>
+          <ion-icon v-else :icon="icons.shield" slot="start"></ion-icon>
+          Quitar confianza
         </ion-button>
       </div>
     </div>
@@ -89,14 +144,14 @@
       </ion-header>
       <div class="confirm-content">
         <div class="confirm-icon">
-          <ion-icon :icon="icons.logOut" size="large"></ion-icon>
+          <ion-icon :icon="confirmIcon || icons.logOut" size="large"></ion-icon>
         </div>
         <p class="confirm-text">{{ confirmMessage }}</p>
         <div class="modal-actions">
           <ion-button fill="outline" @click="closeConfirm">Cancelar</ion-button>
-          <ion-button color="danger" :disabled="loading" @click="executeRevoke">
+          <ion-button color="danger" :disabled="loading" @click="executeAction">
             <ion-spinner v-if="loading" name="crescent" slot="start"></ion-spinner>
-            Cerrar sesión
+            {{ confirmActionLabel }}
           </ion-button>
         </div>
       </div>
@@ -107,21 +162,34 @@
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
 import { toastController } from '@ionic/vue'
+import { useRouter } from 'vue-router'
 import API from '@/utils/api/api'
+import { paths } from '@/plugins/router/paths.js'
+import { useAuthStore } from '@/stores/authStore.js'
+import { resetTrustDevicePreference } from '@/utils/auth/deviceTrust.js'
 
 const icons = inject('icons', {})
+const router = useRouter()
+const authStore = useAuthStore()
 
-const sessions = ref([])
+// GET /users/sessions/devices/: sesiones activas agregadas por dispositivo.
+// Cada dispositivo trae { id (sesión representativa), device_name,
+// ip_address, last_activity, is_trusted, is_current, sessions_count }.
+const devices = ref([])
 const loading = ref(false)
 const revokingId = ref(null)
 
 const isConfirmOpen = ref(false)
 const confirmTitle = ref('')
 const confirmMessage = ref('')
-// null = revocar todas menos la actual; string = revocar esa sesión
+const confirmActionLabel = ref('Cerrar sesión')
+const confirmIcon = ref(null)
+// Acción pendiente del modal:
+//   { type: 'revoke' | 'revoke_trust' | 'revoke_others' | 'revoke_trust_all', id?: string }
 const pendingAction = ref(null)
 
-const hasOtherSessions = computed(() => sessions.value.some(s => !s.is_current))
+const hasOtherDevices = computed(() => devices.value.some(d => !d.is_current))
+const hasTrustedDevices = computed(() => devices.value.some(d => d.is_trusted))
 
 const formatDate = (value) => {
   if (!value) return 'desconocida'
@@ -142,36 +210,95 @@ const showToast = async (message, color = 'danger') => {
   await toast.present()
 }
 
-const fetchSessions = async () => {
+const fetchDevices = async () => {
   loading.value = true
   try {
-    const response = await API.get(API.SESSIONS)
-    sessions.value = Array.isArray(response) ? response : (response?.results || [])
+    const response = await API.get(API.SESSIONS_DEVICES)
+    devices.value = Array.isArray(response) ? response : (response?.results || [])
   } catch (err) {
-    console.error('Error al cargar las sesiones:', err)
-    await showToast('No se pudieron cargar las sesiones activas.')
+    console.error('Error al cargar los dispositivos:', err)
+    devices.value = []
+    await showToast('No se pudieron cargar los dispositivos activos.')
   } finally {
     loading.value = false
   }
 }
 
-const confirmRevoke = (session) => {
-  pendingAction.value = session.id
-  confirmTitle.value = 'Cerrar sesión'
-  confirmMessage.value =
-    `Se cerrará la sesión de "${session.device_name || 'este dispositivo'}" ` +
-    `(${session.ip_address || 'IP desconocida'}). Necesitarás volver a iniciar sesión ahí.`
+const openConfirm = () => {
   isConfirmOpen.value = true
 }
 
+const confirmRevoke = (device) => {
+  pendingAction.value = { type: 'revoke', id: device.id }
+  confirmTitle.value = 'Cerrar sesión'
+  confirmActionLabel.value = 'Cerrar sesión'
+  confirmIcon.value = icons.logOut
+
+  const count = device.sessions_count || 1
+  if (count > 1) {
+    confirmMessage.value =
+      `"${device.device_name || 'este dispositivo'}" tiene ${count} sesiones abiertas. ` +
+      'Esta acción cierra una de ellas; puedes repetirla para cerrar las demás.'
+  } else {
+    confirmMessage.value =
+      `Se cerrará la sesión de "${device.device_name || 'este dispositivo'}" ` +
+      `(${device.ip_address || 'IP desconocida'}). Necesitarás volver a iniciar sesión ahí.`
+  }
+  openConfirm()
+}
+
+const confirmRevokeTrust = (device) => {
+  pendingAction.value = { type: 'revoke_trust', id: device.id }
+  confirmTitle.value = 'Quitar confianza'
+  confirmActionLabel.value = 'Quitar confianza'
+  confirmIcon.value = icons.shield
+
+  const count = device.sessions_count || 1
+  if (device.is_current) {
+    confirmMessage.value =
+      'Este dispositivo dejará de ser de confianza y se cerrarán sus sesiones, incluida la actual. ' +
+      'La próxima vez tendrás que iniciar sesión y verificar con un código.'
+  } else if (count > 1) {
+    confirmMessage.value =
+      `Se quitará la confianza de "${device.device_name || 'este dispositivo'}" ` +
+      `(${device.ip_address || 'IP desconocida'}) y se cerrarán sus ${count} sesiones. ` +
+      'Ese dispositivo tendrá que volver a iniciar sesión y verificar con un código.'
+  } else {
+    confirmMessage.value =
+      `Se quitará la confianza de "${device.device_name || 'este dispositivo'}" ` +
+      `(${device.ip_address || 'IP desconocida'}) y se cerrará su sesión. ` +
+      'Ese dispositivo tendrá que volver a iniciar sesión y verificar con un código.'
+  }
+  openConfirm()
+}
+
 const confirmRevokeOthers = () => {
-  pendingAction.value = null
-  const count = sessions.value.filter(s => !s.is_current).length
+  pendingAction.value = { type: 'revoke_others' }
   confirmTitle.value = 'Cerrar otras sesiones'
   confirmMessage.value =
-    `Se cerrarán ${count} ${count === 1 ? 'sesión activa' : 'sesiones activas'} ` +
-    'en otros dispositivos. Solo se mantendrá la sesión de este dispositivo.'
-  isConfirmOpen.value = true
+    'Se cerrarán todas las sesiones abiertas en otros dispositivos. ' +
+    'Solo se mantendrán las de este dispositivo.'
+  confirmActionLabel.value = 'Cerrar otras'
+  confirmIcon.value = icons.logOut
+  openConfirm()
+}
+
+const confirmRevokeTrustAll = () => {
+  pendingAction.value = { type: 'revoke_trust_all' }
+  const trusted = devices.value.filter(d => d.is_trusted)
+  const count = trusted.length
+  const currentTrusted = trusted.some(d => d.is_current)
+
+  confirmTitle.value = 'Quitar confianza de todas'
+  confirmMessage.value =
+    `Se quitará la confianza de ${count} ${count === 1 ? 'dispositivo de confianza' : 'dispositivos de confianza'} ` +
+    'y se cerrarán todas sus sesiones; deberán iniciar sesión y verificar con un código. ' +
+    (currentTrusted
+      ? 'Incluye este dispositivo: tu sesión se cerrará ahora.'
+      : 'Este dispositivo no es de confianza, así que tu sesión continuará abierta.')
+  confirmActionLabel.value = 'Quitar confianza'
+  confirmIcon.value = icons.shield
+  openConfirm()
 }
 
 const closeConfirm = () => {
@@ -179,33 +306,82 @@ const closeConfirm = () => {
   pendingAction.value = null
 }
 
-const executeRevoke = async () => {
+// Quitar la confianza del dispositivo actual equivale a cerrar la sesión
+// propia: el backend borra las cookies device_trust_token y refresh_token,
+// así que hay que hacer logout intencional. También se restablece la
+// preferencia local "no volver a preguntar"; si se dejara en 'always', el
+// próximo ingreso volvería a confiar automáticamente en este dispositivo.
+const logoutCurrentDevice = async (message) => {
+  resetTrustDevicePreference()
+  await showToast(message, 'success')
+  authStore.logout()
+  router.replace(paths.LOGIN)
+}
+
+const executeAction = async () => {
   const action = pendingAction.value
-  const isSingle = typeof action === 'string'
+  if (!action) return
 
   loading.value = true
-  if (isSingle) revokingId.value = action
+  if (action.id) revokingId.value = action.id
 
   try {
-    if (isSingle) {
-      await API.post(API.SESSIONS_REVOKE(action), {})
-    } else {
+    if (action.type === 'revoke') {
+      await API.post(API.SESSIONS_REVOKE(action.id), {})
+      closeConfirm()
+      await fetchDevices()
+      await showToast('Sesión cerrada.', 'success')
+    } else if (action.type === 'revoke_others') {
       await API.post(API.SESSIONS_REVOKE_OTHERS, {})
+      closeConfirm()
+      await fetchDevices()
+      await showToast('Las sesiones de otros dispositivos fueron cerradas.', 'success')
+    } else if (action.type === 'revoke_trust') {
+      // El flag is_current es del grupo: aunque la sesión representativa no
+      // sea la actual, revocar la confianza de este dispositivo también
+      // termina la sesión propia (el backend revoca las sesiones hermanas
+      // que comparten el trust_hash).
+      const target = devices.value.find(d => d.id === action.id)
+      await API.post(API.SESSIONS_REVOKE_TRUST(action.id), {})
+      closeConfirm()
+      if (target?.is_current) {
+        await logoutCurrentDevice('Confianza revocada. Tu sesión se cerró en este dispositivo.')
+        return
+      }
+      await fetchDevices()
+      await showToast('Confianza y sesiones revocadas en ese dispositivo.', 'success')
+    } else if (action.type === 'revoke_trust_all') {
+      // Se consulta antes del POST: después de revocar, la lista ya no
+      // tendría el dispositivo actual marcado como de confianza.
+      const currentWasTrusted = devices.value.some(d => d.is_current && d.is_trusted)
+      const response = await API.post(API.SESSIONS_REVOKE_TRUST_ALL, {})
+      closeConfirm()
+
+      if (currentWasTrusted) {
+        await logoutCurrentDevice('Confianza revocada. Tu sesión se cerró en este dispositivo.')
+        return
+      }
+
+      await fetchDevices()
+      const count = response?.revoked_count
+      await showToast(
+        count
+          ? `Se quitó la confianza de todos los dispositivos y se cerraron ${count} ${count === 1 ? 'sesión' : 'sesiones'}.`
+          : 'No había dispositivos de confianza.',
+        'success'
+      )
     }
-    closeConfirm()
-    await fetchSessions()
-    await showToast(isSingle ? 'Sesión cerrada.' : 'Las otras sesiones fueron cerradas.', 'success')
   } catch (err) {
-    console.error('Error al revocar sesiones:', err)
+    console.error('Error al aplicar la acción sobre dispositivos:', err)
     closeConfirm()
-    await showToast('No se pudo cerrar la sesión. Inténtalo de nuevo.')
+    await showToast('No se pudo completar la acción. Inténtalo de nuevo.')
   } finally {
     loading.value = false
     revokingId.value = null
   }
 }
 
-onMounted(fetchSessions)
+onMounted(fetchDevices)
 </script>
 
 <style scoped>
@@ -236,7 +412,14 @@ onMounted(fetchSessions)
   color: var(--ion-text-color);
 }
 
-.revoke-others-btn {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.header-btn {
   --border-radius: 8px;
   text-transform: none;
   font-weight: 500;
@@ -263,13 +446,13 @@ onMounted(fetchSessions)
   color: var(--ion-color-medium);
 }
 
-.session-list {
+.device-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.session-item {
+.device-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -279,26 +462,26 @@ onMounted(fetchSessions)
   border-radius: 8px;
 }
 
-.session-item.current {
+.device-item.current {
   border-color: var(--ion-color-primary);
   background: rgba(37, 99, 235, 0.04);
 }
 
-.session-info {
+.device-info {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   min-width: 0;
 }
 
-.session-text {
+.device-text {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
 }
 
-.session-name {
+.device-name {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -308,7 +491,7 @@ onMounted(fetchSessions)
   color: var(--ion-text-color);
 }
 
-.session-meta {
+.device-meta {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -316,22 +499,12 @@ onMounted(fetchSessions)
   color: var(--ion-color-medium);
 }
 
-.session-meta ion-icon {
+.device-meta ion-icon {
   font-size: 0.9rem;
   flex-shrink: 0;
 }
 
-.session-ua {
-  font-size: 0.72rem;
-  color: var(--ion-color-medium);
-  opacity: 0.75;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.revoke-btn {
+.device-btn {
   --border-radius: 8px;
   flex-shrink: 0;
   text-transform: none;
@@ -384,12 +557,12 @@ onMounted(fetchSessions)
     padding: 16px;
   }
 
-  .session-item {
+  .device-item {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .revoke-btn {
+  .device-btn {
     align-self: flex-end;
   }
 }

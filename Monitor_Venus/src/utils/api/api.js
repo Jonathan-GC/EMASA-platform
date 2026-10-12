@@ -71,10 +71,17 @@ class API {
 
     //----[SESSIONS]----
     SESSIONS = 'users/sessions/'
+    // Sesiones activas agregadas por dispositivo (trust_hash o UA+nombre)
+    SESSIONS_DEVICES = 'users/sessions/devices/'
     SESSIONS_REVOKE_OTHERS = 'users/sessions/revoke_others/'
     SESSIONS_TRUST_CURRENT = 'users/sessions/trust_current/'
+    // Revoca la confianza de un dispositivo y termina su sesión
+    SESSIONS_REVOKE_TRUST_ALL = 'users/sessions/revoke_trust_all/'
     SESSIONS_REVOKE(sessionId) {
         return `users/sessions/${sessionId}/revoke/`
+    }
+    SESSIONS_REVOKE_TRUST(sessionId) {
+        return `users/sessions/${sessionId}/revoke_trust/`
     }
 
     //----[ROLES]----
