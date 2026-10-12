@@ -815,6 +815,7 @@ class OTPVerifySerializer(serializers.Serializer):
 
 class UserSessionSerializer(serializers.ModelSerializer):
     is_current = serializers.SerializerMethodField()
+    is_trusted = serializers.SerializerMethodField()
 
     class Meta:
         model = UserSession
@@ -827,8 +828,12 @@ class UserSessionSerializer(serializers.ModelSerializer):
             "last_activity",
             "is_active",
             "is_current",
+            "is_trusted",
         ]
         read_only_fields = fields
+
+    def get_is_trusted(self, obj):
+        return bool(obj.trust_hash)
 
     def get_is_current(self, obj):
         current_session_id = self.context.get("current_session_id")

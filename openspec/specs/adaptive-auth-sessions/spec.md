@@ -162,11 +162,13 @@ The system MUST provide a `UserSession` model to track every active client login
 - `is_active`: BooleanField indicating whether the session is currently valid
 
 The system MUST provide REST endpoints:
-1. `GET /api/v1/users/sessions/`: returns all active sessions for the authenticated user, indicating `is_current: true` for the session matching the caller's active session. The system MUST resolve the active session primarily using `session_id` from the authenticated access token (`request.auth`), falling back to the refresh cookie JTI.
+1. `GET /api/v1/users/sessions/`: returns all active sessions for the authenticated user, indicating `is_current: true` for the session matching the caller's active session. Serialized responses MUST include `is_trusted: bool` and MUST NOT expose the raw `trust_hash`. The system MUST resolve the active session primarily using `session_id` from the authenticated access token (`request.auth`), falling back to the refresh cookie JTI.
 2. `POST /api/v1/users/sessions/{id}/revoke/`: revokes a specific session. The system MUST mark `is_active=False` and immediately blacklist the session's tokens.
 3. `POST /api/v1/users/sessions/revoke_others/`: revokes all active sessions belonging to the user except the caller's active session. The active session MUST be resolved primarily from the access token `session_id`, falling back to the refresh cookie JTI.
-4. `POST /api/v1/users/sessions/trust_current/`: marks the caller's active session as trusted. The active session MUST be resolved primarily from the access token `session_id`, falling back to the refresh cookie JTI.
-5. `POST /api/v1/users/token/refresh/` (`CookieTokenRefreshView`): refreshes JWT tokens. The view MUST inspect the `refresh_token` HttpOnly cookie or the request JSON body (`refresh`). If neither is present, the request MUST be rejected with HTTP 401 Unauthorized (`Refresh token not found.`).
+4. `POST /api/v1/users/sessions/trust_current/`: marks the caller's active session as trusted or untrusted based on `trust` payload. The active session MUST be resolved primarily from the access token `session_id`, falling back to the refresh cookie JTI.
+5. `POST /api/v1/users/sessions/{id}/revoke_trust/`: revokes trust for a specific session. The system MUST set `trust_hash=None`, mark `is_active=False`, and atomically blacklist the session's tokens. If the revoked session matches the caller's current session, the system MUST clear `device_trust_token` and `refresh_token` cookies.
+6. `POST /api/v1/users/sessions/revoke_trust_all/`: revokes trust for all sessions belonging to the user that are trusted (`trust_hash__isnull=False`). The system MUST clear `trust_hash=None`, mark `is_active=False`, blacklist their tokens, and delete the `device_trust_token` cookie.
+7. `POST /api/v1/users/token/refresh/` (`CookieTokenRefreshView`): refreshes JWT tokens. The view MUST inspect the `refresh_token` HttpOnly cookie or the request JSON body (`refresh`). If neither is present, the request MUST be rejected with HTTP 401 Unauthorized (`Refresh token not found.`).
 
 #### Scenario: Session record created on successful login
 - GIVEN a user completing authentication
@@ -231,6 +233,27 @@ The system MUST provide REST endpoints:
 - WHEN "User Alice" attempts to revoke "User Bob"'s session via `POST /api/v1/users/sessions/{Bob-Session-ID}/revoke/`
 - THEN the system MUST reject the request with an HTTP 404 Not Found response
 - AND "User Bob"'s session MUST remain active.
+
+#### Scenario: Targeted device trust revocation terminates session and blacklists tokens
+- GIVEN an active trusted session belonging to the authenticated user
+- WHEN the user sends a `POST /api/v1/users/sessions/{id}/revoke_trust/` request
+- THEN the system MUST set `trust_hash = None`
+- AND the system MUST set `is_active = False`
+- AND the system MUST blacklist both refresh and access tokens
+- AND any subsequent attempt to refresh using that session's refresh token MUST be rejected.
+
+#### Scenario: Global device trust revocation terminates all trusted sessions
+- GIVEN an authenticated user with multiple active sessions, including trusted and untrusted sessions
+- WHEN the user sends a `POST /api/v1/users/sessions/revoke_trust_all/` request
+- THEN all sessions with active device trust MUST have `trust_hash = None` and `is_active = False`
+- AND all their tokens MUST be blacklisted
+- AND the response MUST delete the `device_trust_token` cookie.
+
+#### Scenario: User session serialization exposes is_trusted boolean without leaking hash
+- GIVEN an active session with an established `trust_hash`
+- WHEN the user sends a `GET /api/v1/users/sessions/` request
+- THEN the session representation MUST include `"is_trusted": true`
+- AND the session representation MUST NOT contain `"trust_hash"`.
 
 ### Requirement: Unified Login and Verification Flow
 The system MUST provide a unified two-step adaptive login workflow through `CookieTokenObtainPairView` and `OTPVerifyView`:

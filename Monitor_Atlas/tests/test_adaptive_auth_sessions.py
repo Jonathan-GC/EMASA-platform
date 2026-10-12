@@ -1206,5 +1206,182 @@ class AdaptiveAuthSessionsTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
 
+    def test_user_session_targeted_revoke_trust(self):
+        """POST /api/v1/users/sessions/{id}/revoke_trust/ revokes trust, marks session inactive, and blacklists tokens."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        jti = str(refresh.get("jti"))
+        access = refresh.access_token
+        access_jti = str(access.get("jti"))
+
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti,
+            access_token_jti=access_jti,
+            trust_hash="test_trust_hash_123",
+            device_name="Targeted Device",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.post(f"/api/v1/users/sessions/{session.id}/revoke_trust/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"status": "device_trust_and_session_revoked"})
+
+        session.refresh_from_db()
+        self.assertIsNone(session.trust_hash)
+        self.assertFalse(session.is_active)
+
+        # Verify refresh token is blacklisted by attempting POST /api/v1/token/refresh/ with cookie, expecting 401
+        self.client.logout()
+        self.client.cookies["refresh_token"] = str(refresh)
+        resp_refresh = self.client.post("/api/v1/token/refresh/")
+        self.assertEqual(resp_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_session_targeted_revoke_trust_current_clears_cookies(self):
+        """POST /api/v1/users/sessions/{id}/revoke_trust/ on current session clears device_trust_token and refresh_token cookies."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        jti = str(refresh.get("jti"))
+        access = refresh.access_token
+        access_jti = str(access.get("jti"))
+
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti,
+            access_token_jti=access_jti,
+            trust_hash="test_trust_hash_current",
+            device_name="Current Device",
+            is_active=True,
+        )
+        refresh["session_id"] = str(session.id)
+        access["session_id"] = str(session.id)
+
+        self.client.force_authenticate(user=self.user_medium)
+        self.client.cookies["device_trust_token"] = "trust_cookie_val"
+        self.client.cookies["refresh_token"] = str(refresh)
+
+        response = self.client.post(f"/api/v1/users/sessions/{session.id}/revoke_trust/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"status": "device_trust_and_session_revoked"})
+
+        # Verify device_trust_token and refresh_token cookies are cleared in response
+        self.assertIn("device_trust_token", response.cookies)
+        self.assertIn("refresh_token", response.cookies)
+        self.assertEqual(response.cookies["device_trust_token"].value, "")
+        self.assertEqual(response.cookies["refresh_token"].value, "")
+
+    def test_user_session_revoke_trust_all(self):
+        """POST /api/v1/users/sessions/revoke_trust_all/ invalidates all trusted sessions, blacklists tokens, and deletes trust cookie."""
+        refresh1 = RefreshToken.for_user(self.user_medium)
+        jti1 = str(refresh1.get("jti"))
+        sess_trusted1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti1,
+            access_token_jti="acc_jti_1",
+            trust_hash="hash_1",
+            device_name="Trusted 1",
+            is_active=True,
+        )
+
+        refresh2 = RefreshToken.for_user(self.user_medium)
+        jti2 = str(refresh2.get("jti"))
+        sess_trusted2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti2,
+            access_token_jti="acc_jti_2",
+            trust_hash="hash_2",
+            device_name="Trusted 2",
+            is_active=True,
+        )
+
+        sess_untrusted = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted",
+            access_token_jti="acc_untrusted",
+            trust_hash=None,
+            device_name="Untrusted Device",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        self.client.cookies["device_trust_token"] = "current_trust_token"
+
+        response = self.client.post("/api/v1/users/sessions/revoke_trust_all/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data,
+            {"status": "all_device_trust_revoked", "revoked_count": 2},
+        )
+
+        sess_trusted1.refresh_from_db()
+        sess_trusted2.refresh_from_db()
+        sess_untrusted.refresh_from_db()
+
+        self.assertIsNone(sess_trusted1.trust_hash)
+        self.assertFalse(sess_trusted1.is_active)
+        self.assertIsNone(sess_trusted2.trust_hash)
+        self.assertFalse(sess_trusted2.is_active)
+        self.assertTrue(sess_untrusted.is_active)
+
+        # Verify refresh tokens of trusted sessions are blacklisted
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti=jti1).exists())
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti=jti2).exists())
+
+        # Verify response deleted device_trust_token cookie
+        self.assertIn("device_trust_token", response.cookies)
+        self.assertEqual(response.cookies["device_trust_token"].value, "")
+
+    def test_user_session_revoke_trust_cross_user_denied(self):
+        """Users cannot revoke trust for sessions belonging to other accounts (returns 404)."""
+        sess_other = UserSession.objects.create(
+            user=self.user_other,
+            refresh_token_jti="other_user_jti",
+            trust_hash="other_trust_hash",
+            device_name="Other Device",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.post(f"/api/v1/users/sessions/{sess_other.id}/revoke_trust/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        sess_other.refresh_from_db()
+        self.assertTrue(sess_other.is_active)
+        self.assertEqual(sess_other.trust_hash, "other_trust_hash")
+
+    def test_user_session_serializer_exposes_is_trusted_and_hides_trust_hash(self):
+        """GET /api/v1/users/sessions/ exposes is_trusted: bool and hides trust_hash."""
+        sess_trusted = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_trusted_ser",
+            trust_hash="secret_trust_hash_value",
+            device_name="Trusted Laptop",
+            is_active=True,
+        )
+        sess_untrusted = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted_ser",
+            trust_hash=None,
+            device_name="Untrusted Workstation",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.get("/api/v1/users/sessions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sessions_data = (
+            response.data
+            if isinstance(response.data, list)
+            else response.data.get("results", [])
+        )
+        data_trusted = next(s for s in sessions_data if s["id"] == str(sess_trusted.id))
+        data_untrusted = next(s for s in sessions_data if s["id"] == str(sess_untrusted.id))
+
+        self.assertIs(data_trusted.get("is_trusted"), True)
+        self.assertIs(data_untrusted.get("is_trusted"), False)
+
+        for session_item in sessions_data:
+            self.assertNotIn("trust_hash", session_item)
+
 
 

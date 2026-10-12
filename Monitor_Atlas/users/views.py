@@ -2613,6 +2613,66 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
             response.delete_cookie("device_trust_token", path="/")
             return response
 
+    @extend_schema(
+        summary="Revoke device trust and terminate session",
+        description="Revokes device trust, sets trust_hash=None, marks session inactive, and blacklists tokens.",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    @action(detail=True, methods=["post"])
+    def revoke_trust(self, request, pk=None):
+        session = get_object_or_404(
+            request.user.sessions.filter(is_active=True), pk=pk
+        )
+        current_session = get_current_session_for_request(request)
+        is_current = bool(current_session and str(session.id) == str(current_session.id))
+
+        session.trust_hash = None
+        session.save(update_fields=["trust_hash"])
+        _blacklist_session_tokens(session)
+
+        response = Response(
+            {"status": "device_trust_and_session_revoked"},
+            status=status.HTTP_200_OK,
+        )
+        if is_current:
+            response.delete_cookie("device_trust_token", path="/")
+            cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+            cookie_path = getattr(settings, "REFRESH_COOKIE_PATH", "/")
+            response.delete_cookie(cookie_name, path=cookie_path)
+        return response
+
+    @extend_schema(
+        summary="Revoke all device trust and terminate trusted sessions",
+        description="Revokes trust for all sessions belonging to the user that are trusted, marks them inactive, blacklists tokens, and deletes trust cookie.",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    @action(detail=False, methods=["post"])
+    def revoke_trust_all(self, request):
+        trusted_sessions = list(
+            request.user.sessions.filter(is_active=True, trust_hash__isnull=False)
+        )
+        revoked_count = len(trusted_sessions)
+        current_session = get_current_session_for_request(request)
+        current_revoked = False
+
+        for sess in trusted_sessions:
+            if current_session and str(sess.id) == str(current_session.id):
+                current_revoked = True
+            sess.trust_hash = None
+            sess.save(update_fields=["trust_hash"])
+            _blacklist_session_tokens(sess)
+
+        response = Response(
+            {"status": "all_device_trust_revoked", "revoked_count": revoked_count},
+            status=status.HTTP_200_OK,
+        )
+        response.delete_cookie("device_trust_token", path="/")
+        if current_revoked:
+            cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+            cookie_path = getattr(settings, "REFRESH_COOKIE_PATH", "/")
+            response.delete_cookie(cookie_name, path=cookie_path)
+        return response
+
 
 class TOTPSetupView(APIView):
     permission_classes = [IsAuthenticated]
