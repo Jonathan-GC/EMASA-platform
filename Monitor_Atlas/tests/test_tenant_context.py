@@ -410,3 +410,19 @@ class TenantIsolationViewSetTests(TestCase):
         # Subscriptions should be listed
         self.assertGreaterEqual(len(response.data), 1)
 
+    def test_cors_preflight_allows_custom_tenant_and_workspace_headers(self):
+        """CORS preflight (OPTIONS) returns Access-Control-Allow-Headers containing x-tenant-id and x-workspace-id."""
+        client = APIClient()
+        origin = "http://localhost:5173"
+        response = client.options(
+            "/api/v1/organizations/tenant/",
+            HTTP_ORIGIN=origin,
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="authorization,x-tenant-id,x-workspace-id,x-client-platform",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        allow_headers = response.headers.get("Access-Control-Allow-Headers", "").lower()
+        self.assertIn("x-tenant-id", allow_headers)
+        self.assertIn("x-workspace-id", allow_headers)
+        self.assertIn("x-client-platform", allow_headers)
+
