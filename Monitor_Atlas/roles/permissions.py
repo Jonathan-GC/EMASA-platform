@@ -341,6 +341,37 @@ def has_contextual_perm(
                     )
                     return has_perm
 
+        # Tenant & Workspace viewing and management for affiliated tenant members
+        if codename in ["view_workspace", "view_tenant"]:
+            if obj is None:
+                return True
+            if codename in get_perms(user, obj):
+                return True
+            from roles.models import WorkspaceMembership
+            role_groups = [
+                m.role.group
+                for m in WorkspaceMembership.objects.filter(
+                    user=user, workspace__tenant=tenant
+                ).select_related("role__group")
+                if m.role and m.role.group
+            ]
+            for rg in role_groups:
+                if codename in get_perms(rg, obj):
+                    return True
+
+        if codename == "add_workspace":
+            from roles.models import WorkspaceMembership
+            is_tenant_admin = (
+                getattr(user, "tenant", None) == tenant
+                or WorkspaceMembership.objects.filter(
+                    user=user, workspace__tenant=tenant
+                ).filter(
+                    models.Q(role__is_admin=True) | models.Q(role__name__icontains="admin")
+                ).exists()
+                or user.has_perm("organizations.add_workspace")
+            )
+            return is_tenant_admin
+
     # Check direct user permissions or guardian perms
     if obj is not None:
         return codename in get_perms(user, obj)

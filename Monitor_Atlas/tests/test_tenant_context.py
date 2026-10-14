@@ -426,3 +426,52 @@ class TenantIsolationViewSetTests(TestCase):
         self.assertIn("x-workspace-id", allow_headers)
         self.assertIn("x-client-platform", allow_headers)
 
+    def test_tenant_member_can_list_workspaces_via_api(self):
+        """Authenticated tenant member can list workspaces within their tenant context via API."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            "/api/v1/organizations/workspace/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        workspace_ids = [w["id"] for w in response.data]
+        self.assertIn(self.ws_a.id, workspace_ids)
+        self.assertNotIn(self.ws_b.id, workspace_ids)
+
+    def test_tenant_member_can_list_tenants_via_api(self):
+        """Authenticated tenant member can list their active tenant via API."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            "/api/v1/organizations/tenant/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        tenant_ids = [t["id"] for t in response.data]
+        self.assertIn(self.tenant_a.id, tenant_ids)
+        self.assertNotIn(self.tenant_b.id, tenant_ids)
+
+    def test_cross_tenant_workspace_listing_denied(self):
+        """User affiliated with Tenant A attempting to list workspaces with Tenant B's X-Tenant-ID is rejected."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            "/api/v1/organizations/workspace/",
+            HTTP_X_TENANT_ID=str(self.tenant_b.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_tenant_member_can_create_workspace_via_api(self):
+        """Tenant owner can create a workspace for their tenant via API."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.post(
+            "/api/v1/organizations/workspace/",
+            {"name": "New Alpha Workspace", "description": "Created by owner", "tenant": self.tenant_a.id},
+            format="json",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["name"], "New Alpha Workspace")
+
