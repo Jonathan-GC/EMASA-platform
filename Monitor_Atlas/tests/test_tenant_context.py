@@ -116,6 +116,31 @@ class TenantContextMiddlewareTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(request.tenant, self.tenant_b)
 
+    def test_valid_cs_tenant_id_resolves_for_authorized_member(self):
+        """When user supplies ChirpStack UUID cs_tenant_id, it resolves correctly to the tenant."""
+        self.tenant_b.cs_tenant_id = "52f14fb4-c713-433e-9f8d-037114fa33c8"
+        self.tenant_b.save(update_fields=["cs_tenant_id"])
+
+        ws_b_extra = Workspace.objects.create(
+            name="Shared WS in B for CS ID", tenant=self.tenant_b
+        )
+        role_b_extra = get_no_role(ws_b_extra)
+        WorkspaceMembership.objects.create(
+            workspace=ws_b_extra, user=self.user_a, role=role_b_extra
+        )
+
+        request = self.factory.get(
+            "/api/v1/organizations/workspaces/",
+            HTTP_X_TENANT_ID="52f14fb4-c713-433e-9f8d-037114fa33c8",
+        )
+        request.user = self.user_a
+
+        middleware = self._get_middleware()
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(request.tenant, self.tenant_b)
+
     def test_unauthorized_x_tenant_id_yields_403(self):
         """When user lacks authorization for target tenant, X-Tenant-ID yields HTTP 403."""
         request = self.factory.get(

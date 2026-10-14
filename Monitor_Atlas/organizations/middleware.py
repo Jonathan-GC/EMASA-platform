@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.db.models import Q
 from loguru import logger
 from .models import Tenant
 from roles.models import WorkspaceMembership
@@ -97,9 +98,10 @@ class TenantContextMiddleware:
             tenant_id = tenant_id.strip()
 
         if tenant_id:
-            try:
-                target_tenant = Tenant.objects.get(id=tenant_id)
-            except Tenant.DoesNotExist:
+            target_tenant = Tenant.objects.filter(
+                Q(id=tenant_id) | Q(cs_tenant_id=tenant_id)
+            ).first()
+            if not target_tenant:
                 return JsonResponse({"detail": "Tenant not found."}, status=404)
 
             user = self._resolve_user(request)
