@@ -43,7 +43,6 @@ WORKSPACE_SCOPED_MODELS = {
 TENANT_SCOPED_MODELS = {
     "tenant",
     "workspace",
-    "subscription",
 }
 
 

@@ -336,14 +336,16 @@ class TenantViewSet(AuditActionMixin, viewsets.ModelViewSet):
 class SubscriptionViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
-    permission_classes = [HasContextualPermission]
+    permission_classes = [IsAuthenticated]
     scope = "subscription"
 
     def get_queryset(self):
         return Subscription.objects.all()
 
     def get_permissions(self):
-        return [HasContextualPermission()]
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         instance = serializer.save()

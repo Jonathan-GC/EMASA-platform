@@ -232,6 +232,19 @@ class TenantContextMiddlewareTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_subscription_endpoint_bypasses_tenant_header_check(self):
+        """GET /api/v1/organizations/subscription/ bypasses X-Tenant-ID validation."""
+        request = self.factory.get(
+            "/api/v1/organizations/subscription/",
+            HTTP_X_TENANT_ID="nonexistent_sub_tenant",
+        )
+        request.user = self.user_a
+
+        middleware = self._get_middleware()
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
+
 
 class GlobalTenantHelperTests(TestCase):
     def test_get_global_tenant_retrieves_master(self):
@@ -356,4 +369,19 @@ class TenantIsolationViewSetTests(TestCase):
 
         with self.assertRaises(PermissionError):
             view.perform_create(serializer)
+
+    def test_subscription_list_allowed_for_tenantless_user(self):
+        """Authenticated tenantless user can list subscriptions without tenant context."""
+        tenantless_user = User.objects.create_user(
+            username="tenantless_sub_tester",
+            email="tenantless_sub@test.com",
+            tenant=None,
+        )
+        client = APIClient()
+        client.force_authenticate(user=tenantless_user)
+
+        response = client.get("/api/v1/organizations/subscription/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Subscriptions should be listed
+        self.assertGreaterEqual(len(response.data), 1)
 

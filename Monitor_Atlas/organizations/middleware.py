@@ -15,6 +15,7 @@ NON_TENANT_SCOPED_PATH_PREFIXES = (
     "/api/v1/users/auth/",
     "/api/v1/users/sessions/",
     "/api/v1/notifications/",
+    "/api/v1/organizations/subscription/",
 )
 
 NON_TENANT_SCOPED_EXACT_PATHS = (
