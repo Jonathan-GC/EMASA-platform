@@ -268,30 +268,38 @@ def has_contextual_perm(
             .first()
         )
         if not membership or not membership.role:
-            logger.debug(
-                f"User {user.username} has no active membership in workspace {workspace.id}"
-            )
-            return False
-
-        role_group = membership.role.group
-        if not role_group:
-            return False
-
-        # Model-level permission granted to the role group
-        if app_label:
-            has_group_perm = role_group.permissions.filter(
-                content_type__app_label=app_label, codename=codename
-            ).exists()
+            is_tenant_owner = getattr(user, "tenant", None) and user.tenant == getattr(workspace, "tenant", None)
+            if not is_tenant_owner:
+                logger.debug(
+                    f"User {user.username} has no active membership in workspace {workspace.id}"
+                )
+                return False
+            role_group = None
         else:
-            has_group_perm = role_group.permissions.filter(codename=codename).exists()
+            role_group = membership.role.group
+
+        if role_group:
+            # Model-level permission granted to the role group
+            if app_label:
+                has_group_perm = role_group.permissions.filter(
+                    content_type__app_label=app_label, codename=codename
+                ).exists()
+            else:
+                has_group_perm = role_group.permissions.filter(codename=codename).exists()
+        else:
+            has_group_perm = False
 
         if has_group_perm and obj is None:
+            return True
+
+        # Collection listing for view_user filtered by get_objects_for_user in UserViewSet
+        if obj is None and codename == "view_user":
             return True
 
         # Object-level permission evaluation
         if obj is not None:
             has_obj_perm = (
-                codename in get_perms(role_group, obj)
+                (codename in get_perms(role_group, obj) if role_group else False)
                 or codename in get_perms(user, obj)
             )
             return has_group_perm or has_obj_perm
@@ -341,8 +349,8 @@ def has_contextual_perm(
                     )
                     return has_perm
 
-        # Tenant & Workspace viewing and management for affiliated tenant members
-        if codename in ["view_workspace", "view_tenant"]:
+        # Tenant, Workspace, and User viewing and management for affiliated tenant members
+        if codename in ["view_workspace", "view_tenant", "view_user"]:
             if obj is None:
                 return True
             if codename in get_perms(user, obj):
@@ -359,16 +367,16 @@ def has_contextual_perm(
                 if codename in get_perms(rg, obj):
                     return True
 
-        if codename == "add_workspace":
+        if codename in ["add_workspace", "add_user"]:
             from roles.models import WorkspaceMembership
             is_tenant_admin = (
-                getattr(user, "tenant", None) == tenant
-                or WorkspaceMembership.objects.filter(
+                WorkspaceMembership.objects.filter(
                     user=user, workspace__tenant=tenant
                 ).filter(
                     models.Q(role__is_admin=True) | models.Q(role__name__icontains="admin")
                 ).exists()
-                or user.has_perm("organizations.add_workspace")
+                or user.has_perm(f"organizations.{codename}")
+                or user.has_perm(f"users.{codename}")
             )
             return is_tenant_admin
 

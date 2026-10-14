@@ -323,6 +323,17 @@ class TenantIsolationViewSetTests(TestCase):
         assign_perm("view_workspace", self.user_b, self.ws_b)
         assign_perm("view_tenant", self.user_a, self.tenant_a)
         assign_perm("view_tenant", self.user_b, self.tenant_b)
+        assign_perm("view_user", self.user_a, self.user_a)
+        assign_perm("view_user", self.user_b, self.user_b)
+
+        admin_role_a = get_or_create_admin_role(self.ws_a)
+        WorkspaceMembership.objects.create(
+            workspace=self.ws_a, user=self.user_a, role=admin_role_a
+        )
+        admin_role_b = get_or_create_admin_role(self.ws_b)
+        WorkspaceMembership.objects.create(
+            workspace=self.ws_b, user=self.user_b, role=admin_role_b
+        )
 
     def test_database_unique_constraint_rejects_second_global_tenant(self):
         """Database partial unique constraint rejects creating a second is_global=True tenant."""
@@ -474,4 +485,37 @@ class TenantIsolationViewSetTests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["name"], "New Alpha Workspace")
+
+    def test_tenant_member_can_list_users_via_api(self):
+        """Authenticated tenant member can list viewable users within their tenant context via API."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            "/api/v1/users/user/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user_ids = [u["id"] for u in response.data]
+        self.assertIn(self.user_a.id, user_ids)
+        self.assertNotIn(self.user_b.id, user_ids)
+
+    def test_tenant_member_can_list_users_with_workspace_param_via_api(self):
+        """Authenticated tenant member can list users filtered by workspace parameter via API."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            f"/api/v1/users/user/?workspace={self.ws_a.id}",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_cross_tenant_user_listing_denied(self):
+        """User affiliated with Tenant A attempting to list users with Tenant B's X-Tenant-ID is rejected."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            "/api/v1/users/user/",
+            HTTP_X_TENANT_ID=str(self.tenant_b.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
