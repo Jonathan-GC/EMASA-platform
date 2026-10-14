@@ -39,6 +39,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             if membership.role and membership.role.is_admin:
                 is_tenant_admin = True
             tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
+            tenant_id = tenant.id
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
             if tenant.is_global:
                 is_global = True
@@ -47,6 +48,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         else:
             if user.tenant:
                 tenant = user.tenant
+                tenant_id = tenant.id
                 cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
                 if cs_tenant_id is None:
                     logger.warning(
@@ -62,6 +64,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     f"User {user.id} has no tenant or workspace membership; setting is_global to False."
                 )
                 is_global = False
+                tenant_id = None
                 cs_tenant_id = None
 
         support_membership = SupportMembership.objects.filter(user=user).first()
@@ -73,6 +76,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["user_id"] = user.id
         token["username"] = user.username
         token["is_global"] = is_global
+        token["tenant_id"] = tenant_id
         token["cs_tenant_id"] = cs_tenant_id
         token["is_superuser"] = is_superuser
         token["is_support"] = is_support
@@ -135,6 +139,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
             if membership.role and membership.role.is_admin:
                 is_tenant_admin = True
             tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
+            tenant_id = tenant.id
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
             if tenant.is_global:
                 is_global = True
@@ -143,6 +148,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         else:
             if user.tenant:
                 tenant = user.tenant
+                tenant_id = tenant.id
                 cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
                 if cs_tenant_id is None:
                     logger.warning(
@@ -158,6 +164,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
                     f"User {user.id} has no tenant or workspace membership; setting is_global to False."
                 )
                 is_global = False
+                tenant_id = None
                 cs_tenant_id = None
 
         support_membership = SupportMembership.objects.filter(user=user).first()
@@ -169,6 +176,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         access_token["user_id"] = user.id
         access_token["username"] = user.username
         access_token["is_global"] = is_global
+        access_token["tenant_id"] = tenant_id
         access_token["cs_tenant_id"] = cs_tenant_id
         access_token["is_superuser"] = is_superuser
         access_token["is_support"] = is_support
