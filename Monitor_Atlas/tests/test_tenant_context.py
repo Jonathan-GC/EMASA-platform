@@ -180,7 +180,7 @@ class TenantContextMiddlewareTests(TestCase):
         self.assertIsNone(request.tenant)
 
     def test_unauthenticated_request_with_header_yields_403(self):
-        """Unauthenticated request with X-Tenant-ID header yields HTTP 403."""
+        """Unauthenticated request with X-Tenant-ID header yields HTTP 403 on scoped endpoints."""
         request = self.factory.get(
             "/api/v1/organizations/workspaces/",
             HTTP_X_TENANT_ID=str(self.tenant_a.id),
@@ -191,6 +191,46 @@ class TenantContextMiddlewareTests(TestCase):
         response = middleware(request)
 
         self.assertEqual(response.status_code, 403)
+
+    def test_non_tenant_scoped_endpoint_with_invalid_header_bypasses_tenant_check(self):
+        """Non-tenant scoped endpoint (e.g., csrf, token, auth) ignores invalid X-Tenant-ID header."""
+        request = self.factory.get(
+            "/api/v1/csrf/",
+            HTTP_X_TENANT_ID="nonexistent_or_invalid_id",
+        )
+        request.user = AnonymousUser()
+
+        middleware = self._get_middleware()
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_tenant_scoped_endpoint_with_unauthorized_header_bypasses_tenant_check(self):
+        """Non-tenant scoped endpoint ignores unauthorized X-Tenant-ID header."""
+        request = self.factory.post(
+            "/api/v1/token/refresh/",
+            HTTP_X_TENANT_ID=str(self.tenant_b.id),
+        )
+        request.user = self.user_a
+
+        middleware = self._get_middleware()
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(request.tenant, self.user_a.tenant)
+
+    def test_tenant_creation_post_with_header_bypasses_tenant_check(self):
+        """POST /api/v1/organizations/tenant/ creation bypasses X-Tenant-ID validation."""
+        request = self.factory.post(
+            "/api/v1/organizations/tenant/",
+            HTTP_X_TENANT_ID="unrelated_tenant_id",
+        )
+        request.user = self.user_a
+
+        middleware = self._get_middleware()
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
 
 
 class GlobalTenantHelperTests(TestCase):
