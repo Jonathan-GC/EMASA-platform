@@ -342,18 +342,22 @@ def has_contextual_perm(
                     )
                     return has_perm
 
-        # Check direct user permissions or guardian perms
-        if obj is not None:
-            return codename in get_perms(user, obj)
+    # Check direct user permissions or guardian perms
+    if obj is not None:
+        return codename in get_perms(user, obj)
 
-        if app_label:
-            return user.user_permissions.filter(
+    if app_label:
+        return (
+            user.user_permissions.filter(
                 content_type__app_label=app_label, codename=codename
             ).exists()
-        return user.user_permissions.filter(codename=codename).exists()
-
-    logger.debug("No contextual boundary resolved (neither workspace nor tenant provided)")
-    return False
+            or user.has_perm(f"{app_label}.{codename}")
+        )
+    return (
+        user.user_permissions.filter(codename=codename).exists()
+        or user.has_perm(f"organizations.{codename}")
+        or user.has_perm(codename)
+    )
 
 
 def has_permission(user, perm, obj=None):
@@ -532,7 +536,13 @@ class HasContextualPermission(BasePermission):
 
         # If operation is on a tenant-scoped resource, ensure tenant is resolved
         if scope in TENANT_SCOPED_MODELS and tenant is None:
-            raise PermissionDenied("Active tenant context is required for this operation.")
+            is_tenant_create = (
+                scope == "tenant"
+                and (getattr(view, "action", None) == "create" or request.method.lower() == "post")
+                and getattr(user, "tenant", None) is None
+            )
+            if not is_tenant_create:
+                raise PermissionDenied("Active tenant context is required for this operation.")
 
         # Defer detail actions without explicit workspace context to has_object_permission
         is_detail_action = getattr(view, "detail", False) or getattr(view, "action", None) in [

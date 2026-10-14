@@ -267,3 +267,46 @@ class ContextualDRFPermissionTests(TestCase):
             HTTP_X_API_KEY="valid-service-secret-key-999",
         )
         self.assertEqual(response_alt.status_code, status.HTTP_200_OK)
+
+    def test_tenant_creation_allowed_for_user_without_tenant_membership(self):
+        """User without an existing tenant membership can create a tenant without X-Tenant-ID header."""
+        from unittest.mock import patch
+        from roles.helpers import assign_new_user_base_permissions
+
+        new_user = User.objects.create_user(
+            username="onboarding_user", email="onboarding@test.com"
+        )
+        assign_new_user_base_permissions(new_user)
+        self.assertIsNone(new_user.tenant)
+        self.assertTrue(new_user.has_perm("organizations.add_tenant"))
+
+        self.client.force_authenticate(user=new_user)
+        with patch("organizations.views.sync_tenant_create") as mock_sync:
+            mock_sync.return_value.status_code = 200
+            response = self.client.post(
+                "/api/v1/organizations/tenant/",
+                {
+                    "name": "Onboarding Corp",
+                    "description": "New Org",
+                    "subscription_id": self.subscription.id,
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+            new_user.refresh_from_db()
+            self.assertIsNotNone(new_user.tenant)
+            self.assertEqual(new_user.tenant.name, "Onboarding Corp")
+
+    def test_tenant_context_still_required_for_tenant_list_without_membership(self):
+        """Listing tenants without an active tenant context is rejected for non-global users."""
+        from roles.helpers import assign_new_user_base_permissions
+
+        new_user = User.objects.create_user(
+            username="onboarding_user_list", email="onboarding_list@test.com"
+        )
+        assign_new_user_base_permissions(new_user)
+        self.client.force_authenticate(user=new_user)
+
+        response = self.client.get("/api/v1/organizations/tenant/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+

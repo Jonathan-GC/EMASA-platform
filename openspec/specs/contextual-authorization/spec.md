@@ -46,7 +46,7 @@ The system MUST evaluate user permissions strictly within the context of the act
 - AND the system MUST allow the operation while recording audit logs for the cross-tenant action.
 
 ### Requirement: Contextual DRF Permission Class
-The system MUST provide a contextual Django REST Framework permission class (`HasContextualPermission`) that enforces tenant and workspace authorization boundaries across all API viewsets. The permission class MUST resolve the active tenant and workspace context from the request (via request attributes, contextual headers such as `X-Tenant-ID` and `X-Workspace-ID`, query parameters, or route arguments) and map the HTTP method and view `scope` to the corresponding contextual permission codename. The permission class MUST deny access if the required context cannot be resolved for a scoped viewset, or if the user lacks the requisite contextual permission. The permission class MUST also support inter-service requests authenticated via configured service API keys.
+The system MUST provide a contextual Django REST Framework permission class (`HasContextualPermission`) that enforces tenant and workspace authorization boundaries across all API viewsets. The permission class MUST resolve the active tenant and workspace context from the request (via request attributes, contextual headers such as `X-Tenant-ID` and `X-Workspace-ID`, query parameters, or route arguments) and map the HTTP method and view `scope` to the corresponding contextual permission codename. The permission class MUST deny access if the required context cannot be resolved for a scoped viewset, or if the user lacks the requisite contextual permission. When an authenticated user without an assigned tenant (`user.tenant is None`) creates a tenant (`scope == "tenant"` and action is `create` or `POST`), the permission class MUST NOT demand an active tenant context and MUST verify that the user possesses the `organizations.add_tenant` permission. The permission class MUST also support inter-service requests authenticated via configured service API keys.
 
 #### Scenario: Authorized viewset request with valid contextual permission
 - GIVEN an authenticated user with "view_device" permission in active workspace "Workspace Alpha"
@@ -77,6 +77,12 @@ The system MUST provide a contextual Django REST Framework permission class (`Ha
 - WHEN `HasContextualPermission.has_permission` evaluates the request
 - THEN the system MUST authenticate the request as an internal trusted service
 - AND user-level contextual role checks SHALL be bypassed.
+
+#### Scenario: Tenant creation permitted for user without existing tenant membership
+- GIVEN an authenticated user without any tenant membership (`user.tenant is None`)
+- AND possessing direct `organizations.add_tenant` permission
+- WHEN the user sends a `POST /api/v1/organizations/tenant/` request without an `X-Tenant-ID` header
+- THEN `HasContextualPermission.has_permission` MUST permit the request without demanding an active tenant context.
 
 ### Requirement: Object-Level Contextual Ownership
 The system MUST verify that any target object requested for retrieval, modification, or deletion strictly belongs to the request's active tenant and workspace context. In `has_object_permission`, the system MUST reject any operation if the target object's tenant or workspace does not match the active request context, regardless of whether the user possesses permissions on an object with the same ID in another context. Object-level permission evaluation MUST inspect direct ownership or parent relationships (`object.workspace` and `object.tenant`) and verify that the user holds the requisite object permission within that specific contextual boundary.
