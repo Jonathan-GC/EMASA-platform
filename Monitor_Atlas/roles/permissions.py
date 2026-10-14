@@ -346,6 +346,11 @@ def has_contextual_perm(
     if obj is not None:
         return codename in get_perms(user, obj)
 
+    # An authenticated user without tenant membership is permitted to create
+    # their initial tenant organization (onboarding) when outside any tenant/workspace context.
+    if codename == "add_tenant" and getattr(user, "tenant", None) is None and tenant is None and workspace is None:
+        return True
+
     if app_label:
         return (
             user.user_permissions.filter(
@@ -535,12 +540,12 @@ class HasContextualPermission(BasePermission):
                     )
 
         # If operation is on a tenant-scoped resource, ensure tenant is resolved
+        is_tenant_create = (
+            scope == "tenant"
+            and (getattr(view, "action", None) == "create" or request.method.lower() == "post")
+            and getattr(user, "tenant", None) is None
+        )
         if scope in TENANT_SCOPED_MODELS and tenant is None:
-            is_tenant_create = (
-                scope == "tenant"
-                and (getattr(view, "action", None) == "create" or request.method.lower() == "post")
-                and getattr(user, "tenant", None) is None
-            )
             if not is_tenant_create:
                 raise PermissionDenied("Active tenant context is required for this operation.")
 
@@ -555,7 +560,9 @@ class HasContextualPermission(BasePermission):
         if is_detail_action and workspace is None:
             return True
 
-        if getattr(view, "action", None) == "accept_consent":
+        if is_tenant_create:
+            has_perm = True
+        elif getattr(view, "action", None) == "accept_consent":
             has_perm = has_contextual_perm(
                 user=user,
                 perm="add_deviceconsent",

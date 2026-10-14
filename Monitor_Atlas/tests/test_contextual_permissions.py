@@ -297,6 +297,44 @@ class ContextualDRFPermissionTests(TestCase):
             self.assertIsNotNone(new_user.tenant)
             self.assertEqual(new_user.tenant.name, "Onboarding Corp")
 
+    def test_tenant_creation_allowed_for_tenantless_user_without_explicit_user_permissions(self):
+        """Tenantless user without explicit user_permissions can create initial tenant onboarding."""
+        from unittest.mock import patch
+
+        raw_user = User.objects.create_user(
+            username="raw_onboarding_user", email="raw_onboarding@test.com"
+        )
+        self.assertIsNone(raw_user.tenant)
+        self.assertEqual(raw_user.user_permissions.count(), 0)
+
+        self.client.force_authenticate(user=raw_user)
+        with patch("organizations.views.sync_tenant_create") as mock_sync:
+            mock_sync.return_value.status_code = 200
+            response = self.client.post(
+                "/api/v1/organizations/tenant/",
+                {
+                    "name": "Raw Onboarding Corp",
+                    "description": "Onboarding without pre-assigned user perms",
+                    "subscription_id": self.subscription.id,
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+            raw_user.refresh_from_db()
+            self.assertIsNotNone(raw_user.tenant)
+            self.assertEqual(raw_user.tenant.name, "Raw Onboarding Corp")
+
+            # Subsequent attempt to create another tenant must be denied
+            second_response = self.client.post(
+                "/api/v1/organizations/tenant/",
+                {
+                    "name": "Second Corp",
+                    "subscription_id": self.subscription.id,
+                },
+                format="json",
+            )
+            self.assertEqual(second_response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_tenant_context_still_required_for_tenant_list_without_membership(self):
         """Listing tenants without an active tenant context is rejected for non-global users."""
         from roles.helpers import assign_new_user_base_permissions
