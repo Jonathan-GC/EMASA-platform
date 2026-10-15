@@ -284,11 +284,14 @@ def assign_base_workspace_admin_permissions_to_group(workspace, group):
     assign_perm(f"view_workspace", group, workspace)
     assign_perm(f"change_workspace", group, workspace)
 
-    # Role creation permission is given to workspace admins
+    # Creation permissions given to workspace admins
     assign_perm("roles.add_role", group)
     assign_perm("roles.add_workspacemembership", group)
-    # Machine creation permission is given to workspace admins
     assign_perm("infrastructure.add_machine", group)
+    assign_perm("infrastructure.add_device", group)
+    assign_perm("infrastructure.add_gateway", group)
+    assign_perm("infrastructure.add_application", group)
+    assign_perm("infrastructure.add_location", group)
 
     logger.debug(f"Assigned base workspace admin permissions to group {group.name}")
 

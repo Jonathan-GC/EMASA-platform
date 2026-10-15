@@ -334,6 +334,14 @@ class TenantIsolationViewSetTests(TestCase):
         WorkspaceMembership.objects.create(
             workspace=self.ws_b, user=self.user_b, role=admin_role_b
         )
+        assign_perm("view_role", self.user_a, admin_role_a)
+        assign_perm("view_role", self.user_b, admin_role_b)
+
+        from infrastructure.models import Machine
+        self.machine_a = Machine.objects.create(name="Machine A", workspace=self.ws_a)
+        self.machine_b = Machine.objects.create(name="Machine B", workspace=self.ws_b)
+        assign_perm("view_machine", self.user_a, self.machine_a)
+        assign_perm("view_machine", self.user_b, self.machine_b)
 
     def test_database_unique_constraint_rejects_second_global_tenant(self):
         """Database partial unique constraint rejects creating a second is_global=True tenant."""
@@ -518,4 +526,81 @@ class TenantIsolationViewSetTests(TestCase):
             HTTP_X_TENANT_ID=str(self.tenant_b.id),
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_tenant_member_can_list_infrastructure_machines_with_workspace_context(self):
+        """Authenticated tenant member can list viewable machines with workspace parameter or header."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+
+        # 1. With query param ?workspace=
+        response = client.get(
+            f"/api/v1/infrastructure/machines/?workspace={self.ws_a.id}",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [m["id"] for m in response.data]
+        self.assertIn(self.machine_a.id, ids)
+        self.assertNotIn(self.machine_b.id, ids)
+
+        # 2. With header X-Workspace-ID
+        response_hdr = client.get(
+            "/api/v1/infrastructure/machines/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+            HTTP_X_WORKSPACE_ID=str(self.ws_a.id),
+        )
+        self.assertEqual(response_hdr.status_code, status.HTTP_200_OK)
+        hdr_ids = [m["id"] for m in response_hdr.data]
+        self.assertIn(self.machine_a.id, hdr_ids)
+        self.assertNotIn(self.machine_b.id, hdr_ids)
+
+    def test_tenant_member_listing_infrastructure_machines_without_workspace_denied(self):
+        """Listing workspace-scoped machines without workspace context returns 403."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            "/api/v1/infrastructure/machines/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_tenant_member_can_list_roles_with_workspace_context(self):
+        """Authenticated tenant member can list viewable roles within workspace context."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+
+        # 1. With workspace param
+        resp_ws = client.get(
+            f"/api/v1/roles/role/?workspace={self.ws_a.id}",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(resp_ws.status_code, status.HTTP_200_OK)
+
+        # 2. With workspace header
+        resp_hdr = client.get(
+            "/api/v1/roles/role/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+            HTTP_X_WORKSPACE_ID=str(self.ws_a.id),
+        )
+        self.assertEqual(resp_hdr.status_code, status.HTTP_200_OK)
+
+    def test_tenant_member_listing_roles_without_workspace_denied(self):
+        """Listing workspace-scoped roles without workspace context returns 403."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        resp_tenant = client.get(
+            "/api/v1/roles/role/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(resp_tenant.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_cross_tenant_infrastructure_listing_denied(self):
+        """User affiliated with Tenant A attempting to list machines with Tenant B's X-Tenant-ID is rejected."""
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            f"/api/v1/infrastructure/machines/?workspace={self.ws_a.id}",
+            HTTP_X_TENANT_ID=str(self.tenant_b.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
 

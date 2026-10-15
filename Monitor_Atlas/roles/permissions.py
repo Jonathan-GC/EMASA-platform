@@ -267,8 +267,8 @@ def has_contextual_perm(
             .select_related("role", "role__group")
             .first()
         )
+        is_tenant_owner = getattr(user, "tenant", None) and user.tenant == getattr(workspace, "tenant", None)
         if not membership or not membership.role:
-            is_tenant_owner = getattr(user, "tenant", None) and user.tenant == getattr(workspace, "tenant", None)
             if not is_tenant_owner:
                 logger.debug(
                     f"User {user.username} has no active membership in workspace {workspace.id}"
@@ -292,8 +292,8 @@ def has_contextual_perm(
         if has_group_perm and obj is None:
             return True
 
-        # Collection listing for view_user filtered by get_objects_for_user in UserViewSet
-        if obj is None and codename == "view_user":
+        # Collection listing for view_* actions filtered by get_objects_for_user in viewsets
+        if obj is None and codename.startswith("view_"):
             return True
 
         # Object-level permission evaluation
@@ -301,6 +301,7 @@ def has_contextual_perm(
             has_obj_perm = (
                 (codename in get_perms(role_group, obj) if role_group else False)
                 or codename in get_perms(user, obj)
+                or (is_tenant_owner and codename.startswith("view_"))
             )
             return has_group_perm or has_obj_perm
 
@@ -349,8 +350,8 @@ def has_contextual_perm(
                     )
                     return has_perm
 
-        # Tenant, Workspace, and User viewing and management for affiliated tenant members
-        if codename in ["view_workspace", "view_tenant", "view_user"]:
+        # Tenant, Workspace, and Resource viewing for affiliated tenant members
+        if codename.startswith("view_"):
             if obj is None:
                 return True
             if codename in get_perms(user, obj):
