@@ -135,6 +135,19 @@ def assign_new_workspace_base_permissions(workspace, user):
     assign_perm("roles.add_role", user)
     assign_perm("infrastructure.add_machine", user)
 
+    # Also grant the workspace admin role group object-level perms so that
+    # admin membership (not just the creating user) can view/change the
+    # workspace. Without this, has_obj_perm fails for fellow admins.
+    try:
+        admin_role = Role.objects.filter(
+            workspace=workspace, is_admin=True
+        ).first()
+        if admin_role and admin_role.group:
+            assign_perm("view_workspace", admin_role.group, workspace)
+            assign_perm("change_workspace", admin_role.group, workspace)
+    except Exception as e:
+        logger.debug(f"Could not assign workspace perms to admin group: {e}")
+
     global_group = get_global_admin_role_group()
     if global_group:
         assign_perm("view_workspace", global_group, workspace)
@@ -354,9 +367,11 @@ def get_assignable_permissions(user, workspace, role):
     )
 
     # --- Permissions allowed per tenant type ---
+    # Standard tenants are limited to safe actions; deleting roles remains
+    # allowed (user deactivation is change_*, not delete). Mirrors
+    # STANDARD_TENANT_DELETE_ALLOWLIST enforcement in permissions.py.
     full_actions = ["view", "change", "delete"]
     safe_actions = ["view", "change"]
-    allowed_actions = full_actions if is_global_tenant else safe_actions
 
     from .catalog import PermissionCatalogRegistry
 
@@ -381,6 +396,12 @@ def get_assignable_permissions(user, workspace, role):
 
             for obj in instances:
                 perms_for_obj = {}
+                if is_global_tenant:
+                    allowed_actions = full_actions
+                elif model_name == "role":
+                    allowed_actions = full_actions
+                else:
+                    allowed_actions = safe_actions
                 for action in allowed_actions:
                     if action not in res.actions:
                         continue

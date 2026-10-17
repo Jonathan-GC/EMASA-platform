@@ -427,8 +427,11 @@ class PermissionCatalogRegistry:
         elif tenant and getattr(tenant, "is_global", False):
             is_global = True
 
-        # Safe actions for standard tenants vs full actions for global tenants
-        allowed_actions = ["view", "change", "delete"] if is_global else ["view", "change"]
+        # Safe actions for standard tenants vs full actions for global tenants.
+        # Exception: standard tenants may still delete roles (user deactivation
+        # happens via change_*, not delete). Enforced per-resource below and in
+        # has_contextual_perm's STANDARD_TENANT_DELETE_ALLOWLIST.
+        base_allowed = ["view", "change", "delete"] if is_global else ["view", "change"]
 
         categories_list = []
         for cat in cls._categories.values():
@@ -441,6 +444,9 @@ class PermissionCatalogRegistry:
                 if scope and scope not in res.scopes:
                     continue
 
+                allowed_actions = base_allowed
+                if not is_global and res.model == "role":
+                    allowed_actions = ["view", "change", "delete"]
                 res_dict = res.to_dict(allowed_actions=allowed_actions)
                 if res_dict["actions"]:
                     filtered_resources.append(res_dict)

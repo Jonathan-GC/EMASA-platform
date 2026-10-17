@@ -45,6 +45,13 @@ TENANT_SCOPED_MODELS = {
     "workspace",
 }
 
+# Deletes permitted inside standard (non-global) tenant context.
+# Standard users may delete roles; deactivation of users happens via
+# change_* on user/membership, not via delete. Every other delete_*
+# (workspace, tenant, infrastructure, ...) requires global target context.
+# Superuser / global-admin / global-support bypasses above are unaffected.
+STANDARD_TENANT_DELETE_ALLOWLIST = {"delete_role"}
+
 
 def get_object_workspace_and_tenant(obj):
     """
@@ -251,6 +258,20 @@ def has_contextual_perm(
         ]:
             return True
 
+    # Standard-tenant delete policy (enforces the catalog/helpers safe-actions
+    # rule instead of leaving it as UI-only). Context (workspace/tenant) already
+    # merged from obj above, so detail actions without explicit headers are covered.
+    if codename.startswith("delete_") and codename not in STANDARD_TENANT_DELETE_ALLOWLIST:
+        target_is_global = (
+            (workspace is not None and getattr(getattr(workspace, "tenant", None), "is_global", False))
+            or (tenant is not None and getattr(tenant, "is_global", False))
+        )
+        if not target_is_global:
+            logger.debug(
+                f"Delete denied for user={user.username} in non-global context: perm={codename}"
+            )
+            return False
+
     # Workspace-level contextual evaluation
     if workspace is not None:
         # Diagnostic pass grants read-only SAFE_METHODS (view_*)
@@ -277,6 +298,29 @@ def has_contextual_perm(
             role_group = None
         else:
             role_group = membership.role.group
+
+        # Workspace admin (or tenant owner acting as admin) is authoritative for
+        # view/add/change within their own workspace boundary, plus allowlisted
+        # deletes (delete_role). This removes the dependency on per-object
+        # Guardian rows existing for every (group, object) pair, which was the
+        # source of the recurring "no contextual permission for change_X" bugs.
+        # Non-admin members still go through the model/object checks below.
+        is_workspace_admin = bool(is_tenant_owner) or bool(
+            membership
+            and membership.role
+            and (
+                getattr(membership.role, "is_admin", False)
+                or "admin" in (getattr(membership.role, "name", "") or "").lower()
+            )
+        )
+        if is_workspace_admin:
+            if codename.startswith(("view_", "add_", "change_")):
+                return True
+            if codename.startswith("delete_"):
+                # Delete gate above already rejected non-allowlisted deletes in
+                # standard context; whatever passed (delete_role, or any delete
+                # in global context) is permitted for admins.
+                return True
 
         if role_group:
             # Model-level permission granted to the role group
