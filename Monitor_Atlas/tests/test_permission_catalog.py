@@ -131,13 +131,17 @@ class PermissionCatalogAPITests(TestCase):
         categories = data["categories"]
         self.assertTrue(len(categories) > 0)
 
-        # Verify safe actions (view, change) are returned for standard tenants
+        # Verify safe actions (view, change) are returned for standard tenants.
+        # Exception: roles keep delete (standard tenants may delete roles).
         for cat in categories:
             for res in cat["resources"]:
                 self.assertIn("actions", res)
-                self.assertEqual(set(res["actions"]), {"view", "change"})
-                # Should not include delete for standard tenant
-                self.assertNotIn("delete", res["actions"])
+                if res["model"] == "role":
+                    self.assertEqual(set(res["actions"]), {"view", "change", "delete"})
+                else:
+                    self.assertEqual(set(res["actions"]), {"view", "change"})
+                    # Should not include delete for standard tenant
+                    self.assertNotIn("delete", res["actions"])
 
     def test_catalog_superuser_and_global_admin_receives_full_catalog(self):
         """Superusers and global admins receive full catalog with complete actions."""
@@ -221,15 +225,26 @@ class AssignablePermissionsDynamicTests(TestCase):
         self.assertTrue(mach_perms["change_machine"]["can_assign"])
 
     def test_administrative_authority_bounding_can_assign(self):
-        """Admin without change_machine cannot assign change_machine (can_assign is False)."""
-        # Only assign view_machine to admin_group, omit change_machine
-        assign_perm("view_machine", self.admin_group, self.machine)
-
+        """Workspace admins may grant view/change by authority; deletes stay bounded."""
+        # No Guardian rows granted to admin_group at all: view/change must
+        # still be assignable by admin authority, while delete_machine
+        # (non-role delete in a standard tenant) must not be offered.
         perms = get_assignable_permissions(self.admin_user, self.workspace, self.target_role)
         machine_entry = next(m for m in perms["object"]["machine"] if m["id"] == self.machine.id)
 
         self.assertTrue(machine_entry["permissions"]["view_machine"]["can_assign"])
-        self.assertFalse(machine_entry["permissions"]["change_machine"]["can_assign"])
+        self.assertTrue(machine_entry["permissions"]["change_machine"]["can_assign"])
+        self.assertNotIn("delete_machine", machine_entry["permissions"])
+
+    def test_admin_can_assign_role_delete_without_rows(self):
+        """Admin may grant view/change/delete on a freshly created role (YOLAS case)."""
+        new_role = Role.objects.create(name="YOLAS", workspace=self.workspace)
+        perms = get_assignable_permissions(self.admin_user, self.workspace, self.target_role)
+        entry = next(r for r in perms["object"]["role"] if r["id"] == new_role.id)
+        self.assertFalse(entry["permissions"]["view_role"]["assigned"])
+        self.assertTrue(entry["permissions"]["view_role"]["can_assign"])
+        self.assertTrue(entry["permissions"]["change_role"]["can_assign"])
+        self.assertTrue(entry["permissions"]["delete_role"]["can_assign"])
 
     def test_sin_rol_protection(self):
         """Sin rol role returns empty assignable permissions and rejects bulk assignment."""

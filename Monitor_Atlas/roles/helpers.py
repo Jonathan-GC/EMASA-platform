@@ -350,6 +350,19 @@ def get_assignable_permissions(user, workspace, role):
     is_admin = get_user_workspace_admin_status(user, workspace)
     if not is_admin and user and user.is_superuser:
         is_admin = True
+    if not is_admin and user and workspace:
+        # Tenant owners act as admins in their tenant's workspaces, mirroring
+        # the is_workspace_admin equivalence in has_contextual_perm. Without
+        # this, an owner without a direct change_workspace grant sees an
+        # empty panel even though enforcement treats them as admin.
+        try:
+            is_admin = bool(
+                getattr(user, "tenant", None) is not None
+                and getattr(workspace, "tenant", None) is not None
+                and user.tenant == workspace.tenant
+            )
+        except Exception:
+            pass
 
     if not is_admin:
         return assignable_permissions
@@ -418,6 +431,21 @@ def get_assignable_permissions(user, workspace, role):
 
                     can_assign = False
                     if user and user.is_superuser:
+                        can_assign = True
+                    elif is_admin and action in ("view", "change"):
+                        # Workspace admins/owners can grant view/change on any
+                        # in-context object (enforcement already authorizes
+                        # them via the is_workspace_admin shortcut), so the
+                        # panel must not depend on Guardian rows existing on
+                        # the admin group for every creation path.
+                        can_assign = True
+                    elif (
+                        is_admin
+                        and action == "delete"
+                        and (is_global_tenant or model_name == "role")
+                    ):
+                        # Delete grants mirror STANDARD_TENANT_DELETE_ALLOWLIST:
+                        # roles everywhere, everything else global-only.
                         can_assign = True
                     elif admin_group:
                         can_assign = (
