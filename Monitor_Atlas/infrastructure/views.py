@@ -72,6 +72,48 @@ from roles.helpers import assign_created_instance_permissions
 from django.utils import timezone
 
 
+def _resolve_active_workspace_id(request):
+    """Resolve the active workspace id from request context.
+
+    Prefers the workspace resolved by HasContextualPermission into
+    request.workspace, then the X-Workspace-ID header, then the
+    ?workspace= / ?workspace_id= query params (same order as RoleViewSet).
+    """
+    ws = getattr(request, "workspace", None)
+    if ws:
+        return getattr(ws, "id", ws)
+    if hasattr(request, "headers"):
+        header_ws = request.headers.get("X-Workspace-ID")
+        if header_ws:
+            return header_ws
+    return request.query_params.get("workspace") or request.query_params.get(
+        "workspace_id"
+    )
+
+
+def _scoped_workspace_queryset(request, base_queryset, workspace_field="workspace"):
+    """Narrow a permission-filtered queryset to the active tenant/workspace.
+
+    Must be applied on top of get_objects_for_user (never on the raw
+    Model.objects.all()), so permission filtering is never bypassed.
+    Superusers skip tenant scoping (same as RoleViewSet) but honor the
+    active workspace filter.
+    """
+    user = request.user
+    if not user.is_superuser:
+        active_tenant = getattr(request, "tenant", getattr(user, "tenant", None))
+        if active_tenant:
+            base_queryset = base_queryset.filter(
+                **{f"{workspace_field}__tenant": active_tenant}
+            )
+    workspace_id = _resolve_active_workspace_id(request)
+    if workspace_id:
+        base_queryset = base_queryset.filter(
+            **{f"{workspace_field}__id": workspace_id}
+        )
+    return base_queryset
+
+
 @extend_schema_view(
     list=extend_schema(description="Gateway List (ChirpStack)"),
     create=extend_schema(description="Gateway Create (ChirpStack)"),
@@ -89,13 +131,15 @@ class GatewayViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Gateway.objects.all()
-        return get_objects_for_user(
-            user,
-            "infrastructure.view_gateway",
-            klass=Gateway,
-            accept_global_perms=False,
-        )
+            queryset = Gateway.objects.all()
+        else:
+            queryset = get_objects_for_user(
+                user,
+                "infrastructure.view_gateway",
+                klass=Gateway,
+                accept_global_perms=False,
+            )
+        return _scoped_workspace_queryset(self.request, queryset)
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -135,12 +179,7 @@ class GatewayViewSet(viewsets.ModelViewSet):
         returning the response.
 
         """
-        workspace = request.query_params.get("workspace", None)
-
-        if workspace:
-            queryset = self.queryset.filter(workspace__id=workspace)
-        else:
-            queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset())
 
         for gateway in queryset:
             sync_gateway_get(gateway)
@@ -228,21 +267,18 @@ class MachineViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Machine.objects.all()
-        return get_objects_for_user(
-            user,
-            "infrastructure.view_machine",
-            klass=Machine,
-            accept_global_perms=False,
-        )
+            queryset = Machine.objects.all()
+        else:
+            queryset = get_objects_for_user(
+                user,
+                "infrastructure.view_machine",
+                klass=Machine,
+                accept_global_perms=False,
+            )
+        return _scoped_workspace_queryset(self.request, queryset)
 
     def list(self, request, *args, **kwargs):
-        workspace = request.query_params.get("workspace", None)
-
-        if workspace:
-            queryset = self.queryset.filter(workspace__id=workspace)
-        else:
-            queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -445,13 +481,15 @@ class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Device.objects.all()
-        return get_objects_for_user(
-            user,
-            "infrastructure.view_device",
-            klass=Device,
-            accept_global_perms=False,
-        )
+            queryset = Device.objects.all()
+        else:
+            queryset = get_objects_for_user(
+                user,
+                "infrastructure.view_device",
+                klass=Device,
+                accept_global_perms=False,
+            )
+        return _scoped_workspace_queryset(self.request, queryset)
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -513,12 +551,7 @@ class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
         instance.delete()
 
     def list(self, request, *args, **kwargs):
-        workspace = request.query_params.get("workspace", None)
-
-        if workspace:
-            queryset = self.queryset.filter(workspace__id=workspace)
-        else:
-            queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset())
 
         for device in queryset:
             sync_device_get(device)
@@ -1437,6 +1470,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 klass=Application,
                 accept_global_perms=False,
             )
+        queryset = _scoped_workspace_queryset(self.request, queryset)
         return queryset.annotate(devices_count=Count("device"))
 
     def perform_create(self, serializer):
@@ -1498,12 +1532,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             )
 
     def list(self, request, *args, **kwargs):
-        workspace = request.query_params.get("workspace", None)
-
-        if workspace:
-            queryset = self.queryset.filter(workspace__id=workspace)
-        else:
-            queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset())
 
         for application in queryset:
             logger.debug(f"Syncing application {application.name}")
@@ -1568,17 +1597,22 @@ class LocationViewSet(viewsets.ModelViewSet):
     scope = "location"
 
     def get_queryset(self):
+        # Locations have no direct workspace FK; they are scoped through
+        # Gateway.location -> Gateway.workspace.
         user = self.request.user
         if user.is_superuser:
+            gateways = Gateway.objects.all()
+        else:
+            gateways = get_objects_for_user(
+                user,
+                "infrastructure.view_gateway",
+                klass=Gateway,
+                accept_global_perms=False,
+            )
+        gateways = _scoped_workspace_queryset(self.request, gateways)
+        if user.is_superuser and not _resolve_active_workspace_id(self.request):
             return Location.objects.all()
-
-        accessible_gateways = get_objects_for_user(
-            user,
-            "infrastructure.view_gateway",
-            klass=Gateway,
-            accept_global_perms=False,
-        )
-        return Location.objects.filter(gateway__in=accessible_gateways)
+        return Location.objects.filter(gateway__in=gateways)
 
     def perform_create(self, serializer):
         instance = serializer.save()

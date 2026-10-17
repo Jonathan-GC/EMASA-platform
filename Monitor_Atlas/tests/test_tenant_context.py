@@ -603,4 +603,111 @@ class TenantIsolationViewSetTests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_workspace_header_scopes_machine_listing_to_header_workspace(self):
+        """Listing machines with X-Workspace-ID returns only that workspace's machines."""
+        from guardian.shortcuts import assign_perm
+        from infrastructure.models import Machine
+        from organizations.models import Workspace
+
+        ws_a2 = Workspace.objects.create(name="WS A2", tenant=self.tenant_a)
+        machine_a2 = Machine.objects.create(name="Machine A2", workspace=ws_a2)
+        machine_no_perm = Machine.objects.create(
+            name="Machine no perm", workspace=self.ws_a
+        )
+        # user_a may view the other-tenant machine and the second workspace's
+        # machine, but the header must still scope the listing to ws_a.
+        assign_perm("view_machine", self.user_a, self.machine_b)
+        assign_perm("view_machine", self.user_a, machine_a2)
+
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+
+        # 1. Header scoping (previously the header was ignored -> leakage)
+        response = client.get(
+            "/api/v1/infrastructure/machines/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+            HTTP_X_WORKSPACE_ID=str(self.ws_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [m["id"] for m in response.data]
+        self.assertIn(self.machine_a.id, ids)
+        self.assertNotIn(machine_a2.id, ids)
+        self.assertNotIn(self.machine_b.id, ids)
+        # 2. Permission filtering preserved for unviewable same-workspace items
+        self.assertNotIn(machine_no_perm.id, ids)
+
+        # 3. Query param scoping behaves the same
+        response_qs = client.get(
+            f"/api/v1/infrastructure/machines/?workspace={self.ws_a.id}",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+        )
+        self.assertEqual(response_qs.status_code, status.HTTP_200_OK)
+        qs_ids = [m["id"] for m in response_qs.data]
+        self.assertIn(self.machine_a.id, qs_ids)
+        self.assertNotIn(machine_a2.id, qs_ids)
+        self.assertNotIn(self.machine_b.id, qs_ids)
+        self.assertNotIn(machine_no_perm.id, qs_ids)
+
+    def test_workspace_header_scopes_gateway_listing(self):
+        """Listing gateways with X-Workspace-ID excludes other workspaces of the same tenant."""
+        from guardian.shortcuts import assign_perm
+        from infrastructure.models import Gateway, Location
+        from organizations.models import Workspace
+
+        ws_a2 = Workspace.objects.create(name="WS A2 GW", tenant=self.tenant_a)
+        loc_a = Location.objects.create(name="Loc A")
+        loc_a2 = Location.objects.create(name="Loc A2")
+        gw_a = Gateway.objects.create(
+            name="GW A",
+            description="gw a",
+            cs_gateway_id="gw-a-test-1",
+            location=loc_a,
+            workspace=self.ws_a,
+        )
+        gw_a2 = Gateway.objects.create(
+            name="GW A2",
+            description="gw a2",
+            cs_gateway_id="gw-a-test-2",
+            location=loc_a2,
+            workspace=ws_a2,
+        )
+        assign_perm("view_gateway", self.user_a, gw_a)
+        assign_perm("view_gateway", self.user_a, gw_a2)
+
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            "/api/v1/infrastructure/gateways/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+            HTTP_X_WORKSPACE_ID=str(self.ws_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [g["id"] for g in response.data]
+        self.assertIn(gw_a.id, ids)
+        self.assertNotIn(gw_a2.id, ids)
+
+    def test_workspace_header_scopes_application_listing(self):
+        """Listing applications with X-Workspace-ID excludes other workspaces of the same tenant."""
+        from guardian.shortcuts import assign_perm
+        from infrastructure.models import Application
+        from organizations.models import Workspace
+
+        ws_a2 = Workspace.objects.create(name="WS A2 APP", tenant=self.tenant_a)
+        app_a = Application.objects.create(name="App A", workspace=self.ws_a)
+        app_a2 = Application.objects.create(name="App A2", workspace=ws_a2)
+        assign_perm("view_application", self.user_a, app_a)
+        assign_perm("view_application", self.user_a, app_a2)
+
+        client = APIClient()
+        client.force_authenticate(user=self.user_a)
+        response = client.get(
+            "/api/v1/infrastructure/applications/",
+            HTTP_X_TENANT_ID=str(self.tenant_a.id),
+            HTTP_X_WORKSPACE_ID=str(self.ws_a.id),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [a["id"] for a in response.data]
+        self.assertIn(app_a.id, ids)
+        self.assertNotIn(app_a2.id, ids)
+
 
