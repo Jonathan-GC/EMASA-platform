@@ -16,6 +16,8 @@ from .models import (
     CommentAttachment,
     SupportMembership,
     TechnicianAssignment,
+    SupportHallPass,
+    PassScope,
 )
 from .serializers import (
     TicketSerializer,
@@ -25,6 +27,7 @@ from .serializers import (
     SupportMembershipSerializer,
     TicketConversationSerializer,
     TechnicianAssignmentSerializer,
+    SupportHallPassSerializer,
 )
 
 from users.models import User
@@ -319,6 +322,68 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
             finally:
                 _current_audit_context.reset(token)
 
+            # Auto-create or extend a hall pass for the assigned technician
+            hall_pass = None
+            if ticket.workspace_id:
+                from support.models import SupportHallPass, PassScope
+                duration_hours = request.data.get("pass_duration_hours", 24)
+                try:
+                    duration_hours = int(duration_hours)
+                except (ValueError, TypeError):
+                    duration_hours = 24
+
+                expires_at = timezone.now() + timedelta(hours=duration_hours)
+                default_scopes = PassScope.objects.filter(
+                    code__in=["infrastructure", "chirpstack", "ticket"]
+                )
+
+                # Check for existing active pass for this technician + workspace
+                existing_pass = SupportHallPass.objects.filter(
+                    technician=assigned_user,
+                    workspace_id=ticket.workspace_id,
+                    status="ACTIVE",
+                    expires_at__gt=timezone.now(),
+                ).first()
+
+                if existing_pass:
+                    # Extend existing pass
+                    existing_pass.expires_at = expires_at
+                    existing_pass.save()
+                    hall_pass = existing_pass
+                else:
+                    # Create new pass
+                    hall_pass = SupportHallPass.objects.create(
+                        technician=assigned_user,
+                        ticket=ticket,
+                        workspace_id=ticket.workspace_id,
+                        tenant_id=ticket.tenant_id,
+                        permission_level="READ",
+                        granted_by=request.user,
+                        expires_at=expires_at,
+                        status="ACTIVE",
+                        reason=f"Ticket delegated: {ticket.title}",
+                    )
+                    hall_pass.scopes.set(default_scopes)
+
+                # Audit log for delegation pass
+                from auditlog.models import LogEntry
+                from django.contrib.contenttypes.models import ContentType
+                LogEntry.objects.create(
+                    content_type=ContentType.objects.get_for_model(SupportHallPass),
+                    object_pk=str(hall_pass.pk),
+                    object_repr=str(hall_pass),
+                    action=LogEntry.Action.CREATE if existing_pass is None else LogEntry.Action.UPDATE,
+                    actor=request.user,
+                    additional_data={
+                        "action_detail": "delegate_with_pass",
+                        "ticket_id": str(ticket.id),
+                        "technician_id": str(assigned_user.id),
+                        "workspace_id": str(ticket.workspace_id),
+                        "permission_level": "READ",
+                        "expires_at": expires_at.isoformat(),
+                    },
+                )
+
             NotificationsEngine.send_notification(
                 users=[assigned_user],
                 title="New Ticket Assignment",
@@ -326,7 +391,11 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
                 type="info",
                 topic="updates",
             )
-            return Response({"status": "ticket_delegated"}, status=status.HTTP_200_OK)
+
+            response_data = {"status": "ticket_delegated"}
+            if hall_pass:
+                response_data["hall_pass_id"] = str(hall_pass.id)
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -381,29 +450,67 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
             )
 
         expires_at = timezone.now() + timedelta(hours=duration_hours)
+
+        # Default scopes: infrastructure + chirpstack + ticket
+        default_scopes = PassScope.objects.filter(code__in=["infrastructure", "chirpstack", "ticket"])
+
+        hall_pass = SupportHallPass.objects.create(
+            technician=technician,
+            ticket=ticket,
+            workspace=workspace,
+            tenant=workspace.tenant,
+            permission_level="READ",
+            granted_by=request.user,
+            expires_at=expires_at,
+            status="ACTIVE",
+            reason=reason,
+        )
+        hall_pass.scopes.set(default_scopes)
+
+        # Also create legacy TechnicianAssignment for backward compatibility
+        TechnicianAssignment.objects.create(
+            technician=technician,
+            ticket=ticket,
+            workspace=workspace,
+            granted_by=request.user,
+            expires_at=expires_at,
+            status="ACTIVE",
+            reason=reason,
+        )
+
         token = _current_audit_context.set({
-            "action_detail": "grant_diagnostic_pass",
+            "action_detail": "grant_hall_pass",
             "actor": request.user,
             "ticket_id": str(ticket.id),
             "technician_id": str(technician.id),
             "workspace_id": str(workspace.id),
             "duration_hours": duration_hours,
             "expires_at": expires_at.isoformat(),
+            "permission_level": "READ",
         })
         try:
-            assignment = TechnicianAssignment.objects.create(
-                technician=technician,
-                ticket=ticket,
-                workspace=workspace,
-                granted_by=request.user,
-                expires_at=expires_at,
-                status="ACTIVE",
-                reason=reason,
+            from auditlog.models import LogEntry
+            from django.contrib.contenttypes.models import ContentType
+            LogEntry.objects.create(
+                content_type=ContentType.objects.get_for_model(SupportHallPass),
+                object_pk=str(hall_pass.pk),
+                object_repr=str(hall_pass),
+                action=LogEntry.Action.CREATE,
+                actor=request.user,
+                additional_data={
+                    "action_detail": "grant_hall_pass",
+                    "ticket_id": str(ticket.id),
+                    "technician_id": str(technician.id),
+                    "workspace_id": str(workspace.id),
+                    "permission_level": "READ",
+                    "duration_hours": duration_hours,
+                    "expires_at": expires_at.isoformat(),
+                },
             )
         finally:
             _current_audit_context.reset(token)
 
-        serializer = TechnicianAssignmentSerializer(assignment)
+        serializer = SupportHallPassSerializer(hall_pass)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], description="Revoke diagnostic pass")
@@ -419,6 +526,41 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
         if not pass_id:
             return Response({"error": "pass_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Try SupportHallPass first, then legacy TechnicianAssignment
+        hall_pass = SupportHallPass.objects.filter(id=pass_id, ticket=ticket).first()
+        if not hall_pass:
+            hall_pass = SupportHallPass.objects.filter(id=pass_id).first()
+
+        revoke_reason = request.data.get("reason", "")
+
+        if hall_pass:
+            token = _current_audit_context.set({
+                "action_detail": "revoke_hall_pass",
+                "actor": request.user,
+                "pass_id": str(hall_pass.id),
+                "ticket_id": str(ticket.id),
+                "reason": revoke_reason,
+            })
+            try:
+                hall_pass.status = "REVOKED"
+                hall_pass.revoked_by = request.user
+                hall_pass.revoked_at = timezone.now()
+                hall_pass.revoke_reason = revoke_reason
+                hall_pass.save()
+            finally:
+                _current_audit_context.reset(token)
+
+            # Also revoke legacy TechnicianAssignment if it exists
+            TechnicianAssignment.objects.filter(
+                technician=hall_pass.technician,
+                ticket=hall_pass.ticket,
+                workspace=hall_pass.workspace,
+                status__in=["ACTIVE", "active"],
+            ).update(status="REVOKED")
+
+            return Response({"status": "pass_revoked"}, status=status.HTTP_200_OK)
+
+        # Fallback to legacy TechnicianAssignment
         assignment = TechnicianAssignment.objects.filter(id=pass_id, ticket=ticket).first()
         if not assignment:
             assignment = TechnicianAssignment.objects.filter(id=pass_id).first()
@@ -438,6 +580,92 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
             _current_audit_context.reset(token)
 
         return Response({"status": "pass_revoked"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], description="Upgrade hall pass permission level")
+    def upgrade_hall_pass(self, request, pk=None):
+        ticket = self.get_object()
+        if not is_admin_or_support_manager(request.user):
+            return Response(
+                {"error": "Only support managers and administrators can upgrade hall passes."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        pass_id = request.data.get("pass_id")
+        new_level = request.data.get("new_permission_level")
+        duration_hours = request.data.get("duration_hours")
+
+        if not pass_id:
+            return Response({"error": "pass_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not new_level:
+            return Response({"error": "new_permission_level is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_level = new_level.upper()
+        if new_level not in ["READ", "EDIT", "ADJUST"]:
+            return Response(
+                {"error": "new_permission_level must be READ, EDIT, or ADJUST."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hall_pass = SupportHallPass.objects.filter(id=pass_id, ticket=ticket).first()
+        if not hall_pass:
+            hall_pass = SupportHallPass.objects.filter(id=pass_id).first()
+        if not hall_pass:
+            return Response({"error": "Hall pass not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if hall_pass.status != "ACTIVE":
+            return Response(
+                {"error": "Only active hall passes can be upgraded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        current_rank = {"READ": 1, "EDIT": 2, "ADJUST": 3}.get(hall_pass.permission_level, 0)
+        new_rank = {"READ": 1, "EDIT": 2, "ADJUST": 3}.get(new_level, 0)
+
+        if new_rank <= current_rank:
+            return Response(
+                {"error": f"New level must be higher than current level ({hall_pass.permission_level})."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from auditlog.models import LogEntry
+        from django.contrib.contenttypes.models import ContentType
+
+        old_level = hall_pass.permission_level
+        hall_pass.permission_level = new_level
+        hall_pass.upgraded_from = hall_pass
+        hall_pass.upgraded_by = request.user
+        hall_pass.upgraded_at = timezone.now()
+
+        if duration_hours:
+            try:
+                duration_hours = int(duration_hours)
+                hall_pass.expires_at = timezone.now() + timedelta(hours=duration_hours)
+            except (ValueError, TypeError):
+                return Response(
+                    {"error": "duration_hours must be a valid integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        hall_pass.save()
+
+        LogEntry.objects.create(
+            content_type=ContentType.objects.get_for_model(SupportHallPass),
+            object_pk=str(hall_pass.pk),
+            object_repr=str(hall_pass),
+            action=LogEntry.Action.UPDATE,
+            actor=request.user,
+            additional_data={
+                "action_detail": "upgrade_hall_pass",
+                "pass_id": str(hall_pass.id),
+                "ticket_id": str(ticket.id),
+                "from_level": old_level,
+                "to_level": new_level,
+                "upgraded_by": str(request.user.id),
+            },
+        )
+
+        serializer = SupportHallPassSerializer(hall_pass)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"], description="Get support members")
     def get_support_members(self, request):

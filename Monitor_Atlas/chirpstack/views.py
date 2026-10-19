@@ -54,6 +54,9 @@ def _scoped_workspace_queryset(request, base_queryset, workspace_field="workspac
     Model.objects.all()), so permission filtering is never bypassed.
     Superusers skip tenant scoping (same as RoleViewSet) but honor the
     active workspace filter.
+
+    When no workspace header is present, includes workspaces where the user
+    has an active hall pass.
     """
     user = request.user
     if not user.is_superuser:
@@ -67,6 +70,14 @@ def _scoped_workspace_queryset(request, base_queryset, workspace_field="workspac
         base_queryset = base_queryset.filter(
             **{f"{workspace_field}__id": workspace_id}
         )
+    else:
+        # No workspace header — include pass-covered workspaces
+        from support.queryset import get_pass_workspace_ids
+        pass_workspace_ids = get_pass_workspace_ids(user)
+        if pass_workspace_ids:
+            base_queryset = base_queryset.filter(
+                **{f"{workspace_field}__id__in": pass_workspace_ids}
+            )
     return base_queryset
 
 
@@ -94,12 +105,8 @@ class DeviceProfileViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             queryset = DeviceProfile.objects.all()
         else:
-            queryset = get_objects_for_user(
-                user,
-                "chirpstack.view_deviceprofile",
-                klass=DeviceProfile,
-                accept_global_perms=True,
-            )
+            from support.queryset import get_pass_aware_queryset
+            queryset = get_pass_aware_queryset(user, DeviceProfile, self.request)
         return _scoped_workspace_queryset(self.request, queryset)
 
     def perform_create(self, serializer):
@@ -240,9 +247,8 @@ class ApiUserViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             queryset = ApiUser.objects.all()
         else:
-            queryset = get_objects_for_user(
-                user, "chirpstack.view_apiuser", klass=ApiUser, accept_global_perms=True
-            )
+            from support.queryset import get_pass_aware_queryset
+            queryset = get_pass_aware_queryset(user, ApiUser, self.request)
         return _scoped_workspace_queryset(self.request, queryset)
 
     def perform_create(self, serializer):

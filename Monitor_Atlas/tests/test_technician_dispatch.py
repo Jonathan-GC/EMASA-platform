@@ -16,6 +16,8 @@ from support.models import (
     Comment,
     SupportMembership,
     TechnicianAssignment,
+    SupportHallPass,
+    PassScope,
 )
 
 
@@ -509,4 +511,374 @@ class TechnicianDispatchTests(TestCase):
         )
         with self.assertRaises(ValidationError):
             mismatched_pass.clean()
+
+
+class TestSupportHallPass(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.subscription = Subscription.objects.create(name="Sub", description="Sub")
+
+        self.master_tenant = Tenant.objects.create(
+            name="Master Central Tenant",
+            subscription=self.subscription,
+            is_global=True,
+        )
+        self.tenant_alpha = Tenant.objects.create(
+            name="Customer Alpha Tenant",
+            subscription=self.subscription,
+            is_global=False,
+        )
+
+        self.ws_master = Workspace.objects.create(
+            name="Master WS", tenant=self.master_tenant
+        )
+        self.ws_alpha = Workspace.objects.create(
+            name="Alpha Production WS", tenant=self.tenant_alpha
+        )
+
+        self.machine_alpha = Machine.objects.create(
+            name="Alpha Compressor", workspace=self.ws_alpha
+        )
+        self.app_alpha = Application.objects.create(
+            name="Alpha Application", workspace=self.ws_alpha
+        )
+        self.dp_alpha = DeviceProfile.objects.create(
+            name="Alpha Profile",
+            workspace=self.ws_alpha,
+            region="US915",
+            abp_rx1_delay=1,
+            abp_rx1_dr_offset=0,
+            abp_rx2_dr=0,
+            abp_rx2_freq=923300000,
+        )
+        self.device_alpha = Device.objects.create(
+            dev_eui="AABBCCDDEEFF0022",
+            name="Vibration Sensor 2",
+            description="Alpha Sensor 2",
+            workspace=self.ws_alpha,
+            machine=self.machine_alpha,
+            application=self.app_alpha,
+            device_profile=self.dp_alpha,
+        )
+
+        self.support_manager = User.objects.create_user(
+            username="manager_bob",
+            email="manager@master.com",
+            tenant=self.master_tenant,
+        )
+        SupportMembership.objects.create(
+            user=self.support_manager,
+            role="support_manager",
+            tenant=self.master_tenant,
+        )
+
+        self.tech_dave = User.objects.create_user(
+            username="tech_dave",
+            email="dave@master.com",
+            tenant=self.master_tenant,
+        )
+        SupportMembership.objects.create(
+            user=self.tech_dave,
+            role="technician",
+            tenant=self.master_tenant,
+        )
+
+        self.customer_user = User.objects.create_user(
+            username="customer_alice",
+            email="alice@alpha.com",
+            tenant=self.tenant_alpha,
+        )
+
+        self.ticket_1 = Ticket.objects.create(
+            title="Sensor Anomaly",
+            description="Vibration spikes detected",
+            tenant=self.tenant_alpha,
+            workspace=self.ws_alpha,
+            user=self.customer_user,
+            assigned_to=self.support_manager,
+        )
+
+        # Create default PassScope objects
+        PassScope.objects.get_or_create(
+            code="infrastructure",
+            defaults={"label": "Infrastructure", "models": ["device", "gateway", "machine", "application", "location"]},
+        )
+        PassScope.objects.get_or_create(
+            code="chirpstack",
+            defaults={"label": "Chirpstack", "models": ["deviceprofile", "apiuser", "deviceprofiletemplate"]},
+        )
+        PassScope.objects.get_or_create(
+            code="ticket",
+            defaults={"label": "Ticket", "models": ["ticket", "comment", "attachment"]},
+        )
+
+    def test_grant_creates_hall_pass_with_read_level(self):
+        """grant_diagnostic_pass creates a SupportHallPass at READ level."""
+        self.client.force_authenticate(user=self.support_manager)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/grant_diagnostic_pass/",
+            {
+                "technician_id": self.tech_dave.id,
+                "workspace_id": self.ws_alpha.id,
+                "duration_hours": 4,
+                "reason": "Diagnostic investigation",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["permission_level"], "READ")
+
+        hall_pass = SupportHallPass.objects.get(technician=self.tech_dave)
+        self.assertEqual(hall_pass.workspace, self.ws_alpha)
+        self.assertEqual(hall_pass.tenant, self.tenant_alpha)
+        self.assertEqual(hall_pass.status, "ACTIVE")
+        self.assertTrue(hall_pass.is_valid())
+        self.assertEqual(
+            set(hall_pass.scopes.values_list("code", flat=True)),
+            {"infrastructure", "chirpstack", "ticket"},
+        )
+
+    def test_upgrade_hall_pass_to_edit(self):
+        """upgrade_hall_pass changes level and writes audit."""
+        hall_pass = SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            reason="Test pass",
+        )
+
+        self.client.force_authenticate(user=self.support_manager)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/upgrade_hall_pass/",
+            {
+                "pass_id": hall_pass.id,
+                "new_permission_level": "EDIT",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["permission_level"], "EDIT")
+
+        hall_pass.refresh_from_db()
+        self.assertEqual(hall_pass.permission_level, "EDIT")
+        self.assertIsNotNone(hall_pass.upgraded_by)
+        self.assertIsNotNone(hall_pass.upgraded_at)
+
+        # Verify audit
+        audit_entry = LogEntry.objects.filter(
+            object_pk=str(hall_pass.pk),
+            action=LogEntry.Action.UPDATE,
+        ).last()
+        self.assertIsNotNone(audit_entry)
+        self.assertEqual(audit_entry.additional_data.get("action_detail"), "upgrade_hall_pass")
+        self.assertEqual(audit_entry.additional_data.get("from_level"), "READ")
+        self.assertEqual(audit_entry.additional_data.get("to_level"), "EDIT")
+
+    def test_upgrade_hall_pass_rejects_downgrade(self):
+        """Cannot downgrade from EDIT to READ."""
+        hall_pass = SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            permission_level="EDIT",
+            reason="Test pass",
+        )
+
+        self.client.force_authenticate(user=self.support_manager)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/upgrade_hall_pass/",
+            {
+                "pass_id": hall_pass.id,
+                "new_permission_level": "READ",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        hall_pass.refresh_from_db()
+        self.assertEqual(hall_pass.permission_level, "EDIT")
+
+    def test_upgrade_hall_pass_rejects_same_level(self):
+        """Cannot upgrade to same level."""
+        hall_pass = SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            permission_level="READ",
+            reason="Test pass",
+        )
+
+        self.client.force_authenticate(user=self.support_manager)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/upgrade_hall_pass/",
+            {
+                "pass_id": hall_pass.id,
+                "new_permission_level": "READ",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_revoke_hall_pass_sets_audit_fields(self):
+        """Revoke sets revoked_by, revoked_at, revoke_reason."""
+        hall_pass = SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            reason="Test pass",
+        )
+
+        self.client.force_authenticate(user=self.support_manager)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/revoke_diagnostic_pass/",
+            {
+                "pass_id": hall_pass.id,
+                "reason": "Investigation complete",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        hall_pass.refresh_from_db()
+        self.assertEqual(hall_pass.status, "REVOKED")
+        self.assertEqual(hall_pass.revoked_by, self.support_manager)
+        self.assertIsNotNone(hall_pass.revoked_at)
+        self.assertEqual(hall_pass.revoke_reason, "Investigation complete")
+
+    def test_delegate_creates_hall_pass(self):
+        """Delegation auto-creates a READ hall pass for the assigned technician."""
+        self.ticket_1.assigned_to = self.support_manager
+        self.ticket_1.save()
+
+        self.client.force_authenticate(user=self.support_manager)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/delegate/",
+            {"assigned_to_id": self.tech_dave.id},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("hall_pass_id", response.data)
+
+        hall_pass = SupportHallPass.objects.get(technician=self.tech_dave)
+        self.assertEqual(hall_pass.workspace, self.ws_alpha)
+        self.assertEqual(hall_pass.permission_level, "READ")
+        self.assertEqual(hall_pass.status, "ACTIVE")
+        self.assertTrue(hall_pass.is_valid())
+
+    def test_delegate_extends_existing_pass(self):
+        """Second delegation extends existing pass instead of creating duplicate."""
+        SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=2),
+            status="ACTIVE",
+            reason="Initial delegation",
+        )
+
+        self.ticket_1.assigned_to = self.support_manager
+        self.ticket_1.save()
+
+        self.client.force_authenticate(user=self.support_manager)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/delegate/",
+            {
+                "assigned_to_id": self.tech_dave.id,
+                "pass_duration_hours": 6,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Still only one pass, but with extended expiry
+        self.assertEqual(
+            SupportHallPass.objects.filter(technician=self.tech_dave).count(),
+            1,
+        )
+        hall_pass = SupportHallPass.objects.get(technician=self.tech_dave)
+        self.assertTrue(hall_pass.expires_at > timezone.now() + timedelta(hours=5))
+
+    def test_hall_pass_grants_infrastructure_listing(self):
+        """Technician with active pass sees infrastructure objects in listing."""
+        SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            reason="Infrastructure investigation",
+        )
+
+        self.client.force_authenticate(user=self.tech_dave)
+        response = self.client.get(
+            "/api/v1/infrastructure/devices/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Should see the device in the pass workspace
+        device_ids = [d["id"] for d in response.data.get("results", response.data) if isinstance(response.data, list) or True]
+        self.assertTrue(
+            any(d.get("dev_eui") == "AABBCCDDEEFF0022" for d in (response.data if isinstance(response.data, list) else response.data.get("results", [])))
+        )
+
+    def test_expired_hall_pass_denies_listing(self):
+        """Expired pass hides objects from listing."""
+        SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() - timedelta(minutes=10),
+            status="ACTIVE",
+            reason="Expired investigation",
+        )
+
+        self.client.force_authenticate(user=self.tech_dave)
+        response = self.client.get(
+            "/api/v1/infrastructure/devices/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data if isinstance(response.data, list) else response.data.get("results", [])
+        self.assertFalse(
+            any(d.get("dev_eui") == "AABBCCDDEEFF0022" for d in results)
+        )
+
+    def test_hall_pass_context_aware_without_workspace_header(self):
+        """Pass works without X-Workspace-ID header (context-aware resolution)."""
+        SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            reason="No header test",
+        )
+
+        self.client.force_authenticate(user=self.tech_dave)
+        # No X-Workspace-ID header — pass should still resolve via tenant
+        response = self.client.get(
+            "/api/v1/infrastructure/devices/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 

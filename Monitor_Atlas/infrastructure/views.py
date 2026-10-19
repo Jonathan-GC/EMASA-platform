@@ -98,6 +98,9 @@ def _scoped_workspace_queryset(request, base_queryset, workspace_field="workspac
     Model.objects.all()), so permission filtering is never bypassed.
     Superusers skip tenant scoping (same as RoleViewSet) but honor the
     active workspace filter.
+
+    When no workspace header is present, includes workspaces where the user
+    has an active hall pass.
     """
     user = request.user
     if not user.is_superuser:
@@ -111,6 +114,14 @@ def _scoped_workspace_queryset(request, base_queryset, workspace_field="workspac
         base_queryset = base_queryset.filter(
             **{f"{workspace_field}__id": workspace_id}
         )
+    else:
+        # No workspace header — include pass-covered workspaces
+        from support.queryset import get_pass_workspace_ids
+        pass_workspace_ids = get_pass_workspace_ids(user)
+        if pass_workspace_ids:
+            base_queryset = base_queryset.filter(
+                **{f"{workspace_field}__id__in": pass_workspace_ids}
+            )
     return base_queryset
 
 
@@ -133,12 +144,8 @@ class GatewayViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             queryset = Gateway.objects.all()
         else:
-            queryset = get_objects_for_user(
-                user,
-                "infrastructure.view_gateway",
-                klass=Gateway,
-                accept_global_perms=False,
-            )
+            from support.queryset import get_pass_aware_queryset
+            queryset = get_pass_aware_queryset(user, Gateway, self.request)
         return _scoped_workspace_queryset(self.request, queryset)
 
     def perform_create(self, serializer):
@@ -269,12 +276,8 @@ class MachineViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             queryset = Machine.objects.all()
         else:
-            queryset = get_objects_for_user(
-                user,
-                "infrastructure.view_machine",
-                klass=Machine,
-                accept_global_perms=False,
-            )
+            from support.queryset import get_pass_aware_queryset
+            queryset = get_pass_aware_queryset(user, Machine, self.request)
         return _scoped_workspace_queryset(self.request, queryset)
 
     def list(self, request, *args, **kwargs):
@@ -483,12 +486,8 @@ class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
         if user.is_superuser:
             queryset = Device.objects.all()
         else:
-            queryset = get_objects_for_user(
-                user,
-                "infrastructure.view_device",
-                klass=Device,
-                accept_global_perms=False,
-            )
+            from support.queryset import get_pass_aware_queryset
+            queryset = get_pass_aware_queryset(user, Device, self.request)
         return _scoped_workspace_queryset(self.request, queryset)
 
     def perform_create(self, serializer):
@@ -1464,12 +1463,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             queryset = Application.objects.all()
         else:
-            queryset = get_objects_for_user(
-                user,
-                "infrastructure.view_application",
-                klass=Application,
-                accept_global_perms=False,
-            )
+            from support.queryset import get_pass_aware_queryset
+            queryset = get_pass_aware_queryset(user, Application, self.request)
         queryset = _scoped_workspace_queryset(self.request, queryset)
         return queryset.annotate(devices_count=Count("device"))
 
@@ -1603,12 +1598,8 @@ class LocationViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             gateways = Gateway.objects.all()
         else:
-            gateways = get_objects_for_user(
-                user,
-                "infrastructure.view_gateway",
-                klass=Gateway,
-                accept_global_perms=False,
-            )
+            from support.queryset import get_pass_aware_queryset
+            gateways = get_pass_aware_queryset(user, Gateway, self.request)
         gateways = _scoped_workspace_queryset(self.request, gateways)
         if user.is_superuser and not _resolve_active_workspace_id(self.request):
             return Location.objects.all()

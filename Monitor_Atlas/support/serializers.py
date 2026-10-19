@@ -5,6 +5,8 @@ from .models import (
     CommentAttachment,
     SupportMembership,
     TechnicianAssignment,
+    SupportHallPass,
+    PassScope,
 )
 from rest_framework import serializers
 
@@ -207,3 +209,37 @@ class TechnicianAssignmentSerializer(serializers.ModelSerializer):
                     {"workspace": "Target workspace does not belong to the ticket's tenant."}
                 )
         return data
+
+
+class SupportHallPassSerializer(serializers.ModelSerializer):
+    is_valid = serializers.SerializerMethodField(read_only=True)
+    technician_name = serializers.SerializerMethodField(read_only=True)
+    workspace_name = serializers.SerializerMethodField(read_only=True)
+    ticket_title = serializers.SerializerMethodField(read_only=True)
+    permission_level_display = serializers.CharField(
+        source="get_permission_level_display", read_only=True
+    )
+    granted_by_name = serializers.SerializerMethodField(read_only=True)
+    scope_codes = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = SupportHallPass
+        fields = "__all__"
+
+    def get_is_valid(self, obj):
+        return obj.is_valid()
+
+    def get_technician_name(self, obj):
+        return (obj.technician.get_full_name() or obj.technician.username) if obj.technician else None
+
+    def get_workspace_name(self, obj):
+        return obj.workspace.name if obj.workspace else None
+
+    def get_ticket_title(self, obj):
+        return obj.ticket.title if obj.ticket else None
+
+    def get_granted_by_name(self, obj):
+        return (obj.granted_by.get_full_name() or obj.granted_by.username) if obj.granted_by else None
+
+    def get_scope_codes(self, obj):
+        return [s.code for s in obj.scopes.all()]

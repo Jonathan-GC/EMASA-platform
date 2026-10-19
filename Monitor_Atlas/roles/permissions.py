@@ -53,6 +53,90 @@ TENANT_SCOPED_MODELS = {
 STANDARD_TENANT_DELETE_ALLOWLIST = {"delete_role"}
 
 
+HALL_PASS_LEVEL_TO_PREFIX = {
+    "READ": ("view_",),
+    "EDIT": ("view_", "change_"),
+    "ADJUST": ("view_", "change_", "delete_"),
+}
+
+HALL_PASS_LEVEL_RANK = {"READ": 1, "EDIT": 2, "ADJUST": 3}
+
+
+def resolve_active_pass(user, tenant=None, workspace=None, obj=None):
+    """
+    Resolve the highest-privilege active SupportHallPass for user in context.
+
+    Context resolution order:
+    1. Explicit tenant/workspace arguments.
+    2. Derived from obj via get_object_workspace_and_tenant.
+    3. Falls back to user.tenant.
+
+    Returns the SupportHallPass with the highest permission_level, or None.
+    """
+    if not user or not user.is_authenticated:
+        return None
+
+    from django.utils import timezone
+    from support.models import SupportHallPass
+
+    # Resolve context from object if not explicitly provided
+    if obj is not None and (workspace is None or tenant is None):
+        obj_ws, obj_t = get_object_workspace_and_tenant(obj)
+        if workspace is None and obj_ws is not None:
+            workspace = obj_ws
+        if tenant is None and obj_t is not None:
+            tenant = obj_t
+
+    # Fallback to user's tenant
+    if tenant is None:
+        tenant = getattr(user, "tenant", None)
+
+    # Build query for active, unexpired passes
+    queryset = SupportHallPass.objects.filter(
+        technician=user,
+        status__in=["ACTIVE", "active"],
+        expires_at__gt=timezone.now(),
+    )
+
+    # Context match: workspace match OR tenant match OR ticket match
+    from django.db.models import Q
+    context_filter = Q()
+    if workspace is not None:
+        context_filter |= Q(workspace=workspace)
+    if tenant is not None:
+        context_filter |= Q(tenant=tenant)
+    if obj is not None:
+        # Ticket-scoped pass: match if pass.ticket resolves to the same workspace
+        if hasattr(obj, "ticket") and obj.ticket is not None:
+            context_filter |= Q(ticket=obj.ticket)
+        elif hasattr(obj, "workspace") and obj.workspace is not None:
+            context_filter |= Q(workspace=obj.workspace)
+
+    queryset = queryset.filter(context_filter)
+
+    # Return highest-privilege pass
+    best_pass = None
+    best_rank = 0
+    for p in queryset:
+        rank = HALL_PASS_LEVEL_RANK.get(p.permission_level, 0)
+        if rank > best_rank:
+            best_rank = rank
+            best_pass = p
+
+    return best_pass
+
+
+def pass_grants_codename(hall_pass, codename):
+    """
+    Check if a hall pass grants a specific permission codename
+    based on its permission_level.
+    """
+    if hall_pass is None:
+        return False
+    prefixes = HALL_PASS_LEVEL_TO_PREFIX.get(hall_pass.permission_level, ())
+    return any(codename.startswith(prefix) for prefix in prefixes)
+
+
 def get_object_workspace_and_tenant(obj):
     """
     Extracts the workspace and tenant context from a target object,
@@ -205,18 +289,9 @@ def has_contextual_perm(
     if tenant is None and obj_t is not None:
         tenant = obj_t
 
-    # Check active valid TechnicianAssignment pass on workspace
-    has_active_diagnostic_pass = False
-    if workspace is not None:
-        from django.utils import timezone
-        from support.models import TechnicianAssignment
-
-        has_active_diagnostic_pass = TechnicianAssignment.objects.filter(
-            technician=user,
-            workspace=workspace,
-            status__in=["ACTIVE", "active"],
-            expires_at__gt=timezone.now(),
-        ).exists()
+    # Check active hall pass (context-aware: resolves workspace/tenant from obj if needed)
+    active_pass = resolve_active_pass(user, tenant=tenant, workspace=workspace, obj=obj)
+    has_active_diagnostic_pass = active_pass is not None
 
     # Assigned technician check
     is_assigned_technician = False
@@ -274,10 +349,10 @@ def has_contextual_perm(
 
     # Workspace-level contextual evaluation
     if workspace is not None:
-        # Diagnostic pass grants read-only SAFE_METHODS (view_*)
-        if has_active_diagnostic_pass and codename.startswith("view_"):
+        # Hall pass grants permissions based on its level
+        if has_active_diagnostic_pass and pass_grants_codename(active_pass, codename):
             logger.debug(
-                f"Diagnostic pass granted for user={user.username} on workspace={workspace.id} for perm={codename}"
+                f"Hall pass granted for user={user.username} on workspace={workspace.id} for perm={codename}"
             )
             return True
 
@@ -544,18 +619,8 @@ class HasContextualPermission(BasePermission):
         # Active workspace resolution
         workspace = self._resolve_workspace(request, view)
 
-        # Check for active diagnostic pass on workspace
-        has_active_diagnostic_pass = False
-        if workspace:
-            from django.utils import timezone
-            from support.models import TechnicianAssignment
-
-            has_active_diagnostic_pass = TechnicianAssignment.objects.filter(
-                technician=user,
-                workspace=workspace,
-                status__in=["ACTIVE", "active"],
-                expires_at__gt=timezone.now(),
-            ).exists()
+        # Check for active hall pass on workspace
+        has_active_diagnostic_pass = resolve_active_pass(user, tenant=tenant, workspace=workspace)
 
         if has_active_diagnostic_pass:
             tenant = workspace.tenant
@@ -565,7 +630,7 @@ class HasContextualPermission(BasePermission):
             ]:
                 from roles.models import WorkspaceMembership
                 if not WorkspaceMembership.objects.filter(user=user, workspace=workspace).exists():
-                    raise PermissionDenied("Diagnostic pass grants read-only access only.")
+                    raise PermissionDenied("Hall pass grants read-only access only.")
 
         # Global support manager cross-tenant bypass on support resources
         if scope in ["ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment"]:
@@ -697,17 +762,7 @@ class HasContextualPermission(BasePermission):
         req_ws = getattr(request, "workspace", None)
         effective_ws = req_ws or obj_ws
 
-        has_active_diagnostic_pass = False
-        if effective_ws:
-            from django.utils import timezone
-            from support.models import TechnicianAssignment
-
-            has_active_diagnostic_pass = TechnicianAssignment.objects.filter(
-                technician=user,
-                workspace=effective_ws,
-                status__in=["ACTIVE", "active"],
-                expires_at__gt=timezone.now(),
-            ).exists()
+        has_active_diagnostic_pass = resolve_active_pass(user, tenant=tenant, workspace=effective_ws, obj=obj)
 
         if has_active_diagnostic_pass and scope not in [
             "ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment"
@@ -715,7 +770,7 @@ class HasContextualPermission(BasePermission):
             if request.method.lower() not in ["get", "head", "options"]:
                 from roles.models import WorkspaceMembership
                 if not WorkspaceMembership.objects.filter(user=user, workspace=effective_ws).exists():
-                    raise PermissionDenied("Diagnostic pass grants read-only access only.")
+                    raise PermissionDenied("Hall pass grants read-only access only.")
 
         # Check assigned technician on ticket / comment / attachment
         is_assigned_technician = False
