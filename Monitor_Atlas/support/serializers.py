@@ -20,10 +20,18 @@ class TicketSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    tenant_name = serializers.SerializerMethodField(read_only=True)
+    workspace_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Ticket
         fields = "__all__"
+
+    def get_tenant_name(self, obj):
+        return obj.tenant.name if getattr(obj, "tenant", None) else None
+
+    def get_workspace_name(self, obj):
+        return obj.workspace.name if getattr(obj, "workspace", None) else None
 
     def get_user(self, obj):
         user = obj.user
@@ -117,10 +125,18 @@ class TicketConversationSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True)
     user_name = serializers.SerializerMethodField()
     assigned_to_name = serializers.SerializerMethodField()
+    tenant_name = serializers.SerializerMethodField(read_only=True)
+    workspace_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Ticket
         fields = "__all__"
+
+    def get_tenant_name(self, obj):
+        return obj.tenant.name if getattr(obj, "tenant", None) else None
+
+    def get_workspace_name(self, obj):
+        return obj.workspace.name if getattr(obj, "workspace", None) else None
 
     def get_user_name(self, obj):
         if obj.user:
@@ -176,8 +192,18 @@ class TechnicianAssignmentSerializer(serializers.ModelSerializer):
     def validate(self, data):
         workspace = data.get("workspace")
         ticket = data.get("ticket")
-        if workspace and ticket and ticket.tenant and workspace.tenant_id != ticket.tenant_id:
-            raise serializers.ValidationError(
-                {"workspace": "Target workspace does not belong to the ticket's tenant."}
-            )
+        if self.instance:
+            if not workspace and "workspace" not in data:
+                workspace = self.instance.workspace
+            if not ticket and "ticket" not in data:
+                ticket = self.instance.ticket
+        if workspace and ticket:
+            if ticket.workspace_id and str(workspace.id) != str(ticket.workspace_id):
+                raise serializers.ValidationError(
+                    {"workspace": "Target workspace does not match the ticket's workspace."}
+                )
+            if ticket.tenant_id and workspace.tenant_id != ticket.tenant_id:
+                raise serializers.ValidationError(
+                    {"workspace": "Target workspace does not belong to the ticket's tenant."}
+                )
         return data

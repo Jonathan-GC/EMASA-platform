@@ -8,6 +8,7 @@ from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
 
 from roles.permissions import HasContextualPermission
+from loguru import logger
 from .models import (
     Ticket,
     Comment,
@@ -275,17 +276,17 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
         ticket = self.get_object()
         user = request.user
 
-        if user and not is_support_member(user):
+        if not user or not getattr(user, "is_authenticated", False):
+            logger.debug("no authenticated user associated with the request")
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        if not is_support_member(user):
             logger.debug("user is not a support member")
-            return Response({"not_modified": "no need to mark as read"}, status=204)
-        elif user and ticket.assigned_to.id != user.id:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        if ticket.assigned_to_id is not None and ticket.assigned_to_id != user.id:
             logger.debug("user is not assigned to the ticket")
-            return Response({"not_modified": "no need to mark as read"}, status=204)
-        elif not user:
-            logger.debug("no user associated with the request")
-            return Response({"not_modified": "no need to mark as read"}, status=204)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         ticket.is_read = True
-        ticket.save()
+        ticket.save(update_fields=["is_read", "updated_at"])
         return Response({"status": "ticket_marked_as_read"}, status=200)
 
     @action(detail=True, methods=["post"], description="Delegate the ticket")
@@ -340,7 +341,7 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
             )
 
         technician_id = request.data.get("technician_id")
-        workspace_id = request.data.get("workspace_id")
+        workspace_id = request.data.get("workspace_id") or (str(ticket.workspace_id) if ticket.workspace_id else None)
         duration_hours = request.data.get("duration_hours", 4)
         reason = request.data.get("reason", "")
 
@@ -366,6 +367,12 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
         workspace = Workspace.objects.filter(id=workspace_id).first()
         if not workspace:
             return Response({"error": "Workspace not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if ticket.workspace and str(workspace.id) != str(ticket.workspace_id):
+            return Response(
+                {"error": "Target workspace does not match the ticket's workspace."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if ticket.tenant and workspace.tenant_id != ticket.tenant_id:
             return Response(

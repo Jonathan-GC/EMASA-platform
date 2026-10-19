@@ -441,3 +441,72 @@ class TechnicianDispatchTests(TestCase):
         diag_pass.status = "ACTIVE"
         with self.assertRaises(ValidationError):
             diag_pass.clean()
+
+    def test_mark_as_read_endpoint_does_not_fail_with_name_error(self):
+        """Calling mark_as_read does not fail with NameError when logging."""
+        self.client.force_authenticate(user=self.customer_user)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/mark_as_read/",
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Also verify assigned support member marks as read
+        self.ticket_1.assigned_to = self.tech_dave
+        self.ticket_1.is_read = False
+        self.ticket_1.save()
+        self.client.force_authenticate(user=self.tech_dave)
+        success_resp = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/mark_as_read/",
+            format="json",
+        )
+        self.assertEqual(success_resp.status_code, status.HTTP_200_OK)
+        self.ticket_1.refresh_from_db()
+        self.assertTrue(self.ticket_1.is_read)
+
+    def test_ticket_serializer_includes_tenant_name_and_workspace_name(self):
+        """Ticket retrieve and conversation endpoints include tenant_name and workspace_name."""
+        self.client.force_authenticate(user=self.support_manager)
+        resp = self.client.get(f"/api/v1/support/tickets/{self.ticket_1.id}/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get("tenant_name"), self.tenant_alpha.name)
+        self.assertEqual(resp.data.get("workspace_name"), self.ws_alpha.name)
+
+        conv_resp = self.client.get(f"/api/v1/support/tickets/{self.ticket_1.id}/conversation/")
+        self.assertEqual(conv_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(conv_resp.data.get("tenant_name"), self.tenant_alpha.name)
+        self.assertEqual(conv_resp.data.get("workspace_name"), self.ws_alpha.name)
+
+    def test_diagnostic_pass_validates_workspace_matches_ticket(self):
+        """Diagnostic pass rejects workspace that does not match ticket workspace."""
+        ws_alpha_other = Workspace.objects.create(
+            name="Alpha WS 2", tenant=self.tenant_alpha
+        )
+
+        # Endpoint rejection
+        self.client.force_authenticate(user=self.support_manager)
+        response = self.client.post(
+            f"/api/v1/support/tickets/{self.ticket_1.id}/grant_diagnostic_pass/",
+            {
+                "technician_id": self.tech_dave.id,
+                "workspace_id": ws_alpha_other.id,
+                "duration_hours": 4,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+        self.assertIn("match", response.data["error"].lower())
+
+        # Model clean() rejection
+        mismatched_pass = TechnicianAssignment(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=ws_alpha_other,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=1),
+            status="ACTIVE",
+        )
+        with self.assertRaises(ValidationError):
+            mismatched_pass.clean()
+

@@ -233,6 +233,16 @@ class TechnicianAssignment(models.Model):
             orig = TechnicianAssignment.objects.filter(pk=self.pk).values("status").first()
             if orig and orig["status"].upper() in ["EXPIRED", "REVOKED"] and (self.status or "").upper() == "ACTIVE":
                 raise ValidationError("Cannot reactivate an expired or revoked diagnostic pass.")
+        if self.ticket:
+            if self.ticket.workspace_id and self.workspace_id and str(self.workspace_id) != str(self.ticket.workspace_id):
+                raise ValidationError("Target workspace does not match the ticket's workspace.")
+            if self.ticket.tenant_id and self.workspace_id:
+                workspace_tenant_id = getattr(self.workspace, "tenant_id", None) if self.workspace else None
+                if workspace_tenant_id is None:
+                    from organizations.models import Workspace
+                    workspace_tenant_id = Workspace.objects.filter(id=self.workspace_id).values_list("tenant_id", flat=True).first()
+                if workspace_tenant_id is not None and workspace_tenant_id != self.ticket.tenant_id:
+                    raise ValidationError("Target workspace does not belong to the ticket's tenant.")
 
     def save(self, *args, **kwargs):
         self.clean()
