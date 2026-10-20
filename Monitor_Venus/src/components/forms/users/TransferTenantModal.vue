@@ -201,7 +201,7 @@ onMounted(() => {
   gap: 8px;
   padding: 12px;
   border-radius: 8px;
-  background: var(--ion-color-warning-tint, #fff6e6);
+  background:  #fff6e6;
   margin-bottom: 12px;
   white-space: normal;
 }
