@@ -1,3 +1,5 @@
+import { jwtDecode } from 'jwt-decode';
+
 // Helper to get API base URL from env or fallback
 function getApiBaseUrl() {
     const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
@@ -480,6 +482,16 @@ class API {
         const activeTenantId = localStorage.getItem('active_tenant_id');
         if (activeTenantId && !Object.prototype.hasOwnProperty.call(headers, 'X-Tenant-ID')) {
             headers['X-Tenant-ID'] = activeTenantId;
+        }
+        // Fallback to token-based tenant ID if not set in headers
+        if (!Object.prototype.hasOwnProperty.call(headers, 'X-Tenant-ID')) {
+            const token = this.getValidToken();
+            if (token) {
+                const decoded = jwtDecode(token);
+                if (decoded && decoded.tenant_id) {
+                    headers['X-Tenant-ID'] = decoded.tenant_id;
+                }
+            }
         }
 
         return headers;

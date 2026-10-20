@@ -19,6 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
     is_support: false,
     is_tenant_admin: false,
     role_type: null, // 'technician', 'viewer', 'tenant_user', etc.
+    tenant_id: null,
     cs_tenant_id: null,
     exp: null,
     iat: null
@@ -95,20 +96,26 @@ export const useAuthStore = defineStore('auth', () => {
   const isViewer = computed(() => user.value.role_type === 'viewer');
 
   /**
+   * ID del tenant resuelto: prioriza el tenant_id de Monitor y cae a
+   * cs_tenant_id (ChirpStack) como alternativa (tokens antiguos).
+   */
+  const resolvedTenantId = computed(() => user.value.tenant_id || user.value.cs_tenant_id || null);
+
+  /**
    * Verifica si el usuario es un usuario de tenant (tenant_user)
    * Un tenant_user es un usuario regular que:
    * - NO es superuser
    * - NO es global
    * - NO es support
    * - NO es tenant_admin
-   * - TIENE un tenant asignado (cs_tenant_id)
+   * - TIENE un tenant asignado (tenant_id o cs_tenant_id)
    */
   const isTenantUser = computed(() => 
     !user.value.is_superuser &&
     !user.value.is_global &&
     !user.value.is_support &&
     !user.value.is_tenant_admin &&
-    user.value.cs_tenant_id !== null
+    resolvedTenantId.value !== null
   );
 
   /**
@@ -121,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Verifica si el usuario pertenece a un tenant
    */
-  const hasTenant = computed(() => user.value.cs_tenant_id !== null);  /**
+  const hasTenant = computed(() => resolvedTenantId.value !== null);  /**
    * Verifica si el usuario necesita configurar un tenant
    * TRUE si: no es global, no tiene tenant, y está autenticado
    */
@@ -129,7 +136,7 @@ export const useAuthStore = defineStore('auth', () => {
     return (
       isAuthenticated.value &&
       !user.value.is_global &&
-      user.value.cs_tenant_id === null &&
+      resolvedTenantId.value === null &&
       !user.value.is_superuser // Superusers no necesitan tenant
     );
   });
@@ -137,7 +144,7 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Obtiene el ID del tenant del usuario
    */
-  const tenantId = computed(() => user.value.cs_tenant_id);
+  const tenantId = computed(() => resolvedTenantId.value);
 
   /**
    * Obtiene el nombre de usuario
@@ -273,6 +280,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Decodificar token y poblar el store
     const userData = getUserFromToken(token);
     user.value = userData;
+    setActiveTenant(userData.tenant_id);
     isAuthenticated.value = true;
 
     console.log('✅ Autenticación inicializada:', {
@@ -281,7 +289,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_global: userData.is_global,
       is_support: userData.is_support,
       is_tenant_admin: userData.is_tenant_admin,
-      tenant_id: userData.cs_tenant_id
+      tenant_id: userData.tenant_id
     });
 
     // Fetch user profile after initializing from token
@@ -322,6 +330,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Decodificar y guardar info del usuario
     const userData = getUserFromToken(accessToken);
     user.value = userData;
+    setActiveTenant(userData.tenant_id);
     isAuthenticated.value = true;
 
     console.log('✅ Login exitoso:', {
@@ -329,7 +338,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_superuser: userData.is_superuser,
       is_global: userData.is_global,
       is_support: userData.is_support,
-      tenant_id: userData.cs_tenant_id,
+      tenant_id: userData.tenant_id,
       is_tenant_admin: userData.is_tenant_admin
     });
 
@@ -447,6 +456,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_support: false,
       is_tenant_admin: false,
       role_type: null,
+      tenant_id: null,
       cs_tenant_id: null,
       exp: null,
       iat: null
@@ -473,6 +483,7 @@ export const useAuthStore = defineStore('auth', () => {
       roles: [],
 
     };
+    setActiveTenant(null);
     isAuthenticated.value = false;
   };
 
@@ -548,6 +559,10 @@ export const useAuthStore = defineStore('auth', () => {
       const userData = getUserFromToken(data.access);
       user.value = userData;
       isAuthenticated.value = true;
+
+      // Sincronizar el tenant activo si el token cambió de tenant
+      // (p.ej. tras crear un tenant en /tenant-setup o en cualquier refresh por 401).
+      setActiveTenant(userData.tenant_id || null);
       
       console.log('✅ Token refrescado exitosamente');
       return data.access;
@@ -660,6 +675,6 @@ export const useAuthStore = defineStore('auth', () => {
     hasRole,
     canAccessRoute,
     activeTenantId,
-    setActiveTenant
+    setActiveTenant,
   };
 });
