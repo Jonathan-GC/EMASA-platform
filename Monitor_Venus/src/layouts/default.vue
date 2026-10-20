@@ -8,7 +8,7 @@
       
       <!-- Contenido principal en la derecha -->
       <div class="main-content">
-        <ion-router-outlet :animation="customPushAnimation" />
+        <ion-router-outlet :key="authStore.contextVersion" :animation="customPushAnimation" />
       </div>
     </div>
   </ion-page>
@@ -17,7 +17,10 @@
 <script setup>
 import { provide } from 'vue'
 import { useNotifications } from '@/composables/useNotifications'
+import { useAuthStore } from '@/stores/authStore'
 import { createAnimation } from '@ionic/vue'
+
+const authStore = useAuthStore()
 
 /**
  * Initialize global notification system

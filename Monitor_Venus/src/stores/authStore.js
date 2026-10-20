@@ -5,6 +5,7 @@ import { ref, computed } from 'vue';
 import tokenManager from '@/utils/auth/tokenManager.js';
 import { getUserFromToken, userRoleHelpers, isTokenExpired } from '@/utils/auth/jwtHelper.js';
 import API from '@/utils/api/api.js';
+import { useOtpStore } from '@/stores/otpStore.js';
 
 export const useAuthStore = defineStore('auth', () => {
   // ========================================
@@ -47,12 +48,17 @@ export const useAuthStore = defineStore('auth', () => {
     },
     google_oauth: null, // { is_linked, email, provider_user_id, created_at }
     roles: [], // [{ id, name, description, color, is_admin, workspace }]
+    workspaces: [], // [{ id, name }] — opcional, si el backend lo agrega a /me
   });
 
   const isAuthenticated = ref(false);
   const isLoading = ref(false);
   const isLoadingProfile = ref(false);
   const activeTenantId = ref(localStorage.getItem('active_tenant_id') || null);
+  const activeWorkspaceId = ref(localStorage.getItem('active_workspace_id') || null);
+  // Contador que fuerza el remount de las vistas al cambiar de contexto (p.ej. workspace).
+  // Solo lo incrementa un cambio explícito del usuario, nunca la resolución automática.
+  const contextVersion = ref(0);
 
   // ========================================
   // GETTERS - Computed properties para acceso fácil
@@ -248,6 +254,28 @@ export const useAuthStore = defineStore('auth', () => {
   const userRoles = computed(() => userProfile.value.roles || []);
 
   /**
+   * Workspaces disponibles para el usuario (desde /me).
+   * Prefiere el listado explícito `workspaces` si el backend lo agrega;
+   * si no, los deriva de los roles (cada rol trae su workspace).
+   */
+  const availableWorkspaces = computed(() => {
+    const explicit = userProfile.value.workspaces;
+    if (Array.isArray(explicit) && explicit.length) {
+      return explicit;
+    }
+    const seen = new Set();
+    const result = [];
+    for (const role of userProfile.value.roles || []) {
+      const ws = role?.workspace;
+      if (ws?.id && !seen.has(ws.id)) {
+        seen.add(ws.id);
+        result.push(ws);
+      }
+    }
+    return result;
+  });
+
+  /**
    * Obtiene el ID del usuario actual (perfil /me o claims del token)
    */
   const currentUserId = computed(() => userProfile.value.id || user.value.user_id);
@@ -412,6 +440,9 @@ export const useAuthStore = defineStore('auth', () => {
         roles: Array.isArray(userData.roles) ? userData.roles : [],
       };
 
+      // Resolver el workspace activo a partir de los roles del perfil (/me)
+      resolveActiveWorkspace();
+
       console.log('✅ User profile loaded:', {
         username: userProfile.value.username,
         email: userProfile.value.email,
@@ -442,6 +473,51 @@ export const useAuthStore = defineStore('auth', () => {
     } else {
       localStorage.removeItem('active_tenant_id');
     }
+  };
+
+  /**
+   * Establece el workspace activo para peticiones multi-workspace (header X-Workspace-ID)
+   * @param {string|null} newWorkspaceId
+   */
+  const setActiveWorkspace = (newWorkspaceId) => {
+    activeWorkspaceId.value = newWorkspaceId || null;
+    if (newWorkspaceId) {
+      localStorage.setItem('active_workspace_id', newWorkspaceId);
+    } else {
+      localStorage.removeItem('active_workspace_id');
+    }
+  };
+
+  /**
+   * Cambia el workspace activo por acción explícita del usuario (selector del sidebar).
+   * A diferencia de setActiveWorkspace (usado en la resolución automática), incrementa
+   * contextVersion para que las vistas se remonten y vuelvan a consultar con el nuevo header.
+   * @param {string} newWorkspaceId
+   */
+  const switchWorkspace = (newWorkspaceId) => {
+    if (!newWorkspaceId || newWorkspaceId === activeWorkspaceId.value) return;
+    setActiveWorkspace(newWorkspaceId);
+    contextVersion.value += 1;
+  };
+
+  /**
+   * Resuelve el workspace activo tras cargar el perfil (/me):
+   * - Sin workspaces disponibles -> sin contexto (no se manda header)
+   * - Si el guardado en localStorage sigue siendo válido -> se conserva
+   * - Si no -> se usa el primer workspace accesible (orden de los roles)
+   */
+  const resolveActiveWorkspace = () => {
+    const workspaces = availableWorkspaces.value;
+    if (!workspaces.length) {
+      setActiveWorkspace(null);
+      return;
+    }
+    const saved = localStorage.getItem('active_workspace_id');
+    if (saved && workspaces.some((w) => w.id === saved)) {
+      activeWorkspaceId.value = saved;
+      return;
+    }
+    setActiveWorkspace(workspaces[0].id);
   };
 
   /**
@@ -481,9 +557,13 @@ export const useAuthStore = defineStore('auth', () => {
       },
       google_oauth: null,
       roles: [],
+      workspaces: [],
 
     };
     setActiveTenant(null);
+    setActiveWorkspace(null);
+    localStorage.removeItem('sb_user_id');
+    useOtpStore().clearPendingLogin();
     isAuthenticated.value = false;
   };
 
@@ -676,5 +756,10 @@ export const useAuthStore = defineStore('auth', () => {
     canAccessRoute,
     activeTenantId,
     setActiveTenant,
+    activeWorkspaceId,
+    availableWorkspaces,
+    setActiveWorkspace,
+    switchWorkspace,
+    contextVersion
   };
 });

@@ -494,6 +494,14 @@ class API {
             }
         }
 
+        // Agregar X-Workspace-ID del workspace activo (selección de UI, no va en el JWT).
+        // Los callers pueden pasar un header X-Workspace-ID explícito (incluso '')
+        // para sobrescribir o suprimir el contexto por defecto.
+        const activeWorkspaceId = localStorage.getItem('active_workspace_id');
+        if (activeWorkspaceId && !Object.prototype.hasOwnProperty.call(headers, 'X-Workspace-ID')) {
+            headers['X-Workspace-ID'] = activeWorkspaceId;
+        }
+
         return headers;
     }
 

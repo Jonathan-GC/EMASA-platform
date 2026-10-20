@@ -36,6 +36,8 @@
         :show-tenant-badge="true"
         @click="handleProfileClick"
       />
+
+      <WorkspaceSwitcher v-if="authStore.isAuthenticated && authStore.availableWorkspaces.length > 0" />
       
       <!-- Links del navegador -->
       <div class="nav-links">
@@ -303,6 +305,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { paths } from "@/plugins/router/paths"
 import BtnLogout from "@layouts/components/BtnLogout.vue";
 import UserAvatar from "@/components/common/UserAvatar.vue";
+import WorkspaceSwitcher from "@/layouts/components/WorkspaceSwitcher.vue";
 import { useAuthStore } from '@/stores/authStore'
 
 const icons = inject('icons', {})
