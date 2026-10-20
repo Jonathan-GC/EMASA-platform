@@ -22,7 +22,7 @@
 
       <ion-note color="warning" class="warning-note">
         <ion-icon :icon="icons.warning"></ion-icon>
-        El técnico podrá operar sobre el workspace seleccionado por la duración indicada. El acceso expira automáticamente y puede revocarse en cualquier momento.
+        El técnico podrá operar sobre «{{ workspaceName }}» por la duración indicada. El acceso expira automáticamente y puede revocarse en cualquier momento.
       </ion-note>
 
       <div v-if="loading" class="ion-text-center ion-padding">
@@ -51,18 +51,18 @@
           </ion-select>
         </ion-item>
 
-        <ion-item>
-          <ion-label position="stacked">Espacio de trabajo</ion-label>
-          <ion-select
-            v-model="workspaceId"
-            :placeholder="workspaces.length ? 'Selecciona un workspace' : 'No hay workspaces disponibles'"
-            :disabled="!workspaces.length || submitting"
-          >
-            <ion-select-option v-for="w in workspaces" :key="w.id" :value="w.id">
-              {{ w.name || `#${w.id}` }}
-            </ion-select-option>
-          </ion-select>
+        <ion-item lines="none" class="workspace-display">
+          <ion-icon slot="start" :icon="icons.business"></ion-icon>
+          <ion-label>
+            <p>Espacio de trabajo del ticket</p>
+            <h3>{{ workspaceName }}</h3>
+          </ion-label>
         </ion-item>
+
+        <ion-note v-if="!workspaceId" color="danger" class="missing-workspace-note">
+          <ion-icon :icon="icons.alertCircle"></ion-icon>
+          Este ticket no tiene workspace asignado, por lo que no se puede emitir un pase diagnóstico.
+        </ion-note>
 
         <ion-item>
           <ion-label position="stacked">Duración (horas)</ion-label>
@@ -156,7 +156,6 @@ const props = defineProps({
 const icons = inject('icons', {})
 
 const technicians = ref([])
-const workspaces = ref([])
 const passes = ref([])
 const loading = ref(true)
 const passesLoading = ref(false)
@@ -164,8 +163,12 @@ const loadError = ref('')
 const submitting = ref(false)
 const revokingId = ref(null)
 
+// El workspace se toma siempre del ticket; el usuario ya no lo selecciona.
+const workspaceId = computed(() => props.ticket?.workspace ?? null)
+const workspaceName = computed(() =>
+  props.ticket?.workspace_name || (workspaceId.value ? `#${workspaceId.value}` : '—')
+)
 const technicianId = ref(null)
-const workspaceId = ref(props.ticket?.workspace ?? null)
 const durationHours = ref(4)
 const reason = ref('')
 
@@ -194,11 +197,6 @@ const fetchSupportMembers = async () => {
   technicians.value = preferred.length ? preferred : members
 }
 
-const fetchWorkspaces = async () => {
-  const res = await API.get(API.WORKSPACE)
-  workspaces.value = toList(res)
-}
-
 const fetchPasses = async () => {
   passesLoading.value = true
   try {
@@ -215,7 +213,7 @@ const init = async () => {
   loading.value = true
   loadError.value = ''
   try {
-    await Promise.all([fetchSupportMembers(), fetchWorkspaces()])
+    await fetchSupportMembers()
     if (props.ticket?.id != null) fetchPasses()
   } catch (err) {
     console.error('Error initializing diagnostic pass modal:', err)
@@ -238,7 +236,7 @@ const showToast = async (message, color = 'success') => {
 const confirmGrant = async () => {
   const alert = await alertController.create({
     header: 'Confirmar pase diagnóstico',
-    message: `¿Deseas emitir un pase de diagnóstico de ${durationHours.value} horas para el workspace seleccionado?`,
+    message: `¿Deseas emitir un pase de diagnóstico de ${durationHours.value} horas sobre «${workspaceName.value}»?`,
     buttons: [
       { text: 'Cancelar', role: 'cancel' },
       {
@@ -322,9 +320,31 @@ onMounted(() => {
   gap: 8px;
   padding: 12px;
   border-radius: 8px;
-  background: var(--ion-color-warning-tint, #fff6e6);
+  background: #fff6e6;
   margin-bottom: 12px;
   white-space: normal;
+}
+
+.missing-workspace-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--ion-color-danger-tint, #fde8e8);
+  margin-bottom: 12px;
+  white-space: normal;
+}
+
+.workspace-display ion-icon {
+  font-size: 28px;
+  color: #6b7280;
+  margin-inline-end: 12px;
+}
+
+.workspace-display h3 {
+  font-weight: 600;
+  color: #111827;
 }
 
 .error-container {

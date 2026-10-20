@@ -348,6 +348,7 @@ function mapTicketToMessage(t) {
     updated_at: t.updated_at,
     assigned_to: t.assigned_to ?? null,
     workspace: t.workspace ?? null,
+    workspace_name: t.workspace_name ?? null,
     tenant: t.tenant ?? null,
   };
 }
@@ -532,7 +533,8 @@ async function openDiagnosticPassModal() {
       ticket: {
         id: selectedId.value,
         title: selectedMessage.value.subject || '',
-        workspace: selectedMessage.value.workspace ?? null
+        workspace: selectedMessage.value.workspace ?? null,
+        workspace_name: selectedMessage.value.workspace_name ?? null
       }
     },
     cssClass: 'full-modal'
