@@ -1,14 +1,26 @@
 <script setup>
-import {inject} from "vue";
+import {inject, ref} from "vue";
+import { onIonViewWillEnter, onIonViewDidEnter } from '@ionic/vue';
 
 const icons = inject('icons', {})
 
+// Ionic cachea las páginas: onMounted no se vuelve a disparar al re-entrar.
+// pageReady fuerza el remount de la tabla para no mostrar datos obsoletos.
+const pageReady = ref(false)
+
+onIonViewWillEnter(() => {
+  pageReady.value = false
+})
+
+onIonViewDidEnter(() => {
+  pageReady.value = true
+})
 </script>
 
 <template>
   <ion-page>
     <ion-content :fullscreen="true">
-      <div class="current-dashboard">
+      <div v-if="pageReady" class="current-dashboard">
         <!-- Header with connection status -->
         <div class="header">
           <div class="header-title">
@@ -24,6 +36,12 @@ const icons = inject('icons', {})
         <!-- Tenants information section -->
         <TableTenants />
       </  div>
+
+      <!-- Loading state while page is preparing -->
+      <div v-else class="page-loading">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Preparando página...</p>
+      </div>
     </ion-content>
   </ion-page>
 

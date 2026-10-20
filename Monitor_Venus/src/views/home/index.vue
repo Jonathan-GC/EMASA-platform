@@ -328,7 +328,7 @@ import { useAuthStore } from '@/stores/authStore.js'
 import API from '@/utils/api/api.js'
 import { paths as P } from '@/plugins/router/paths.js'
 
-import { isPlatform} from '@ionic/vue'
+import { isPlatform, onIonViewWillEnter, onIonViewDidEnter} from '@ionic/vue'
 
 import { Capacitor } from '@capacitor/core'
 
@@ -705,6 +705,17 @@ onMounted(async () => {
 // Cleanup before route leave to prevent visual overlap
 onBeforeRouteLeave(() => {
   isMounted.value = false
+})
+
+// Ionic cachea la página: onMounted no se vuelve a disparar al re-entrar.
+// Reactivar el intervalo de métricas y refrescar al volver a la vista.
+onIonViewWillEnter(() => {
+  isMounted.value = true
+})
+
+onIonViewDidEnter(() => {
+  pageReady.value = true
+  fetchMetrics()
 })
 </script>
 
