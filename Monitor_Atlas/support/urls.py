@@ -18,6 +18,8 @@ routers.register(r"support_membership", views.SupportMembershipViewSet, basename
 routers.register(r"support-memberships", views.SupportMembershipViewSet, basename="support-memberships")
 routers.register(r"technician-assignments", views.TechnicianAssignmentViewSet, basename="technician-assignments")
 routers.register(r"diagnostic-passes", views.TechnicianAssignmentViewSet, basename="diagnostic-passes")
+routers.register(r"hall-passes", views.SupportHallPassViewSet, basename="hall-passes")
+routers.register(r"hall-pass", views.SupportHallPassViewSet, basename="hall-pass")
 
 urlpatterns = [
     path("", include(routers.urls)),

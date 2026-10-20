@@ -919,3 +919,63 @@ class TechnicianAssignmentViewSet(viewsets.ModelViewSet):
         return TechnicianAssignment.objects.filter(
             models.Q(technician=user) | models.Q(workspace__tenant=tenant)
         )
+
+
+@extend_schema_view(
+    list=extend_schema(description="Hall Pass List"),
+    retrieve=extend_schema(description="Hall Pass Retrieve"),
+)
+class SupportHallPassViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only listing of support hall passes.
+
+    Filters (query params): ticket, workspace/workspace_id, status,
+    permission_level.
+    """
+
+    queryset = SupportHallPass.objects.all()
+    serializer_class = SupportHallPassSerializer
+    permission_classes = [IsAuthenticated, HasContextualPermission]
+    scope = "support_hall_pass"
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return SupportHallPass.objects.none()
+
+        queryset = SupportHallPass.objects.select_related(
+            "technician",
+            "workspace",
+            "ticket",
+            "tenant",
+            "granted_by",
+            "upgraded_by",
+            "revoked_by",
+        ).prefetch_related("scopes")
+
+        if not (user.is_superuser or is_global_support_manager(user)):
+            tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+            queryset = queryset.filter(
+                models.Q(technician=user) | models.Q(workspace__tenant=tenant)
+            )
+
+        ticket_id = self.request.query_params.get("ticket")
+        if ticket_id:
+            queryset = queryset.filter(ticket_id=ticket_id)
+
+        workspace_id = (
+            self.request.query_params.get("workspace")
+            or self.request.query_params.get("workspace_id")
+        )
+        if workspace_id:
+            queryset = queryset.filter(workspace_id=workspace_id)
+
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            queryset = queryset.filter(status__iexact=status_param)
+
+        level = self.request.query_params.get("permission_level")
+        if level:
+            queryset = queryset.filter(permission_level__iexact=level)
+
+        return queryset

@@ -220,7 +220,7 @@ class SupportHallPassSerializer(serializers.ModelSerializer):
         source="get_permission_level_display", read_only=True
     )
     granted_by_name = serializers.SerializerMethodField(read_only=True)
-    scope_codes = serializers.SerializerMethodField(read_only=True)
+    scopes = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = SupportHallPass
@@ -241,5 +241,5 @@ class SupportHallPassSerializer(serializers.ModelSerializer):
     def get_granted_by_name(self, obj):
         return (obj.granted_by.get_full_name() or obj.granted_by.username) if obj.granted_by else None
 
-    def get_scope_codes(self, obj):
+    def get_scopes(self, obj):
         return [s.code for s in obj.scopes.all()]

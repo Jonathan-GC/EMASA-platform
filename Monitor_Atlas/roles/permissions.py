@@ -62,7 +62,7 @@ HALL_PASS_LEVEL_TO_PREFIX = {
 HALL_PASS_LEVEL_RANK = {"READ": 1, "EDIT": 2, "ADJUST": 3}
 
 
-def resolve_active_pass(user, tenant=None, workspace=None, obj=None):
+def resolve_active_pass(user, tenant=None, workspace=None, obj=None, any_context=False):
     """
     Resolve the highest-privilege active SupportHallPass for user in context.
 
@@ -70,6 +70,10 @@ def resolve_active_pass(user, tenant=None, workspace=None, obj=None):
     1. Explicit tenant/workspace arguments.
     2. Derived from obj via get_object_workspace_and_tenant.
     3. Falls back to user.tenant.
+
+    When ``any_context`` is True and no workspace/obj is supplied, the tenant
+    fallback and context filter are skipped so callers can ask "does this user
+    hold any active pass?" (used for cross-tenant list endpoints).
 
     Returns the SupportHallPass with the highest permission_level, or None.
     """
@@ -87,8 +91,9 @@ def resolve_active_pass(user, tenant=None, workspace=None, obj=None):
         if tenant is None and obj_t is not None:
             tenant = obj_t
 
-    # Fallback to user's tenant
-    if tenant is None:
+    # Fallback to user's tenant (skipped for context-free list queries)
+    context_free = any_context and workspace is None and obj is None
+    if not context_free and tenant is None:
         tenant = getattr(user, "tenant", None)
 
     # Build query for active, unexpired passes
@@ -112,7 +117,8 @@ def resolve_active_pass(user, tenant=None, workspace=None, obj=None):
         elif hasattr(obj, "workspace") and obj.workspace is not None:
             context_filter |= Q(workspace=obj.workspace)
 
-    queryset = queryset.filter(context_filter)
+    if not context_free:
+        queryset = queryset.filter(context_filter)
 
     # Return highest-privilege pass
     best_pass = None
@@ -273,7 +279,15 @@ def has_contextual_perm(
     app_label = perm.split(".")[0] if "." in perm else None
 
     # Check for global support manager bypass on support resources
-    support_domains = ("ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment")
+    support_domains = (
+        "ticket",
+        "comment",
+        "attachment",
+        "commentattachment",
+        "supportmembership",
+        "technicianassignment",
+        "hall_pass",
+    )
     if any(s in codename for s in support_domains):
         from support.models import SupportMembership
         is_global_support_mgr = SupportMembership.objects.filter(
@@ -619,21 +633,29 @@ class HasContextualPermission(BasePermission):
         # Active workspace resolution
         workspace = self._resolve_workspace(request, view)
 
-        # Check for active hall pass on workspace
-        has_active_diagnostic_pass = resolve_active_pass(user, tenant=tenant, workspace=workspace)
+        # Check for active hall pass on workspace. Without an explicit workspace
+        # header (list endpoints), consider any active pass so the pass-aware
+        # queryset path can run; per-workspace scoping happens in get_queryset.
+        if workspace is not None:
+            active_pass = resolve_active_pass(user, tenant=tenant, workspace=workspace)
+        else:
+            active_pass = resolve_active_pass(user, any_context=True)
+        has_active_diagnostic_pass = active_pass is not None
 
-        if has_active_diagnostic_pass:
-            tenant = workspace.tenant
-            request.tenant = tenant
-            if request.method.lower() not in ["get", "head", "options"] and scope not in [
-                "ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment"
-            ]:
-                from roles.models import WorkspaceMembership
-                if not WorkspaceMembership.objects.filter(user=user, workspace=workspace).exists():
-                    raise PermissionDenied("Hall pass grants read-only access only.")
+        if active_pass is not None:
+            if workspace is not None:
+                tenant = workspace.tenant
+                request.tenant = tenant
+                if request.method.lower() not in ["get", "head", "options"] and scope not in [
+                    "ticket", "comment", "attachment", "commentattachment",
+                    "supportmembership", "technicianassignment", "support_hall_pass",
+                ]:
+                    from roles.models import WorkspaceMembership
+                    if not WorkspaceMembership.objects.filter(user=user, workspace=workspace).exists():
+                        raise PermissionDenied("Hall pass grants read-only access only.")
 
         # Global support manager cross-tenant bypass on support resources
-        if scope in ["ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment"]:
+        if scope in ["ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment", "support_hall_pass"]:
             from support.models import SupportMembership
             from django.db.models import Q
             is_global_support_mgr = SupportMembership.objects.filter(
@@ -681,8 +703,13 @@ class HasContextualPermission(BasePermission):
         # If operation is on a workspace-scoped resource, ensure context can be resolved
         if scope in WORKSPACE_SCOPED_MODELS:
             if workspace is None:
-                # Detail actions can resolve context from object in has_object_permission
-                if getattr(view, "action", None) in ["list", "create"]:
+                # Detail actions can resolve context from object in has_object_permission.
+                # List actions are allowed for hall-pass holders; their queryset is
+                # scoped to pass-covered workspaces in _scoped_workspace_queryset.
+                is_pass_list = (
+                    getattr(view, "action", None) == "list" and has_active_diagnostic_pass
+                )
+                if getattr(view, "action", None) in ["list", "create"] and not is_pass_list:
                     raise PermissionDenied(
                         f"Active workspace context (X-Workspace-ID or workspace parameter) is required for {scope} operations."
                     )
@@ -765,7 +792,7 @@ class HasContextualPermission(BasePermission):
         has_active_diagnostic_pass = resolve_active_pass(user, tenant=tenant, workspace=effective_ws, obj=obj)
 
         if has_active_diagnostic_pass and scope not in [
-            "ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment"
+            "ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment", "support_hall_pass"
         ]:
             if request.method.lower() not in ["get", "head", "options"]:
                 from roles.models import WorkspaceMembership
@@ -782,7 +809,7 @@ class HasContextualPermission(BasePermission):
             is_assigned_technician = getattr(obj.comment.ticket, "assigned_to", None) == user
 
         is_global_support_mgr = False
-        if scope in ["ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment"]:
+        if scope in ["ticket", "comment", "attachment", "commentattachment", "supportmembership", "technicianassignment", "support_hall_pass"]:
             from support.models import SupportMembership
             from django.db.models import Q
             is_global_support_mgr = SupportMembership.objects.filter(

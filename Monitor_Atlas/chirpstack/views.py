@@ -55,29 +55,34 @@ def _scoped_workspace_queryset(request, base_queryset, workspace_field="workspac
     Superusers skip tenant scoping (same as RoleViewSet) but honor the
     active workspace filter.
 
-    When no workspace header is present, includes workspaces where the user
-    has an active hall pass.
+    Hall passes are cross-tenant by design (support staff live in the global
+    tenant while the pass points at a customer workspace), so pass-covered
+    workspaces must be OR-ed into the tenant boundary rather than replacing
+    or being excluded by it.
     """
+    from django.db.models import Q
+    from support.queryset import get_pass_workspace_ids
+
     user = request.user
+    workspace_id = _resolve_active_workspace_id(request)
+
     if not user.is_superuser:
         active_tenant = getattr(request, "tenant", getattr(user, "tenant", None))
+        pass_workspace_ids = get_pass_workspace_ids(user)
+
+        scope_filter = Q()
         if active_tenant:
-            base_queryset = base_queryset.filter(
-                **{f"{workspace_field}__tenant": active_tenant}
-            )
-    workspace_id = _resolve_active_workspace_id(request)
+            scope_filter |= Q(**{f"{workspace_field}__tenant": active_tenant})
+        if pass_workspace_ids:
+            scope_filter |= Q(**{f"{workspace_field}__id__in": pass_workspace_ids})
+        if scope_filter:
+            base_queryset = base_queryset.filter(scope_filter)
+
     if workspace_id:
         base_queryset = base_queryset.filter(
             **{f"{workspace_field}__id": workspace_id}
         )
-    else:
-        # No workspace header — include pass-covered workspaces
-        from support.queryset import get_pass_workspace_ids
-        pass_workspace_ids = get_pass_workspace_ids(user)
-        if pass_workspace_ids:
-            base_queryset = base_queryset.filter(
-                **{f"{workspace_field}__id__in": pass_workspace_ids}
-            )
+
     return base_queryset
 
 
@@ -214,12 +219,8 @@ class DeviceProfileTemplateViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return DeviceProfileTemplate.objects.all()
         else:
-            return get_objects_for_user(
-                user,
-                "chirpstack.view_deviceprofiletemplate",
-                klass=DeviceProfileTemplate,
-                accept_global_perms=True,
-            )
+            from support.queryset import get_pass_aware_queryset
+            return get_pass_aware_queryset(user, DeviceProfileTemplate, self.request)
 
     def perform_create(self, serializer):
         instance = serializer.save()
