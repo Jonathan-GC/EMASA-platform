@@ -450,7 +450,7 @@ export const useAuthStore = defineStore('auth', () => {
         imageUrl: userProfile.value.img,
         tenant: userProfile.value.tenant,
         fullName: `${userProfile.value.name} ${userProfile.value.last_name}`,
-        tenantImage: profileTenantImage.value.tenant.img
+        tenantImage: profileTenantImage.value
       });
 
       return true;
