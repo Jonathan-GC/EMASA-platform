@@ -35,7 +35,7 @@ onIonViewDidEnter(() => {
         </div>
         <!-- Tenants information section -->
         <TableTenants />
-      </  div>
+      </div>
 
       <!-- Loading state while page is preparing -->
       <div v-else class="page-loading">
