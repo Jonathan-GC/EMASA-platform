@@ -5,7 +5,7 @@
         v-if="loaded"
         :type="type"
         :index="index"
-        :fields="fields"
+        :fields="formFields"
         :label="label"
         :additionalData="additionalData"
         :initialData="initialData"

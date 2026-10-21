@@ -9,6 +9,9 @@ from django.conf import settings
 
 def fetch_chirpstack_users(api_url, headers):
     """Fetch global users from Chirpstack API."""
+    from .chirpstack_api import test_connection
+    if not test_connection():
+        return [], None
     response = requests.get(api_url, headers=headers, params={"limit": 100})
     if response and response.status_code == 200:
         return response.json().get("result", []), response
@@ -17,6 +20,9 @@ def fetch_chirpstack_users(api_url, headers):
 
 def fetch_tenant_user_mapping(tenants, tenant_url, headers):
     """Map Chirpstack user IDs to their tenants and roles."""
+    from .chirpstack_api import test_connection
+    if not test_connection():
+        return {}
     mapping = {}
     for tenant in tenants:
         if not tenant.cs_tenant_id:
@@ -113,6 +119,9 @@ def create_new_user(new_instance, user_tenant_mapping):
 
 def fetch_device_profiles(tenant, device_profile_url, headers):
     """Fetch device profiles for a tenant from Chirpstack."""
+    from .chirpstack_api import test_connection
+    if not test_connection():
+        return [], None
     response = requests.get(
         device_profile_url,
         headers=headers,
@@ -199,6 +208,9 @@ def create_local_device_profile(new_dp, workspace):
 
 def fetch_applications(tenant, application_url, headers):
     """Fetch applications for a tenant from Chirpstack."""
+    from .chirpstack_api import test_connection
+    if not test_connection():
+        return [], None
     response = requests.get(
         application_url,
         headers=headers,
@@ -254,6 +266,9 @@ def create_local_application(new_app, workspace):
 
 def fetch_devices(app, device_url, headers):
     """Fetch devices for a given application from Chirpstack."""
+    from .chirpstack_api import test_connection
+    if not test_connection():
+        return [], None
     response = requests.get(
         device_url,
         headers=headers,

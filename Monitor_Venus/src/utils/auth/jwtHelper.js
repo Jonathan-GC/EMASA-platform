@@ -45,7 +45,9 @@ export const getUserFromToken = (token) => {
       is_global: false,
       is_support: false,
       is_tenant_admin: false,
+      has_hall_pass: false,
       role_type: null,
+      tenant_id: null,
       cs_tenant_id: null,
       exp: null,
       iat: null
@@ -59,7 +61,9 @@ export const getUserFromToken = (token) => {
     is_global: decoded.is_global || false,
     is_support: decoded.is_support || false,
     is_tenant_admin: decoded.is_tenant_admin || false,
+    has_hall_pass: decoded.has_hall_pass || false,
     role_type: decoded.role_type || null,
+    tenant_id: decoded.tenant_id || null,
     cs_tenant_id: decoded.cs_tenant_id || null,
     exp: decoded.exp || null,
     iat: decoded.iat || null
@@ -138,7 +142,7 @@ export const userRoleHelpers = {
    */
   hasTenant: (token) => {
     const user = getUserFromToken(token);
-    return user.cs_tenant_id !== null;
+    return (user.tenant_id || user.cs_tenant_id) !== null;
   },
 
   /**
@@ -190,7 +194,7 @@ export const formatTokenInfo = (token) => {
   - SuperUser: ${user.is_superuser ? '✅' : '❌'}
   - Global: ${user.is_global ? '✅' : '❌'}
   - Soporte: ${user.is_support ? '✅' : '❌'}
-  - Tenant ID: ${user.cs_tenant_id || 'N/A'}
+  - Tenant ID: ${user.tenant_id || user.cs_tenant_id || 'N/A'}
   - Expira en: ${minutes} minutos
   `;
 };

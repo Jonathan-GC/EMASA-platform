@@ -55,19 +55,12 @@
               <input v-model="endDate" type="datetime-local" @change="triggerFetch" class="date-input" />
             </label>
             <div class="filter-actions">
-              <QuickControl type="audit" :toRefresh="true" :toClear="true" @refresh="fetchLogs" @clear="clearFilters" />
+              <QuickControl type="audit" :toRefresh="true" :toClear="hasFilters" @refresh="fetchLogs" @clear="clearFilters" />
             </div>
           </div>
         </div>
 
-        <!-- Mobile: single Filters button -->
-        <div v-else class="mobile-controls">
-          <ion-button @click="openFiltersModal" fill="outline" color="primary">
-            <ion-icon :icon="icons.options" slot="start"></ion-icon>
-            Filtros
-          </ion-button>
-          <QuickControl type="audit" :toRefresh="true" :toClear="true" @refresh="fetchLogs" @clear="clearFilters" />
-        </div>
+        <!-- Mobile: controls moved to the floating action buttons -->
 
         <!-- Error state -->
         <div v-if="error" class="error-container">
@@ -381,6 +374,17 @@
         </div>
       </ion-content>
     </ion-modal>
+
+    <!-- Floating Action Buttons (Mobile Only) -->
+    <FloatingActionButtons
+      entity-type="audit"
+      :show-create="false"
+      show-filter
+      :show-clear="hasFilters"
+      @refresh="fetchLogs"
+      @clear="clearFilters"
+      @filter="openFiltersModal"
+    />
   </div>
 </template>
 
@@ -391,6 +395,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
 import { useServerPagination } from '@composables/Tables/useServerPagination.js'
 import QuickControl from '@components/operators/quickControl.vue'
+import FloatingActionButtons from '@components/operators/FloatingActionButtons.vue'
 
 const authStore = useAuthStore()
 const icons = inject('icons', {})
@@ -410,6 +415,17 @@ const modelFilter = ref('')
 const objectPkFilter = ref('')
 const startDate = ref('')
 const endDate = ref('')
+
+const hasFilters = computed(() =>
+  searchText.value !== '' ||
+  actionFilter.value !== null ||
+  actorFilter.value !== '' ||
+  appFilter.value !== '' ||
+  modelFilter.value !== '' ||
+  objectPkFilter.value !== '' ||
+  startDate.value !== '' ||
+  endDate.value !== ''
+)
 const appsMeta = ref([])
 
 let debounceTimer = null
@@ -574,7 +590,7 @@ defineExpose({ fetchLogs })
 
 <style scoped>
 .table-card {
-  margin: 16px;
+  margin: 0 auto;
 }
 
 ion-card-header {
@@ -733,15 +749,23 @@ ion-card-subtitle {
 }
 
 .table-header {
-  background: var(--ion-color-light-tint, #f3f4f6);
-  border-bottom: 2px solid var(--ion-color-medium);
   font-weight: 600;
+}
+
+.table-header ion-col {
+  padding: 16px 12px;
 }
 
 .log-row {
   cursor: pointer;
   border-bottom: 1px solid var(--ion-color-light-shade, #e5e7eb);
   transition: background-color 0.15s ease;
+}
+
+.log-row ion-col {
+  padding: 12px;
+  display: flex;
+  align-items: center;
 }
 
 .log-row:hover {
@@ -1083,7 +1107,7 @@ ion-card-subtitle {
 
 @media (max-width: 768px) {
   .table-card {
-    margin: 8px;
+    margin: 0 auto;
   }
 
   .pagination {

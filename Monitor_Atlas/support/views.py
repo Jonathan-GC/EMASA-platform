@@ -1,10 +1,23 @@
-from rest_framework import viewsets
+from datetime import timedelta
+from django.db import models
+from django.utils import timezone
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
+from auditlog.models import LogEntry
+from django.contrib.contenttypes.models import ContentType
+
+from roles.permissions import HasContextualPermission
+from loguru import logger
 from .models import (
     Ticket,
     Comment,
     Attachment,
     CommentAttachment,
     SupportMembership,
+    TechnicianAssignment,
+    SupportHallPass,
+    PassScope,
 )
 from .serializers import (
     TicketSerializer,
@@ -13,15 +26,16 @@ from .serializers import (
     CommentAttachmentSerializer,
     SupportMembershipSerializer,
     TicketConversationSerializer,
+    TechnicianAssignmentSerializer,
+    SupportHallPassSerializer,
 )
 
 from users.models import User
 
 from rest_framework.decorators import action
-from loguru import logger
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
 from rest_framework.response import Response
-from platform_backend.audit_mixins import AuditActionMixin
+from platform_backend.audit_mixins import AuditActionMixin, _current_audit_context
 
 from .models import (
     PRIORITY_CHOICES,
@@ -47,6 +61,28 @@ from users.jwt import generate_token
 
 from .helpers import is_support_member
 from notifications.engine import NotificationsEngine
+
+
+def is_global_support_manager(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return SupportMembership.objects.filter(
+        user=user, role="support_manager"
+    ).filter(models.Q(tenant__is_global=True) | models.Q(tenant__isnull=True)).exists()
+
+
+def is_admin_or_support_manager(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    from roles.helpers import get_global_admin_role_group
+    global_group = get_global_admin_role_group()
+    if (global_group and global_group in user.groups.all()) or user.groups.filter(name="global_admin").exists():
+        return True
+    return is_global_support_manager(user) or SupportMembership.objects.filter(user=user, role="support_manager").exists()
 
 
 @extend_schema_view(
@@ -75,11 +111,51 @@ from notifications.engine import NotificationsEngine
 class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
+    permission_classes = [IsAuthenticated, HasContextualPermission]
+    scope = "ticket"
+
+    def get_permissions(self):
+        if self.action == "create" and not (self.request.user and self.request.user.is_authenticated):
+            return []
+        return [IsAuthenticated(), HasContextualPermission()]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return Ticket.objects.none()
+
+        if user.is_superuser or is_global_support_manager(user):
+            return Ticket.objects.all()
+
+        tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+
+        is_technician = SupportMembership.objects.filter(
+            user=user, role__in=["technician", "support_agent"]
+        ).exists()
+
+        if is_technician:
+            if tenant:
+                return Ticket.objects.filter(models.Q(assigned_to=user) | models.Q(tenant=tenant))
+            return Ticket.objects.filter(assigned_to=user)
+
+        from roles.models import WorkspaceMembership
+        is_tenant_admin = False
+        if tenant:
+            is_tenant_admin = WorkspaceMembership.objects.filter(
+                user=user, workspace__tenant=tenant
+            ).filter(models.Q(role__is_admin=True) | models.Q(role__name__icontains="admin")).exists()
+
+        if is_tenant_admin:
+            return Ticket.objects.filter(tenant=tenant)
+        else:
+            return Ticket.objects.filter(tenant=tenant, user=user)
 
     def perform_create(self, serializer):
-        support_member = SupportMembership.objects.filter(
-            role="support_manager"
-        ).first()
+        support_member = (
+            SupportMembership.objects.filter(role="support_manager", tenant__is_global=True).first()
+            or SupportMembership.objects.filter(role="support_manager", tenant__isnull=True).first()
+            or SupportMembership.objects.filter(role="support_manager").first()
+        )
         if not support_member:
             logger.error(
                 "No support member with role 'support_manager' found. If in development, please run initial setup."
@@ -87,8 +163,33 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
             raise Exception(
                 "Support manager not found. If in development, please run initial setup."
             )
-        user = support_member.user
-        ticket = serializer.save(assigned_to=user)
+        assigned_user = support_member.user
+
+        # Resolve tenant
+        resolved_tenant = None
+        if self.request.user and self.request.user.is_authenticated:
+            resolved_tenant = getattr(self.request, "tenant", getattr(self.request.user, "tenant", None))
+
+        if not resolved_tenant:
+            from organizations.models import Tenant
+            tenant_id = (
+                self.request.data.get("tenant")
+                or self.request.data.get("tenant_id")
+                or (self.request.headers.get("X-Tenant-ID") if hasattr(self.request, "headers") else None)
+            )
+            if tenant_id:
+                resolved_tenant = Tenant.objects.filter(id=tenant_id).first()
+            if not resolved_tenant and hasattr(self.request, "tenant"):
+                resolved_tenant = self.request.tenant
+
+        extra_kwargs = {"assigned_to": assigned_user}
+        if resolved_tenant:
+            extra_kwargs["tenant"] = resolved_tenant
+        if self.request.user and self.request.user.is_authenticated:
+            if not serializer.validated_data.get("user"):
+                extra_kwargs["user"] = self.request.user
+
+        ticket = serializer.save(**extra_kwargs)
         ticket_number = f"TICKET-{ticket.id}"
         if ticket.organization:
             ticket_body = f"{ticket.organization} submitted a Ticket."
@@ -96,7 +197,7 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
             ticket_body = f"Ticket {ticket_number} has been submitted."
 
         NotificationsEngine.send_notification(
-            users=[user],
+            users=[assigned_user],
             title="New Ticket Submitted",
             message=ticket_body,
             type="warning",
@@ -130,11 +231,34 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
         )
 
         send_new_ticket_notification_email_to_staff(
-            staff_email=user.email,
+            staff_email=assigned_user.email,
             ticket=ticket,
             comment=None,
         )
 
+        return ticket
+
+    def perform_update(self, serializer):
+        ticket = serializer.save()
+        if (ticket.status or "").lower() in ["resolved", "closed"]:
+            active_passes = list(
+                ticket.diagnostic_passes.filter(status__in=["ACTIVE", "active"])
+            )
+            active_passes += list(
+                ticket.hall_passes.filter(status__in=["ACTIVE", "active"])
+            )
+            for pass_obj in active_passes:
+                token = _current_audit_context.set({
+                    "action_detail": "auto_revocation_on_ticket_closure",
+                    "actor": self.request.user if (self.request.user and self.request.user.is_authenticated) else None,
+                    "ticket_id": str(ticket.id),
+                    "ticket_status": ticket.status,
+                })
+                try:
+                    pass_obj.status = "REVOKED"
+                    pass_obj.save()
+                finally:
+                    _current_audit_context.reset(token)
         return ticket
 
     @action(detail=True, methods=["get"], description="Get ticket conversation")
@@ -160,31 +284,111 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
         ticket = self.get_object()
         user = request.user
 
-        if user and not is_support_member(user):
+        if not user or not getattr(user, "is_authenticated", False):
+            logger.debug("no authenticated user associated with the request")
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        if not is_support_member(user):
             logger.debug("user is not a support member")
-            return Response({"not_modified": "no need to mark as read"}, status=204)
-        elif user and ticket.assigned_to.id != user.id:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        if ticket.assigned_to_id is not None and ticket.assigned_to_id != user.id:
             logger.debug("user is not assigned to the ticket")
-            return Response({"not_modified": "no need to mark as read"}, status=204)
-        elif not user:
-            logger.debug("no user associated with the request")
-            return Response({"not_modified": "no need to mark as read"}, status=204)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         ticket.is_read = True
-        ticket.save()
+        ticket.save(update_fields=["is_read", "updated_at"])
         return Response({"status": "ticket_marked_as_read"}, status=200)
 
     @action(detail=True, methods=["post"], description="Delegate the ticket")
     def delegate(self, request, pk=None):
         ticket = self.get_object()
+        if not is_admin_or_support_manager(request.user):
+            return Response(
+                {"error": "Only administrators and support managers can delegate tickets."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         assigned_to_id = request.data.get("assigned_to_id")
         if not assigned_to_id:
-            return Response({"error": "assigned_to_id is required."}, status=400)
+            return Response({"error": "assigned_to_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             assigned_user = User.objects.get(id=assigned_to_id)
-            ticket.assigned_to = assigned_user
-            ticket.is_read = False
-            ticket.save()
+            prev_assigned = ticket.assigned_to
+
+            token = _current_audit_context.set({
+                "action_detail": "ticket_delegated",
+                "actor": request.user,
+                "previous_assignee": str(prev_assigned.id) if prev_assigned else None,
+                "new_assignee": str(assigned_user.id),
+            })
+            try:
+                ticket.assigned_to = assigned_user
+                ticket.is_read = False
+                ticket.save()
+            finally:
+                _current_audit_context.reset(token)
+
+            # Auto-create or extend a hall pass for the assigned technician
+            hall_pass = None
+            if ticket.workspace_id:
+                from support.models import SupportHallPass, PassScope
+                duration_hours = request.data.get("pass_duration_hours", 24)
+                try:
+                    duration_hours = int(duration_hours)
+                except (ValueError, TypeError):
+                    duration_hours = 24
+
+                expires_at = timezone.now() + timedelta(hours=duration_hours)
+                default_scopes = PassScope.objects.filter(
+                    code__in=["infrastructure", "chirpstack", "ticket"]
+                )
+
+                # Check for existing active pass for this technician + workspace
+                existing_pass = SupportHallPass.objects.filter(
+                    technician=assigned_user,
+                    workspace_id=ticket.workspace_id,
+                    status="ACTIVE",
+                    expires_at__gt=timezone.now(),
+                ).first()
+
+                if existing_pass:
+                    # Extend existing pass
+                    existing_pass.expires_at = expires_at
+                    existing_pass.save()
+                    hall_pass = existing_pass
+                else:
+                    # Create new pass
+                    hall_pass = SupportHallPass.objects.create(
+                        technician=assigned_user,
+                        ticket=ticket,
+                        workspace_id=ticket.workspace_id,
+                        tenant_id=ticket.tenant_id,
+                        permission_level="READ",
+                        granted_by=request.user,
+                        expires_at=expires_at,
+                        status="ACTIVE",
+                        reason=f"Ticket delegated: {ticket.title}",
+                    )
+                    hall_pass.scopes.set(default_scopes)
+
+                # Audit log for delegation pass
+                from auditlog.models import LogEntry
+                from django.contrib.contenttypes.models import ContentType
+                LogEntry.objects.create(
+                    content_type=ContentType.objects.get_for_model(SupportHallPass),
+                    object_pk=str(hall_pass.pk),
+                    object_repr=str(hall_pass),
+                    action=LogEntry.Action.CREATE if existing_pass is None else LogEntry.Action.UPDATE,
+                    actor=request.user,
+                    additional_data={
+                        "action_detail": "delegate_with_pass",
+                        "ticket_id": str(ticket.id),
+                        "technician_id": str(assigned_user.id),
+                        "workspace_id": str(ticket.workspace_id),
+                        "permission_level": "READ",
+                        "expires_at": expires_at.isoformat(),
+                    },
+                )
+
             NotificationsEngine.send_notification(
                 users=[assigned_user],
                 title="New Ticket Assignment",
@@ -192,10 +396,255 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
                 type="info",
                 topic="updates",
             )
-            return Response({"status": "ticket_delegated"})
+
+            response_data = {"status": "ticket_delegated"}
+            if hall_pass:
+                response_data["hall_pass_id"] = str(hall_pass.id)
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
-            return Response({"error": "User not found."}, status=404)
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=["post"], description="Grant diagnostic pass for customer workspace")
+    def grant_diagnostic_pass(self, request, pk=None):
+        ticket = self.get_object()
+        if not is_admin_or_support_manager(request.user):
+            return Response(
+                {"error": "Only support managers and administrators can grant diagnostic passes."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        technician_id = request.data.get("technician_id")
+        workspace_id = request.data.get("workspace_id") or (str(ticket.workspace_id) if ticket.workspace_id else None)
+        duration_hours = request.data.get("duration_hours", 4)
+        reason = request.data.get("reason", "")
+
+        if not technician_id or not workspace_id:
+            return Response(
+                {"error": "technician_id and workspace_id are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            duration_hours = int(duration_hours)
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "duration_hours must be a valid integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        technician = User.objects.filter(id=technician_id).first()
+        if not technician:
+            return Response({"error": "Technician not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        from organizations.models import Workspace
+        workspace = Workspace.objects.filter(id=workspace_id).first()
+        if not workspace:
+            return Response({"error": "Workspace not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if ticket.workspace and str(workspace.id) != str(ticket.workspace_id):
+            return Response(
+                {"error": "Target workspace does not match the ticket's workspace."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if ticket.tenant and workspace.tenant_id != ticket.tenant_id:
+            return Response(
+                {"error": "Target workspace does not belong to the ticket's tenant."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        expires_at = timezone.now() + timedelta(hours=duration_hours)
+
+        # Default scopes: infrastructure + chirpstack + ticket
+        default_scopes = PassScope.objects.filter(code__in=["infrastructure", "chirpstack", "ticket"])
+
+        token = _current_audit_context.set({
+            "action_detail": "grant_hall_pass",
+            "actor": request.user,
+            "ticket_id": str(ticket.id),
+            "technician_id": str(technician.id),
+            "workspace_id": str(workspace.id),
+            "duration_hours": duration_hours,
+            "expires_at": expires_at.isoformat(),
+            "permission_level": "READ",
+        })
+        try:
+            hall_pass = SupportHallPass.objects.create(
+                technician=technician,
+                ticket=ticket,
+                workspace=workspace,
+                tenant=workspace.tenant,
+                permission_level="READ",
+                granted_by=request.user,
+                expires_at=expires_at,
+                status="ACTIVE",
+                reason=reason,
+            )
+            hall_pass.scopes.set(default_scopes)
+
+            # Also create legacy TechnicianAssignment for backward compatibility
+            TechnicianAssignment.objects.create(
+                technician=technician,
+                ticket=ticket,
+                workspace=workspace,
+                granted_by=request.user,
+                expires_at=expires_at,
+                status="ACTIVE",
+                reason=reason,
+            )
+        finally:
+            _current_audit_context.reset(token)
+
+        serializer = SupportHallPassSerializer(hall_pass)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], description="Revoke diagnostic pass")
+    def revoke_diagnostic_pass(self, request, pk=None):
+        ticket = self.get_object()
+        if not is_admin_or_support_manager(request.user):
+            return Response(
+                {"error": "Only support managers and administrators can revoke diagnostic passes."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        pass_id = request.data.get("pass_id")
+        if not pass_id:
+            return Response({"error": "pass_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Try SupportHallPass first, then legacy TechnicianAssignment
+        hall_pass = SupportHallPass.objects.filter(id=pass_id, ticket=ticket).first()
+        if not hall_pass:
+            hall_pass = SupportHallPass.objects.filter(id=pass_id).first()
+
+        revoke_reason = request.data.get("reason", "")
+
+        if hall_pass:
+            token = _current_audit_context.set({
+                "action_detail": "revoke_hall_pass",
+                "actor": request.user,
+                "pass_id": str(hall_pass.id),
+                "ticket_id": str(ticket.id),
+                "reason": revoke_reason,
+            })
+            try:
+                hall_pass.status = "REVOKED"
+                hall_pass.revoked_by = request.user
+                hall_pass.revoked_at = timezone.now()
+                hall_pass.revoke_reason = revoke_reason
+                hall_pass.save()
+            finally:
+                _current_audit_context.reset(token)
+
+            # Also revoke legacy TechnicianAssignment if it exists
+            TechnicianAssignment.objects.filter(
+                technician=hall_pass.technician,
+                ticket=hall_pass.ticket,
+                workspace=hall_pass.workspace,
+                status__in=["ACTIVE", "active"],
+            ).update(status="REVOKED")
+
+            return Response({"status": "pass_revoked"}, status=status.HTTP_200_OK)
+
+        # Fallback to legacy TechnicianAssignment
+        assignment = TechnicianAssignment.objects.filter(id=pass_id, ticket=ticket).first()
+        if not assignment:
+            assignment = TechnicianAssignment.objects.filter(id=pass_id).first()
+        if not assignment:
+            return Response({"error": "Diagnostic pass not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        token = _current_audit_context.set({
+            "action_detail": "revoke_diagnostic_pass",
+            "actor": request.user,
+            "pass_id": str(assignment.id),
+            "ticket_id": str(ticket.id),
+        })
+        try:
+            assignment.status = "REVOKED"
+            assignment.save()
+        finally:
+            _current_audit_context.reset(token)
+
+        return Response({"status": "pass_revoked"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], description="Upgrade hall pass permission level")
+    def upgrade_hall_pass(self, request, pk=None):
+        ticket = self.get_object()
+        if not is_admin_or_support_manager(request.user):
+            return Response(
+                {"error": "Only support managers and administrators can upgrade hall passes."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        pass_id = request.data.get("pass_id")
+        new_level = request.data.get("new_permission_level")
+        duration_hours = request.data.get("duration_hours")
+
+        if not pass_id:
+            return Response({"error": "pass_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not new_level:
+            return Response({"error": "new_permission_level is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_level = new_level.upper()
+        if new_level not in ["READ", "EDIT", "ADJUST"]:
+            return Response(
+                {"error": "new_permission_level must be READ, EDIT, or ADJUST."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hall_pass = SupportHallPass.objects.filter(id=pass_id, ticket=ticket).first()
+        if not hall_pass:
+            hall_pass = SupportHallPass.objects.filter(id=pass_id).first()
+        if not hall_pass:
+            return Response({"error": "Hall pass not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if hall_pass.status != "ACTIVE":
+            return Response(
+                {"error": "Only active hall passes can be upgraded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        current_rank = {"READ": 1, "EDIT": 2, "ADJUST": 3}.get(hall_pass.permission_level, 0)
+        new_rank = {"READ": 1, "EDIT": 2, "ADJUST": 3}.get(new_level, 0)
+
+        if new_rank <= current_rank:
+            return Response(
+                {"error": f"New level must be higher than current level ({hall_pass.permission_level})."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        old_level = hall_pass.permission_level
+        hall_pass.permission_level = new_level
+        hall_pass.upgraded_from = hall_pass
+        hall_pass.upgraded_by = request.user
+        hall_pass.upgraded_at = timezone.now()
+
+        if duration_hours:
+            try:
+                duration_hours = int(duration_hours)
+                hall_pass.expires_at = timezone.now() + timedelta(hours=duration_hours)
+            except (ValueError, TypeError):
+                return Response(
+                    {"error": "duration_hours must be a valid integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        token = _current_audit_context.set({
+            "action_detail": "upgrade_hall_pass",
+            "actor": request.user,
+            "pass_id": str(hall_pass.id),
+            "ticket_id": str(ticket.id),
+            "from_level": old_level,
+            "to_level": new_level,
+            "upgraded_by": str(request.user.id),
+        })
+        try:
+            hall_pass.save()
+        finally:
+            _current_audit_context.reset(token)
+
+        serializer = SupportHallPassSerializer(hall_pass)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"], description="Get support members")
     def get_support_members(self, request):
@@ -237,8 +686,28 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated, HasContextualPermission]
+    scope = "comment"
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return Comment.objects.none()
+        if user.is_superuser or is_global_support_manager(user):
+            return Comment.objects.all()
+        tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        return Comment.objects.filter(
+            models.Q(ticket__tenant=tenant) | models.Q(ticket__assigned_to=user)
+        )
 
     def perform_create(self, serializer):
+        ticket = serializer.validated_data.get("ticket")
+        user = self.request.user
+        if ticket and not user.is_superuser and not is_global_support_manager(user):
+            tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+            if ticket.tenant != tenant and ticket.assigned_to != user:
+                raise PermissionDenied("Cannot post comments on tickets outside your tenant unless assigned to it.")
+
         comment = serializer.save()
         ticket = comment.ticket
 
@@ -302,6 +771,28 @@ class CommentViewSet(viewsets.ModelViewSet):
 class AttachmentViewSet(viewsets.ModelViewSet):
     queryset = Attachment.objects.all()
     serializer_class = AttachmentSerializer
+    permission_classes = [IsAuthenticated, HasContextualPermission]
+    scope = "attachment"
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return Attachment.objects.none()
+        if user.is_superuser or is_global_support_manager(user):
+            return Attachment.objects.all()
+        tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        return Attachment.objects.filter(
+            models.Q(ticket__tenant=tenant) | models.Q(ticket__assigned_to=user)
+        )
+
+    def perform_create(self, serializer):
+        ticket = serializer.validated_data.get("ticket")
+        user = self.request.user
+        if ticket and not user.is_superuser and not is_global_support_manager(user):
+            tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+            if ticket.tenant != tenant and ticket.assigned_to != user:
+                raise PermissionDenied("Cannot add attachments to tickets outside your tenant unless assigned to it.")
+        return serializer.save()
 
 
 @extend_schema_view(
@@ -315,6 +806,29 @@ class AttachmentViewSet(viewsets.ModelViewSet):
 class CommentAttachmentViewSet(viewsets.ModelViewSet):
     queryset = CommentAttachment.objects.all()
     serializer_class = CommentAttachmentSerializer
+    permission_classes = [IsAuthenticated, HasContextualPermission]
+    scope = "commentattachment"
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return CommentAttachment.objects.none()
+        if user.is_superuser or is_global_support_manager(user):
+            return CommentAttachment.objects.all()
+        tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        return CommentAttachment.objects.filter(
+            models.Q(comment__ticket__tenant=tenant) | models.Q(comment__ticket__assigned_to=user)
+        )
+
+    def perform_create(self, serializer):
+        comment = serializer.validated_data.get("comment")
+        user = self.request.user
+        if comment and not user.is_superuser and not is_global_support_manager(user):
+            tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+            ticket = getattr(comment, "ticket", None)
+            if ticket and ticket.tenant != tenant and ticket.assigned_to != user:
+                raise PermissionDenied("Cannot add attachments to comments outside your tenant unless assigned to it.")
+        return serializer.save()
 
 
 @extend_schema_view(
@@ -328,6 +842,19 @@ class CommentAttachmentViewSet(viewsets.ModelViewSet):
 class SupportMembershipViewSet(viewsets.ModelViewSet):
     queryset = SupportMembership.objects.all()
     serializer_class = SupportMembershipSerializer
+    permission_classes = [IsAuthenticated, HasContextualPermission]
+    scope = "supportmembership"
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return SupportMembership.objects.none()
+        if user.is_superuser or is_global_support_manager(user):
+            return SupportMembership.objects.all()
+        tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        return SupportMembership.objects.filter(
+            models.Q(tenant=tenant) | models.Q(tenant__isnull=True)
+        )
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -345,3 +872,89 @@ class SupportMembershipViewSet(viewsets.ModelViewSet):
                 support_manager=support_manager, user=user
             )
         return instance
+
+
+@extend_schema_view(
+    list=extend_schema(description="Technician Assignment List"),
+    create=extend_schema(description="Technician Assignment Create"),
+    retrieve=extend_schema(description="Technician Assignment Retrieve"),
+    update=extend_schema(description="Technician Assignment Update"),
+    partial_update=extend_schema(description="Technician Assignment Partial Update"),
+    destroy=extend_schema(description="Technician Assignment Destroy"),
+)
+class TechnicianAssignmentViewSet(viewsets.ModelViewSet):
+    queryset = TechnicianAssignment.objects.all()
+    serializer_class = TechnicianAssignmentSerializer
+    permission_classes = [IsAuthenticated, HasContextualPermission]
+    scope = "technicianassignment"
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return TechnicianAssignment.objects.none()
+        if user.is_superuser or is_global_support_manager(user):
+            return TechnicianAssignment.objects.all()
+        tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        return TechnicianAssignment.objects.filter(
+            models.Q(technician=user) | models.Q(workspace__tenant=tenant)
+        )
+
+
+@extend_schema_view(
+    list=extend_schema(description="Hall Pass List"),
+    retrieve=extend_schema(description="Hall Pass Retrieve"),
+)
+class SupportHallPassViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only listing of support hall passes.
+
+    Filters (query params): ticket, workspace/workspace_id, status,
+    permission_level.
+    """
+
+    queryset = SupportHallPass.objects.all()
+    serializer_class = SupportHallPassSerializer
+    permission_classes = [IsAuthenticated, HasContextualPermission]
+    scope = "support_hall_pass"
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return SupportHallPass.objects.none()
+
+        queryset = SupportHallPass.objects.select_related(
+            "technician",
+            "workspace",
+            "ticket",
+            "tenant",
+            "granted_by",
+            "upgraded_by",
+            "revoked_by",
+        ).prefetch_related("scopes")
+
+        if not (user.is_superuser or is_global_support_manager(user)):
+            tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+            queryset = queryset.filter(
+                models.Q(technician=user) | models.Q(workspace__tenant=tenant)
+            )
+
+        ticket_id = self.request.query_params.get("ticket")
+        if ticket_id:
+            queryset = queryset.filter(ticket_id=ticket_id)
+
+        workspace_id = (
+            self.request.query_params.get("workspace")
+            or self.request.query_params.get("workspace_id")
+        )
+        if workspace_id:
+            queryset = queryset.filter(workspace_id=workspace_id)
+
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            queryset = queryset.filter(status__iexact=status_param)
+
+        level = self.request.query_params.get("permission_level")
+        if level:
+            queryset = queryset.filter(permission_level__iexact=level)
+
+        return queryset

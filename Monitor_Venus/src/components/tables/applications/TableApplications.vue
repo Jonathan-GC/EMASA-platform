@@ -95,6 +95,7 @@
                 v-for=" application in paginatedItems"
                 :key=" application.id"
                 class="table-row-stylized"
+                v-bind="getItemActivateProps(`/infrastructure/applications/${application.id}/devices`, { label: `Ver dispositivos de ${application.name}` })"
 
                 :class="{ 'row-selected': selectedApplication?.id ===  application.id }"
             >
@@ -154,7 +155,7 @@
               :key="app.id" 
               class="application-card"
               :class="getCardClass(true)"
-              @click="(event) => getCardClickHandler(`/infrastructure/applications/${app.id}/devices`)(event)"
+              v-bind="getItemActivateProps(`/infrastructure/applications/${app.id}/devices`, { label: `Ver dispositivos de ${app.name}` })"
             >
               <ion-card-content>
                 <!-- Header with name and sync status -->
@@ -245,7 +246,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="application"
       @refresh="fetchApplications"
       @itemCreated="handleItemRefresh"
@@ -272,7 +272,7 @@ const icons = inject('icons', {})
 const router = useRouter()
 
 // Card navigation composable
-const { getCardClickHandler, getCardClass } = useCardNavigation()
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
@@ -450,6 +450,13 @@ onMounted(async () => {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
 }
 
 .table-row-stylized:hover {

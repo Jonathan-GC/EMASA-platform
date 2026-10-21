@@ -5,6 +5,7 @@ import { ref, computed } from 'vue';
 import tokenManager from '@/utils/auth/tokenManager.js';
 import { getUserFromToken, userRoleHelpers, isTokenExpired } from '@/utils/auth/jwtHelper.js';
 import API from '@/utils/api/api.js';
+import { useOtpStore } from '@/stores/otpStore.js';
 
 export const useAuthStore = defineStore('auth', () => {
   // ========================================
@@ -18,7 +19,9 @@ export const useAuthStore = defineStore('auth', () => {
     is_global: false,
     is_support: false,
     is_tenant_admin: false,
+    has_hall_pass: false,
     role_type: null, // 'technician', 'viewer', 'tenant_user', etc.
+    tenant_id: null,
     cs_tenant_id: null,
     exp: null,
     iat: null
@@ -42,14 +45,21 @@ export const useAuthStore = defineStore('auth', () => {
       id:null,
       name:null,
       img:null,
+      is_global: false,
     },
     google_oauth: null, // { is_linked, email, provider_user_id, created_at }
     roles: [], // [{ id, name, description, color, is_admin, workspace }]
+    workspaces: [], // [{ id, name }] — opcional, si el backend lo agrega a /me
   });
 
   const isAuthenticated = ref(false);
   const isLoading = ref(false);
   const isLoadingProfile = ref(false);
+  const activeTenantId = ref(localStorage.getItem('active_tenant_id') || null);
+  const activeWorkspaceId = ref(localStorage.getItem('active_workspace_id') || null);
+  // Contador que fuerza el remount de las vistas al cambiar de contexto (p.ej. workspace).
+  // Solo lo incrementa un cambio explícito del usuario, nunca la resolución automática.
+  const contextVersion = ref(0);
 
   // ========================================
   // GETTERS - Computed properties para acceso fácil
@@ -76,6 +86,13 @@ export const useAuthStore = defineStore('auth', () => {
    * Verifica si el usuario es un usuario de soporte
    */
   const isSupportUser = computed(() => user.value.is_support === true);
+
+  /**
+   * Verifica si el usuario tiene un pase de acceso (hall pass) según el token.
+   * Los usuarios de soporte con pase no envían X-Tenant-ID ni X-Workspace-ID
+   * en las peticiones (el backend resuelve el contexto desde el pase).
+   */
+  const hasHallPass = computed(() => user.value.has_hall_pass === true);
   
   /**
    * Verifica si el usuario pertenece a un administrador de tenant 
@@ -93,20 +110,26 @@ export const useAuthStore = defineStore('auth', () => {
   const isViewer = computed(() => user.value.role_type === 'viewer');
 
   /**
+   * ID del tenant resuelto: prioriza el tenant_id de Monitor y cae a
+   * cs_tenant_id (ChirpStack) como alternativa (tokens antiguos).
+   */
+  const resolvedTenantId = computed(() => user.value.tenant_id || user.value.cs_tenant_id || null);
+
+  /**
    * Verifica si el usuario es un usuario de tenant (tenant_user)
    * Un tenant_user es un usuario regular que:
    * - NO es superuser
    * - NO es global
    * - NO es support
    * - NO es tenant_admin
-   * - TIENE un tenant asignado (cs_tenant_id)
+   * - TIENE un tenant asignado (tenant_id o cs_tenant_id)
    */
   const isTenantUser = computed(() => 
     !user.value.is_superuser &&
     !user.value.is_global &&
     !user.value.is_support &&
     !user.value.is_tenant_admin &&
-    user.value.cs_tenant_id !== null
+    resolvedTenantId.value !== null
   );
 
   /**
@@ -119,7 +142,7 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Verifica si el usuario pertenece a un tenant
    */
-  const hasTenant = computed(() => user.value.cs_tenant_id !== null);  /**
+  const hasTenant = computed(() => resolvedTenantId.value !== null);  /**
    * Verifica si el usuario necesita configurar un tenant
    * TRUE si: no es global, no tiene tenant, y está autenticado
    */
@@ -127,7 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
     return (
       isAuthenticated.value &&
       !user.value.is_global &&
-      user.value.cs_tenant_id === null &&
+      resolvedTenantId.value === null &&
       !user.value.is_superuser // Superusers no necesitan tenant
     );
   });
@@ -135,7 +158,7 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Obtiene el ID del tenant del usuario
    */
-  const tenantId = computed(() => user.value.cs_tenant_id);
+  const tenantId = computed(() => resolvedTenantId.value);
 
   /**
    * Obtiene el nombre de usuario
@@ -196,6 +219,11 @@ export const useAuthStore = defineStore('auth', () => {
   const profileTenantName = computed(() => userProfile.value.tenant.name);
 
   /**
+   * Verifica si el tenant del perfil es el tenant global de la plataforma
+   */
+  const isGlobalTenant = computed(() => userProfile.value.tenant.is_global === true);
+
+  /**
    * Obtiene la imagen del tenant del perfil
    */
   const profileTenantImage = computed(() => {
@@ -234,6 +262,28 @@ export const useAuthStore = defineStore('auth', () => {
   const userRoles = computed(() => userProfile.value.roles || []);
 
   /**
+   * Workspaces disponibles para el usuario (desde /me).
+   * Prefiere el listado explícito `workspaces` si el backend lo agrega;
+   * si no, los deriva de los roles (cada rol trae su workspace).
+   */
+  const availableWorkspaces = computed(() => {
+    const explicit = userProfile.value.workspaces;
+    if (Array.isArray(explicit) && explicit.length) {
+      return explicit;
+    }
+    const seen = new Set();
+    const result = [];
+    for (const role of userProfile.value.roles || []) {
+      const ws = role?.workspace;
+      if (ws?.id && !seen.has(ws.id)) {
+        seen.add(ws.id);
+        result.push(ws);
+      }
+    }
+    return result;
+  });
+
+  /**
    * Obtiene el ID del usuario actual (perfil /me o claims del token)
    */
   const currentUserId = computed(() => userProfile.value.id || user.value.user_id);
@@ -266,6 +316,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Decodificar token y poblar el store
     const userData = getUserFromToken(token);
     user.value = userData;
+    setActiveTenant(userData.tenant_id);
     isAuthenticated.value = true;
 
     console.log('✅ Autenticación inicializada:', {
@@ -274,7 +325,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_global: userData.is_global,
       is_support: userData.is_support,
       is_tenant_admin: userData.is_tenant_admin,
-      tenant_id: userData.cs_tenant_id
+      tenant_id: userData.tenant_id
     });
 
     // Fetch user profile after initializing from token
@@ -315,6 +366,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Decodificar y guardar info del usuario
     const userData = getUserFromToken(accessToken);
     user.value = userData;
+    setActiveTenant(userData.tenant_id);
     isAuthenticated.value = true;
 
     console.log('✅ Login exitoso:', {
@@ -322,7 +374,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_superuser: userData.is_superuser,
       is_global: userData.is_global,
       is_support: userData.is_support,
-      tenant_id: userData.cs_tenant_id,
+      tenant_id: userData.tenant_id,
       is_tenant_admin: userData.is_tenant_admin
     });
 
@@ -390,10 +442,14 @@ export const useAuthStore = defineStore('auth', () => {
           id: userData.tenant?.id || null,
           name: userData.tenant?.name || null,
           img: userData.tenant?.img || null,
+          is_global: userData.tenant?.is_global === true,
         },
         google_oauth: userData.google_oauth || null,
         roles: Array.isArray(userData.roles) ? userData.roles : [],
       };
+
+      // Resolver el workspace activo a partir de los roles del perfil (/me)
+      resolveActiveWorkspace();
 
       console.log('✅ User profile loaded:', {
         username: userProfile.value.username,
@@ -402,7 +458,7 @@ export const useAuthStore = defineStore('auth', () => {
         imageUrl: userProfile.value.img,
         tenant: userProfile.value.tenant,
         fullName: `${userProfile.value.name} ${userProfile.value.last_name}`,
-        tenantImage: profileTenantImage.value.tenant.img
+        tenantImage: profileTenantImage.value
       });
 
       return true;
@@ -415,7 +471,65 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
-   * Limpia la autenticación (helper interno)
+   * Establece el tenant activo para peticiones multi-tenant (header X-Tenant-ID)
+   * @param {string|null} newTenantId 
+   */
+  const setActiveTenant = (newTenantId) => {
+    activeTenantId.value = newTenantId;
+    if (newTenantId) {
+      localStorage.setItem('active_tenant_id', newTenantId);
+    } else {
+      localStorage.removeItem('active_tenant_id');
+    }
+  };
+
+  /**
+   * Establece el workspace activo para peticiones multi-workspace (header X-Workspace-ID)
+   * @param {string|null} newWorkspaceId
+   */
+  const setActiveWorkspace = (newWorkspaceId) => {
+    activeWorkspaceId.value = newWorkspaceId || null;
+    if (newWorkspaceId) {
+      localStorage.setItem('active_workspace_id', newWorkspaceId);
+    } else {
+      localStorage.removeItem('active_workspace_id');
+    }
+  };
+
+  /**
+   * Cambia el workspace activo por acción explícita del usuario (selector del sidebar).
+   * A diferencia de setActiveWorkspace (usado en la resolución automática), incrementa
+   * contextVersion para que las vistas se remonten y vuelvan a consultar con el nuevo header.
+   * @param {string} newWorkspaceId
+   */
+  const switchWorkspace = (newWorkspaceId) => {
+    if (!newWorkspaceId || newWorkspaceId === activeWorkspaceId.value) return;
+    setActiveWorkspace(newWorkspaceId);
+    contextVersion.value += 1;
+  };
+
+  /**
+   * Resuelve el workspace activo tras cargar el perfil (/me):
+   * - Sin workspaces disponibles -> sin contexto (no se manda header)
+   * - Si el guardado en localStorage sigue siendo válido -> se conserva
+   * - Si no -> se usa el primer workspace accesible (orden de los roles)
+   */
+  const resolveActiveWorkspace = () => {
+    const workspaces = availableWorkspaces.value;
+    if (!workspaces.length) {
+      setActiveWorkspace(null);
+      return;
+    }
+    const saved = localStorage.getItem('active_workspace_id');
+    if (saved && workspaces.some((w) => w.id === saved)) {
+      activeWorkspaceId.value = saved;
+      return;
+    }
+    setActiveWorkspace(workspaces[0].id);
+  };
+
+  /**
+   * Limpia toda la información de autenticación
    */
   const clearAuth = () => {
     user.value = {
@@ -425,7 +539,9 @@ export const useAuthStore = defineStore('auth', () => {
       is_global: false,
       is_support: false,
       is_tenant_admin: false,
+      has_hall_pass: false,
       role_type: null,
+      tenant_id: null,
       cs_tenant_id: null,
       exp: null,
       iat: null
@@ -450,8 +566,13 @@ export const useAuthStore = defineStore('auth', () => {
       },
       google_oauth: null,
       roles: [],
+      workspaces: [],
 
     };
+    setActiveTenant(null);
+    setActiveWorkspace(null);
+    localStorage.removeItem('sb_user_id');
+    useOtpStore().clearPendingLogin();
     isAuthenticated.value = false;
   };
 
@@ -527,6 +648,10 @@ export const useAuthStore = defineStore('auth', () => {
       const userData = getUserFromToken(data.access);
       user.value = userData;
       isAuthenticated.value = true;
+
+      // Sincronizar el tenant activo si el token cambió de tenant
+      // (p.ej. tras crear un tenant en /tenant-setup o en cualquier refresh por 401).
+      setActiveTenant(userData.tenant_id || null);
       
       console.log('✅ Token refrescado exitosamente');
       return data.access;
@@ -612,6 +737,7 @@ export const useAuthStore = defineStore('auth', () => {
     isTenantUser,
     isNormalUser,
     isSupportUser,
+    hasHallPass,
     hasTenant,
     needsTenantSetup,
     tenantId,
@@ -623,6 +749,7 @@ export const useAuthStore = defineStore('auth', () => {
     profileTenantId,
     profileTenantName,
     profileTenantImage,
+    isGlobalTenant,
     googleLinked,
     googleEmail,
     userRoles,
@@ -636,6 +763,13 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     refreshAccessToken,
     hasRole,
-    canAccessRoute
+    canAccessRoute,
+    activeTenantId,
+    setActiveTenant,
+    activeWorkspaceId,
+    availableWorkspaces,
+    setActiveWorkspace,
+    switchWorkspace,
+    contextVersion
   };
 });

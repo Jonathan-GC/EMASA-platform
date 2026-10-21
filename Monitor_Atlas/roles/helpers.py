@@ -2,7 +2,7 @@ from guardian.shortcuts import assign_perm, remove_perm, get_perms
 from loguru import logger
 from organizations.models import Tenant, Workspace
 from users.models import User
-from roles.models import Role
+from roles.models import Role, WorkspaceMembership
 from .global_helpers import GLOBAL_PERMISSIONS_PRESET, get_monitor_tenant
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import Group
@@ -134,6 +134,19 @@ def assign_new_workspace_base_permissions(workspace, user):
 
     assign_perm("roles.add_role", user)
     assign_perm("infrastructure.add_machine", user)
+
+    # Also grant the workspace admin role group object-level perms so that
+    # admin membership (not just the creating user) can view/change the
+    # workspace. Without this, has_obj_perm fails for fellow admins.
+    try:
+        admin_role = Role.objects.filter(
+            workspace=workspace, is_admin=True
+        ).first()
+        if admin_role and admin_role.group:
+            assign_perm("view_workspace", admin_role.group, workspace)
+            assign_perm("change_workspace", admin_role.group, workspace)
+    except Exception as e:
+        logger.debug(f"Could not assign workspace perms to admin group: {e}")
 
     global_group = get_global_admin_role_group()
     if global_group:
@@ -284,11 +297,14 @@ def assign_base_workspace_admin_permissions_to_group(workspace, group):
     assign_perm(f"view_workspace", group, workspace)
     assign_perm(f"change_workspace", group, workspace)
 
-    # Role creation permission is given to workspace admins
+    # Creation permissions given to workspace admins
     assign_perm("roles.add_role", group)
     assign_perm("roles.add_workspacemembership", group)
-    # Machine creation permission is given to workspace admins
     assign_perm("infrastructure.add_machine", group)
+    assign_perm("infrastructure.add_device", group)
+    assign_perm("infrastructure.add_gateway", group)
+    assign_perm("infrastructure.add_application", group)
+    assign_perm("infrastructure.add_location", group)
 
     logger.debug(f"Assigned base workspace admin permissions to group {group.name}")
 
@@ -317,101 +333,156 @@ def get_user_workspace_admin_status(user, workspace):
     return False
 
 
+from rest_framework.exceptions import ValidationError
+
+
 def get_assignable_permissions(user, workspace, role):
     """
-    Returns all permissions a role may assign inside a workspace.
+    Returns all permissions a role may assign inside a workspace,
+    derived dynamically from the PermissionCatalogRegistry.
     """
-
     assignable_permissions = {"global": {}, "object": {}}
+
+    if not role or role.name == "Sin rol":
+        return assignable_permissions
 
     # --- Check workspace-level admin ---
     is_admin = get_user_workspace_admin_status(user, workspace)
-    if not is_admin and user.is_superuser:
+    if not is_admin and user and user.is_superuser:
         is_admin = True
+    if not is_admin and user and workspace:
+        # Tenant owners act as admins in their tenant's workspaces, mirroring
+        # the is_workspace_admin equivalence in has_contextual_perm. Without
+        # this, an owner without a direct change_workspace grant sees an
+        # empty panel even though enforcement treats them as admin.
+        try:
+            is_admin = bool(
+                getattr(user, "tenant", None) is not None
+                and getattr(workspace, "tenant", None) is not None
+                and user.tenant == workspace.tenant
+            )
+        except Exception:
+            pass
 
-    if not is_admin or role.name == "Sin rol":
+    if not is_admin:
         return assignable_permissions
 
     target_group = role.group
-    admin_group = get_global_admin_role_group() if (user and user.is_superuser) else get_user_group(user)
+    admin_group = (
+        get_global_admin_role_group()
+        if (user and user.is_superuser)
+        else get_user_group(user)
+    )
 
-    is_global_tenant = workspace.tenant == get_monitor_tenant()
-
-    # --- Object models related to workspace ---
-    object_models = {
-        "tenant": (
-            "organizations",
-            [workspace.tenant] if workspace.tenant else [],
-        ),
-        "workspace": ("organizations", [workspace]),
-        "device": ("infrastructure", workspace.device_set.all()),
-        "gateway": ("infrastructure", workspace.gateway_set.all()),
-        "application": ("infrastructure", workspace.application_set.all()),
-        "machine": ("infrastructure", workspace.machine_set.all()),
-        "deviceprofile": ("chirpstack", workspace.deviceprofile_set.all()),
-        "apiuser": ("chirpstack", workspace.apiuser_set.all()),
-        "role": ("roles", workspace.role_set.all()),
-        "workspacemembership": ("roles", workspace.workspacemembership_set.all()),
-    }
+    is_global_tenant = bool(
+        (workspace and workspace.tenant and workspace.tenant.is_global)
+        or (user and user.is_superuser)
+    )
 
     # --- Permissions allowed per tenant type ---
+    # Standard tenants are limited to safe actions; deleting roles remains
+    # allowed (user deactivation is change_*, not delete). Mirrors
+    # STANDARD_TENANT_DELETE_ALLOWLIST enforcement in permissions.py.
     full_actions = ["view", "change", "delete"]
     safe_actions = ["view", "change"]
-    allowed_actions = full_actions if is_global_tenant else safe_actions
 
-    # --- Object-level permissions ---
-    for model_name, (app_label, queryset) in object_models.items():
-        assignable_permissions["object"][model_name] = []
+    from .catalog import PermissionCatalogRegistry
 
-        ct = ContentType.objects.get(app_label=app_label, model=model_name)
+    categories = PermissionCatalogRegistry.get_categories()
+    for cat in categories.values():
+        for model_name, res in cat.resources.items():
+            # For standard tenants, skip global-only resources
+            if not is_global_tenant and "workspace" not in res.scopes and "tenant" not in res.scopes:
+                continue
 
-        for obj in queryset:
-            perms_for_obj = {}
+            instances = res.get_instances(workspace)
+            if not instances:
+                continue
 
-            for action in allowed_actions:
-                codename = f"{action}_{model_name}"
+            if model_name not in assignable_permissions["object"]:
+                assignable_permissions["object"][model_name] = []
 
-                assigned = codename in get_perms(target_group, obj) if target_group else False
-                if not assigned and target_group:
-                    assigned = target_group.permissions.filter(
-                        content_type=ct, codename=codename
-                    ).exists()
+            try:
+                ct = ContentType.objects.get(app_label=res.app_label, model=res.model)
+            except ContentType.DoesNotExist:
+                continue
 
-                can_assign = codename in get_perms(admin_group, obj) if admin_group else False
-                if not can_assign and admin_group:
-                    can_assign = admin_group.permissions.filter(
-                        content_type=ct, codename=codename
-                    ).exists()
+            for obj in instances:
+                perms_for_obj = {}
+                if is_global_tenant:
+                    allowed_actions = full_actions
+                elif model_name == "role":
+                    allowed_actions = full_actions
+                else:
+                    allowed_actions = safe_actions
+                for action in allowed_actions:
+                    if action not in res.actions:
+                        continue
+                    codename = f"{action}_{model_name}"
 
-                perms_for_obj[codename] = {"assigned": assigned, "can_assign": can_assign}
+                    assigned = False
+                    if target_group:
+                        assigned = (
+                            codename in get_perms(target_group, obj)
+                            or target_group.permissions.filter(
+                                content_type=ct, codename=codename
+                            ).exists()
+                        )
 
-            assignable_permissions["object"][model_name].append(
-                {
-                    "id": obj.id,
-                    "name": str(obj),
-                    "permissions": perms_for_obj,
-                }
-            )
+                    can_assign = False
+                    if user and user.is_superuser:
+                        can_assign = True
+                    elif is_admin and action in ("view", "change"):
+                        # Workspace admins/owners can grant view/change on any
+                        # in-context object (enforcement already authorizes
+                        # them via the is_workspace_admin shortcut), so the
+                        # panel must not depend on Guardian rows existing on
+                        # the admin group for every creation path.
+                        can_assign = True
+                    elif (
+                        is_admin
+                        and action == "delete"
+                        and (is_global_tenant or model_name == "role")
+                    ):
+                        # Delete grants mirror STANDARD_TENANT_DELETE_ALLOWLIST:
+                        # roles everywhere, everything else global-only.
+                        can_assign = True
+                    elif admin_group:
+                        can_assign = (
+                            codename in get_perms(admin_group, obj)
+                            or admin_group.permissions.filter(
+                                content_type=ct, codename=codename
+                            ).exists()
+                        )
+
+                    perms_for_obj[codename] = {"assigned": assigned, "can_assign": can_assign}
+
+                assignable_permissions["object"][model_name].append(
+                    {
+                        "id": getattr(obj, "id", None),
+                        "name": str(obj),
+                        "permissions": perms_for_obj,
+                    }
+                )
+
     return assignable_permissions
 
 
 def bulk_assign_permissions(permissions, role):
-    group = role.group
-    if role.name == "Sin rol":
+    if not role or role.name == "Sin rol":
         logger.warning(
-            f"Attempted to bulk assign permissions to 'Sin rol' role. Operation aborted. Change user's role first."
+            "Attempted to bulk assign permissions to 'Sin rol' role. Operation aborted. Change user's role first."
         )
-        return
-    logger.info(f"Bulk permission assign for group={group.name}")
+        raise ValidationError("Cannot modify permissions for protected role 'Sin rol'.")
+
+    group = role.group
+    logger.info(f"Bulk permission assign for group={group.name if group else None}")
     valid_keys = {"assign", "revoke"}
     permissions = {k: v for k, v in permissions.items() if k in valid_keys}
 
-    # Build model->app mapping
-    MODEL_MAPPING = {}
-    for preset_name, apps in GLOBAL_PERMISSIONS_PRESET.items():
-        for app_label, models in apps.items():
-            for model_name in models:
-                MODEL_MAPPING[model_name] = app_label
+    # Build model->app mapping dynamically from PermissionCatalogRegistry
+    from .catalog import PermissionCatalogRegistry
+    MODEL_MAPPING = PermissionCatalogRegistry.get_model_to_app_map()
 
     # -------------------------------
     # ASSIGN
@@ -519,3 +590,60 @@ def debug_assign_all_workspace_objects_permissions_to_group(workspace, group):
                 codename = f"{action}_{model_name}"
                 assign_perm(codename, group, obj)
                 logger.debug(f"Assigned {codename} to {group.name} for {obj}")
+
+
+def revoke_user_tenant_permissions(user, source_tenant):
+    """
+    Purges all permissions, workspace memberships, and role assignments
+    associated with the source tenant for the given user.
+
+    Args:
+        user (User): The user whose tenant permissions should be revoked.
+        source_tenant (Tenant): The tenant to revoke permissions from.
+    """
+    if not user or not source_tenant:
+        return
+
+    # 1. Purge all WorkspaceMembership records for user across source_tenant workspaces
+    WorkspaceMembership.objects.filter(
+        user=user, workspace__tenant=source_tenant
+    ).delete()
+
+    # 2. Identify and disassociate all Django Groups linked to source_tenant roles
+    source_role_groups = Group.objects.filter(
+        role__workspace__tenant=source_tenant
+    )
+    if source_role_groups.exists():
+        user.groups.remove(*source_role_groups)
+
+    # 3. Remove all direct Guardian object-level permissions held by user for resources under source_tenant
+    from guardian.models import UserObjectPermission
+
+    # Remove direct permissions on source_tenant itself
+    for perm in ["view_tenant", "change_tenant", "delete_tenant"]:
+        remove_perm(perm, user, source_tenant)
+
+    # Inspect all remaining user object permissions
+    for uop in list(UserObjectPermission.objects.filter(user=user)):
+        try:
+            obj = uop.content_object
+            if obj is None:
+                continue
+            belongs_to_source = False
+            if isinstance(obj, Tenant) and str(obj.id) == str(source_tenant.id):
+                belongs_to_source = True
+            elif hasattr(obj, "tenant") and obj.tenant and str(obj.tenant.id) == str(source_tenant.id):
+                belongs_to_source = True
+            elif (
+                hasattr(obj, "workspace")
+                and obj.workspace
+                and obj.workspace.tenant
+                and str(obj.workspace.tenant.id) == str(source_tenant.id)
+            ):
+                belongs_to_source = True
+
+            if belongs_to_source:
+                uop.delete()
+        except Exception as e:
+            logger.warning(f"Error checking UserObjectPermission {uop.id}: {e}")
+

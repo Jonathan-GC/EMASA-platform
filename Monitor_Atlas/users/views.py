@@ -7,8 +7,35 @@ from .serializers import (
     LogEntrySerializer,
     OTPRequestSerializer,
     OTPVerifySerializer,
+    UserSessionSerializer,
+    TOTPSetupResponseSerializer,
+    TOTPActivateSerializer,
+    TOTPDeactivateSerializer,
+    UserTwoFactorMethodSerializer,
 )
-from .models import User, OAuthAccount
+from .models import (
+    User,
+    OAuthAccount,
+    UserSession,
+    UserTwoFactorMethod,
+    UserBackupCode,
+)
+from organizations.models import Tenant
+from .services import UserTenantTransferService
+from .totp_service import (
+    generate_totp_secret,
+    get_otpauth_uri,
+    generate_backup_codes,
+    verify_totp_code,
+    verify_and_consume_backup_code,
+)
+from .trust_engine import AdaptiveTrustEngine, parse_device_name, get_client_ip
+from rest_framework_simplejwt.token_blacklist.models import (
+    OutstandingToken,
+    BlacklistedToken,
+)
+from django.shortcuts import get_object_or_404
+import hashlib
 from roles.permissions import HasPermission
 from auditlog.models import LogEntry
 from django.db.models import Q
@@ -36,8 +63,12 @@ from rest_framework.response import Response
 from rest_framework import status, viewsets, serializers
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.views import APIView
+from django.utils import timezone
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from users.tokens import SessionAccessToken
+
 
 from drf_spectacular.utils import (
     extend_schema_view,
@@ -323,6 +354,53 @@ class UserViewSet(AuditActionMixin, ModelViewSet):
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="transfer_tenant",
+        permission_classes=[IsAuthenticated, IsAnAdminUser],
+    )
+    def transfer_tenant(self, request, pk=None):
+        """
+        Atomically transfers the user to a new destination tenant.
+        """
+        user = self.get_object()
+        destination_tenant_id = request.data.get("destination_tenant_id")
+
+        if not destination_tenant_id:
+            return Response(
+                {"detail": "destination_tenant_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            destination_tenant = Tenant.objects.get(id=destination_tenant_id)
+        except Tenant.DoesNotExist:
+            return Response(
+                {"detail": "Destination tenant not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            result = UserTenantTransferService.transfer_user(
+                user=user,
+                destination_tenant=destination_tenant,
+                actor=request.user,
+            )
+            return Response(result, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            msg = e.messages[0] if hasattr(e, "messages") and e.messages else str(e)
+            return Response(
+                {"detail": msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.error(f"Failed to transfer user {user.username}: {e}")
+            return Response(
+                {"detail": f"Failed to transfer user: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
 
 # Authentication
 REFRESH_COOKIE_NAME = settings.REFRESH_COOKIE_NAME
@@ -331,6 +409,85 @@ REFRESH_COOKIE_PATH = settings.REFRESH_COOKIE_PATH
 # ============================================================================
 # Custom CSRF Protection for Native Apps
 # ============================================================================
+
+
+def is_capacitor_request(request) -> bool:
+    """
+    Checks if the request originates from a Capacitor/Ionic mobile application.
+    """
+    if not hasattr(request, "META"):
+        return False
+
+    platform = request.META.get("HTTP_X_CLIENT_PLATFORM", "").lower()
+    if platform in ("capacitor", "mobile", "ios", "android"):
+        return True
+
+    origin = request.META.get("HTTP_ORIGIN", "").lower()
+    if (
+        origin.startswith("capacitor://")
+        or origin.startswith("ionic://")
+        or origin in ("http://localhost", "https://localhost")
+        or origin.rstrip("/") in ("http://localhost", "https://localhost")
+    ):
+        return True
+
+    x_requested_with = request.META.get("HTTP_X_REQUESTED_WITH", "").lower()
+    if "emasa" in x_requested_with:
+        return True
+
+    return False
+
+
+def get_current_session_for_request(request):
+    """
+    Resolves active UserSession for user.
+    Primary: request.auth.payload.get("session_id") from validated access token (if user is authenticated).
+    Fallback: request.COOKIES.get(REFRESH_COOKIE_NAME) JTI.
+    """
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return None
+
+    # Primary: session_id from validated access token
+    auth = getattr(request, "auth", None)
+    if auth is not None:
+        payload = getattr(auth, "payload", None)
+        session_id = None
+        if isinstance(payload, dict):
+            session_id = payload.get("session_id")
+        elif hasattr(auth, "get"):
+            session_id = auth.get("session_id")
+
+        if session_id:
+            session = user.sessions.filter(id=session_id, is_active=True).first()
+            if session:
+                return session
+
+    # Fallback: request.COOKIES.get(REFRESH_COOKIE_NAME) JTI
+    cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", REFRESH_COOKIE_NAME)
+    if hasattr(request, "COOKIES"):
+        refresh_token = request.COOKIES.get(cookie_name)
+        if refresh_token:
+            try:
+                token_obj = RefreshToken(refresh_token)
+                current_jti = str(token_obj.get("jti"))
+                if current_jti:
+                    session = user.sessions.filter(
+                        refresh_token_jti=current_jti, is_active=True
+                    ).first()
+                    if session:
+                        return session
+                sess_id = token_obj.payload.get("session_id")
+                if sess_id:
+                    session = user.sessions.filter(
+                        id=sess_id, is_active=True
+                    ).first()
+                    if session:
+                        return session
+            except Exception:
+                pass
+
+    return None
 
 
 def conditional_csrf_protect(view_func):
@@ -352,7 +509,8 @@ def conditional_csrf_protect(view_func):
         x_requested_with = request.META.get("HTTP_X_REQUESTED_WITH", "").lower()
 
         is_native_app = (
-            "capacitor" in user_agent
+            is_capacitor_request(request)
+            or "capacitor" in user_agent
             or "ionic" in user_agent
             or "capacitor://" in origin
             or "ionic://" in origin
@@ -363,8 +521,6 @@ def conditional_csrf_protect(view_func):
 
         if is_native_app:
             logger.info(f"🔓 Native app detected - CSRF exempt | UA: {user_agent[:50]}")
-
-        if is_native_app:
             return view_func(request, *args, **kwargs)
 
         logger.info("🔒 Web browser detected - CSRF protection applied")
@@ -396,6 +552,12 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                         "requires_2fa": serializers.BooleanField(default=True),
                         "username": serializers.CharField(),
                         "email": serializers.CharField(allow_null=True),
+                        "available_methods": serializers.ListField(
+                            child=serializers.CharField(), required=False
+                        ),
+                        "primary_method": serializers.CharField(required=False),
+                        "allow_device_trust": serializers.BooleanField(required=False),
+                        "device_trust_ttl_days": serializers.IntegerField(required=False),
                         "detail": serializers.CharField(),
                     },
                 ),
@@ -418,36 +580,132 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        # Generate 6-digit 2FA OTP code
-        otp_code = f"{secrets.randbelow(1000000):06d}"
-        cache_key = f"otp_data_{user.username.lower()}"
-        cache.set(
-            cache_key,
-            {
-                "code": otp_code,
-                "attempts": 0,
-                "user_id": str(user.id),
-                "username": user.username.lower(),
-            },
-            timeout=300,
-        )
+        tenant = getattr(user, "tenant", None)
+        tenant_level = getattr(tenant, "security_level", "MEDIUM") if tenant else "MEDIUM"
+        allow_bypass, score, details = AdaptiveTrustEngine.evaluate(request, user, tenant_level)
 
-        try:
-            send_otp_email(user, otp_code)
-        except Exception as e:
-            logger.error(f"Failed to send 2FA OTP email to {user.email}: {str(e)}")
-            return Response(
-                {"detail": "Credentials valid, but error sending 2FA verification email. Please try again."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        if allow_bypass:
+            client_ip = get_client_ip(request)
+            user_agent = request.META.get("HTTP_USER_AGENT", "")
+            device_name = parse_device_name(user_agent)
+            trust_cookie = request.COOKIES.get("device_trust_token")
+            trust_hash = (
+                hashlib.sha256(trust_cookie.encode("utf-8")).hexdigest()
+                if trust_cookie
+                else None
             )
 
-        logger.info(f"🔐 Mandatory 2FA step 1 complete for user {user.username}. OTP sent to {user.email}")
+            session = UserSession.objects.create(
+                user=user,
+                refresh_token_jti="",
+                access_token_jti="",
+                device_name=device_name,
+                trust_hash=trust_hash,
+                ip_address=client_ip,
+                user_agent=user_agent,
+                is_active=True,
+            )
+
+            refresh = CustomTokenObtainPairSerializer.get_token(user)
+
+            refresh["session_id"] = str(session.id)
+            access = refresh.access_token
+            access["session_id"] = str(session.id)
+
+            session.refresh_token_jti = str(refresh.get("jti"))
+            session.access_token_jti = str(access.get("jti"))
+            session.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+            access_token = str(access)
+            refresh_token = str(refresh)
+
+            response = Response(
+                {
+                    "access": access_token,
+                    "requires_2fa": False,
+                    "detail": "Login successful. 2FA bypassed based on adaptive trust score.",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+            refresh_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
+            if not isinstance(refresh_lifetime, timedelta):
+                refresh_lifetime = timedelta(days=1)
+            max_age = int(refresh_lifetime.total_seconds())
+
+            response.set_cookie(
+                key=REFRESH_COOKIE_NAME,
+                value=refresh_token,
+                max_age=max_age,
+                httponly=True,
+                secure=getattr(settings, "COOKIE_SECURE", False),
+                samesite="Lax",
+                path=REFRESH_COOKIE_PATH,
+            )
+            logger.info(
+                f"✅ User {user.username} logged in with 2FA bypass (score={score}, tier={tenant_level})"
+            )
+            return response
+
+        # Determine available MFA methods
+        available_methods = ["email"]
+        has_totp = UserTwoFactorMethod.objects.filter(
+            user=user, method_type="TOTP", is_active=True
+        ).exists()
+        if has_totp:
+            available_methods.append("totp")
+        has_backup = user.backup_codes.filter(is_consumed=False).exists()
+        if has_backup:
+            available_methods.append("backup_code")
+
+        primary_method = "totp" if has_totp else "email"
+        allow_device_trust = tenant_level not in ["HIGH", "NONE"]
+        device_trust_ttl_days = tenant.device_trust_ttl_days if tenant else 30
+
+        if primary_method == "email":
+            # Generate and send 6-digit email OTP
+            otp_code = f"{secrets.randbelow(1000000):06d}"
+            cache_key = f"otp_data_{user.username.lower()}"
+            cache.set(
+                cache_key,
+                {
+                    "code": otp_code,
+                    "attempts": 0,
+                    "user_id": str(user.id),
+                    "username": user.username.lower(),
+                },
+                timeout=300,
+            )
+
+            try:
+                send_otp_email(user, otp_code)
+            except Exception as e:
+                logger.error(f"Failed to send 2FA OTP email to {user.email}: {str(e)}")
+                return Response(
+                    {
+                        "detail": "Credentials valid, but error sending 2FA verification email. Please try again."
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            logger.info(
+                f"🔐 Adaptive 2FA required for user {user.username} (score={score}, tier={tenant_level}). OTP sent to {user.email}"
+            )
+        else:
+            logger.info(
+                f"🔐 Adaptive 2FA required for user {user.username} (score={score}, tier={tenant_level}). Primary method is {primary_method} (email OTP not sent automatically)."
+            )
+
         return Response(
             {
                 "requires_2fa": True,
                 "username": user.username,
                 "email": user.email,
-                "detail": "Password verified. Enter the 2FA code sent to your email to complete login.",
+                "available_methods": available_methods,
+                "primary_method": primary_method,
+                "allow_device_trust": allow_device_trust,
+                "device_trust_ttl_days": device_trust_ttl_days,
+                "detail": "Password verified. Multi-factor authentication required.",
             },
             status=status.HTTP_200_OK,
         )
@@ -474,6 +732,8 @@ class CookieTokenRefreshView(TokenRefreshView):
     )
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
+        if not refresh_token and hasattr(request, "data") and hasattr(request.data, "get"):
+            refresh_token = request.data.get("refresh")
 
         if not refresh_token:
             return Response(
@@ -481,13 +741,61 @@ class CookieTokenRefreshView(TokenRefreshView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
+        # Check if corresponding UserSession is inactive
+        session = None
+        try:
+            old_token = RefreshToken(refresh_token)
+            old_jti = str(old_token.get("jti"))
+            session = UserSession.objects.filter(refresh_token_jti=old_jti).first()
+            if not session and old_token.payload.get("session_id"):
+                session = UserSession.objects.filter(
+                    id=old_token.payload.get("session_id")
+                ).first()
+            if session and not session.is_active:
+                return Response(
+                    {"detail": "Session has been revoked."},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+        except Exception:
+            session = None
+
         serializer = self.get_serializer(data={"refresh": refresh_token})
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as e:
+            raise InvalidToken(e.args[0])
 
         data = serializer.validated_data
         response = Response(data, status=status.HTTP_200_OK)
 
         new_refresh = response.data.get("refresh")
+        new_access = response.data.get("access")
+
+        if not session and new_access:
+            try:
+                sess_id = SessionAccessToken(new_access).payload.get("session_id")
+                if sess_id:
+                    session = UserSession.objects.filter(id=sess_id).first()
+            except Exception:
+                pass
+
+        if session:
+            try:
+                update_fields = []
+                if new_refresh:
+                    new_token = RefreshToken(new_refresh)
+                    session.refresh_token_jti = str(new_token.get("jti"))
+                    update_fields.append("refresh_token_jti")
+                if new_access:
+                    session.access_token_jti = str(
+                        SessionAccessToken(new_access).get("jti")
+                    )
+                    update_fields.append("access_token_jti")
+                session.last_activity = timezone.now()
+                update_fields.append("last_activity")
+                session.save(update_fields=update_fields)
+            except Exception as e:
+                logger.error(f"Error updating session tokens on refresh: {e}")
 
         if new_refresh:
             max_age = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
@@ -520,6 +828,8 @@ class LogoutView(APIView):
         if refresh:
             try:
                 token = RefreshToken(refresh)
+                jti = str(token.get("jti"))
+                UserSession.objects.filter(refresh_token_jti=jti).update(is_active=False)
                 token.blacklist()
             except Exception as e:
                 return Response(
@@ -1941,78 +2251,164 @@ class OTPVerifyView(APIView):
 
         username = serializer.validated_data["username"].strip().lower()
         input_code = serializer.validated_data["code"].strip()
-
-        cache_key = f"otp_data_{username}"
-        otp_data = cache.get(cache_key)
-
-        if not otp_data:
-            return Response(
-                {"detail": "OTP expired or not requested. Please request a new code."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Ensure the code is strictly linked to this unique account
-        if otp_data.get("username") != username:
-            return Response(
-                {"detail": "Invalid verification code for this account."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if otp_data["attempts"] >= 3:
-            cache.delete(cache_key)
-            return Response(
-                {"detail": "Too many invalid attempts. Please request a new OTP."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if otp_data["code"] != input_code:
-            otp_data["attempts"] += 1
-            remaining = 3 - otp_data["attempts"]
-            if remaining > 0:
-                cache.set(cache_key, otp_data, timeout=300)
-                return Response(
-                    {"detail": f"Invalid verification code. {remaining} attempt(s) remaining."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            else:
-                cache.delete(cache_key)
-                return Response(
-                    {"detail": "Too many invalid attempts. Please request a new OTP."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        # Clear OTP from cache after successful verification
-        cache.delete(cache_key)
+        method = serializer.validated_data.get("method", "email").lower()
+        trust_device = serializer.validated_data.get("trust_device", False)
+        custom_device_name = serializer.validated_data.get("device_name", "").strip()
 
         try:
-            user = User.objects.get(id=otp_data["user_id"], is_active=True)
+            user = User.objects.get(username__iexact=username, is_active=True)
         except User.DoesNotExist:
             return Response(
                 {"detail": "Active user account not found."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Verify that the account retrieved matches the requested username
-        if user.username.lower() != username:
+        verified = False
+
+        if method == "totp":
+            totp_method = UserTwoFactorMethod.objects.filter(
+                user=user, method_type="TOTP", is_active=True
+            ).first()
+            if not totp_method or not totp_method.secret:
+                return Response(
+                    {"detail": "TOTP is not configured or active for this user."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not verify_totp_code(totp_method.secret, input_code):
+                return Response(
+                    {"detail": "Invalid TOTP verification code."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            totp_method.last_used_at = timezone.now()
+            totp_method.save(update_fields=["last_used_at"])
+            verified = True
+
+        elif method in ["backup_code", "backup_codes"]:
+            if not verify_and_consume_backup_code(user, input_code):
+                return Response(
+                    {"detail": "Invalid or already consumed backup code."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            verified = True
+
+        else:
+            # Default to email OTP verification
+            cache_key = f"otp_data_{username}"
+            otp_data = cache.get(cache_key)
+
+            if not otp_data:
+                # Check fallback auto-detection for TOTP or Backup Code if client didn't specify method
+                totp_method = UserTwoFactorMethod.objects.filter(
+                    user=user, method_type="TOTP", is_active=True
+                ).first()
+                if (
+                    totp_method
+                    and totp_method.secret
+                    and verify_totp_code(totp_method.secret, input_code)
+                ):
+                    totp_method.last_used_at = timezone.now()
+                    totp_method.save(update_fields=["last_used_at"])
+                    verified = True
+                elif verify_and_consume_backup_code(user, input_code):
+                    verified = True
+                else:
+                    return Response(
+                        {
+                            "detail": "OTP expired or not requested. Please request a new code."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            else:
+                if otp_data.get("username") != username:
+                    return Response(
+                        {"detail": "Invalid verification code for this account."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if otp_data["attempts"] >= 3:
+                    cache.delete(cache_key)
+                    return Response(
+                        {
+                            "detail": "Too many invalid attempts. Please request a new OTP."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if otp_data["code"] != input_code:
+                    otp_data["attempts"] += 1
+                    remaining = 3 - otp_data["attempts"]
+                    if remaining > 0:
+                        cache.set(cache_key, otp_data, timeout=300)
+                        return Response(
+                            {
+                                "detail": f"Invalid verification code. {remaining} attempt(s) remaining."
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    else:
+                        cache.delete(cache_key)
+                        return Response(
+                            {
+                                "detail": "Too many invalid attempts. Please request a new OTP."
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                # Clear OTP from cache after successful verification
+                cache.delete(cache_key)
+                verified = True
+
+        if not verified:
             return Response(
-                {"detail": "Account mismatch."},
+                {"detail": "Verification failed."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        client_ip = get_client_ip(request)
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
+        device_name = custom_device_name or parse_device_name(user_agent)
+
+        tenant = getattr(user, "tenant", None)
+        tenant_level = (
+            getattr(tenant, "security_level", "MEDIUM") if tenant else "MEDIUM"
+        )
+        trust_cookie_val = None
+        trust_hash = None
+
+        if trust_device and tenant_level != "HIGH":
+            trust_cookie_val = secrets.token_urlsafe(32)
+            trust_hash = hashlib.sha256(trust_cookie_val.encode("utf-8")).hexdigest()
+
+        session = UserSession.objects.create(
+            user=user,
+            refresh_token_jti="",
+            access_token_jti="",
+            device_name=device_name,
+            trust_hash=trust_hash,
+            ip_address=client_ip,
+            user_agent=user_agent,
+            is_active=True,
+        )
+
         # Generate tokens using CustomTokenObtainPairSerializer logic
-        refresh = RefreshToken.for_user(user)
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
 
-        # Apply custom claims from CustomTokenObtainPairSerializer
-        token_data = CustomTokenObtainPairSerializer.get_token(user)
-        for claim_key in ["user_id", "username", "is_global", "cs_tenant_id", "is_superuser", "is_support", "is_tenant_admin"]:
-            if claim_key in token_data:
-                refresh[claim_key] = token_data[claim_key]
+        refresh["session_id"] = str(session.id)
+        access = refresh.access_token
+        access["session_id"] = str(session.id)
 
-        access_token = str(refresh.access_token)
+        session.refresh_token_jti = str(refresh.get("jti"))
+        session.access_token_jti = str(access.get("jti"))
+        session.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+        access_token = str(access)
         refresh_token = str(refresh)
 
         response = Response(
-            {"access": access_token},
+            {
+                "access": access_token,
+                "device_trusted": bool(trust_cookie_val),
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -2026,12 +2422,432 @@ class OTPVerifyView(APIView):
             value=refresh_token,
             max_age=max_age,
             httponly=True,
-            secure=settings.COOKIE_SECURE,
+            secure=getattr(settings, "COOKIE_SECURE", False),
             samesite="Lax",
             path=REFRESH_COOKIE_PATH,
         )
 
-        logger.info(f"✅ User {user.username} logged in via Email OTP")
+        if trust_cookie_val:
+            ttl_days = tenant.device_trust_ttl_days if tenant else 30
+            trust_max_age = ttl_days * 86400
+            response.set_cookie(
+                key="device_trust_token",
+                value=trust_cookie_val,
+                max_age=trust_max_age,
+                httponly=True,
+                secure=getattr(settings, "COOKIE_SECURE", False),
+                samesite="Lax",
+                path="/",
+            )
+
+        logger.info(f"✅ User {user.username} logged in via 2FA (method={method})")
         return response
+
+
+UserTwoFactorVerifyView = OTPVerifyView
+
+
+def _blacklist_session_tokens(session):
+    """
+    Deactivates a session and atomically blacklists its entire token family
+    (both refresh_token_jti and access_token_jti).
+    """
+    session.is_active = False
+    session.save(update_fields=["is_active"])
+
+    now = timezone.now()
+    expires = now + timedelta(days=365)
+    for jti in [session.refresh_token_jti, session.access_token_jti]:
+        if jti:
+            outstanding, _ = OutstandingToken.objects.get_or_create(
+                jti=jti,
+                defaults={
+                    "user": session.user,
+                    "created_at": now,
+                    "expires_at": expires,
+                    "token": f"token_{jti}",
+                },
+            )
+            BlacklistedToken.objects.get_or_create(token=outstanding)
+
+
+class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = UserSessionSerializer
+    permission_classes = [IsAuthenticated]
+
+    _blacklist_session_tokens = staticmethod(_blacklist_session_tokens)
+
+    def get_queryset(self):
+        return (
+            self.request.user.sessions.filter(is_active=True).order_by("-last_activity")
+        )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        session = get_current_session_for_request(self.request)
+        if session:
+            context["current_session_id"] = str(session.id)
+            context["current_jti"] = session.refresh_token_jti
+        else:
+            cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+            if hasattr(self.request, "COOKIES"):
+                refresh_token = self.request.COOKIES.get(cookie_name)
+                if refresh_token:
+                    try:
+                        context["current_jti"] = str(RefreshToken(refresh_token).get("jti"))
+                    except Exception:
+                        pass
+        return context
+
+    @action(detail=True, methods=["post"])
+    def revoke(self, request, pk=None):
+        session = get_object_or_404(
+            request.user.sessions.filter(is_active=True), pk=pk
+        )
+        _blacklist_session_tokens(session)
+        return Response({"status": "session_revoked"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"])
+    def revoke_others(self, request):
+        current_session = get_current_session_for_request(request)
+        sessions_to_revoke = request.user.sessions.filter(is_active=True)
+        if current_session:
+            sessions_to_revoke = sessions_to_revoke.exclude(id=current_session.id)
+
+        for sess in sessions_to_revoke:
+            _blacklist_session_tokens(sess)
+
+        return Response({"status": "other_sessions_revoked"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"])
+    def revoke_all(self, request):
+        sessions_to_revoke = request.user.sessions.filter(is_active=True)
+        for sess in sessions_to_revoke:
+            _blacklist_session_tokens(sess)
+
+        response = Response(
+            {"status": "all_sessions_revoked"}, status=status.HTTP_200_OK
+        )
+        cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+        cookie_path = getattr(settings, "REFRESH_COOKIE_PATH", "/")
+        response.delete_cookie(cookie_name, path=cookie_path)
+        return response
+
+    @action(detail=False, methods=["post"])
+    def trust_current(self, request):
+        session = get_current_session_for_request(request)
+
+        if not session:
+            return Response(
+                {"detail": "Active session for current device not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        trust = request.data.get("trust", True)
+        if isinstance(trust, str):
+            trust = trust in (True, "true", "True", "1")
+        else:
+            trust = bool(trust)
+
+        if trust:
+            tenant = getattr(request.user, "tenant", None)
+            tenant_level = (
+                getattr(tenant, "security_level", "MEDIUM") if tenant else "MEDIUM"
+            )
+            if tenant_level == "HIGH":
+                return Response(
+                    {
+                        "device_trusted": False,
+                        "detail": "Device trust is not allowed for high-security tenants.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            token_val = secrets.token_urlsafe(32)
+            session.trust_hash = hashlib.sha256(token_val.encode("utf-8")).hexdigest()
+            session.save(update_fields=["trust_hash"])
+
+            ttl_days = tenant.device_trust_ttl_days if tenant else 30
+            max_age = ttl_days * 86400
+
+            response = Response({"device_trusted": True}, status=status.HTTP_200_OK)
+            response.set_cookie(
+                key="device_trust_token",
+                value=token_val,
+                max_age=max_age,
+                httponly=True,
+                secure=getattr(settings, "COOKIE_SECURE", False),
+                samesite="Lax",
+                path="/",
+            )
+            return response
+        else:
+            session.trust_hash = None
+            session.save(update_fields=["trust_hash"])
+
+            response = Response({"device_trusted": False}, status=status.HTTP_200_OK)
+            response.delete_cookie("device_trust_token", path="/")
+            return response
+
+    @extend_schema(
+        summary="List active user sessions aggregated by device",
+        description="Aggregates active user sessions by device identity (trust_hash for trusted devices, device_name and user_agent for untrusted devices).",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    @action(detail=False, methods=["get"])
+    def devices(self, request):
+        sessions = self.get_queryset()
+        serializer_context = self.get_serializer_context()
+        current_session_id = serializer_context.get("current_session_id")
+        current_jti = serializer_context.get("current_jti")
+
+        grouped = {}
+        for sess in sessions:
+            is_current = False
+            if current_session_id and str(current_session_id) == str(sess.id):
+                is_current = True
+            elif current_jti and sess.refresh_token_jti and current_jti == sess.refresh_token_jti:
+                is_current = True
+
+            if sess.trust_hash:
+                key = f"trust:{sess.trust_hash}"
+            else:
+                key = f"ua:{sess.device_name}::{sess.user_agent}"
+
+            if key not in grouped:
+                grouped[key] = {
+                    "id": str(sess.id),
+                    "device_name": sess.device_name,
+                    "ip_address": sess.ip_address,
+                    "last_activity": sess.last_activity,
+                    "is_trusted": bool(sess.trust_hash),
+                    "is_current": is_current,
+                    "sessions_count": 1,
+                }
+            else:
+                grouped[key]["sessions_count"] += 1
+                if is_current:
+                    grouped[key]["is_current"] = True
+                if sess.last_activity and (
+                    not grouped[key]["last_activity"]
+                    or sess.last_activity > grouped[key]["last_activity"]
+                ):
+                    grouped[key]["last_activity"] = sess.last_activity
+
+        return Response(list(grouped.values()), status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Revoke device trust and terminate session",
+        description="Revokes device trust, sets trust_hash=None, marks session inactive, and blacklists tokens.",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    @action(detail=True, methods=["post"])
+    def revoke_trust(self, request, pk=None):
+        session = get_object_or_404(
+            request.user.sessions.filter(is_active=True), pk=pk
+        )
+        current_session = get_current_session_for_request(request)
+
+        if session.trust_hash:
+            target_hash = session.trust_hash
+            sessions_to_revoke = list(
+                request.user.sessions.filter(is_active=True, trust_hash=target_hash)
+            )
+        else:
+            sessions_to_revoke = [session]
+
+        current_revoked = False
+        for s in sessions_to_revoke:
+            if current_session and str(s.id) == str(current_session.id):
+                current_revoked = True
+            s.trust_hash = None
+            s.save(update_fields=["trust_hash"])
+            _blacklist_session_tokens(s)
+
+        response = Response(
+            {"status": "device_trust_and_session_revoked"},
+            status=status.HTTP_200_OK,
+        )
+        if current_revoked:
+            response.delete_cookie("device_trust_token", path="/")
+            cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+            cookie_path = getattr(settings, "REFRESH_COOKIE_PATH", "/")
+            response.delete_cookie(cookie_name, path=cookie_path)
+        return response
+
+    @extend_schema(
+        summary="Revoke all device trust and terminate trusted sessions",
+        description="Revokes trust for all sessions belonging to the user that are trusted, marks them inactive, blacklists tokens, and deletes trust cookie.",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    @action(detail=False, methods=["post"])
+    def revoke_trust_all(self, request):
+        trusted_sessions = list(
+            request.user.sessions.filter(is_active=True, trust_hash__isnull=False)
+        )
+        revoked_count = len(trusted_sessions)
+        current_session = get_current_session_for_request(request)
+        current_revoked = False
+
+        for sess in trusted_sessions:
+            if current_session and str(sess.id) == str(current_session.id):
+                current_revoked = True
+            sess.trust_hash = None
+            sess.save(update_fields=["trust_hash"])
+            _blacklist_session_tokens(sess)
+
+        response = Response(
+            {"status": "all_device_trust_revoked", "revoked_count": revoked_count},
+            status=status.HTTP_200_OK,
+        )
+        response.delete_cookie("device_trust_token", path="/")
+        if current_revoked:
+            cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+            cookie_path = getattr(settings, "REFRESH_COOKIE_PATH", "/")
+            response.delete_cookie(cookie_name, path=cookie_path)
+        return response
+
+
+class TOTPSetupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Authentication - MFA"],
+        summary="Initialize TOTP 2FA setup",
+        description="Generates a new Base32 secret and an otpauth:// URI for QR code setup in authenticator apps.",
+        responses={200: TOTPSetupResponseSerializer},
+    )
+    def post(self, request):
+        secret = generate_totp_secret()
+        UserTwoFactorMethod.objects.update_or_create(
+            user=request.user,
+            method_type="TOTP",
+            defaults={"secret": secret, "is_active": False},
+        )
+        otpauth_uri = get_otpauth_uri(
+            secret, request.user.email or request.user.username
+        )
+        return Response(
+            {"secret": secret, "otpauth_uri": otpauth_uri},
+            status=status.HTTP_200_OK,
+        )
+
+
+class TOTPActivateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Authentication - MFA"],
+        summary="Confirm and activate TOTP 2FA",
+        description="Verifies the first TOTP code, activates the method, and returns 8 single-use backup recovery codes.",
+        request=TOTPActivateSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def post(self, request):
+        serializer = TOTPActivateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        code = serializer.validated_data["code"]
+
+        totp_method = UserTwoFactorMethod.objects.filter(
+            user=request.user, method_type="TOTP"
+        ).first()
+        if not totp_method or not totp_method.secret:
+            return Response(
+                {"detail": "No pending TOTP setup found. Please request setup first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not verify_totp_code(totp_method.secret, code):
+            return Response(
+                {"detail": "Invalid TOTP verification code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        totp_method.is_active = True
+        totp_method.last_used_at = timezone.now()
+        totp_method.save(update_fields=["is_active", "last_used_at"])
+
+        # Generate 8 single-use backup recovery codes
+        codes = generate_backup_codes(8)
+        UserBackupCode.objects.filter(user=request.user).delete()
+        backup_objs = [
+            UserBackupCode(user=request.user, code_hash=code_hash, is_consumed=False)
+            for _, code_hash in codes
+        ]
+        UserBackupCode.objects.bulk_create(backup_objs)
+
+        # Mark BACKUP_CODES method as active
+        UserTwoFactorMethod.objects.update_or_create(
+            user=request.user,
+            method_type="BACKUP_CODES",
+            defaults={"is_active": True},
+        )
+
+        return Response(
+            {
+                "detail": "TOTP authenticator activated successfully.",
+                "backup_codes": [plaintext for plaintext, _ in codes],
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class TOTPDeactivateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Authentication - MFA"],
+        summary="Deactivate TOTP 2FA",
+        description="Re-authenticates user password and removes TOTP and all associated backup codes.",
+        request=TOTPDeactivateSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def post(self, request):
+        serializer = TOTPDeactivateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        password = serializer.validated_data["password"]
+
+        if not request.user.check_password(password):
+            return Response(
+                {"detail": "Invalid password."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        UserTwoFactorMethod.objects.filter(
+            user=request.user, method_type__in=["TOTP", "BACKUP_CODES"]
+        ).delete()
+        UserBackupCode.objects.filter(user=request.user).delete()
+
+        return Response({"status": "totp_deactivated"}, status=status.HTTP_200_OK)
+
+
+class MFAMethodsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Authentication - MFA"],
+        summary="List active MFA methods and status",
+        description="Lists all active multi-factor authentication methods and status summary for the authenticated user.",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def get(self, request):
+        totp_active = UserTwoFactorMethod.objects.filter(
+            user=request.user, method_type="TOTP", is_active=True
+        ).exists()
+        email_active = bool(request.user.email)
+        backup_codes_remaining = request.user.backup_codes.filter(
+            is_consumed=False
+        ).count()
+        methods = UserTwoFactorMethod.objects.filter(user=request.user, is_active=True)
+        serializer = UserTwoFactorMethodSerializer(methods, many=True)
+        return Response(
+            {
+                "totp_active": totp_active,
+                "email_active": email_active,
+                "backup_codes_remaining": backup_codes_remaining,
+                "methods": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
