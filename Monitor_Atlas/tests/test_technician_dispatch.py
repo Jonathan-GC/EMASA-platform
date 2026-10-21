@@ -903,3 +903,61 @@ class TestSupportHallPass(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_jwt_claims_report_hall_pass_presence(self):
+        """JWT contains has_hall_pass, true only while an active pass exists."""
+        from users.serializers import CustomTokenObtainPairSerializer
+
+        token = CustomTokenObtainPairSerializer.get_token(self.tech_dave)
+        self.assertFalse(token.get("has_hall_pass"))
+        self.assertFalse(token.access_token.get("has_hall_pass"))
+
+        hall_pass = SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            reason="JWT claim test",
+        )
+
+        token = CustomTokenObtainPairSerializer.get_token(self.tech_dave)
+        self.assertTrue(token.get("has_hall_pass"))
+        self.assertTrue(token.access_token.get("has_hall_pass"))
+
+        # Expired passes must not keep the flag set.
+        hall_pass.expires_at = timezone.now() - timedelta(minutes=1)
+        hall_pass.save(update_fields=["expires_at"])
+
+        token = CustomTokenObtainPairSerializer.get_token(self.tech_dave)
+        self.assertFalse(token.get("has_hall_pass"))
+
+    def test_refreshed_access_token_recomputes_hall_pass_flag(self):
+        """Refresh recomputes has_hall_pass instead of trusting the old value."""
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        from users.serializers import (
+            CustomTokenObtainPairSerializer,
+            CustomTokenRefreshSerializer,
+        )
+
+        refresh = CustomTokenObtainPairSerializer.get_token(self.tech_dave)
+        self.assertFalse(refresh.get("has_hall_pass"))
+
+        # A pass granted after login must be reflected on the next refresh.
+        SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            reason="Refresh claim test",
+        )
+
+        data = CustomTokenRefreshSerializer().validate({"refresh": str(refresh)})
+        access = AccessToken(data["access"])
+        self.assertTrue(access.get("has_hall_pass"))
+

@@ -23,6 +23,13 @@ from drf_spectacular.utils import extend_schema_field, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 
 
+def _has_active_hall_pass(user):
+    """Return True when the user holds an active, unexpired hall pass."""
+    from support.queryset import get_pass_workspace_ids
+
+    return bool(get_pass_workspace_ids(user))
+
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -81,6 +88,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["is_superuser"] = is_superuser
         token["is_support"] = is_support
         token["is_tenant_admin"] = is_tenant_admin
+        token["has_hall_pass"] = _has_active_hall_pass(user)
 
         return token
 
@@ -181,6 +189,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         access_token["is_superuser"] = is_superuser
         access_token["is_support"] = is_support
         access_token["is_tenant_admin"] = is_tenant_admin
+        access_token["has_hall_pass"] = _has_active_hall_pass(user)
 
         data["access"] = str(access_token)
 
