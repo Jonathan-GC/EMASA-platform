@@ -19,6 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
     is_global: false,
     is_support: false,
     is_tenant_admin: false,
+    has_hall_pass: false,
     role_type: null, // 'technician', 'viewer', 'tenant_user', etc.
     tenant_id: null,
     cs_tenant_id: null,
@@ -85,6 +86,13 @@ export const useAuthStore = defineStore('auth', () => {
    * Verifica si el usuario es un usuario de soporte
    */
   const isSupportUser = computed(() => user.value.is_support === true);
+
+  /**
+   * Verifica si el usuario tiene un pase de acceso (hall pass) según el token.
+   * Los usuarios de soporte con pase no envían X-Tenant-ID ni X-Workspace-ID
+   * en las peticiones (el backend resuelve el contexto desde el pase).
+   */
+  const hasHallPass = computed(() => user.value.has_hall_pass === true);
   
   /**
    * Verifica si el usuario pertenece a un administrador de tenant 
@@ -531,6 +539,7 @@ export const useAuthStore = defineStore('auth', () => {
       is_global: false,
       is_support: false,
       is_tenant_admin: false,
+      has_hall_pass: false,
       role_type: null,
       tenant_id: null,
       cs_tenant_id: null,
@@ -728,6 +737,7 @@ export const useAuthStore = defineStore('auth', () => {
     isTenantUser,
     isNormalUser,
     isSupportUser,
+    hasHallPass,
     hasTenant,
     needsTenantSetup,
     tenantId,

@@ -48,7 +48,7 @@
             :disabled="!selectedMessage"
           >
             <ion-icon :icon="icons.shield || icons.key || icons.lock_closed" :slot="isMobile ? 'icon-only' : 'start'" />
-            <span v-if="!isMobile">Pase diagnóstico</span>
+            <span v-if="!isMobile">Pase de acceso</span>
           </ion-button>
         </div>
       </div>

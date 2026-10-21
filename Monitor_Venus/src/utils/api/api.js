@@ -253,6 +253,17 @@ class API {
 
     DIAGNOSTIC_PASSES = 'support/diagnostic-passes/'
 
+    //----[HALL PASS]----
+    UPGRADE_HALL_PASS(ticketId){
+        return `support/ticket/${ticketId}/upgrade_hall_pass/`
+    }
+
+    HALL_PASSES = 'support/hall-passes/'
+
+    HALL_PASS(passId){
+        return `support/hall-passes/${passId}/`
+    }
+
     //----[CONVERSATION]----
 
     TICKET_CONVERSATION(ticketId) {
@@ -500,6 +511,24 @@ class API {
         const activeWorkspaceId = localStorage.getItem('active_workspace_id');
         if (activeWorkspaceId && !Object.prototype.hasOwnProperty.call(headers, 'X-Workspace-ID')) {
             headers['X-Workspace-ID'] = activeWorkspaceId;
+        }
+
+        // Usuarios de soporte con pase de acceso (hall pass): el backend resuelve
+        // el contexto desde el pase activo, así que NO se envían X-Tenant-ID ni
+        // X-Workspace-ID en ninguna petición. Se eliminan incluso si un caller
+        // los pasó explícitamente o si ya venían de localStorage.
+        const contextToken = this.getValidToken();
+        if (contextToken) {
+            try {
+                const decodedContext = jwtDecode(contextToken);
+                if (decodedContext?.is_support && decodedContext?.has_hall_pass) {
+                    delete headers['X-Tenant-ID'];
+                    delete headers['X-Workspace-ID'];
+                    return headers;
+                }
+            } catch {
+                // Token no decodificable: comportamiento normal (se envían los headers)
+            }
         }
 
         return headers;

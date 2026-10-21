@@ -94,6 +94,10 @@
                             <span class="from">{{ msg.from }}</span>
                             <div class="subject">
                                 <span>{{ msg.subject }}</span>
+                                <ion-badge v-if="msg.has_active_pass" class="pass-indicator" color="tertiary">
+                                    <ion-icon :icon="icons.shield"></ion-icon>
+                                    Pase
+                                </ion-badge>
                                 <ion-badge class="prio" :color="priorityColor(msg.priority)">{{ msg.priority
                                     }}</ion-badge>
                             </div>
@@ -312,6 +316,23 @@ ion-badge.prio {
     line-height: 1;
     display: inline-flex;
     align-items: center;
+}
+
+ion-badge.pass-indicator {
+    --padding-start: 6px;
+    --padding-end: 6px;
+    --border-radius: 12px;
+    font-size: 0.78rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+ion-badge.pass-indicator ion-icon {
+    font-size: 0.85rem;
 }
 
 .from {
