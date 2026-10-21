@@ -3,7 +3,13 @@
     { "key": "img", "label": "Imagen", "type": "image" }, 
     { "key": "name", "label": "Nombre", "type": "text" },
     { "key": "description", "label":  "Descripción", "type": "textarea" },
-    { "key": "subscription_id", "label": "Subscripción", "type": "text" }
+    { "key": "subscription_id", "label": "Subscripción", "type": "text" },
+    { "key": "security_level", "label": "Nivel de seguridad", "type": "select", "searchable": false, "options": [
+      { "value": "NONE", "label": "None - Sin verificación en dos pasos" },
+      { "value": "LOW", "label": "Low - Recordar dispositivo por 60 días" },
+      { "value": "MEDIUM", "label": "Medium - Recordar dispositivo por 30 días" },
+      { "value": "HIGH", "label": "High - Verificar siempre, sin dispositivos de confianza" }
+    ] }
   ],
   "workspace": [
     { "key": "name", "label": "Nombre", "type": "text" },

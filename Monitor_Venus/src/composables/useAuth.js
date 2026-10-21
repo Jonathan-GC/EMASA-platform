@@ -27,12 +27,19 @@ export function useAuth() {
     needsTenantSetup: computed(() => authStore.needsTenantSetup),
     tenantId: computed(() => authStore.tenantId),
 
+    // Workspace checks
+    activeWorkspaceId: computed(() => authStore.activeWorkspaceId),
+    availableWorkspaces: computed(() => authStore.availableWorkspaces),
+    contextVersion: computed(() => authStore.contextVersion),
+
     // User info
     username: computed(() => authStore.username),
     userId: computed(() => authStore.userId),
 
     // Actions
     login: authStore.login,
+    setActiveWorkspace: authStore.setActiveWorkspace,
+    switchWorkspace: authStore.switchWorkspace,
     logout: authStore.logout,
     refreshToken: authStore.refreshToken,
     hasRole: authStore.hasRole,

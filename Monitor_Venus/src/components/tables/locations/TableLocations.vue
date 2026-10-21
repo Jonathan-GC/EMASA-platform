@@ -19,7 +19,7 @@
         <div v-else-if="error" class="error-container">
           <ion-icon :icon="icons.alertCircle" color="danger"></ion-icon>
           <p>Error: {{ error }}</p>
-          <ion-button @click="fetchWorkspaces" fill="outline" color="danger">
+          <ion-button @click="fetchLocations" fill="outline" color="danger">
             Reintentar
           </ion-button>
         </div>
@@ -43,7 +43,7 @@
                   :toRefresh="true"
                   type="location"
                   @itemCreated="handleItemRefresh"
-                  @refresh="fetchWorkspaces"
+                  @refresh="fetchLocations"
               />
             </div>
           </div>
@@ -99,6 +99,7 @@
                 v-for="location in paginatedItems"
                 :key="location.id"
                 class="table-row-stylized"
+                v-bind="getItemActivateProps(`/tenants/${location.id}`, { label: `Ver ubicación ${location.name}` })"
 
                 :class="{ 'row-selected': selectedApplication?.id === location.id }"
             >
@@ -145,7 +146,13 @@
 
           <!-- Mobile Card View -->
           <div v-else class="mobile-cards">
-            <ion-card v-for="location in paginatedItems" :key="location.id" class="location-card">
+            <ion-card
+              v-for="location in paginatedItems"
+              :key="location.id"
+              class="location-card"
+              :class="getCardClass(true)"
+              v-bind="getItemActivateProps(`/tenants/${location.id}`, { label: `Ver ubicación ${location.name}` })"
+            >
               <ion-card-content>
                 <!-- Header with name -->
                 <div class="card-header">
@@ -230,9 +237,8 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="location"
-      @refresh="fetchWorkspaces"
+      @refresh="fetchLocations"
       @itemCreated="handleItemRefresh"
     />
   </div>
@@ -245,6 +251,7 @@ import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
 import { useTableSearch } from '@composables/Tables/useTableSearch.js'
 import { useResponsiveView } from '@composables/useResponsiveView.js'
+import { useCardNavigation } from '@composables/useCardNavigation.js'
 import { formatTime, getStatusColor } from '@utils/formatters/formatters'
 import QuickControl from '../../operators/quickControl.vue'
 import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
@@ -254,6 +261,7 @@ const icons = inject('icons', {})
 
 // Responsive view detection
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Component-specific state
 const application = ref([])
@@ -284,7 +292,7 @@ const setInitialData = (location) => {
 
 
 // Fetch data from API
-const fetchWorkspaces = async () => {
+const fetchLocations = async () => {
   // Ensure component is mounted before fetching
   if (!isMounted.value) {
     console.log('⏳ Component not ready, waiting...')
@@ -329,7 +337,7 @@ const viewGateway = (gateway) => {
 }
 
 const handleItemRefresh = () => {
-  fetchWorkspaces();
+  fetchLocations();
 };
 
 // Lifecycle
@@ -344,7 +352,7 @@ onMounted(async () => {
 
   // Small delay to ensure Ionic page transition is complete
   setTimeout(() => {
-    fetchWorkspaces()
+    fetchLocations()
   }, 100)
 })
 </script>
@@ -426,6 +434,26 @@ onMounted(async () => {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.clickable-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .table-row-stylized:hover {

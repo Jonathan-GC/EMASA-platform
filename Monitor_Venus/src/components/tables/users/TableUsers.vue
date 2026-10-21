@@ -102,6 +102,7 @@
               :key="user.id"
               class="table-row-stylized"
               :class="{ 'row-selected': selectedUser?.id === user.id }"
+              v-bind="getItemActivateProps(`/users/${user.id}`, { label: `Ver usuario ${user.username}` })"
             >
               <ion-col size="2">
                 <div class="user-info">
@@ -150,6 +151,16 @@
                   @item-toggled="handleItemRefresh"
 
                 />
+                <ion-button
+                  v-if="canTransferTenants"
+                  fill="clear"
+                  size="small"
+                  class="action transfer"
+                  title="transferir de tenant"
+                  @click="openTransferModal(user)"
+                >
+                  <ion-icon :icon="icons['swap-horizontal']" slot="icon-only"></ion-icon>
+                </ion-button>
               </ion-col>
             </ion-row>
             </ion-grid>
@@ -162,7 +173,7 @@
               :key="user.id" 
               class="user-card"
               :class="getCardClass(true)"
-              @click="(event) => getCardClickHandler(`/users/${user.id}`)(event)"
+              v-bind="getItemActivateProps(`/users/${user.id}`, { label: `Ver usuario ${user.username}` })"
             >
               <ion-card-content>
                 <!-- Header with avatar and name -->
@@ -206,6 +217,16 @@
 
                 <!-- Card actions -->
                 <div class="card-actions">
+                  <ion-button
+                    v-if="canTransferTenants"
+                    fill="clear"
+                    size="small"
+                    class="action transfer"
+                    title="transferir de tenant"
+                    @click.stop="openTransferModal(user)"
+                  >
+                    <ion-icon :icon="icons['swap-horizontal']" slot="icon-only"></ion-icon>
+                  </ion-button>
                   <QuickActions 
                     type="user"
                     :index="user.id" 
@@ -262,7 +283,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="user"
       @refresh="fetchUsers"
       @itemCreated="handleItemRefresh"
@@ -284,16 +304,20 @@ import AvatarSVG from '@assets/svg/Avatar.svg'
 import QuickControl from '../../operators/quickControl.vue'
 import QuickActions from '../../operators/quickActions.vue'
 import FloatingActionButtons from '../../operators/FloatingActionButtons.vue'
+import { modalController } from '@ionic/vue'
+import TransferTenantModal from '@components/forms/users/TransferTenantModal.vue'
+import { useAuthStore } from '@/stores/authStore'
 
 // Inject icons
 const icons = inject('icons', {})
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Responsive view detection
 const { isMobile } = useResponsiveView(768)
 
 // Card navigation composable
-const { getCardClickHandler, getCardClass } = useCardNavigation()
+const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Component-specific state
 const users = ref([])
@@ -367,6 +391,29 @@ const fetchUsers = async () => {
 // Handle item refresh
 const handleItemRefresh = () => {
   fetchUsers()
+}
+
+// La transferencia de tenant está disponible solo para superusuarios o admins globales
+const canTransferTenants = computed(() =>
+  authStore.isSuperUser || authStore.isGlobalUser
+)
+
+const openTransferModal = async (user) => {
+  const modal = await modalController.create({
+    component: TransferTenantModal,
+    componentProps: {
+      user
+    },
+    cssClass: 'full-modal'
+  })
+
+  modal.onDidDismiss().then(({ data }) => {
+    if (data?.transferred) {
+      handleItemRefresh()
+    }
+  })
+
+  await modal.present()
 }
 
 // Lifecycle
@@ -448,6 +495,13 @@ onMounted(async () => {
   border-bottom: 1px solid var(--ion-color-light);
   transition: background-color 0.2s ease;
   cursor: pointer;
+}
+
+/* Foco de teclado: la fila completa es activable con Enter/Espacio */
+.table-row-stylized:focus-visible,
+.clickable-card:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: -2px;
 }
 
 .table-row-stylized:hover {
