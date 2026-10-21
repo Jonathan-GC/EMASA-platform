@@ -122,6 +122,19 @@ class TenantContextMiddleware:
             ).exists():
                 is_authorized = True
 
+            # Hall pass holders may access the target tenant even without
+            # a WorkspaceMembership — the pass itself is the authorization.
+            if not is_authorized:
+                from django.utils import timezone as _tz
+                from support.models import SupportHallPass
+                if SupportHallPass.objects.filter(
+                    technician=user,
+                    workspace__tenant=target_tenant,
+                    status__in=["ACTIVE", "active"],
+                    expires_at__gt=_tz.now(),
+                ).exists():
+                    is_authorized = True
+
             if not is_authorized:
                 logger.warning(
                     f"User {user.username} denied access to tenant {target_tenant.id} ({target_tenant.name})"

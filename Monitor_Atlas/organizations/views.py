@@ -62,6 +62,13 @@ class WorkspaceViewSet(AuditActionMixin, viewsets.ModelViewSet):
             or (hasattr(self.request, "META") and self.request.META.get("HTTP_X_TENANT_ID"))
         )
 
+        # Resolve hall-pass workspace IDs once (empty for superusers).
+        if not user.is_superuser:
+            from support.queryset import get_pass_workspace_ids
+            pass_ws_ids = get_pass_workspace_ids(user)
+        else:
+            pass_ws_ids = []
+
         if user.is_superuser:
             qs = Workspace.objects.all()
         else:
@@ -71,14 +78,27 @@ class WorkspaceViewSet(AuditActionMixin, viewsets.ModelViewSet):
                 klass=Workspace,
                 accept_global_perms=False,
             )
+            # Hall passes do not create Guardian rows; union pass-covered
+            # workspaces so they appear in the listing.
+            if pass_ws_ids:
+                qs = (qs | Workspace.objects.filter(id__in=pass_ws_ids)).distinct()
 
         if has_explicit_header and active_tenant:
             qs = qs.filter(tenant=active_tenant)
         elif not is_global_user:
             if active_tenant:
-                qs = qs.filter(tenant=active_tenant)
+                # Preserve pass-covered workspaces even when they belong
+                # to a different tenant than the user's own.
+                if pass_ws_ids:
+                    from django.db.models import Q
+                    qs = qs.filter(Q(tenant=active_tenant) | Q(id__in=pass_ws_ids))
+                else:
+                    qs = qs.filter(tenant=active_tenant)
             else:
-                qs = Workspace.objects.none()
+                # No tenant context — return only pass-covered workspaces
+                # if any, otherwise nothing.
+                if not pass_ws_ids:
+                    qs = Workspace.objects.none()
 
         return qs
 

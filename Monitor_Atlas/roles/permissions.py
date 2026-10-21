@@ -444,6 +444,15 @@ def has_contextual_perm(
     if tenant is not None:
         from roles.models import WorkspaceMembership
 
+        # A hall pass authorizes the pass-covered tenant even without a
+        # WorkspaceMembership there. Access stays confined to the pass-covered
+        # workspaces because list querysets are scoped by the pass.
+        if has_active_diagnostic_pass and pass_grants_codename(active_pass, codename):
+            logger.debug(
+                f"Hall pass granted for user={user.username} on tenant={tenant.id} for perm={codename}"
+            )
+            return True
+
         # User must belong to the tenant or have membership in one of its workspaces
         if getattr(user, "tenant", None) != tenant:
             if not WorkspaceMembership.objects.filter(
