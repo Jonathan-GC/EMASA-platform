@@ -961,3 +961,39 @@ class TestSupportHallPass(TestCase):
         access = AccessToken(data["access"])
         self.assertTrue(access.get("has_hall_pass"))
 
+    def test_otp_login_access_token_contains_hall_pass_flag(self):
+        """OTP login issues an access token that keeps the has_hall_pass claim."""
+        from django.core.cache import cache
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        SupportHallPass.objects.create(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
+            granted_by=self.support_manager,
+            expires_at=timezone.now() + timedelta(hours=4),
+            status="ACTIVE",
+            reason="OTP claim test",
+        )
+
+        cache.set(
+            f"otp_data_{self.tech_dave.username.lower()}",
+            {
+                "code": "123456",
+                "attempts": 0,
+                "user_id": self.tech_dave.id,
+                "username": self.tech_dave.username,
+            },
+            timeout=300,
+        )
+
+        response = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {"username": self.tech_dave.username, "code": "123456"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        access = AccessToken(response.data["access"])
+        self.assertTrue(access.get("has_hall_pass"))
+

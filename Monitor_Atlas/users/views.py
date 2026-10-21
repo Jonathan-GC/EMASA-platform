@@ -606,20 +606,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 is_active=True,
             )
 
-            refresh = RefreshToken.for_user(user)
-            token_data = CustomTokenObtainPairSerializer.get_token(user)
-            for claim_key in [
-                "user_id",
-                "username",
-                "is_global",
-                "tenant_id",
-                "cs_tenant_id",
-                "is_superuser",
-                "is_support",
-                "is_tenant_admin",
-            ]:
-                if claim_key in token_data:
-                    refresh[claim_key] = token_data[claim_key]
+            refresh = CustomTokenObtainPairSerializer.get_token(user)
 
             refresh["session_id"] = str(session.id)
             access = refresh.access_token
@@ -2404,20 +2391,7 @@ class OTPVerifyView(APIView):
         )
 
         # Generate tokens using CustomTokenObtainPairSerializer logic
-        refresh = RefreshToken.for_user(user)
-        token_data = CustomTokenObtainPairSerializer.get_token(user)
-        for claim_key in [
-            "user_id",
-            "username",
-            "is_global",
-            "tenant_id",
-            "cs_tenant_id",
-            "is_superuser",
-            "is_support",
-            "is_tenant_admin",
-        ]:
-            if claim_key in token_data:
-                refresh[claim_key] = token_data[claim_key]
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
 
         refresh["session_id"] = str(session.id)
         access = refresh.access_token
