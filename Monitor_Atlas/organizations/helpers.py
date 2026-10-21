@@ -66,8 +66,19 @@ def get_or_create_default_subscription():
 
 
 def get_global_tenant():
-    tenant = Tenant.objects.get(is_global=True)
-    return tenant
+    """
+    Retrieves the designated master/global tenant (is_global=True).
+    Logs an error and returns None if unconfigured.
+    """
+    try:
+        tenant = Tenant.objects.filter(is_global=True).first()
+        if not tenant:
+            logger.error("Global master tenant is not configured in the database.")
+            return None
+        return tenant
+    except Exception as e:
+        logger.error(f"Error retrieving global tenant: {e}")
+        return None
 
 
 def get_no_role(workspace):

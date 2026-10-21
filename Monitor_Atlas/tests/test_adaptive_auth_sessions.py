@@ -1,0 +1,1605 @@
+import hashlib
+import time
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.test import TestCase, RequestFactory
+from django.utils import timezone
+from rest_framework.test import APIClient
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import (
+    OutstandingToken,
+    BlacklistedToken,
+)
+from auditlog.models import LogEntry
+
+from organizations.models import Tenant, Subscription
+from users.models import User, UserSession, UserTwoFactorMethod, UserBackupCode
+from users.totp_service import (
+    generate_totp_secret,
+    generate_totp_code,
+    verify_totp_code,
+    get_otpauth_uri,
+    generate_backup_codes,
+    verify_and_consume_backup_code,
+)
+from users.trust_engine import AdaptiveTrustEngine, parse_device_name
+
+
+class AdaptiveAuthSessionsTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.rf = RequestFactory()
+        self.subscription = Subscription.objects.create(name="Enterprise", description="Sub")
+
+        # Tenant with MEDIUM security level by default
+        self.tenant_medium = Tenant.objects.create(
+            name="Medium Security Tenant",
+            subscription=self.subscription,
+            is_global=False,
+        )
+
+        # Tenant with LOW security level
+        self.tenant_low = Tenant.objects.create(
+            name="Low Security Tenant",
+            subscription=self.subscription,
+            security_level="LOW",
+            is_global=False,
+        )
+
+        # Tenant with HIGH security level
+        self.tenant_high = Tenant.objects.create(
+            name="High Security Tenant",
+            subscription=self.subscription,
+            security_level="HIGH",
+            is_global=False,
+        )
+
+        # Tenant with NONE security level
+        self.tenant_none = Tenant.objects.create(
+            name="No Security Tenant",
+            subscription=self.subscription,
+            security_level="NONE",
+            is_global=False,
+        )
+
+        # Users
+        self.password = "StrongPassword123!"
+        self.user_medium = User.objects.create_user(
+            username="user_medium",
+            email="medium@example.com",
+            password=self.password,
+            tenant=self.tenant_medium,
+        )
+        self.user_low = User.objects.create_user(
+            username="user_low",
+            email="low@example.com",
+            password=self.password,
+            tenant=self.tenant_low,
+        )
+        self.user_high = User.objects.create_user(
+            username="user_high",
+            email="high@example.com",
+            password=self.password,
+            tenant=self.tenant_high,
+        )
+        self.user_none = User.objects.create_user(
+            username="user_none",
+            email="none@example.com",
+            password=self.password,
+            tenant=self.tenant_none,
+        )
+        self.user_other = User.objects.create_user(
+            username="user_other",
+            email="other@example.com",
+            password=self.password,
+            tenant=self.tenant_medium,
+        )
+
+    def test_tenant_security_level_defaults_and_properties(self):
+        """Tenant defaults to MEDIUM and resolves thresholds and device trust TTLs."""
+        new_tenant = Tenant.objects.create(
+            name="New Default Tenant",
+            subscription=self.subscription,
+        )
+        self.assertEqual(new_tenant.security_level, "MEDIUM")
+        self.assertEqual(new_tenant.trust_score_threshold, 75)
+        self.assertEqual(new_tenant.device_trust_ttl_days, 30)
+
+        self.assertEqual(self.tenant_low.trust_score_threshold, 60)
+        self.assertEqual(self.tenant_low.device_trust_ttl_days, 60)
+
+        self.assertEqual(self.tenant_high.trust_score_threshold, 101)
+        self.assertEqual(self.tenant_high.device_trust_ttl_days, 0)
+
+        self.assertEqual(self.tenant_none.trust_score_threshold, 0)
+        self.assertEqual(self.tenant_none.device_trust_ttl_days, 0)
+
+    def test_adaptive_trust_engine_scoring_and_clamping(self):
+        """AdaptiveTrustEngine correctly scores factors, applies penalties, and clamps within [0, 100]."""
+        # Baseline new device request: 0 points
+        req_new = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="198.51.100.5",
+            HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        )
+        bypass, score, details = AdaptiveTrustEngine.evaluate(req_new, self.user_medium)
+        self.assertFalse(bypass)
+        self.assertEqual(score, 0)
+
+        # Create prior session for user_medium
+        trust_token = "valid_trust_token_abc_123"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        prior_session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_prior_session_1",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="192.168.1.50",
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+            is_active=True,
+        )
+
+        # Request with matching cookie (+40), matching IP (+20), matching UA (+15), and recent activity (+10) = 85
+        req_trusted = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="192.168.1.50",
+            HTTP_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+        )
+        req_trusted.COOKIES["device_trust_token"] = trust_token
+        bypass, score, details = AdaptiveTrustEngine.evaluate(req_trusted, self.user_medium)
+        self.assertEqual(score, 85)
+        self.assertTrue(bypass)  # 85 >= 75 (MEDIUM threshold)
+
+        # Same request on LOW security tier -> also bypasses (85 >= 60)
+        bypass_low, score_low, _ = AdaptiveTrustEngine.evaluate(
+            req_trusted, self.user_medium, tenant_security_level="LOW"
+        )
+        self.assertTrue(bypass_low)
+        self.assertEqual(score_low, 85)
+
+        # Same request on HIGH security tier -> strictly NO bypass regardless of score
+        bypass_high, score_high, _ = AdaptiveTrustEngine.evaluate(
+            req_trusted, self.user_medium, tenant_security_level="HIGH"
+        )
+        self.assertFalse(bypass_high)
+        self.assertEqual(score_high, 85)
+
+        # Test Subnet match (+15): different IP in same /24 subnet (192.168.1.99) without cookie
+        req_subnet = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="192.168.1.99",
+            HTTP_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+        )
+        _, score_sub, details_sub = AdaptiveTrustEngine.evaluate(req_subnet, self.user_medium)
+        self.assertIn("subnet_match", details_sub["factors"])
+        self.assertEqual(details_sub["factors"]["subnet_match"]["points"], 15)
+
+        # Test Impossible Travel penalty (-60)
+        req_travel = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="192.168.1.50",
+            HTTP_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+            HTTP_X_IMPOSSIBLE_TRAVEL="true",
+        )
+        req_travel.COOKIES["device_trust_token"] = trust_token
+        bypass_travel, score_travel, _ = AdaptiveTrustEngine.evaluate(req_travel, self.user_medium)
+        self.assertFalse(bypass_travel)
+        self.assertEqual(score_travel, 25)  # 85 - 60 = 25
+
+        # Test Threat/Suspicious IP penalty (-40) and Clamping to 0
+        req_threat = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="10.0.0.1",
+            HTTP_USER_AGENT="Unknown UA",
+            HTTP_X_SUSPICIOUS_IP="true",
+            HTTP_X_IMPOSSIBLE_TRAVEL="true",
+        )
+        _, score_threat, _ = AdaptiveTrustEngine.evaluate(req_threat, self.user_medium)
+        self.assertEqual(score_threat, 0)  # Clamped at 0
+
+    def test_totp_service_rfc6238_generation_and_drift(self):
+        """TOTP service generates RFC-compliant 6-digit codes and tolerates ±1 time-step drift."""
+        secret = generate_totp_secret()
+        self.assertGreaterEqual(len(secret), 16)
+
+        current_time = time.time()
+        code_current = generate_totp_code(secret, for_time=current_time)
+        self.assertEqual(len(code_current), 6)
+        self.assertTrue(code_current.isdigit())
+
+        # Exact time verification succeeds
+        self.assertTrue(verify_totp_code(secret, code_current, for_time=current_time))
+
+        # Drift tolerance: 30 seconds ago (-1 step)
+        code_past = generate_totp_code(secret, for_time=current_time - 30)
+        self.assertTrue(verify_totp_code(secret, code_past, for_time=current_time))
+
+        # Drift tolerance: 30 seconds in future (+1 step)
+        code_future = generate_totp_code(secret, for_time=current_time + 30)
+        self.assertTrue(verify_totp_code(secret, code_future, for_time=current_time))
+
+        # Beyond tolerance: 90 seconds ago (-3 steps) must fail
+        code_expired = generate_totp_code(secret, for_time=current_time - 90)
+        self.assertFalse(verify_totp_code(secret, code_expired, for_time=current_time))
+
+        # Invalid codes
+        self.assertFalse(verify_totp_code(secret, "999999", for_time=current_time))
+        self.assertFalse(verify_totp_code(secret, "", for_time=current_time))
+
+        # URI format
+        uri = get_otpauth_uri(secret, "testuser@example.com")
+        self.assertTrue(uri.startswith("otpauth://totp/"))
+        self.assertIn(f"secret={secret}", uri)
+
+    def test_backup_codes_generation_and_single_use_consumption(self):
+        """Backup recovery codes are generated and consumed single-use."""
+        codes = generate_backup_codes(8)
+        self.assertEqual(len(codes), 8)
+
+        # Store in DB for user
+        UserBackupCode.objects.bulk_create(
+            [UserBackupCode(user=self.user_medium, code_hash=code_hash) for _, code_hash in codes]
+        )
+
+        first_plaintext = codes[0][0]
+        # First verification succeeds and consumes code
+        self.assertTrue(verify_and_consume_backup_code(self.user_medium, first_plaintext))
+
+        # Second verification with the same code must fail
+        self.assertFalse(verify_and_consume_backup_code(self.user_medium, first_plaintext))
+
+        # Other codes remain valid
+        second_plaintext = codes[1][0]
+        self.assertTrue(verify_and_consume_backup_code(self.user_medium, second_plaintext))
+
+    def test_login_step_1_adaptive_bypass_when_score_exceeds_threshold(self):
+        """POST /api/v1/token/ issues tokens and creates UserSession directly when trust score meets threshold."""
+        # Establish prior trusted session
+        trust_token = "cookie_token_test_123"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_seed_1",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="127.0.0.1",
+            user_agent="TestUserAgent/1.0",
+            is_active=True,
+        )
+
+        # Set trust cookie on client
+        self.client.cookies["device_trust_token"] = trust_token
+
+        with patch("users.views.get_client_ip", return_value="127.0.0.1"):
+            response = self.client.post(
+                "/api/v1/token/",
+                {"username": self.user_medium.username, "password": self.password},
+                format="json",
+                HTTP_USER_AGENT="TestUserAgent/1.0",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data.get("requires_2fa"))
+        self.assertIn("access", response.data)
+
+        # Session created
+        session = UserSession.objects.filter(user=self.user_medium).order_by("-created_at").first()
+        self.assertIsNotNone(session)
+        self.assertTrue(session.is_active)
+
+    def test_login_step_1_requires_2fa_when_score_below_threshold(self):
+        """POST /api/v1/token/ returns requires_2fa=True and dispatches email OTP when score < threshold."""
+        with patch("users.views.send_otp_email") as mock_send_email:
+            response = self.client.post(
+                "/api/v1/token/",
+                {"username": self.user_medium.username, "password": self.password},
+                format="json",
+                REMOTE_ADDR="203.0.113.1",
+                HTTP_USER_AGENT="NewBrowser/1.0",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get("requires_2fa"))
+        self.assertIn("email", response.data.get("available_methods", []))
+        self.assertNotIn("access", response.data)
+        mock_send_email.assert_called_once()
+
+    def test_login_step_1_high_security_tier_strictly_enforces_2fa(self):
+        """HIGH security tier always requires 2FA even with a trusted device cookie."""
+        trust_token = "high_security_trust_token"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_high,
+            refresh_token_jti="jti_high_seed",
+            device_name="Safari en macOS",
+            trust_hash=trust_hash,
+            ip_address="127.0.0.1",
+            user_agent="Safari/17.0",
+            is_active=True,
+        )
+
+        self.client.cookies["device_trust_token"] = trust_token
+        with patch("users.views.send_otp_email"):
+            response = self.client.post(
+                "/api/v1/token/",
+                {"username": self.user_high.username, "password": self.password},
+                format="json",
+                HTTP_USER_AGENT="Safari/17.0",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get("requires_2fa"))
+
+    def test_login_step_1_none_security_tier_bypasses_2fa(self):
+        """NONE security tier completely bypasses 2FA even on unrecognized new devices."""
+        response = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_none.username, "password": self.password},
+            format="json",
+            REMOTE_ADDR="203.0.113.88",
+            HTTP_USER_AGENT="BrandNewBrowser/1.0",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data.get("requires_2fa"))
+        self.assertIn("access", response.data)
+
+    def test_otp_verify_with_totp_code(self):
+        """POST /api/v1/users/auth/otp/verify/ verifies TOTP code and issues JWT tokens."""
+        secret = generate_totp_secret()
+        UserTwoFactorMethod.objects.create(
+            user=self.user_medium,
+            method_type="TOTP",
+            secret=secret,
+            is_active=True,
+        )
+
+        code = generate_totp_code(secret)
+        response = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_medium.username,
+                "code": code,
+                "method": "totp",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+        # Invalid TOTP code fails
+        resp_fail = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_medium.username,
+                "code": "000000",
+                "method": "totp",
+            },
+            format="json",
+        )
+        self.assertEqual(resp_fail.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_otp_verify_with_backup_code(self):
+        """POST /api/v1/users/auth/otp/verify/ verifies single-use backup code."""
+        codes = generate_backup_codes(4)
+        UserBackupCode.objects.bulk_create(
+            [UserBackupCode(user=self.user_medium, code_hash=code_hash) for _, code_hash in codes]
+        )
+
+        plaintext_code = codes[0][0]
+        response = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_medium.username,
+                "code": plaintext_code,
+                "method": "backup_code",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+        # Re-using the same code must fail
+        resp_reused = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_medium.username,
+                "code": plaintext_code,
+                "method": "backup_code",
+            },
+            format="json",
+        )
+        self.assertEqual(resp_reused.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_otp_verify_trust_device_cookie_issuance(self):
+        """POST /api/v1/users/auth/otp/verify/ with trust_device=True sets device_trust_token cookie."""
+        from django.core.cache import cache
+
+        # Set up email OTP in cache
+        cache_key = f"otp_data_{self.user_medium.username.lower()}"
+        cache.set(
+            cache_key,
+            {
+                "code": "123456",
+                "attempts": 0,
+                "user_id": str(self.user_medium.id),
+                "username": self.user_medium.username.lower(),
+            },
+            timeout=300,
+        )
+
+        response = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_medium.username,
+                "code": "123456",
+                "method": "email",
+                "trust_device": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("device_trust_token", response.cookies)
+        cookie = response.cookies["device_trust_token"]
+        self.assertTrue(cookie["httponly"])
+
+        # Check session recorded with trust_hash
+        session = UserSession.objects.filter(user=self.user_medium).order_by("-created_at").first()
+        self.assertIsNotNone(session.trust_hash)
+
+    def test_user_session_listing_and_is_current_identification(self):
+        """GET /api/v1/users/sessions/ lists user sessions and identifies is_current=True."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        current_jti = str(refresh.get("jti"))
+
+        sess_current = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=current_jti,
+            device_name="Current Laptop",
+            is_active=True,
+        )
+        sess_other = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="other_jti_phone",
+            device_name="Mobile Phone",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        self.client.cookies["refresh_token"] = str(refresh)
+
+        response = self.client.get("/api/v1/users/sessions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sessions_data = response.data if isinstance(response.data, list) else response.data.get("results", [])
+        self.assertEqual(len(sessions_data), 2)
+
+        data_current = next(s for s in sessions_data if s["id"] == str(sess_current.id))
+        data_other = next(s for s in sessions_data if s["id"] == str(sess_other.id))
+
+        self.assertTrue(data_current["is_current"])
+        self.assertFalse(data_other["is_current"])
+
+    def test_user_session_revocation_blacklists_refresh_token(self):
+        """POST /api/v1/users/sessions/{id}/revoke/ deactivates session and blacklists token."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        jti = str(refresh.get("jti"))
+
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti,
+            device_name="Remote Device",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        resp_revoke = self.client.post(f"/api/v1/users/sessions/{session.id}/revoke/")
+        self.assertEqual(resp_revoke.status_code, status.HTTP_200_OK)
+
+        session.refresh_from_db()
+        self.assertFalse(session.is_active)
+
+        # Refresh token must be blacklisted
+        self.client.logout()
+        self.client.cookies["refresh_token"] = str(refresh)
+        resp_refresh = self.client.post("/api/v1/token/refresh/")
+        self.assertEqual(resp_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_session_revoke_others(self):
+        """POST /api/v1/users/sessions/revoke_others/ revokes all other sessions."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        current_jti = str(refresh.get("jti"))
+
+        sess_current = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=current_jti,
+            device_name="Current PC",
+            is_active=True,
+        )
+        sess_remote1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="remote_jti_1",
+            device_name="Remote 1",
+            is_active=True,
+        )
+        sess_remote2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="remote_jti_2",
+            device_name="Remote 2",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        self.client.cookies["refresh_token"] = str(refresh)
+
+        response = self.client.post("/api/v1/users/sessions/revoke_others/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sess_current.refresh_from_db()
+        sess_remote1.refresh_from_db()
+        sess_remote2.refresh_from_db()
+
+        self.assertTrue(sess_current.is_active)
+        self.assertFalse(sess_remote1.is_active)
+        self.assertFalse(sess_remote2.is_active)
+
+    def test_user_session_cross_user_revocation_denied(self):
+        """Users cannot revoke sessions belonging to other accounts (returns 404)."""
+        sess_other = UserSession.objects.create(
+            user=self.user_other,
+            refresh_token_jti="other_user_jti",
+            device_name="Other Device",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.post(f"/api/v1/users/sessions/{sess_other.id}/revoke/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        sess_other.refresh_from_db()
+        self.assertTrue(sess_other.is_active)
+
+    def test_totp_setup_activate_deactivate_flow(self):
+        """Complete TOTP lifecycle: setup -> activate with backup codes -> deactivate."""
+        self.client.force_authenticate(user=self.user_medium)
+
+        # 1. Setup
+        resp_setup = self.client.post("/api/v1/users/auth/mfa/totp/setup/")
+        self.assertEqual(resp_setup.status_code, status.HTTP_200_OK)
+        secret = resp_setup.data["secret"]
+        self.assertIn("otpauth_uri", resp_setup.data)
+
+        # 2. Activate with valid code
+        code = generate_totp_code(secret)
+        resp_act = self.client.post(
+            "/api/v1/users/auth/mfa/totp/activate/",
+            {"code": code},
+            format="json",
+        )
+        self.assertEqual(resp_act.status_code, status.HTTP_200_OK)
+        self.assertIn("detail", resp_act.data)
+        self.assertEqual(resp_act.data["detail"], "TOTP authenticator activated successfully.")
+        self.assertEqual(len(resp_act.data["backup_codes"]), 8)
+
+        # Status check
+        resp_status = self.client.get("/api/v1/users/auth/mfa/status/")
+        self.assertEqual(resp_status.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_status.data["totp_active"])
+        self.assertEqual(resp_status.data["backup_codes_remaining"], 8)
+        methods = [m["method_type"] for m in resp_status.data["methods"]]
+        self.assertIn("TOTP", methods)
+        self.assertIn("BACKUP_CODES", methods)
+
+        # 3. Deactivate with password
+        resp_deact = self.client.post(
+            "/api/v1/users/auth/mfa/totp/deactivate/",
+            {"password": self.password},
+            format="json",
+        )
+        self.assertEqual(resp_deact.status_code, status.HTTP_200_OK)
+
+        # Verify removal
+        self.assertFalse(
+            UserTwoFactorMethod.objects.filter(user=self.user_medium, method_type="TOTP").exists()
+        )
+        self.assertFalse(UserBackupCode.objects.filter(user=self.user_medium).exists())
+
+    def test_auditlog_records_created(self):
+        """UserSession, UserTwoFactorMethod, and UserBackupCode create AuditLog entries."""
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_audit_test",
+            device_name="Audit PC",
+            is_active=True,
+        )
+        audit_session = LogEntry.objects.filter(
+            object_pk=str(session.id),
+            action=LogEntry.Action.CREATE,
+        ).first()
+        self.assertIsNotNone(audit_session)
+
+        mfa_method = UserTwoFactorMethod.objects.create(
+            user=self.user_medium,
+            method_type="TOTP",
+            secret="SECRET",
+            is_active=True,
+        )
+        audit_mfa = LogEntry.objects.filter(
+            object_pk=str(mfa_method.id),
+            action=LogEntry.Action.CREATE,
+        ).first()
+        self.assertIsNotNone(audit_mfa)
+
+    @patch("users.views.send_otp_email")
+    def test_login_step_1_metadata_and_totp_email_suppression(self, mock_send_email):
+        """Step 1 returns allow_device_trust and device_trust_ttl_days; suppresses email when primary is TOTP."""
+        # Enable TOTP for user
+        UserTwoFactorMethod.objects.create(
+            user=self.user_medium,
+            method_type="TOTP",
+            secret="TESTSECRET",
+            is_active=True,
+        )
+
+        resp = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_medium.username, "password": self.password},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data["requires_2fa"])
+        self.assertEqual(resp.data["primary_method"], "totp")
+        self.assertTrue(resp.data["allow_device_trust"])
+        self.assertEqual(resp.data["device_trust_ttl_days"], 30)
+        # Verify email was NOT sent
+        mock_send_email.assert_not_called()
+
+    def test_otp_verify_returns_device_trusted(self):
+        """OTPVerifyView returns device_trusted: true when trust is granted, false otherwise."""
+        # 1. High security tenant - trust_device requested but policy forbids it
+        from users.totp_service import generate_totp_code
+        secret = "JBSWY3DPEHPK3PXP"
+        UserTwoFactorMethod.objects.create(
+            user=self.user_high,
+            method_type="TOTP",
+            secret=secret,
+            is_active=True,
+        )
+        code = generate_totp_code(secret)
+        resp_high = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_high.username,
+                "code": code,
+                "method": "totp",
+                "trust_device": True,
+            },
+            format="json",
+        )
+        self.assertEqual(resp_high.status_code, status.HTTP_200_OK)
+        self.assertIn("device_trusted", resp_high.data)
+        self.assertFalse(resp_high.data["device_trusted"])
+
+        # 2. Medium security tenant - trust_device requested and allowed
+        UserTwoFactorMethod.objects.create(
+            user=self.user_medium,
+            method_type="TOTP",
+            secret=secret,
+            is_active=True,
+        )
+        code_med = generate_totp_code(secret)
+        resp_med = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {
+                "username": self.user_medium.username,
+                "code": code_med,
+                "method": "totp",
+                "trust_device": True,
+            },
+            format="json",
+        )
+        self.assertEqual(resp_med.status_code, status.HTTP_200_OK)
+        self.assertIn("device_trusted", resp_med.data)
+        self.assertTrue(resp_med.data["device_trusted"])
+
+    def test_user_session_revocation_blacklists_entire_token_family(self):
+        """Revoking a session blacklists both refresh and access tokens, rejecting subsequent API calls."""
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="",
+            access_token_jti="",
+            device_name="Family Device",
+            is_active=True,
+        )
+
+        refresh = RefreshToken.for_user(self.user_medium)
+        refresh["session_id"] = str(session.id)
+        access = refresh.access_token
+        access["session_id"] = str(session.id)
+
+        session.refresh_token_jti = str(refresh.get("jti"))
+        session.access_token_jti = str(access.get("jti"))
+        session.save()
+
+        # Access token works initially
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(access)}")
+        resp_before = self.client.get("/api/v1/users/sessions/")
+        self.assertEqual(resp_before.status_code, status.HTTP_200_OK)
+
+        # Revoke the session
+        resp_revoke = self.client.post(f"/api/v1/users/sessions/{session.id}/revoke/")
+        self.assertEqual(resp_revoke.status_code, status.HTTP_200_OK)
+
+        session.refresh_from_db()
+        self.assertFalse(session.is_active)
+
+        # Both tokens must be present in BlacklistedToken
+        self.assertTrue(
+            BlacklistedToken.objects.filter(token__jti=session.refresh_token_jti).exists()
+        )
+        self.assertTrue(
+            BlacklistedToken.objects.filter(token__jti=session.access_token_jti).exists()
+        )
+
+        # Subsequent API requests with access token must return 401
+        resp_after = self.client.get("/api/v1/users/sessions/")
+        self.assertEqual(resp_after.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # Refresh with refresh token must also return 401
+        self.client.credentials()  # clear auth header
+        self.client.cookies["refresh_token"] = str(refresh)
+        resp_refresh = self.client.post("/api/v1/token/refresh/")
+        self.assertEqual(resp_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_session_revoke_all(self):
+        """POST /api/v1/users/sessions/revoke_all/ terminates all user sessions and blacklists their tokens."""
+        # Create 2 sessions for user_medium
+        sess1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_all_ref_1",
+            access_token_jti="jti_all_acc_1",
+            device_name="Device 1",
+            is_active=True,
+        )
+        sess2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_all_ref_2",
+            access_token_jti="jti_all_acc_2",
+            device_name="Device 2",
+            is_active=True,
+        )
+        # Create 1 session for user_other
+        sess_other = UserSession.objects.create(
+            user=self.user_other,
+            refresh_token_jti="jti_other_ref",
+            access_token_jti="jti_other_acc",
+            device_name="Other Device",
+            is_active=True,
+        )
+
+        refresh = RefreshToken.for_user(self.user_medium)
+        self.client.force_authenticate(user=self.user_medium)
+        self.client.cookies["refresh_token"] = str(refresh)
+
+        resp = self.client.post("/api/v1/users/sessions/revoke_all/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get("status"), "all_sessions_revoked")
+
+        # Verify refresh cookie was deleted
+        self.assertIn("refresh_token", resp.cookies)
+        self.assertEqual(resp.cookies["refresh_token"].value, "")
+
+        sess1.refresh_from_db()
+        sess2.refresh_from_db()
+        sess_other.refresh_from_db()
+
+        self.assertFalse(sess1.is_active)
+        self.assertFalse(sess2.is_active)
+        self.assertTrue(sess_other.is_active)
+
+        # Tokens for user_medium are blacklisted
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti="jti_all_ref_1").exists())
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti="jti_all_acc_1").exists())
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti="jti_all_ref_2").exists())
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti="jti_all_acc_2").exists())
+
+        # Tokens for user_other are NOT blacklisted
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti="jti_other_ref").exists())
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti="jti_other_acc").exists())
+
+    def test_user_session_trust_current_toggle(self):
+        """POST /api/v1/users/sessions/trust_current/ dynamically enables and disables device trust."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        current_jti = str(refresh.get("jti"))
+
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=current_jti,
+            device_name="Current PC",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        self.client.cookies["refresh_token"] = str(refresh)
+
+        # 1. Enable trust: trust=True
+        resp_trust = self.client.post(
+            "/api/v1/users/sessions/trust_current/",
+            {"trust": True},
+            format="json",
+        )
+        self.assertEqual(resp_trust.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_trust.data.get("device_trusted"))
+        self.assertIn("device_trust_token", resp_trust.cookies)
+        cookie_val = resp_trust.cookies["device_trust_token"].value
+        self.assertTrue(resp_trust.cookies["device_trust_token"]["httponly"])
+
+        session.refresh_from_db()
+        self.assertIsNotNone(session.trust_hash)
+        expected_hash = hashlib.sha256(cookie_val.encode("utf-8")).hexdigest()
+        self.assertEqual(session.trust_hash, expected_hash)
+
+        # 2. Disable trust: trust=False
+        resp_untrust = self.client.post(
+            "/api/v1/users/sessions/trust_current/",
+            {"trust": False},
+            format="json",
+        )
+        self.assertEqual(resp_untrust.status_code, status.HTTP_200_OK)
+        self.assertFalse(resp_untrust.data.get("device_trusted"))
+        self.assertIn("device_trust_token", resp_untrust.cookies)
+        self.assertEqual(resp_untrust.cookies["device_trust_token"].value, "")
+
+        session.refresh_from_db()
+        self.assertIsNone(session.trust_hash)
+
+    def test_user_session_trust_current_denied_for_high_tenant(self):
+        """POST /api/v1/users/sessions/trust_current/ returns 400 when tenant security_level is HIGH."""
+        refresh = RefreshToken.for_user(self.user_high)
+        current_jti = str(refresh.get("jti"))
+
+        session = UserSession.objects.create(
+            user=self.user_high,
+            refresh_token_jti=current_jti,
+            device_name="High Sec PC",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_high)
+        self.client.cookies["refresh_token"] = str(refresh)
+
+        resp = self.client.post(
+            "/api/v1/users/sessions/trust_current/",
+            {"trust": True},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(resp.data.get("device_trusted"))
+        self.assertIn("Device trust is not allowed for high-security tenants", resp.data.get("detail", ""))
+
+        session.refresh_from_db()
+        self.assertIsNone(session.trust_hash)
+        self.assertNotIn("device_trust_token", resp.cookies)
+
+    def test_adaptive_trust_engine_roaming_trusted_device_threat_guarded(self):
+        """A request with valid device_trust_token cookie but 0 matching IP/UA (roaming) gets allow_bypass=True on MEDIUM tier, but allow_bypass=False when threats flagged."""
+        trust_token = "roaming_engine_test_token"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_roaming_seed",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="192.168.1.50",
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+            is_active=True,
+        )
+
+        # Roaming request: different IP, different UA
+        req_roaming = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="198.51.100.99",
+            HTTP_USER_AGENT="DifferentBrowser/1.0",
+        )
+        req_roaming.COOKIES["device_trust_token"] = trust_token
+
+        # On MEDIUM tier without threats: bypass allowed despite score < 75
+        bypass, score, details = AdaptiveTrustEngine.evaluate(req_roaming, self.user_medium)
+        self.assertTrue(bypass)
+        self.assertFalse(details["has_critical_threat"])
+        self.assertIn("verified trusted device", details["decision"])
+
+        # With HTTP_X_IMPOSSIBLE_TRAVEL
+        req_travel = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="198.51.100.99",
+            HTTP_USER_AGENT="DifferentBrowser/1.0",
+            HTTP_X_IMPOSSIBLE_TRAVEL="true",
+        )
+        req_travel.COOKIES["device_trust_token"] = trust_token
+        bypass_travel, _, details_travel = AdaptiveTrustEngine.evaluate(req_travel, self.user_medium)
+        self.assertFalse(bypass_travel)
+        self.assertTrue(details_travel["has_critical_threat"])
+        self.assertIn("impossible travel", details_travel["decision"])
+
+        # With HTTP_X_SUSPICIOUS_IP
+        req_suspicious = self.rf.post(
+            "/api/v1/token/",
+            REMOTE_ADDR="198.51.100.99",
+            HTTP_USER_AGENT="DifferentBrowser/1.0",
+            HTTP_X_SUSPICIOUS_IP="true",
+        )
+        req_suspicious.COOKIES["device_trust_token"] = trust_token
+        bypass_suspicious, _, details_suspicious = AdaptiveTrustEngine.evaluate(req_suspicious, self.user_medium)
+        self.assertFalse(bypass_suspicious)
+        self.assertTrue(details_suspicious["has_critical_threat"])
+        self.assertIn("suspicious IP", details_suspicious["decision"])
+
+    def test_login_step_1_roaming_ip_trusted_device_bypasses_2fa(self):
+        """POST /api/v1/token/ from a roaming IP with a valid device_trust_token cookie bypasses 2FA directly."""
+        trust_token = "roaming_login_token_valid"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_roaming_init",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="192.168.1.1",
+            user_agent="OriginalBrowser/1.0",
+            is_active=True,
+        )
+
+        self.client.cookies["device_trust_token"] = trust_token
+
+        response = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_medium.username, "password": self.password},
+            format="json",
+            REMOTE_ADDR="203.0.113.77",
+            HTTP_USER_AGENT="RoamingBrowser/2.0",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data.get("requires_2fa"))
+        self.assertIn("access", response.data)
+
+        # Check a new session was created with roaming IP
+        new_session = UserSession.objects.filter(user=self.user_medium).order_by("-created_at").first()
+        self.assertIsNotNone(new_session)
+        self.assertEqual(new_session.ip_address, "203.0.113.77")
+        self.assertTrue(new_session.is_active)
+
+    @patch("users.views.send_otp_email")
+    def test_login_step_1_trusted_device_with_critical_threat_requires_2fa(self, mock_send_email):
+        """POST /api/v1/token/ requires 2FA when valid device_trust_token cookie presents impossible travel or suspicious IP."""
+        trust_token = "threat_login_token_valid"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_threat_init",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="192.168.1.1",
+            user_agent="OriginalBrowser/1.0",
+            is_active=True,
+        )
+
+        self.client.cookies["device_trust_token"] = trust_token
+
+        # Case 1: Impossible travel
+        resp_travel = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_medium.username, "password": self.password},
+            format="json",
+            REMOTE_ADDR="203.0.113.77",
+            HTTP_USER_AGENT="RoamingBrowser/2.0",
+            HTTP_X_IMPOSSIBLE_TRAVEL="true",
+        )
+        self.assertEqual(resp_travel.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_travel.data.get("requires_2fa"))
+        self.assertNotIn("access", resp_travel.data)
+        mock_send_email.assert_called_once()
+        mock_send_email.reset_mock()
+
+        # Case 2: Suspicious IP
+        resp_suspicious = self.client.post(
+            "/api/v1/token/",
+            {"username": self.user_medium.username, "password": self.password},
+            format="json",
+            REMOTE_ADDR="203.0.113.88",
+            HTTP_USER_AGENT="RoamingBrowser/2.0",
+            HTTP_X_SUSPICIOUS_IP="true",
+        )
+        self.assertEqual(resp_suspicious.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_suspicious.data.get("requires_2fa"))
+        self.assertNotIn("access", resp_suspicious.data)
+        mock_send_email.assert_called_once()
+
+    def test_user_session_listing_via_bearer_token_without_cookie(self):
+        """User with multiple sessions calls GET /api/v1/users/sessions/ using HTTP_AUTHORIZATION=Bearer <access_token> without cookies."""
+        sess_current = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_cur_list",
+            device_name="Current Laptop",
+            is_active=True,
+        )
+        sess_other = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_oth_list",
+            device_name="Mobile Phone",
+            is_active=True,
+        )
+
+        refresh = RefreshToken.for_user(self.user_medium)
+        refresh["session_id"] = str(sess_current.id)
+        access = refresh.access_token
+        access["session_id"] = str(sess_current.id)
+
+        sess_current.refresh_token_jti = str(refresh.get("jti"))
+        sess_current.access_token_jti = str(access.get("jti"))
+        sess_current.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.get(
+            "/api/v1/users/sessions/",
+            HTTP_AUTHORIZATION=f"Bearer {str(access)}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sessions_data = (
+            response.data
+            if isinstance(response.data, list)
+            else response.data.get("results", [])
+        )
+        self.assertEqual(len(sessions_data), 2)
+
+        data_current = next(s for s in sessions_data if s["id"] == str(sess_current.id))
+        data_other = next(s for s in sessions_data if s["id"] == str(sess_other.id))
+
+        self.assertTrue(data_current["is_current"])
+        self.assertFalse(data_other["is_current"])
+
+    def test_user_session_revoke_others_via_bearer_token_without_cookie(self):
+        """User calls POST /api/v1/users/sessions/revoke_others/ using HTTP_AUTHORIZATION=Bearer <access_token> without cookies."""
+        sess_current = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_cur_rev",
+            device_name="Current PC",
+            is_active=True,
+        )
+        sess_other = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_oth_rev",
+            device_name="Remote PC",
+            is_active=True,
+        )
+
+        refresh = RefreshToken.for_user(self.user_medium)
+        refresh["session_id"] = str(sess_current.id)
+        access = refresh.access_token
+        access["session_id"] = str(sess_current.id)
+
+        sess_current.refresh_token_jti = str(refresh.get("jti"))
+        sess_current.access_token_jti = str(access.get("jti"))
+        sess_current.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/users/sessions/revoke_others/",
+            HTTP_AUTHORIZATION=f"Bearer {str(access)}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sess_current.refresh_from_db()
+        sess_other.refresh_from_db()
+
+        self.assertTrue(sess_current.is_active)
+        self.assertFalse(sess_other.is_active)
+
+    def test_user_session_trust_current_via_bearer_token_without_cookie(self):
+        """User calls POST /api/v1/users/sessions/trust_current/ using HTTP_AUTHORIZATION=Bearer <access_token> without cookies."""
+        sess_current = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_cur_trust",
+            device_name="Current Device",
+            is_active=True,
+        )
+
+        refresh = RefreshToken.for_user(self.user_medium)
+        refresh["session_id"] = str(sess_current.id)
+        access = refresh.access_token
+        access["session_id"] = str(sess_current.id)
+
+        sess_current.refresh_token_jti = str(refresh.get("jti"))
+        sess_current.access_token_jti = str(access.get("jti"))
+        sess_current.save(update_fields=["refresh_token_jti", "access_token_jti"])
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/users/sessions/trust_current/",
+            {"trust": True},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {str(access)}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get("device_trusted"))
+
+        sess_current.refresh_from_db()
+        self.assertIsNotNone(sess_current.trust_hash)
+
+    def test_cookie_token_refresh_capacitor_body_fallback(self):
+        """POST /api/v1/token/refresh/ with {"refresh": "<valid_refresh>"} without cookie, but with HTTP_X_CLIENT_PLATFORM="capacitor"."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=str(refresh.get("jti")),
+            device_name="Capacitor Device",
+            is_active=True,
+        )
+        refresh["session_id"] = str(session.id)
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/token/refresh/",
+            {"refresh": str(refresh)},
+            format="json",
+            HTTP_X_CLIENT_PLATFORM="capacitor",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+    def test_cookie_token_refresh_capacitor_origin_fallback(self):
+        """POST /api/v1/token/refresh/ with {"refresh": "<valid_refresh>"} without cookie, but with HTTP_ORIGIN="capacitor://localhost"."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=str(refresh.get("jti")),
+            device_name="Capacitor Device",
+            is_active=True,
+        )
+        refresh["session_id"] = str(session.id)
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/token/refresh/",
+            {"refresh": str(refresh)},
+            format="json",
+            HTTP_ORIGIN="capacitor://localhost",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+    def test_cookie_token_refresh_missing_cookie_and_body_rejected(self):
+        """POST /api/v1/token/refresh/ without cookie and without body refresh token returns 401."""
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post("/api/v1/token/refresh/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data.get("detail"), "Refresh token not found.")
+
+    def test_cookie_token_refresh_standard_body_success(self):
+        """POST /api/v1/token/refresh/ with {"refresh": "<valid_refresh>"} without cookie or custom headers succeeds."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=str(refresh.get("jti")),
+            device_name="Standard Client",
+            is_active=True,
+        )
+        refresh["session_id"] = str(session.id)
+
+        self.client.cookies.clear()
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/token/refresh/",
+            {"refresh": str(refresh)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+    def test_user_session_targeted_revoke_trust(self):
+        """POST /api/v1/users/sessions/{id}/revoke_trust/ revokes trust, marks session inactive, and blacklists tokens."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        jti = str(refresh.get("jti"))
+        access = refresh.access_token
+        access_jti = str(access.get("jti"))
+
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti,
+            access_token_jti=access_jti,
+            trust_hash="test_trust_hash_123",
+            device_name="Targeted Device",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.post(f"/api/v1/users/sessions/{session.id}/revoke_trust/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"status": "device_trust_and_session_revoked"})
+
+        session.refresh_from_db()
+        self.assertIsNone(session.trust_hash)
+        self.assertFalse(session.is_active)
+
+        # Verify refresh token is blacklisted by attempting POST /api/v1/token/refresh/ with cookie, expecting 401
+        self.client.logout()
+        self.client.cookies["refresh_token"] = str(refresh)
+        resp_refresh = self.client.post("/api/v1/token/refresh/")
+        self.assertEqual(resp_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_session_targeted_revoke_trust_current_clears_cookies(self):
+        """POST /api/v1/users/sessions/{id}/revoke_trust/ on current session clears device_trust_token and refresh_token cookies."""
+        refresh = RefreshToken.for_user(self.user_medium)
+        jti = str(refresh.get("jti"))
+        access = refresh.access_token
+        access_jti = str(access.get("jti"))
+
+        session = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti,
+            access_token_jti=access_jti,
+            trust_hash="test_trust_hash_current",
+            device_name="Current Device",
+            is_active=True,
+        )
+        refresh["session_id"] = str(session.id)
+        access["session_id"] = str(session.id)
+
+        self.client.force_authenticate(user=self.user_medium)
+        self.client.cookies["device_trust_token"] = "trust_cookie_val"
+        self.client.cookies["refresh_token"] = str(refresh)
+
+        response = self.client.post(f"/api/v1/users/sessions/{session.id}/revoke_trust/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"status": "device_trust_and_session_revoked"})
+
+        # Verify device_trust_token and refresh_token cookies are cleared in response
+        self.assertIn("device_trust_token", response.cookies)
+        self.assertIn("refresh_token", response.cookies)
+        self.assertEqual(response.cookies["device_trust_token"].value, "")
+        self.assertEqual(response.cookies["refresh_token"].value, "")
+
+    def test_user_session_revoke_trust_all(self):
+        """POST /api/v1/users/sessions/revoke_trust_all/ invalidates all trusted sessions, blacklists tokens, and deletes trust cookie."""
+        refresh1 = RefreshToken.for_user(self.user_medium)
+        jti1 = str(refresh1.get("jti"))
+        sess_trusted1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti1,
+            access_token_jti="acc_jti_1",
+            trust_hash="hash_1",
+            device_name="Trusted 1",
+            is_active=True,
+        )
+
+        refresh2 = RefreshToken.for_user(self.user_medium)
+        jti2 = str(refresh2.get("jti"))
+        sess_trusted2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti2,
+            access_token_jti="acc_jti_2",
+            trust_hash="hash_2",
+            device_name="Trusted 2",
+            is_active=True,
+        )
+
+        sess_untrusted = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted",
+            access_token_jti="acc_untrusted",
+            trust_hash=None,
+            device_name="Untrusted Device",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        self.client.cookies["device_trust_token"] = "current_trust_token"
+
+        response = self.client.post("/api/v1/users/sessions/revoke_trust_all/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data,
+            {"status": "all_device_trust_revoked", "revoked_count": 2},
+        )
+
+        sess_trusted1.refresh_from_db()
+        sess_trusted2.refresh_from_db()
+        sess_untrusted.refresh_from_db()
+
+        self.assertIsNone(sess_trusted1.trust_hash)
+        self.assertFalse(sess_trusted1.is_active)
+        self.assertIsNone(sess_trusted2.trust_hash)
+        self.assertFalse(sess_trusted2.is_active)
+        self.assertTrue(sess_untrusted.is_active)
+
+        # Verify refresh tokens of trusted sessions are blacklisted
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti=jti1).exists())
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti=jti2).exists())
+
+        # Verify response deleted device_trust_token cookie
+        self.assertIn("device_trust_token", response.cookies)
+        self.assertEqual(response.cookies["device_trust_token"].value, "")
+
+    def test_user_session_revoke_trust_cross_user_denied(self):
+        """Users cannot revoke trust for sessions belonging to other accounts (returns 404)."""
+        sess_other = UserSession.objects.create(
+            user=self.user_other,
+            refresh_token_jti="other_user_jti",
+            trust_hash="other_trust_hash",
+            device_name="Other Device",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.post(f"/api/v1/users/sessions/{sess_other.id}/revoke_trust/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        sess_other.refresh_from_db()
+        self.assertTrue(sess_other.is_active)
+        self.assertEqual(sess_other.trust_hash, "other_trust_hash")
+
+    def test_user_session_serializer_exposes_is_trusted_and_hides_trust_hash(self):
+        """GET /api/v1/users/sessions/ exposes is_trusted: bool and hides trust_hash."""
+        sess_trusted = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_trusted_ser",
+            trust_hash="secret_trust_hash_value",
+            device_name="Trusted Laptop",
+            is_active=True,
+        )
+        sess_untrusted = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted_ser",
+            trust_hash=None,
+            device_name="Untrusted Workstation",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.get("/api/v1/users/sessions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sessions_data = (
+            response.data
+            if isinstance(response.data, list)
+            else response.data.get("results", [])
+        )
+        data_trusted = next(s for s in sessions_data if s["id"] == str(sess_trusted.id))
+        data_untrusted = next(s for s in sessions_data if s["id"] == str(sess_untrusted.id))
+
+        self.assertIs(data_trusted.get("is_trusted"), True)
+        self.assertIs(data_untrusted.get("is_trusted"), False)
+
+        for session_item in sessions_data:
+            self.assertNotIn("trust_hash", session_item)
+
+    def test_user_session_devices_aggregation(self):
+        """GET /api/v1/users/sessions/devices/ aggregates active sessions by trust_hash or (device_name, user_agent)."""
+        self.client.force_authenticate(user=self.user_medium)
+        caller_refresh = RefreshToken.for_user(self.user_medium)
+        caller_jti = str(caller_refresh.get("jti"))
+        self.client.cookies["refresh_token"] = str(caller_refresh)
+
+        # Create 2 sessions sharing trust_hash="hash_alpha", device_name="Chrome on Linux"
+        sess_trusted_1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=caller_jti,
+            access_token_jti="acc_caller",
+            trust_hash="hash_alpha",
+            device_name="Chrome on Linux",
+            ip_address="192.168.1.10",
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+            is_active=True,
+            last_activity=timezone.now() - timedelta(minutes=10),
+        )
+        sess_trusted_2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_trusted_2",
+            access_token_jti="acc_trusted_2",
+            trust_hash="hash_alpha",
+            device_name="Chrome on Linux",
+            ip_address="192.168.1.11",
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0",
+            is_active=True,
+            last_activity=timezone.now() - timedelta(minutes=5),
+        )
+
+        # Create 2 untrusted sessions without trust_hash sharing device_name="Safari on macOS", user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)..."
+        ua_safari = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+        sess_untrusted_1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted_1",
+            access_token_jti="acc_untrusted_1",
+            trust_hash=None,
+            device_name="Safari on macOS",
+            ip_address="10.0.0.1",
+            user_agent=ua_safari,
+            is_active=True,
+            last_activity=timezone.now() - timedelta(hours=1),
+        )
+        sess_untrusted_2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted_2",
+            access_token_jti="acc_untrusted_2",
+            trust_hash=None,
+            device_name="Safari on macOS",
+            ip_address="10.0.0.2",
+            user_agent=ua_safari,
+            is_active=True,
+            last_activity=timezone.now() - timedelta(hours=2),
+        )
+
+        # Create 1 distinct untrusted session with device_name="Firefox on Windows", user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
+        ua_firefox = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
+        sess_untrusted_3 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_untrusted_3",
+            access_token_jti="acc_untrusted_3",
+            trust_hash=None,
+            device_name="Firefox on Windows",
+            ip_address="172.16.0.5",
+            user_agent=ua_firefox,
+            is_active=True,
+            last_activity=timezone.now() - timedelta(days=1),
+        )
+
+        response = self.client.get("/api/v1/users/sessions/devices/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        devices = response.data
+        self.assertEqual(len(devices), 3)
+
+        expected_fields = {
+            "id",
+            "device_name",
+            "ip_address",
+            "last_activity",
+            "is_trusted",
+            "is_current",
+            "sessions_count",
+        }
+        for dev in devices:
+            self.assertTrue(expected_fields.issubset(dev.keys()))
+
+        trusted_dev = next(d for d in devices if d["device_name"] == "Chrome on Linux")
+        safari_dev = next(d for d in devices if d["device_name"] == "Safari on macOS")
+        firefox_dev = next(d for d in devices if d["device_name"] == "Firefox on Windows")
+
+        self.assertEqual(trusted_dev["sessions_count"], 2)
+        self.assertTrue(trusted_dev["is_trusted"])
+        self.assertTrue(trusted_dev["is_current"])
+
+        self.assertEqual(safari_dev["sessions_count"], 2)
+        self.assertFalse(safari_dev["is_trusted"])
+        self.assertFalse(safari_dev["is_current"])
+
+        self.assertEqual(firefox_dev["sessions_count"], 1)
+        self.assertFalse(firefox_dev["is_trusted"])
+        self.assertFalse(firefox_dev["is_current"])
+
+    def test_user_session_revoke_trust_cleans_up_sibling_sessions(self):
+        """POST /api/v1/users/sessions/{id}/revoke_trust/ revokes trust and deactivates all sibling sessions sharing trust_hash."""
+        refresh1 = RefreshToken.for_user(self.user_medium)
+        jti1 = str(refresh1.get("jti"))
+        sess1 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti1,
+            access_token_jti="acc_sess1",
+            trust_hash="shared_hash_beta",
+            device_name="Device Tab 1",
+            is_active=True,
+        )
+
+        refresh2 = RefreshToken.for_user(self.user_medium)
+        jti2 = str(refresh2.get("jti"))
+        sess2 = UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti=jti2,
+            access_token_jti="acc_sess2",
+            trust_hash="shared_hash_beta",
+            device_name="Device Tab 2",
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=self.user_medium)
+        response = self.client.post(f"/api/v1/users/sessions/{sess1.id}/revoke_trust/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        sess1.refresh_from_db()
+        sess2.refresh_from_db()
+
+        self.assertIsNone(sess1.trust_hash)
+        self.assertFalse(sess1.is_active)
+        self.assertIsNone(sess2.trust_hash)
+        self.assertFalse(sess2.is_active)
+
+        self.client.logout()
+        self.client.cookies["refresh_token"] = str(refresh2)
+        resp_refresh = self.client.post("/api/v1/token/refresh/")
+        self.assertEqual(resp_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_jwt_tokens_contain_tenant_id_and_cs_tenant_id(self):
+        """Tokens generated by CustomTokenObtainPairSerializer, OTP verify, and refresh include tenant_id and cs_tenant_id."""
+        from django.core.cache import cache
+        from rest_framework_simplejwt.tokens import AccessToken
+        from users.serializers import CustomTokenObtainPairSerializer, CustomTokenRefreshSerializer
+
+        # 1. CustomTokenObtainPairSerializer.get_token
+        refresh = CustomTokenObtainPairSerializer.get_token(self.user_medium)
+        self.assertEqual(refresh.get("tenant_id"), self.tenant_medium.id)
+        self.assertEqual(refresh.access_token.get("tenant_id"), self.tenant_medium.id)
+
+        # User without tenant has None
+        user_no_tenant = User.objects.create_user(
+            username="user_no_tenant",
+            email="notenant@example.com",
+            password=self.password,
+            tenant=None,
+        )
+        refresh_no_tenant = CustomTokenObtainPairSerializer.get_token(user_no_tenant)
+        self.assertIsNone(refresh_no_tenant.get("tenant_id"))
+        self.assertIsNone(refresh_no_tenant.access_token.get("tenant_id"))
+
+        # 2. Refresh token via CustomTokenRefreshSerializer
+        refresh_serializer = CustomTokenRefreshSerializer()
+        validated_data = refresh_serializer.validate({"refresh": str(refresh)})
+        refreshed_access = AccessToken(validated_data["access"])
+        self.assertEqual(refreshed_access.get("tenant_id"), self.tenant_medium.id)
+
+        # 3. Via login endpoint / OTP verify view
+        cache.set(
+            f"otp_data_{self.user_medium.username.lower()}",
+            {"code": "123456", "attempts": 0, "user_id": self.user_medium.id, "username": self.user_medium.username},
+            timeout=300,
+        )
+        resp = self.client.post(
+            "/api/v1/users/auth/otp/verify/",
+            {"username": self.user_medium.username, "code": "123456"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        access_token_str = resp.data["access"]
+        verified_access = AccessToken(access_token_str)
+        self.assertEqual(verified_access.get("tenant_id"), self.tenant_medium.id)
+        refresh_cookie_str = resp.cookies["refresh_token"].value
+        verified_refresh = RefreshToken(refresh_cookie_str)
+        self.assertEqual(verified_refresh.get("tenant_id"), self.tenant_medium.id)
+
+        # 4. Via login step 1 adaptive bypass (CookieTokenObtainPairView)
+        trust_token = "cookie_token_test_claim"
+        trust_hash = hashlib.sha256(trust_token.encode("utf-8")).hexdigest()
+        UserSession.objects.create(
+            user=self.user_medium,
+            refresh_token_jti="jti_seed_claim",
+            device_name="Chrome en Linux",
+            trust_hash=trust_hash,
+            ip_address="127.0.0.1",
+            user_agent="TestUserAgent/1.0",
+            is_active=True,
+        )
+        self.client.cookies["device_trust_token"] = trust_token
+        with patch("users.views.get_client_ip", return_value="127.0.0.1"):
+            bypass_resp = self.client.post(
+                "/api/v1/token/",
+                {"username": self.user_medium.username, "password": self.password},
+                format="json",
+                HTTP_USER_AGENT="TestUserAgent/1.0",
+            )
+        self.assertEqual(bypass_resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(bypass_resp.data.get("requires_2fa"))
+        bypass_access = AccessToken(bypass_resp.data["access"])
+        self.assertEqual(bypass_access.get("tenant_id"), self.tenant_medium.id)
+        bypass_refresh = RefreshToken(bypass_resp.cookies["refresh_token"].value)
+        self.assertEqual(bypass_refresh.get("tenant_id"), self.tenant_medium.id)
+
+
+
+

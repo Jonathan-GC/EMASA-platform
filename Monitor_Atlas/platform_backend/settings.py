@@ -74,6 +74,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "platform_backend.middleware.JWTAuthMiddleware",
+    "organizations.middleware.TenantContextMiddleware",
     "auditlog.middleware.AuditlogMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -170,15 +171,16 @@ STATIC_URL = "static/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
+R2_ACCESS_KEY_ID = env("R2_ACCESS_KEY_ID", default=None)
+R2_SECRET_ACCESS_KEY = env("R2_SECRET_ACCESS_KEY", default=None)
+R2_BUCKET_NAME = env("R2_BUCKET_NAME", default=None)
+R2_ENDPOINT_URL = env("R2_ENDPOINT_URL", default=None)
+R2_CUSTOM_DOMAIN = env("R2_CUSTOM_DOMAIN", default=None)
+R2_REGION_NAME = env("R2_REGION_NAME", default="auto")
+
 USE_R2 = env.bool("USE_R2", default=False)
 
 if USE_R2:
-    R2_ACCESS_KEY_ID = env("R2_ACCESS_KEY_ID", default=None)
-    R2_SECRET_ACCESS_KEY = env("R2_SECRET_ACCESS_KEY", default=None)
-    R2_BUCKET_NAME = env("R2_BUCKET_NAME", default=None)
-    R2_ENDPOINT_URL = env("R2_ENDPOINT_URL", default=None)
-    R2_CUSTOM_DOMAIN = env("R2_CUSTOM_DOMAIN", default=None)
-    R2_REGION_NAME = env("R2_REGION_NAME", default="auto")
 
     STORAGES = {
         "default": {
@@ -220,6 +222,16 @@ CORS_ALLOWED_ORIGINS = config(
     cast=lambda v: [s.strip() for s in v.split(",")],
 )
 CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default=True, cast=bool)
+
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-tenant-id",
+    "x-workspace-id",
+    "x-client-platform",
+    "x-service-api-key",
+    "x-api-key",
+]
 
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
@@ -272,7 +284,7 @@ SIMPLE_JWT = {
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
     "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "AUTH_TOKEN_CLASSES": ("users.tokens.SessionAccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
     "JTI_CLAIM": "jti",
