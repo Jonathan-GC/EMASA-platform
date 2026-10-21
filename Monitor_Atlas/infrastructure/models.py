@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from organizations.models import Workspace
 from chirpstack.models import DeviceProfile
 from organizations.hasher import generate_id
@@ -247,9 +249,81 @@ class Measurements(models.Model):
     ref = models.CharField(max_length=100, blank=True, null=True)
     label = models.CharField(max_length=100, blank=True, null=True)
     icon = models.CharField(max_length=50, blank=True, null=True)
+    require_consent = models.BooleanField(
+        default=True,
+        help_text="Indicates whether collecting this measurement for model training requires explicit tenant consent",
+    )
 
     def __str__(self):
         return f"{self.device.name} - {self.unit}"
+
+
+class DeviceConsent(models.Model):
+    STATUS_CHOICES = [
+        ("ACTIVE", "Active"),
+        ("REVOKED", "Revoked"),
+        ("SUPERSEDED", "Superseded"),
+    ]
+
+    id = models.CharField(
+        max_length=16, primary_key=True, default=generate_id, editable=False
+    )
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="consents")
+    tenant = models.ForeignKey(
+        "organizations.Tenant", on_delete=models.CASCADE, related_name="device_consents"
+    )
+    workspace = models.ForeignKey(
+        Workspace, on_delete=models.CASCADE, related_name="device_consents"
+    )
+    version = models.PositiveIntegerField(default=1)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="ACTIVE", db_index=True
+    )
+    terms_version = models.CharField(max_length=50, default="v1.0")
+    device_signature = models.CharField(max_length=64)
+    consented_measurements = models.ManyToManyField(
+        Measurements, related_name="device_consents", blank=True
+    )
+    granted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="granted_device_consents",
+    )
+    granted_at = models.DateTimeField(default=timezone.now)
+    revoked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="revoked_device_consents",
+    )
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revocation_reason = models.TextField(null=True, blank=True, default="")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True, default="")
+
+    class Meta:
+        ordering = ["-version"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["device"],
+                condition=models.Q(status="ACTIVE"),
+                name="unique_active_device_consent",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.pk and self.device_id:
+            invalid_measurements = self.consented_measurements.exclude(device_id=self.device_id)
+            if invalid_measurements.exists():
+                from django.core.exceptions import ValidationError
+                raise ValidationError("All consented measurements must belong to the associated device.")
+
+    def __str__(self):
+        return f"{self.device.dev_eui} - v{self.version} ({self.status})"
 
 
 auditlog.register(
@@ -267,3 +341,5 @@ auditlog.register(Type)
 auditlog.register(Activation)
 auditlog.register(Measurements)
 auditlog.register(Location)
+auditlog.register(DeviceConsent)
+

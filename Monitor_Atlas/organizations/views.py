@@ -6,7 +6,7 @@ from .models import Workspace, Tenant, Subscription
 from roles.models import WorkspaceMembership
 from .serializers import WorkspaceSerializer, TenantSerializer, SubscriptionSerializer
 
-from roles.permissions import HasPermission
+from roles.permissions import HasContextualPermission, HasPermission
 from guardian.shortcuts import get_objects_for_user
 
 from chirpstack.chirpstack_api import (
@@ -48,39 +48,81 @@ from platform_backend.audit_mixins import AuditActionMixin
 class WorkspaceViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [HasContextualPermission]
     scope = "workspace"
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_superuser:
-            return Workspace.objects.all()
-        return get_objects_for_user(
-            user,
-            "organizations.view_workspace",
-            klass=Workspace,
-            accept_global_perms=False,
+        active_tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        is_global_user = user.is_superuser or bool(
+            getattr(user, "tenant", None) and user.tenant.is_global
+        )
+        has_explicit_header = bool(
+            (hasattr(self.request, "headers") and self.request.headers.get("X-Tenant-ID"))
+            or (hasattr(self.request, "META") and self.request.META.get("HTTP_X_TENANT_ID"))
         )
 
+        # Resolve hall-pass workspace IDs once (empty for superusers).
+        if not user.is_superuser:
+            from support.queryset import get_pass_workspace_ids
+            pass_ws_ids = get_pass_workspace_ids(user)
+        else:
+            pass_ws_ids = []
+
+        if user.is_superuser:
+            qs = Workspace.objects.all()
+        else:
+            qs = get_objects_for_user(
+                user,
+                "organizations.view_workspace",
+                klass=Workspace,
+                accept_global_perms=False,
+            )
+            # Hall passes do not create Guardian rows; union pass-covered
+            # workspaces so they appear in the listing.
+            if pass_ws_ids:
+                qs = (qs | Workspace.objects.filter(id__in=pass_ws_ids)).distinct()
+
+        if has_explicit_header and active_tenant:
+            qs = qs.filter(tenant=active_tenant)
+        elif not is_global_user:
+            if active_tenant:
+                # Preserve pass-covered workspaces even when they belong
+                # to a different tenant than the user's own.
+                if pass_ws_ids:
+                    from django.db.models import Q
+                    qs = qs.filter(Q(tenant=active_tenant) | Q(id__in=pass_ws_ids))
+                else:
+                    qs = qs.filter(tenant=active_tenant)
+            else:
+                # No tenant context — return only pass-covered workspaces
+                # if any, otherwise nothing.
+                if not pass_ws_ids:
+                    qs = Workspace.objects.none()
+
+        return qs
+
     def perform_create(self, serializer):
-        instance = serializer.save()
         user = self.request.user
-        user_tenant = user.tenant
-        workspace_tenant = instance.tenant
+        active_tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
         global_tenant = get_global_tenant()
 
-        # Validate tenant membership before assigning any permissions
-        if (
-            user_tenant != workspace_tenant
-            and not user.is_superuser
-            and user_tenant != global_tenant
-        ):
+        workspace_tenant = serializer.validated_data.get("tenant")
+
+        is_global_user = user.is_superuser or bool(
+            getattr(user, "tenant", None)
+            and (user.tenant.is_global or (global_tenant and user.tenant == global_tenant))
+        )
+
+        if not is_global_user and (active_tenant is None or workspace_tenant != active_tenant):
             logger.warning(
-                f"User tenant {user_tenant} does not match workspace tenant {workspace_tenant}"
+                f"Active tenant {active_tenant} does not match workspace tenant {workspace_tenant}"
             )
             raise PermissionError(
                 "User does not have permission to create workspace for this tenant"
             )
+
+        instance = serializer.save()
 
         workspace_membership, created = WorkspaceMembership.objects.get_or_create(
             workspace=instance, user=user, role=get_or_create_admin_role(instance)
@@ -108,16 +150,25 @@ class WorkspaceViewSet(AuditActionMixin, viewsets.ModelViewSet):
 class TenantViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [HasContextualPermission]
     scope = "tenant"
 
     def get_queryset(self):
         user = self.request.user
+        active_tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        has_explicit_header = bool(
+            (hasattr(self.request, "headers") and self.request.headers.get("X-Tenant-ID"))
+            or (hasattr(self.request, "META") and self.request.META.get("HTTP_X_TENANT_ID"))
+        )
 
         if user.is_superuser:
+            if has_explicit_header and active_tenant:
+                return Tenant.objects.filter(id=active_tenant.id)
             return Tenant.objects.all()
 
-        if user.tenant.name == "Monitor":
+        if getattr(user, "tenant", None) and user.tenant.is_global:
+            if has_explicit_header and active_tenant:
+                return Tenant.objects.filter(id=active_tenant.id)
             return get_objects_for_user(
                 user,
                 "organizations.view_tenant",
@@ -125,8 +176,8 @@ class TenantViewSet(AuditActionMixin, viewsets.ModelViewSet):
                 accept_global_perms=False,
             )
 
-        if user.tenant:
-            return Tenant.objects.filter(id=user.tenant.id)
+        if active_tenant:
+            return Tenant.objects.filter(id=active_tenant.id)
 
         return Tenant.objects.none()
 
@@ -305,7 +356,7 @@ class TenantViewSet(AuditActionMixin, viewsets.ModelViewSet):
 class SubscriptionViewSet(AuditActionMixin, viewsets.ModelViewSet):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [IsAuthenticated]
     scope = "subscription"
 
     def get_queryset(self):

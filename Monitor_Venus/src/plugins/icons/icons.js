@@ -135,7 +135,7 @@ import {
   locateOutline,
   shapesOutline,
   calendarOutline,
-  pricetagOutline
+  pricetagOutline,
 } from 'ionicons/icons'
 
 // Custom SVG icon
@@ -147,7 +147,22 @@ import antenna from '@assets/icons/antenna.svg'
 import functionIco from '@assets/icons/function.svg'
 import target from '@assets/icons/target.svg'
 import voltage from '@assets/icons/voltage.svg'
+import funnel from '@assets/icons/funnel.svg'
+import funnelClear from '@assets/icons/funnel_clear.svg'
+import restore from '@assets/icons/restore.svg'
 
+// Logos de marca de Font Awesome (navegadores y plataformas, para sesiones).
+// Solo se importan los SVG crudos como assets de Vite; sin fuentes, CSS ni
+// runtime de Font Awesome. Licencia FA Free: CC BY 4.0 (incluida en el paquete).
+import faChrome from '@fortawesome/fontawesome-free/svgs/brands/chrome.svg'
+import faFirefox from '@fortawesome/fontawesome-free/svgs/brands/firefox-browser.svg'
+import faEdge from '@fortawesome/fontawesome-free/svgs/brands/edge.svg'
+import faSafari from '@fortawesome/fontawesome-free/svgs/brands/safari.svg'
+import faOpera from '@fortawesome/fontawesome-free/svgs/brands/opera.svg'
+import faAndroid from '@fortawesome/fontawesome-free/svgs/brands/android.svg'
+import faApple from '@fortawesome/fontawesome-free/svgs/brands/apple.svg'
+import faWindows from '@fortawesome/fontawesome-free/svgs/brands/windows.svg'
+import faLinux from '@fortawesome/fontawesome-free/svgs/brands/linux.svg'
 
 export const icons = {
   // Action icons
@@ -202,6 +217,7 @@ export const icons = {
   'bookmark': bookmarkOutline,
   'analytics': analyticsOutline,
   'package': packageOutline,
+  'restore': restore,
   
 
   // Hardware icons
@@ -225,6 +241,18 @@ export const icons = {
   'antenna': antenna,
   'radio': radioOutline,
   'speedometer': speedometerOutline,
+
+  // Logos de marca de Font Awesome (navegadores y plataformas, para sesiones)
+  'fa_chrome': faChrome,
+  'fa_firefox': faFirefox,
+  'fa_edge': faEdge,
+  'fa_safari': faSafari,
+  'fa_opera': faOpera,
+  'fa_android': faAndroid,
+  'fa_apple': faApple,
+  'fa_windows': faWindows,
+  'fa_linux': faLinux,
+
   // Location icons
   'location': locationOutline,
   'map': mapOutline,
@@ -294,7 +322,9 @@ export const icons = {
   'locate': locateOutline,
   'shapes': shapesOutline,
   'calendar': calendarOutline,
-  'pricetag': pricetagOutline 
+  'pricetag': pricetagOutline,
+  'funnel': funnel,
+  'funnel_clear': funnelClear,
 }
 
 // Helper function to get icon by name

@@ -129,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted, computed } from 'vue';
+import { ref, inject, computed } from 'vue';
 import { 
     IonPage, 
     IonContent, 
@@ -142,7 +142,8 @@ import {
     IonIcon,
     IonBadge,
     IonSpinner,
-    IonBackButton
+    IonBackButton,
+    onIonViewWillEnter
 } from '@ionic/vue';
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import API from '@/utils/api/api';
@@ -247,8 +248,9 @@ const formatTime = (timestamp) => {
     });
 };
 
-// Load notifications on mount
-onMounted(() => {
+// Cargar notificaciones cada vez que se entra a la página.
+// Ionic cachea las vistas: onMounted solo se dispararía la primera vez.
+onIonViewWillEnter(() => {
     fetchNotifications();
 });
 </script>

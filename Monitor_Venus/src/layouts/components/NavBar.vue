@@ -36,6 +36,8 @@
         :show-tenant-badge="true"
         @click="handleProfileClick"
       />
+
+      <WorkspaceSwitcher v-if="authStore.isAuthenticated && authStore.availableWorkspaces.length > 0" />
       
       <!-- Links del navegador -->
       <div class="nav-links">
@@ -66,7 +68,6 @@
             Notificationes
           </router-link>
 
-
           <router-link
               v-if="canAccessRoute(['root', 'admin', 'tenant_admin'])"
               :to="paths.AUDIT"
@@ -78,6 +79,19 @@
                 :icon="icons.time"
             ></ion-icon>
             Auditoría
+          </router-link>
+
+          <router-link
+              v-if="canAccessRoute(['root'])"
+              :to="paths.BACKUPS"
+              class="nav-link"
+              :class="{ active: $route.path === paths.BACKUPS }"
+              @click="closeNavbar"
+          >
+            <ion-icon
+                :icon="icons.server"
+            ></ion-icon>
+            Backups
           </router-link>
         </template>
         
@@ -154,8 +168,6 @@
             ></ion-icon>
             Ubicaciones
           </router-link>
-
-          <!-- Auditoría: root, admin, tenant_admin -->
           
         </template>
 
@@ -257,6 +269,17 @@
           Inbox
         </router-link>
 
+        <router-link
+          v-if="canAccessRoute(['root', 'admin'])"
+          :to="paths.SUPPORT_MEMBERS"
+          class="nav-link"
+          :class="{ active: $route.path === paths.SUPPORT_MEMBERS }"
+          @click="closeNavbar"
+        >
+          <ion-icon :icon="icons.shield"></ion-icon>
+          Miembros de Soporte
+        </router-link>
+
         <hr class="divider"/>
 
         <!-- Enlaces de autenticación -->
@@ -282,6 +305,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { paths } from "@/plugins/router/paths"
 import BtnLogout from "@layouts/components/BtnLogout.vue";
 import UserAvatar from "@/components/common/UserAvatar.vue";
+import WorkspaceSwitcher from "@/layouts/components/WorkspaceSwitcher.vue";
 import { useAuthStore } from '@/stores/authStore'
 
 const icons = inject('icons', {})

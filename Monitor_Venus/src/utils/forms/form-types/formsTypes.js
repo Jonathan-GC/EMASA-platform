@@ -23,5 +23,7 @@ export const EntityTypes = [
   "user",
   "measurement",
   "role",
-  "device_type"
+  "device_type",
+  "support_member",
+  "backup"
 ];

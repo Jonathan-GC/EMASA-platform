@@ -22,6 +22,11 @@
           <ion-label>Activación</ion-label>
         </ion-tab-button>
 
+        <ion-tab-button tab="consent">
+          <ion-icon :icon="icons.shield"></ion-icon>
+          <ion-label>Consentimiento</ion-label>
+        </ion-tab-button>
+
         <ion-tab-button tab="measurements">
           <ion-icon :icon="icons.analytics"></ion-icon>
           <ion-label>Variables</ion-label>
@@ -320,6 +325,18 @@
         </ion-content>
       </ion-tab>
 
+      <!-- Consent Tab -->
+      <ion-tab tab="consent">
+        <ion-content class="ion-padding custom">
+          <div class="tab-content">
+            <TabsDeviceConsent
+              :device-id="deviceId || route.params.device_id"
+              :measurements="measurements || []"
+            />
+          </div>
+        </ion-content>
+      </ion-tab>
+
       <!-- Measurements Tab -->
       <ion-tab tab="measurements">
         <ion-content class="ion-padding custom">
@@ -467,8 +484,9 @@
             </div>
           </div>
 
-          <!-- Floating Action Buttons -->
+          <!-- Floating Action Buttons (mobile + desktop by design) -->
           <FloatingActionButtons 
+            :mobile-only="false"
             entity-type="measurement"
             @refresh="fetchMeasurements(true)"
             @itemCreated="handleMeasurementCreated"

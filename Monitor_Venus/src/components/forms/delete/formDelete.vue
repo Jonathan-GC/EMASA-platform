@@ -151,6 +151,7 @@ async function deleteItem() {  // Renamed function
       'user_integra': API.USERS_INTEGRA,
       'user_external': API.USERS,
       'role': API.ROLE,
+      'support_member': API.SUPPORT_MEMBERSHIP,
       'functionary_profile': API.FUNCTIONARY_PROFILES,
       'student_profile': API.STUDENT_PROFILES,
       'external_profile': API.EXTERNAL_USER_PROFILES,

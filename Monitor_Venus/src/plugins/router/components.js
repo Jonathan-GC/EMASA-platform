@@ -17,6 +17,7 @@ export const components = {
     USER_DETAIL: () => import('@views/users/detail/index.vue'),
     LOGIN: () => import('@views/auth/login/index.vue'),
     OTP: () => import('@views/auth/otp/index.vue'),
+    TRUST: () => import('@views/auth/trust/index.vue'),
     GOOGLE_AUTH: () => import('@views/auth/google/callback/index.vue'),
     REGISTER: () => import('@views/auth/signup/index.vue'),
     RESET_PASSWORD_REQUEST: () => import('@views/auth/reset-password/request.vue'),
@@ -30,6 +31,7 @@ export const components = {
     UNAUTHORIZED: () => import('@views/UnauthorizedView.vue'),
     TENANT_SETUP: () => import('@views/auth/tenant-setup/index.vue'),
     AUDIT: () => import('@views/audit/index.vue'),
+    BACKUPS: () => import('@views/backups/index.vue'),
     NOT_FOUND: () => import('@views/NotFound.vue'),
 
     
@@ -37,6 +39,7 @@ export const components = {
     SUPPORT: () => import('@views/support/index.vue'),
     INBOX: () => import('@views/inbox/index.vue'),
     CONVERSATION: () => import('@views/conversation/index.vue'),
+    SUPPORT_MEMBERS: () => import('@views/support-members/index.vue'),
     
 
 }

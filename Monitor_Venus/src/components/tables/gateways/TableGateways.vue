@@ -241,7 +241,6 @@
 
     <!-- Floating Action Buttons (Mobile Only) -->
     <FloatingActionButtons 
-      v-if="isMobile"
       entity-type="gateway"
       @refresh="fetchGateways"
       @itemCreated="handleItemRefresh"

@@ -1,3 +1,5 @@
+import { jwtDecode } from 'jwt-decode';
+
 // Helper to get API base URL from env or fallback
 function getApiBaseUrl() {
     const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
@@ -39,12 +41,20 @@ class API {
     USER_PROFILE(userId) {
         return `users/user/${userId}/profile/`
     }
+    TRANSFER_TENANT(userId) {
+        return `users/user/${userId}/transfer_tenant/`
+    }
 
     //----[AUTH]----
     TOKEN = 'token/'
     REFRESH_TOKEN = 'token/refresh/'
     CSRF_TOKEN = 'csrf/'
+    OTP_REQUEST = 'users/auth/otp/request/'
     OTP_VERIFY = 'users/auth/otp/verify/'
+    MFA_STATUS = 'users/auth/mfa/status/'
+    MFA_TOTP_SETUP = 'users/auth/mfa/totp/setup/'
+    MFA_TOTP_ACTIVATE = 'users/auth/mfa/totp/activate/'
+    MFA_TOTP_DEACTIVATE = 'users/auth/mfa/totp/deactivate/'
     LOGOUT = 'logout/';
     GOOGLE_LOGIN_URL = 'users/auth/google/url/';
     GOOGLE_CALLBACK = 'users/auth/google/callback/';
@@ -61,6 +71,21 @@ class API {
     WORKSPACE = 'organizations/workspace/'
     SUBSCRIPTION = 'organizations/subscription/'
 
+    //----[SESSIONS]----
+    SESSIONS = 'users/sessions/'
+    // Sesiones activas agregadas por dispositivo (trust_hash o UA+nombre)
+    SESSIONS_DEVICES = 'users/sessions/devices/'
+    SESSIONS_REVOKE_OTHERS = 'users/sessions/revoke_others/'
+    SESSIONS_TRUST_CURRENT = 'users/sessions/trust_current/'
+    // Revoca la confianza de un dispositivo y termina su sesión
+    SESSIONS_REVOKE_TRUST_ALL = 'users/sessions/revoke_trust_all/'
+    SESSIONS_REVOKE(sessionId) {
+        return `users/sessions/${sessionId}/revoke/`
+    }
+    SESSIONS_REVOKE_TRUST(sessionId) {
+        return `users/sessions/${sessionId}/revoke_trust/`
+    }
+
     //----[ROLES]----
     ROLE = 'roles/role/'
     ROLE_PERMISSION = 'roles/role-permission/'
@@ -73,6 +98,7 @@ class API {
     }
     PERMISSION_KEY = 'roles/permission-key/'
     WORKSPACE_MEMBERSHIP = 'roles/workspace-membership/'
+    ROLE_CATALOG = 'roles/catalog/'
     ASSIGNABLE_PERMISSIONS(roleId) {
         return `roles/role/${roleId}/get_assignable_permissions/`
     }
@@ -124,6 +150,22 @@ class API {
     }
     DEVICE_UPDATE_MEASUREMENTS='infrastructure/device/update_measurement/'
     DEVICE_DELETE_MEASUREMENTS='infrastructure/device/delete_measurement/'
+
+//----[CONSENT]----
+    // Consentimiento de consumo de datos del dispositivo para entrenamiento de IA
+    CONSENTS = 'infrastructure/consents/'
+    DEVICE_CONSENT(deviceId) {
+        return `infrastructure/device/${deviceId}/consent/`
+    }
+    DEVICE_CONSENT_HISTORY(deviceId) {
+        return `infrastructure/device/${deviceId}/consent/history/`
+    }
+    DEVICE_CONSENT_ACCEPT(deviceId) {
+        return `infrastructure/device/${deviceId}/consent/accept/`
+    }
+    DEVICE_CONSENT_REVOKE(deviceId) {
+        return `infrastructure/device/${deviceId}/consent/revoke/`
+    }
 
 
     //----[WEBSOCKET]----
@@ -183,6 +225,11 @@ class API {
     SUPPORT_TICKET = 'support/ticket/'
     ATTACMEENT_CREATE = 'support/attachment/'
     GET_TYPES = 'support/ticket/get_all_types/'
+    SUPPORT_MEMBERSHIP = 'support/support_membership/'
+
+    SUPPORT_MEMBERSHIP_DETAIL(id) {
+        return `support/support_membership/${id}/`
+    }
 
 
     //----[INBOX]----
@@ -194,6 +241,27 @@ class API {
     
     DELEGATE(ticketId){
         return `support/ticket/${ticketId}/delegate/`
+    }
+
+    GRANT_DIAGNOSTIC_PASS(ticketId){
+        return `support/ticket/${ticketId}/grant_diagnostic_pass/`
+    }
+
+    REVOKE_DIAGNOSTIC_PASS(ticketId){
+        return `support/ticket/${ticketId}/revoke_diagnostic_pass/`
+    }
+
+    DIAGNOSTIC_PASSES = 'support/diagnostic-passes/'
+
+    //----[HALL PASS]----
+    UPGRADE_HALL_PASS(ticketId){
+        return `support/ticket/${ticketId}/upgrade_hall_pass/`
+    }
+
+    HALL_PASSES = 'support/hall-passes/'
+
+    HALL_PASS(passId){
+        return `support/hall-passes/${passId}/`
     }
 
     //----[CONVERSATION]----
@@ -215,6 +283,13 @@ class API {
     MODEL = 'system/models/'
     APPS = 'system/apps/'
     SYSTEM_HEALTH = 'system/health/'
+    BACKUPS = 'system/backups/'
+    BACKUP_DETAIL(backupId) {
+        return `system/backups/${backupId}/`
+    }
+    BACKUP_DOWNLOAD_URL(backupId) {
+        return `system/backups/${backupId}/download_url/`
+    }
 
     static instance;
 
@@ -412,6 +487,50 @@ class API {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
+        // Agregar X-Tenant-ID si hay un tenant activo en localStorage
+        // Los callers pueden pasar un header X-Tenant-ID explícito (incluso '')
+        // para sobrescribir o suprimir el contexto por defecto.
+        const activeTenantId = localStorage.getItem('active_tenant_id');
+        if (activeTenantId && !Object.prototype.hasOwnProperty.call(headers, 'X-Tenant-ID')) {
+            headers['X-Tenant-ID'] = activeTenantId;
+        }
+        // Fallback to token-based tenant ID if not set in headers
+        if (!Object.prototype.hasOwnProperty.call(headers, 'X-Tenant-ID')) {
+            const token = this.getValidToken();
+            if (token) {
+                const decoded = jwtDecode(token);
+                if (decoded && decoded.tenant_id) {
+                    headers['X-Tenant-ID'] = decoded.tenant_id;
+                }
+            }
+        }
+
+        // Agregar X-Workspace-ID del workspace activo (selección de UI, no va en el JWT).
+        // Los callers pueden pasar un header X-Workspace-ID explícito (incluso '')
+        // para sobrescribir o suprimir el contexto por defecto.
+        const activeWorkspaceId = localStorage.getItem('active_workspace_id');
+        if (activeWorkspaceId && !Object.prototype.hasOwnProperty.call(headers, 'X-Workspace-ID')) {
+            headers['X-Workspace-ID'] = activeWorkspaceId;
+        }
+
+        // Usuarios de soporte con pase de acceso (hall pass): el backend resuelve
+        // el contexto desde el pase activo, así que NO se envían X-Tenant-ID ni
+        // X-Workspace-ID en ninguna petición. Se eliminan incluso si un caller
+        // los pasó explícitamente o si ya venían de localStorage.
+        const contextToken = this.getValidToken();
+        if (contextToken) {
+            try {
+                const decodedContext = jwtDecode(contextToken);
+                if (decodedContext?.is_support && decodedContext?.has_hall_pass) {
+                    delete headers['X-Tenant-ID'];
+                    delete headers['X-Workspace-ID'];
+                    return headers;
+                }
+            } catch {
+                // Token no decodificable: comportamiento normal (se envían los headers)
+            }
+        }
+
         return headers;
     }
 
@@ -451,7 +570,7 @@ class API {
     }
 
     // Método auxiliar para manejar respuestas HTTP
-    async handleResponse(response, endpoint) {
+    async handleResponse(response, endpoint, responseType = null) {
         // Verificar si la respuesta fue exitosa (status 200-299)
         if (!response.ok) {
             // Crear error personalizado basado en el código de estado
@@ -478,29 +597,29 @@ class API {
             }
 
             // Lanzar error específico según el código de estado
-            switch (response.status) {
-                case 400:
-                    throw new Error(`Bad Request (400): ${errorData.statusText} - ${endpoint}`);
-                case 401:
-                    throw new Error(`Unauthorized (401): ${errorData.statusText} - ${endpoint}`);
-                case 403:
-                    throw new Error(`Forbidden (403): ${errorData.statusText} - ${endpoint}`);
-                case 404:
-                    throw new Error(`Not Found (404): ${errorData.statusText} - ${endpoint}`);
-                case 422:
-                    throw new Error(`Unprocessable Entity (422): ${errorData.statusText} - ${endpoint}`);
-                case 500:
-                    throw new Error(`Internal Server Error (500): ${errorData.statusText} - ${endpoint}`);
-                case 502:
-                    throw new Error(`Bad Gateway (502): ${errorData.statusText} - ${endpoint}`);
-                case 503:
-                    throw new Error(`Service Unavailable (503): ${errorData.statusText} - ${endpoint}`);
-                default:
-                    throw new Error(`HTTP Error (${response.status}): ${errorData.statusText} - ${endpoint}`);
-            }
+            const statusPrefix = {
+                400: 'Bad Request (400)',
+                401: 'Unauthorized (401)',
+                403: 'Forbidden (403)',
+                404: 'Not Found (404)',
+                422: 'Unprocessable Entity (422)',
+                500: 'Internal Server Error (500)',
+                502: 'Bad Gateway (502)',
+                503: 'Service Unavailable (503)'
+            };
+            const prefix = statusPrefix[response.status] || `HTTP Error (${response.status})`;
+            const error = new Error(`${prefix}: ${errorData.statusText} - ${endpoint}`);
+            error.status = response.status;
+            error.details = errorData.details || null;
+            error.body = errorData.body || null;
+            throw error;
         }
 
         // Si la respuesta es exitosa, procesarla
+        if (responseType === 'blob') {
+            return await response.blob();
+        }
+
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
@@ -584,7 +703,7 @@ class API {
                         throw new Error('SESSION_INVALID');
                     }
                     
-                    return await this.handleResponse(retryResponse, endpoint);
+                    return await this.handleResponse(retryResponse, endpoint, options.responseType);
                 } catch (refreshError) {
                     console.error('❌ Error en refresh:', refreshError.message);
                     
@@ -611,7 +730,7 @@ class API {
                 }
             }
 
-            return await this.handleResponse(response, endpoint);
+            return await this.handleResponse(response, endpoint, options.responseType);
         } catch (error) {
             if (error.name === 'AbortError') {
                 throw new Error(`Request timeout: ${endpoint}`);
