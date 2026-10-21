@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// La versión canónica vive en package.json (fuente única de verdad)
+def appPackage = new groovy.json.JsonSlurper().parseText(file('../../package.json').text)
+def versionParts = appPackage.version.tokenize('.').collect { it.toInteger() }
+
 android {
     namespace "com.mtr.online"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +11,8 @@ android {
         applicationId "com.mtr.online"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.2.0"
+        versionCode versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+        versionName appPackage.version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

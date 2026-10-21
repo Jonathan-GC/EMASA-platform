@@ -1,7 +1,7 @@
 {
   "name": "mtr-online",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
@@ -9,12 +9,13 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:android": "pnpm run build && pnpm exec cap sync android",
-    "build:ios": "pnpm run build && pnpm exec cap sync ios",
+    "build:ios": "pnpm run build && node scripts/sync-ios-version.mjs && pnpm exec cap sync ios",
     "open:android": "pnpm exec cap open android",
     "open:ios": "pnpm exec cap open ios",
     "sync": "pnpm exec cap sync",
     "run:android": "pnpm run build && pnpm exec cap sync android && pnpm exec cap run android",
-    "run:ios": "pnpm run build && pnpm exec cap sync ios && pnpm exec cap run ios"
+    "run:ios": "pnpm run build && node scripts/sync-ios-version.mjs && pnpm exec cap sync ios && pnpm exec cap run ios",
+    "sync:versions": "node scripts/sync-ios-version.mjs"
   },
   "dependencies": {
     "@capacitor-community/file-opener": "^7.0.1",
