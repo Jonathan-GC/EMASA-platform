@@ -71,6 +71,7 @@
           :resolve-assignee-name="resolveAssigneeName"
           @open-assign-popover="openAssignPopover"
           @open-priority-popover="openPriorityPopover"
+          @open-diagnostic-pass-modal="openDiagnosticPassModal"
           @go-to-conversation="goToConversation"
         />
       </div>
@@ -117,6 +118,7 @@
         :resolve-assignee-name="resolveAssigneeName"
         @open-assign-popover="openAssignPopover"
         @open-priority-popover="openPriorityPopover"
+        @open-diagnostic-pass-modal="openDiagnosticPassModal"
         @go-to-conversation="goToConversation"
       />
     </div>
@@ -181,11 +183,12 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotifications } from '@/composables/useNotifications';
 import { useResponsiveView } from '@/composables/useResponsiveView';
-import { IonSearchbar, IonButton, IonBadge, IonSpinner, IonIcon, IonLabel, IonPopover, IonList, IonItem, IonContent } from '@ionic/vue';
+import { IonSearchbar, IonButton, IonBadge, IonSpinner, IonIcon, IonLabel, IonPopover, IonList, IonItem, IonContent, modalController } from '@ionic/vue';
 import API from '@/utils/api/api';
 import ConnectionStatus from '@/components/ConnectionStatus.vue';
 import MessageList from './MessageList.vue';
 import MessageReadingPane from './MessageReadingPane.vue';
+import DiagnosticPassModal from '@/components/forms/support/DiagnosticPassModal.vue';
 // ------------------ UI popovers (assignment & priority) ------------------
 // Using IonPopover for inline dropdown selection
 const assignPopoverOpen = ref(false);
@@ -291,6 +294,11 @@ const attachments = ref([]); // [{ id, name, url }]
 const attachmentsLoading = ref(false);
 const attachmentsError = ref('');
 
+// ------------------ Hall pass (pase de acceso) ------------------
+// Workspaces donde el usuario actual tiene un pase de acceso válido.
+// Alimenta el indicador de la lista de tickets.
+const myPassWorkspaces = ref(new Set());
+
 // ------------------ Assignment (support members) ------------------
 // Assign-to state (inline popover selector)
 const members = ref([]); // { id, name }
@@ -344,6 +352,11 @@ function mapTicketToMessage(t) {
     created_at: t.created_at,
     updated_at: t.updated_at,
     assigned_to: t.assigned_to ?? null,
+    workspace: t.workspace ?? null,
+    workspace_name: t.workspace_name ?? null,
+    tenant: t.tenant ?? null,
+    // Indicador: el usuario actual tiene un pase de acceso válido sobre el workspace del ticket
+    has_active_pass: !!t.workspace && myPassWorkspaces.value.has(String(t.workspace)),
   };
 }
 
@@ -365,6 +378,28 @@ async function fetchTickets() {
     selectedId.value = null;
   } finally {
     loading.value = false;
+  }
+}
+
+// Fetch active hall passes for the current user (ticket list indicator).
+// The endpoint limits visibility to own passes / tenant workspaces; here we
+// keep only those where the current user is the technician and still valid.
+async function fetchMyActivePasses() {
+  try {
+    const endpoint = `${API.HALL_PASSES}?status=ACTIVE`;
+    const res = await API.get(endpoint);
+    const list = Array.isArray(res) ? res : (res?.results || []);
+    const uid = String(currentUserId.value || '');
+    const set = new Set();
+    for (const p of list) {
+      if (uid && String(p.technician) === uid && p.is_valid && p.workspace != null) {
+        set.add(String(p.workspace));
+      }
+    }
+    myPassWorkspaces.value = set;
+  } catch (err) {
+    // No crítico: ante fallo se mantiene el indicador anterior
+    console.error('Error fetching my hall passes:', err);
   }
 }
 
@@ -518,18 +553,47 @@ function goToConversation() {
   }
 }
 
+// Open the diagnostic pass modal for the selected ticket
+async function openDiagnosticPassModal() {
+  if (!selectedId.value || !selectedMessage.value) return;
+  const modal = await modalController.create({
+    component: DiagnosticPassModal,
+    componentProps: {
+      ticket: {
+        id: selectedId.value,
+        title: selectedMessage.value.subject || '',
+        workspace: selectedMessage.value.workspace ?? null,
+        workspace_name: selectedMessage.value.workspace_name ?? null
+      }
+    },
+    cssClass: 'full-modal'
+  });
+  modal.onDidDismiss().then((data) => {
+    // Si el modal modificó pases, refrescar el indicador y la lista de tickets
+    if (data?.data?.changed) refreshTickets();
+  });
+  await modal.present();
+}
+
 // If initial ticket has an assignee and we don't yet have member data, fetch it to resolve the name
 // Unified initialization
 onMounted(async () => {
   // Load user context
   await loadSessionContext();
-  // Load members first (for role info) then tickets
+  // Load members first (for role info)
   await fetchSupportMembers();
+  // Pases antes que tickets para mapear correctamente el indicador de la lista
+  await fetchMyActivePasses();
   await fetchTickets();
 });
 // Minor UI handlers
 function clearSearch() { search.value = ''; }
-function refreshMock() { fetchTickets(); }
+/** Refresh passes (indicator flags) and then the ticket list */
+async function refreshTickets() {
+  await fetchMyActivePasses();
+  await fetchTickets();
+}
+function refreshMock() { refreshTickets(); }
 function priorityColor(p) { const v = (p || '').toLowerCase(); if (v === 'high' || v === 'urgent') return 'danger'; if (v === 'medium') return 'warning'; return 'medium'; }
 
 // Sorting handlers
@@ -543,7 +607,7 @@ watch(() => notifications.value[0], () => {
   // Debounce: refresh 700ms after last notification
   if (refreshTimeout) clearTimeout(refreshTimeout);
   refreshTimeout = setTimeout(() => {
-    fetchTickets();
+    refreshTickets();
   }, 700);
 });
 
@@ -565,10 +629,12 @@ watch(assigneeId, async (newId, oldId) => {
   assignSuccess.value = '';
   assigning.value = true;
   try {
-    await API.post(API.DELEGATE(selectedId.value), { assigned_to_id: newId });
+    const res = await API.post(API.DELEGATE(selectedId.value), { assigned_to_id: newId });
+    // La respuesta del API envuelve objetos únicos en un arreglo
+    const payload = Array.isArray(res) ? res[0] : res;
     const msg = messages.value.find(m => m.id === selectedId.value);
     if (msg) msg.assigned_to = newId;
-    assignSuccess.value = 'Assignment saved';
+    assignSuccess.value = payload?.hall_pass_id ? 'Assignment saved — hall pass created' : 'Assignment saved';
     setTimeout(() => { assignSuccess.value = ''; }, 1800);
   } catch (e) {
     console.error('Error delegating ticket:', e);

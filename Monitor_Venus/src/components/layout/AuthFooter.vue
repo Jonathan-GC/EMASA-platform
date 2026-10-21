@@ -12,7 +12,7 @@
         <a href="/support" class="footer-link">Support</a>
       </div>
       <p class="footer-version">
-        Version 1.2.0
+        Version {{ appVersion }}
       </p>
     </div>
   </div>
@@ -20,7 +20,10 @@
 
 <script setup>
 import { computed } from 'vue'
+// Versión canónica desde package.json (fuente única de verdad, en tiempo de build)
+import { version } from '../../../package.json'
 
 const currentYear = computed(() => new Date().getFullYear())
+const appVersion = version
 </script>
 

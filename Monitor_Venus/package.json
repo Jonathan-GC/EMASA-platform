@@ -1,7 +1,7 @@
 {
   "name": "mtr-online",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
@@ -9,12 +9,13 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:android": "pnpm run build && pnpm exec cap sync android",
-    "build:ios": "pnpm run build && pnpm exec cap sync ios",
+    "build:ios": "pnpm run build && node scripts/sync-ios-version.mjs && pnpm exec cap sync ios",
     "open:android": "pnpm exec cap open android",
     "open:ios": "pnpm exec cap open ios",
     "sync": "pnpm exec cap sync",
     "run:android": "pnpm run build && pnpm exec cap sync android && pnpm exec cap run android",
-    "run:ios": "pnpm run build && pnpm exec cap sync ios && pnpm exec cap run ios"
+    "run:ios": "pnpm run build && node scripts/sync-ios-version.mjs && pnpm exec cap sync ios && pnpm exec cap run ios",
+    "sync:versions": "node scripts/sync-ios-version.mjs"
   },
   "dependencies": {
     "@capacitor-community/file-opener": "^7.0.1",
@@ -30,6 +31,7 @@
     "@capacitor/push-notifications": "^8.1.1",
     "@capacitor/share": "^7.0.4",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+    "@fortawesome/fontawesome-free": "^7.3.1",
     "@ionic/vue": "^8.6.2",
     "@ionic/vue-router": "^8.6.2",
     "@tailwindcss/vite": "^4.1.12",
@@ -48,6 +50,7 @@
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "pinia": "^3.0.3",
+    "qrcode.vue": "^3.11.0",
     "tailwindcss": "^4.1.12",
     "vue": "^3.5.17",
     "vue-chartjs": "^4.1.1",
