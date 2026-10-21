@@ -388,13 +388,15 @@ def has_contextual_perm(
         else:
             role_group = membership.role.group
 
-        # Workspace admin (or tenant owner acting as admin) is authoritative for
-        # view/add/change within their own workspace boundary, plus allowlisted
-        # deletes (delete_role). This removes the dependency on per-object
-        # Guardian rows existing for every (group, object) pair, which was the
-        # source of the recurring "no contextual permission for change_X" bugs.
-        # Non-admin members still go through the model/object checks below.
-        is_workspace_admin = bool(is_tenant_owner) or bool(
+        # Workspace admins are authoritative for view/add/change within their
+        # own workspace boundary, plus allowlisted deletes (delete_role). This
+        # removes the dependency on per-object Guardian rows existing for every
+        # (group, object) pair, which was the source of the recurring "no
+        # contextual permission for change_X" bugs.
+        # Being a member of the workspace's tenant is NOT admin authority: it
+        # only grants view access (handled below), so non-admin roles and the
+        # "No Role" placeholder keep their restrictions.
+        is_workspace_admin = bool(
             membership
             and membership.role
             and (
@@ -709,6 +711,10 @@ class HasContextualPermission(BasePermission):
             elif view.action == "revoke_consent":
                 perm_name = "change_deviceconsent"
 
+        # Marking a ticket as read only updates read state, so view access is enough.
+        if hasattr(view, "action") and view.action == "mark_as_read":
+            perm_name = f"view_{scope}"
+
         # If operation is on a workspace-scoped resource, ensure context can be resolved
         if scope in WORKSPACE_SCOPED_MODELS:
             if workspace is None:
@@ -868,6 +874,10 @@ class HasContextualPermission(BasePermission):
                 perm_name = "add_deviceconsent"
             elif view.action == "revoke_consent":
                 perm_name = "change_deviceconsent"
+
+        # Marking a ticket as read only updates read state, so view access is enough.
+        if hasattr(view, "action") and view.action == "mark_as_read":
+            perm_name = f"view_{scope}"
 
         if not perm_name:
             return False

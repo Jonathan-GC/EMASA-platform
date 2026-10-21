@@ -253,11 +253,19 @@ class TechnicianDispatchTests(TestCase):
         self.assertTrue(response.data["is_valid"])
 
         # Verify DB record
-        pass_obj = TechnicianAssignment.objects.get(id=pass_id)
+        pass_obj = SupportHallPass.objects.get(id=pass_id)
         self.assertEqual(pass_obj.technician, self.tech_dave)
         self.assertEqual(pass_obj.workspace, self.ws_alpha)
         self.assertEqual(pass_obj.granted_by, self.support_manager)
         self.assertTrue(pass_obj.is_valid())
+
+        # Legacy TechnicianAssignment is still created for backward compatibility
+        legacy_assignment = TechnicianAssignment.objects.filter(
+            technician=self.tech_dave,
+            ticket=self.ticket_1,
+            workspace=self.ws_alpha,
+        ).first()
+        self.assertIsNotNone(legacy_assignment)
 
         # Verify audit trail
         audit_entry = LogEntry.objects.filter(
@@ -270,11 +278,13 @@ class TechnicianDispatchTests(TestCase):
     def test_active_diagnostic_pass_grants_read_only_access_and_rejects_mutation(self):
         """Active pass grants GET on customer devices and machines, but rejects DELETE/destructive operations."""
         # Create active diagnostic pass for Dave
-        TechnicianAssignment.objects.create(
+        SupportHallPass.objects.create(
             technician=self.tech_dave,
             ticket=self.ticket_1,
             workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
             granted_by=self.support_manager,
+            permission_level="READ",
             expires_at=timezone.now() + timedelta(hours=4),
             status="ACTIVE",
             reason="Investigating devices",
@@ -325,11 +335,13 @@ class TechnicianDispatchTests(TestCase):
 
     def test_administrative_revocation_terminates_pass(self):
         """Support manager can explicitly revoke an active diagnostic pass, immediately terminating access."""
-        diag_pass = TechnicianAssignment.objects.create(
+        diag_pass = SupportHallPass.objects.create(
             technician=self.tech_dave,
             ticket=self.ticket_1,
             workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
             granted_by=self.support_manager,
+            permission_level="READ",
             expires_at=timezone.now() + timedelta(hours=2),
             status="ACTIVE",
             reason="Revocation test pass",
@@ -367,11 +379,13 @@ class TechnicianDispatchTests(TestCase):
 
     def test_ticket_resolution_auto_revokes_active_diagnostic_passes(self):
         """Updating ticket status to 'resolved' automatically revokes all associated active diagnostic passes."""
-        diag_pass = TechnicianAssignment.objects.create(
+        diag_pass = SupportHallPass.objects.create(
             technician=self.tech_dave,
             ticket=self.ticket_1,
             workspace=self.ws_alpha,
+            tenant=self.tenant_alpha,
             granted_by=self.support_manager,
+            permission_level="READ",
             expires_at=timezone.now() + timedelta(hours=4),
             status="ACTIVE",
             reason="Auto revoke test",
@@ -834,9 +848,13 @@ class TestSupportHallPass(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Should see the device in the pass workspace
-        device_ids = [d["id"] for d in response.data.get("results", response.data) if isinstance(response.data, list) or True]
+        results = (
+            response.data
+            if isinstance(response.data, list)
+            else response.data.get("results", [])
+        )
         self.assertTrue(
-            any(d.get("dev_eui") == "AABBCCDDEEFF0022" for d in (response.data if isinstance(response.data, list) else response.data.get("results", [])))
+            any(d.get("dev_eui") == "AABBCCDDEEFF0022" for d in results)
         )
 
     def test_expired_hall_pass_denies_listing(self):
@@ -853,14 +871,17 @@ class TestSupportHallPass(TestCase):
         )
 
         self.client.force_authenticate(user=self.tech_dave)
-        response = self.client.get(
+
+        # Without a valid pass there is no resolvable workspace context.
+        response = self.client.get("/api/v1/infrastructure/devices/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # Even with an explicit workspace header the expired pass grants nothing.
+        response_with_header = self.client.get(
             "/api/v1/infrastructure/devices/",
+            HTTP_X_WORKSPACE_ID=str(self.ws_alpha.id),
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data if isinstance(response.data, list) else response.data.get("results", [])
-        self.assertFalse(
-            any(d.get("dev_eui") == "AABBCCDDEEFF0022" for d in results)
-        )
+        self.assertEqual(response_with_header.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_hall_pass_context_aware_without_workspace_header(self):
         """Pass works without X-Workspace-ID header (context-aware resolution)."""

@@ -241,7 +241,12 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         ticket = serializer.save()
         if (ticket.status or "").lower() in ["resolved", "closed"]:
-            active_passes = ticket.diagnostic_passes.filter(status__in=["ACTIVE", "active"])
+            active_passes = list(
+                ticket.diagnostic_passes.filter(status__in=["ACTIVE", "active"])
+            )
+            active_passes += list(
+                ticket.hall_passes.filter(status__in=["ACTIVE", "active"])
+            )
             for pass_obj in active_passes:
                 token = _current_audit_context.set({
                     "action_detail": "auto_revocation_on_ticket_closure",
@@ -454,30 +459,6 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
         # Default scopes: infrastructure + chirpstack + ticket
         default_scopes = PassScope.objects.filter(code__in=["infrastructure", "chirpstack", "ticket"])
 
-        hall_pass = SupportHallPass.objects.create(
-            technician=technician,
-            ticket=ticket,
-            workspace=workspace,
-            tenant=workspace.tenant,
-            permission_level="READ",
-            granted_by=request.user,
-            expires_at=expires_at,
-            status="ACTIVE",
-            reason=reason,
-        )
-        hall_pass.scopes.set(default_scopes)
-
-        # Also create legacy TechnicianAssignment for backward compatibility
-        TechnicianAssignment.objects.create(
-            technician=technician,
-            ticket=ticket,
-            workspace=workspace,
-            granted_by=request.user,
-            expires_at=expires_at,
-            status="ACTIVE",
-            reason=reason,
-        )
-
         token = _current_audit_context.set({
             "action_detail": "grant_hall_pass",
             "actor": request.user,
@@ -489,23 +470,28 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
             "permission_level": "READ",
         })
         try:
-            from auditlog.models import LogEntry
-            from django.contrib.contenttypes.models import ContentType
-            LogEntry.objects.create(
-                content_type=ContentType.objects.get_for_model(SupportHallPass),
-                object_pk=str(hall_pass.pk),
-                object_repr=str(hall_pass),
-                action=LogEntry.Action.CREATE,
-                actor=request.user,
-                additional_data={
-                    "action_detail": "grant_hall_pass",
-                    "ticket_id": str(ticket.id),
-                    "technician_id": str(technician.id),
-                    "workspace_id": str(workspace.id),
-                    "permission_level": "READ",
-                    "duration_hours": duration_hours,
-                    "expires_at": expires_at.isoformat(),
-                },
+            hall_pass = SupportHallPass.objects.create(
+                technician=technician,
+                ticket=ticket,
+                workspace=workspace,
+                tenant=workspace.tenant,
+                permission_level="READ",
+                granted_by=request.user,
+                expires_at=expires_at,
+                status="ACTIVE",
+                reason=reason,
+            )
+            hall_pass.scopes.set(default_scopes)
+
+            # Also create legacy TechnicianAssignment for backward compatibility
+            TechnicianAssignment.objects.create(
+                technician=technician,
+                ticket=ticket,
+                workspace=workspace,
+                granted_by=request.user,
+                expires_at=expires_at,
+                status="ACTIVE",
+                reason=reason,
             )
         finally:
             _current_audit_context.reset(token)
@@ -627,9 +613,6 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        from auditlog.models import LogEntry
-        from django.contrib.contenttypes.models import ContentType
-
         old_level = hall_pass.permission_level
         hall_pass.permission_level = new_level
         hall_pass.upgraded_from = hall_pass
@@ -646,23 +629,19 @@ class TicketViewSet(AuditActionMixin, viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        hall_pass.save()
-
-        LogEntry.objects.create(
-            content_type=ContentType.objects.get_for_model(SupportHallPass),
-            object_pk=str(hall_pass.pk),
-            object_repr=str(hall_pass),
-            action=LogEntry.Action.UPDATE,
-            actor=request.user,
-            additional_data={
-                "action_detail": "upgrade_hall_pass",
-                "pass_id": str(hall_pass.id),
-                "ticket_id": str(ticket.id),
-                "from_level": old_level,
-                "to_level": new_level,
-                "upgraded_by": str(request.user.id),
-            },
-        )
+        token = _current_audit_context.set({
+            "action_detail": "upgrade_hall_pass",
+            "actor": request.user,
+            "pass_id": str(hall_pass.id),
+            "ticket_id": str(ticket.id),
+            "from_level": old_level,
+            "to_level": new_level,
+            "upgraded_by": str(request.user.id),
+        })
+        try:
+            hall_pass.save()
+        finally:
+            _current_audit_context.reset(token)
 
         serializer = SupportHallPassSerializer(hall_pass)
         return Response(serializer.data, status=status.HTTP_200_OK)

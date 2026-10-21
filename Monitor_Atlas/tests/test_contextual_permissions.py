@@ -81,7 +81,11 @@ class ContextualPermissionEvaluatorTests(TestCase):
         self.global_admin.groups.add(self.global_admin_group)
 
     def test_positive_permission_evaluation(self):
-        """User with active role in workspace is granted permission."""
+        """User with an active role in a workspace is granted view permission.
+
+        Deletes in standard (non-global) tenants are denied by policy even when
+        the role group holds the codename (see STANDARD_TENANT_DELETE_ALLOWLIST).
+        """
         has_perm = has_contextual_perm(
             self.user, "view_machine", workspace=self.ws_alpha
         )
@@ -90,7 +94,7 @@ class ContextualPermissionEvaluatorTests(TestCase):
         has_delete_alpha = has_contextual_perm(
             self.user, "delete_machine", workspace=self.ws_alpha
         )
-        self.assertTrue(has_delete_alpha)
+        self.assertFalse(has_delete_alpha)
 
     def test_cross_workspace_permission_isolation(self):
         """User with delete_machine in Alpha is denied delete_machine in Beta (no cross-workspace leakage)."""
@@ -197,8 +201,21 @@ class ContextualDRFPermissionTests(TestCase):
 
     def test_viewset_denied_when_lacking_permission(self):
         """Request requiring ungranted permission (e.g. add_role) is denied with 403."""
-        self.client.force_authenticate(user=self.user)
-        # user lacks add_role
+        # Non-admin member of WS 1 with view-only role permissions.
+        viewer_group = Group.objects.create(name="g1_viewer")
+        viewer_role = Role.objects.create(
+            name="Viewer", workspace=self.ws_1, group=viewer_group
+        )
+        assign_perm("roles.view_role", viewer_group)
+        viewer = User.objects.create_user(
+            username="drf_viewer", email="viewer@test.com", tenant=self.tenant_1
+        )
+        WorkspaceMembership.objects.create(
+            user=viewer, workspace=self.ws_1, role=viewer_role
+        )
+
+        self.client.force_authenticate(user=viewer)
+        # viewer lacks add_role
         response = self.client.post(
             f"/api/v1/roles/role/?workspace={self.ws_1.id}",
             {"name": "New Role", "workspace": str(self.ws_1.id)},
