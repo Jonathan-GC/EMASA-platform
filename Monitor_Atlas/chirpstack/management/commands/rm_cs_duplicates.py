@@ -7,6 +7,7 @@ from chirpstack.chirpstack_api import (
     CHIRPSTACK_TENANT_URL,
     HEADERS,
     sync_device_profile_destroy,
+    test_connection,
 )
 import requests
 from loguru import logger
@@ -30,6 +31,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
         tenant_id_filter = options.get("tenant_id")
+
+        self.stdout.write(self.style.MIGRATE_LABEL("Testing ChirpStack connection..."))
+
+        if not test_connection():
+            self.stdout.write(
+                self.style.ERROR(
+                    "❌ Unable to connect to ChirpStack. Please check your settings."
+                )
+            )
+            return
 
         self.stdout.write(
             self.style.WARNING(

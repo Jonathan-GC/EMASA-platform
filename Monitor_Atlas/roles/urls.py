@@ -11,5 +11,6 @@ routers.register(r"workspace-membership", views.WorkspaceMembershipViewSet)
 
 
 urlpatterns = [
+    path("catalog/", views.RoleViewSet.as_view({"get": "catalog"}), name="role-catalog-direct"),
     path("", include(routers.urls)),
 ]

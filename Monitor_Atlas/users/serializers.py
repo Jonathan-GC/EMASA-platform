@@ -7,12 +7,27 @@ from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
+from django.conf import settings
 from roles.models import WorkspaceMembership
-from .models import User, MainAddress, BillingAddress
+from .models import (
+    User,
+    MainAddress,
+    BillingAddress,
+    UserSession,
+    UserTwoFactorMethod,
+    UserBackupCode,
+)
 from support.models import SupportMembership
 from organizations.models import Tenant
 from drf_spectacular.utils import extend_schema_field, inline_serializer
 from drf_spectacular.types import OpenApiTypes
+
+
+def _has_active_hall_pass(user):
+    """Return True when the user holds an active, unexpired hall pass."""
+    from support.queryset import get_pass_workspace_ids
+
+    return bool(get_pass_workspace_ids(user))
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -31,6 +46,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             if membership.role and membership.role.is_admin:
                 is_tenant_admin = True
             tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
+            tenant_id = tenant.id
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
             if tenant.is_global:
                 is_global = True
@@ -39,6 +55,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         else:
             if user.tenant:
                 tenant = user.tenant
+                tenant_id = tenant.id
                 cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
                 if cs_tenant_id is None:
                     logger.warning(
@@ -54,6 +71,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     f"User {user.id} has no tenant or workspace membership; setting is_global to False."
                 )
                 is_global = False
+                tenant_id = None
                 cs_tenant_id = None
 
         support_membership = SupportMembership.objects.filter(user=user).first()
@@ -65,10 +83,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["user_id"] = user.id
         token["username"] = user.username
         token["is_global"] = is_global
+        token["tenant_id"] = tenant_id
         token["cs_tenant_id"] = cs_tenant_id
         token["is_superuser"] = is_superuser
         token["is_support"] = is_support
         token["is_tenant_admin"] = is_tenant_admin
+        token["has_hall_pass"] = _has_active_hall_pass(user)
 
         return token
 
@@ -127,6 +147,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
             if membership.role and membership.role.is_admin:
                 is_tenant_admin = True
             tenant = Tenant.objects.get(id=membership.workspace.tenant.id)
+            tenant_id = tenant.id
             cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
             if tenant.is_global:
                 is_global = True
@@ -135,6 +156,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         else:
             if user.tenant:
                 tenant = user.tenant
+                tenant_id = tenant.id
                 cs_tenant_id = getattr(tenant, "cs_tenant_id", None)
                 if cs_tenant_id is None:
                     logger.warning(
@@ -150,6 +172,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
                     f"User {user.id} has no tenant or workspace membership; setting is_global to False."
                 )
                 is_global = False
+                tenant_id = None
                 cs_tenant_id = None
 
         support_membership = SupportMembership.objects.filter(user=user).first()
@@ -161,10 +184,12 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         access_token["user_id"] = user.id
         access_token["username"] = user.username
         access_token["is_global"] = is_global
+        access_token["tenant_id"] = tenant_id
         access_token["cs_tenant_id"] = cs_tenant_id
         access_token["is_superuser"] = is_superuser
         access_token["is_support"] = is_support
         access_token["is_tenant_admin"] = is_tenant_admin
+        access_token["has_hall_pass"] = _has_active_hall_pass(user)
 
         data["access"] = str(access_token)
 
@@ -787,10 +812,109 @@ class OTPRequestSerializer(serializers.Serializer):
 
 class OTPVerifySerializer(serializers.Serializer):
     username = serializers.CharField()
-    code = serializers.CharField(max_length=6, min_length=6)
+    code = serializers.CharField(max_length=64, min_length=4)
+    method = serializers.CharField(required=False, default="email")
+    trust_device = serializers.BooleanField(required=False, default=False)
+    device_name = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate_username(self, value):
         return value.strip()
+
+    def validate_code(self, value):
+        return value.strip()
+
+    def validate_method(self, value):
+        val = value.strip().lower()
+        if val in ["email", "totp", "backup_code", "backup_codes"]:
+            return val
+        return "email"
+
+
+class UserSessionSerializer(serializers.ModelSerializer):
+    is_current = serializers.SerializerMethodField()
+    is_trusted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserSession
+        fields = [
+            "id",
+            "device_name",
+            "ip_address",
+            "user_agent",
+            "created_at",
+            "last_activity",
+            "is_active",
+            "is_current",
+            "is_trusted",
+        ]
+        read_only_fields = fields
+
+    def get_is_trusted(self, obj):
+        return bool(obj.trust_hash)
+
+    def get_is_current(self, obj):
+        current_session_id = self.context.get("current_session_id")
+        if current_session_id and str(current_session_id) == str(obj.id):
+            return True
+
+        current_jti = self.context.get("current_jti")
+        if current_jti and obj.refresh_token_jti and current_jti == obj.refresh_token_jti:
+            return True
+
+        request = self.context.get("request")
+        if request:
+            auth = getattr(request, "auth", None)
+            if auth is not None:
+                payload = getattr(auth, "payload", None)
+                sess_id = None
+                if isinstance(payload, dict):
+                    sess_id = payload.get("session_id")
+                elif hasattr(auth, "get"):
+                    sess_id = auth.get("session_id")
+                if sess_id and str(sess_id) == str(obj.id):
+                    return True
+
+            if hasattr(request, "COOKIES"):
+                cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
+                refresh_token = request.COOKIES.get(cookie_name)
+                if refresh_token:
+                    try:
+                        from rest_framework_simplejwt.tokens import RefreshToken
+
+                        token_obj = RefreshToken(refresh_token)
+                        if obj.refresh_token_jti and obj.refresh_token_jti == str(token_obj.get("jti")):
+                            return True
+                    except Exception:
+                        pass
+
+        return False
+
+
+class TOTPSetupResponseSerializer(serializers.Serializer):
+    secret = serializers.CharField()
+    otpauth_uri = serializers.CharField()
+
+
+class TOTPActivateSerializer(serializers.Serializer):
+    code = serializers.CharField(min_length=6, max_length=6)
+
+    def validate_code(self, value):
+        val = value.strip()
+        if not val.isdigit():
+            raise serializers.ValidationError("Code must contain only digits.")
+        return val
+
+
+class TOTPDeactivateSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+
+
+class UserTwoFactorMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserTwoFactorMethod
+        fields = ["id", "method_type", "is_active", "created_at", "last_used_at"]
+        read_only_fields = fields
+
 
 
 

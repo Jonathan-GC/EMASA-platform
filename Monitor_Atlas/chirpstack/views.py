@@ -28,6 +28,64 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
 from roles.helpers import assign_created_instance_permissions
 
 
+def _resolve_active_workspace_id(request):
+    """Resolve the active workspace id from request context.
+
+    Prefers the workspace resolved by HasContextualPermission into
+    request.workspace, then the X-Workspace-ID header, then the
+    ?workspace= / ?workspace_id= query params (same order as RoleViewSet).
+    """
+    ws = getattr(request, "workspace", None)
+    if ws:
+        return getattr(ws, "id", ws)
+    if hasattr(request, "headers"):
+        header_ws = request.headers.get("X-Workspace-ID")
+        if header_ws:
+            return header_ws
+    return request.query_params.get("workspace") or request.query_params.get(
+        "workspace_id"
+    )
+
+
+def _scoped_workspace_queryset(request, base_queryset, workspace_field="workspace"):
+    """Narrow a permission-filtered queryset to the active tenant/workspace.
+
+    Must be applied on top of get_objects_for_user (never on the raw
+    Model.objects.all()), so permission filtering is never bypassed.
+    Superusers skip tenant scoping (same as RoleViewSet) but honor the
+    active workspace filter.
+
+    Hall passes are cross-tenant by design (support staff live in the global
+    tenant while the pass points at a customer workspace), so pass-covered
+    workspaces must be OR-ed into the tenant boundary rather than replacing
+    or being excluded by it.
+    """
+    from django.db.models import Q
+    from support.queryset import get_pass_workspace_ids
+
+    user = request.user
+    workspace_id = _resolve_active_workspace_id(request)
+
+    if not user.is_superuser:
+        active_tenant = getattr(request, "tenant", getattr(user, "tenant", None))
+        pass_workspace_ids = get_pass_workspace_ids(user)
+
+        scope_filter = Q()
+        if active_tenant:
+            scope_filter |= Q(**{f"{workspace_field}__tenant": active_tenant})
+        if pass_workspace_ids:
+            scope_filter |= Q(**{f"{workspace_field}__id__in": pass_workspace_ids})
+        if scope_filter:
+            base_queryset = base_queryset.filter(scope_filter)
+
+    if workspace_id:
+        base_queryset = base_queryset.filter(
+            **{f"{workspace_field}__id": workspace_id}
+        )
+
+    return base_queryset
+
+
 # Create your views here.
 
 
@@ -50,14 +108,11 @@ class DeviceProfileViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return DeviceProfile.objects.all()
+            queryset = DeviceProfile.objects.all()
         else:
-            return get_objects_for_user(
-                user,
-                "chirpstack.view_deviceprofile",
-                klass=DeviceProfile,
-                accept_global_perms=True,
-            )
+            from support.queryset import get_pass_aware_queryset
+            queryset = get_pass_aware_queryset(user, DeviceProfile, self.request)
+        return _scoped_workspace_queryset(self.request, queryset)
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -164,12 +219,8 @@ class DeviceProfileTemplateViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return DeviceProfileTemplate.objects.all()
         else:
-            return get_objects_for_user(
-                user,
-                "chirpstack.view_deviceprofiletemplate",
-                klass=DeviceProfileTemplate,
-                accept_global_perms=True,
-            )
+            from support.queryset import get_pass_aware_queryset
+            return get_pass_aware_queryset(user, DeviceProfileTemplate, self.request)
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -187,16 +238,19 @@ class ApiUserViewSet(viewsets.ModelViewSet):
     queryset = ApiUser.objects.all()
     serializer_class = ApiUserSerializer
     permission_classes = [HasPermission]
-    scope = "api_user"
+    # Must match the model name ("apiuser") so perm codenames resolve to the
+    # real view_apiuser / change_apiuser / delete_apiuser permissions and the
+    # WORKSPACE_SCOPED_MODELS workspace-context enforcement applies.
+    scope = "apiuser"
 
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return ApiUser.objects.all()
+            queryset = ApiUser.objects.all()
         else:
-            return get_objects_for_user(
-                user, "chirpstack.view_apiuser", klass=ApiUser, accept_global_perms=True
-            )
+            from support.queryset import get_pass_aware_queryset
+            queryset = get_pass_aware_queryset(user, ApiUser, self.request)
+        return _scoped_workspace_queryset(self.request, queryset)
 
     def perform_create(self, serializer):
         instance = serializer.save()
