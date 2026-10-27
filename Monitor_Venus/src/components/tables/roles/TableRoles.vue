@@ -146,8 +146,8 @@
                   @view-clicked="openRoleMembersModal(role)"
                   @permissions-clicked="openPermissionsManager(role)"
                   @membership-clicked="openWorkspaceMembershipForm(role)"
-                  @itemEdited="handleItemRefresh"
-                  @itemDeleted="handleItemRefresh"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
                 />
               </ion-col>
             </ion-row>
@@ -214,8 +214,8 @@
                     @view-clicked="openRoleMembersModal(role)"
                     @permissions-clicked="openPermissionsManager(role)"
                     @membership-clicked="openWorkspaceMembershipForm(role)"
-                    @itemEdited="handleItemRefresh"
-                    @itemDeleted="handleItemRefresh"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
                   />
                 </div>
               </ion-card-content>
@@ -373,9 +373,13 @@ const openPermissionsManager = async (role) => {
     cssClass: 'full-modal'
   })
   
-  modal.onDidDismiss().then(() => {
+  modal.onDidDismiss().then(({ data }) => {
     console.log('Permissions manager closed')
-    fetchRoles() // Refresh roles after permissions update
+    // Refresca solo cuando se guardaron cambios (dismiss con { changed: true });
+    // cancelar no dispara un refetch innecesario.
+    if (data?.changed) {
+      fetchRoles() // Refresh roles after permissions update
+    }
   })
   
   await modal.present()
@@ -393,6 +397,14 @@ const openRoleMembersModal = async (role) => {
     cssClass: 'full-modal'
   })
   
+  modal.onDidDismiss().then(({ data }) => {
+    console.log('Role members modal closed')
+    // Refresca solo si se removió un usuario del rol (users_count cambia)
+    if (data?.changed) {
+      fetchRoles()
+    }
+  })
+
   await modal.present()
 }
 
@@ -409,9 +421,12 @@ const openWorkspaceMembershipForm = async (role) => {
     cssClass: 'full-modal'
   })
   
-  modal.onDidDismiss().then(() => {
+  modal.onDidDismiss().then(({ data }) => {
     console.log('Workspace membership form closed')
-    // Optionally refresh data if needed
+    // Refresca solo cuando se asignó un usuario al rol (users_count cambia)
+    if (data?.changed) {
+      fetchRoles()
+    }
   })
   
   await modal.present()

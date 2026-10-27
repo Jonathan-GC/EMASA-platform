@@ -4,7 +4,7 @@
       <ion-toolbar>
         <ion-title>Asignar Usuario a Workspace</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="closeModal">
+          <ion-button @click="closeModal()">
             <ion-icon :icon="icons.close"></ion-icon>
           </ion-button>
         </ion-buttons>
@@ -132,7 +132,7 @@
             <div class="form-actions">
               <ion-button 
                 fill="outline" 
-                @click="closeModal"
+                @click="closeModal()"
                 :disabled="submitting"
               >
                 Cancelar
@@ -287,7 +287,8 @@ const handleSubmit = async () => {
     
     console.log('✅ Workspace membership created:', response)
     emit('membershipCreated', response)
-    closeModal()
+    // `changed: true` hace que la tabla de roles refresque al cerrar el modal
+    closeModal({ changed: true })
   } catch (err) {
     console.error('❌ Error creating workspace membership:', err)
     error.value = `Error al asignar usuario: ${err.message}`
@@ -296,9 +297,10 @@ const handleSubmit = async () => {
   }
 }
 
-const closeModal = async () => {
+// `data` viaja al onDidDismiss de la tabla; { changed: true } dispara el refetch
+const closeModal = async (data) => {
   const { modalController } = await import('@ionic/vue')
-  await modalController.dismiss()
+  await modalController.dismiss(data)
 }
 
 // Lifecycle

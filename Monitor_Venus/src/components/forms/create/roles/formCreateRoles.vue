@@ -275,6 +275,7 @@ const fetchWorkspaces = async () => {
 
 onMounted( async () => {
   await fetchWorkspaces();
+  emit('loaded');
   console.log('🎭 Role creation form mounted')
 })
 </script>
