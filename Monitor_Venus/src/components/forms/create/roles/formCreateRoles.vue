@@ -193,7 +193,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['itemCreated', 'closed'])
+const emit = defineEmits(['itemCreated', 'loaded', 'closed'])
 
 const icons = inject('icons', {})
 const loading = ref(false)
@@ -229,8 +229,10 @@ const closeModal = () => {
 }
 
 const createRole = async () => {
+  // Evita doble envío mientras la petición está en curso
+  if (loading.value) return
   loading.value = true
-  
+
   try {
     // Prepare payload
     const payload = {
@@ -241,13 +243,17 @@ const createRole = async () => {
     }
 
     console.log('📤 Creating role:', payload)
-    
+
     const response = await API.post(API.ROLE, payload)
-    
-    if (!response.error) {
+
+    // API.handleResponse envuelve la respuesta en un array y lanza en errores HTTP,
+    // así que una respuesta sin lanzar excepción es una creación exitosa.
+    if (response && !response.error) {
       console.log('✅ Role created successfully')
       emit('itemCreated', formValues.value.name)
       closeModal()
+    } else if (response?.error) {
+      console.error('❌ Error creating role:', response.error)
     }
   } catch (error) {
     console.error('❌ Error creating role:', error)

@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, inject } from 'vue'
+import { ref, inject, onMounted } from 'vue'
 import {
   IonPage,
   IonHeader,
@@ -75,6 +75,7 @@ const closeModal = () => {
 }
 
 const createBackup = async () => {
+  if (loading.value) return
   loading.value = true
   try {
     const data = {}
@@ -88,4 +89,10 @@ const createBackup = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  // Avisa al contenedor del modal (quickControl/quickActions) que el formulario
+  // ya está renderizado para que oculte el spinner del modal.
+  emit('loaded')
+})
 </script>
