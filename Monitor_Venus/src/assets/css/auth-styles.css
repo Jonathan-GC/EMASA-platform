@@ -299,6 +299,9 @@ ion-input {
 
 .error-message ion-icon, .success-message ion-icon {
   --color:white;
+  /* 28px: tamaño estándar de icono de aviso (ver common.css .notice) */
+  font-size: 28px;
+  flex-shrink: 0;
 }
 .error-message {
   background-color: var(--ion-color-danger-tint);
