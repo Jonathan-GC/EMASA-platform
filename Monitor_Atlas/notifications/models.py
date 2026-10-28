@@ -11,7 +11,7 @@ class FCMDevice(models.Model):
     user = models.ForeignKey(
         "users.User", on_delete=models.CASCADE, related_name="fcm_devices"
     )
-    fcm_token = models.CharField(max_length=255, unique=True)
+    fcm_token = models.CharField(max_length=512, unique=True)
     platform = models.CharField(max_length=10, choices=PLATFORM_CHOICES)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -183,3 +183,135 @@ def test_google_unlink_not_linked():
     assert response.status_code == 400
     assert response.data["detail"] == "No Google account linked to this user."
 
+
+@pytest.mark.django_db
+def test_tenant_owner_can_view_employee_profile_and_other_employee_cannot():
+    from guardian.shortcuts import assign_perm
+    from roles.helpers import assign_new_tenant_base_permissions, assign_new_user_base_permissions
+
+    subscription = Subscription.objects.create(name="Pro", description="Pro plan")
+    tenant = Tenant.objects.create(name="Beta Corp", subscription=subscription)
+
+    owner = User.objects.create_user(
+        username="owner_user",
+        email="owner@betacorp.com",
+        password="Password123!",
+        name="Owner",
+        last_name="Boss",
+        tenant=tenant,
+    )
+    assign_new_tenant_base_permissions(tenant, owner)
+
+    employee = User.objects.create_user(
+        username="emp_user",
+        email="emp@betacorp.com",
+        password="Password123!",
+        name="Employee",
+        last_name="Worker",
+        tenant=tenant,
+    )
+    assign_new_user_base_permissions(employee)
+
+    other_employee = User.objects.create_user(
+        username="other_emp_user",
+        email="other@betacorp.com",
+        password="Password123!",
+        name="Other",
+        last_name="Worker",
+        tenant=tenant,
+    )
+    assign_new_user_base_permissions(other_employee)
+
+    # 1. Tenant owner views employee profile
+    client = APIClient()
+    client.force_authenticate(user=owner)
+    res = client.get(f"/api/v1/users/user/{employee.id}/profile/")
+    assert res.status_code == 200, f"Expected 200 for tenant owner viewing employee profile, got {res.status_code}: {res.data}"
+    assert res.data["user_info"]["username"] == "emp_user"
+
+    # 2. Employee views own profile
+    client.force_authenticate(user=employee)
+    res_self = client.get(f"/api/v1/users/user/{employee.id}/profile/")
+    assert res_self.status_code == 200
+
+    # 3. Employee views peer employee profile -> 403 Forbidden
+    res_peer = client.get(f"/api/v1/users/user/{other_employee.id}/profile/")
+    assert res_peer.status_code == 403, f"Expected 403 for peer employee viewing another profile, got {res_peer.status_code}"
+
+
+@pytest.mark.django_db
+def test_profile_audit_endpoint():
+    from guardian.shortcuts import assign_perm
+    from auditlog.models import LogEntry
+    from django.contrib.contenttypes.models import ContentType
+    from roles.helpers import assign_new_tenant_base_permissions, assign_new_user_base_permissions
+
+    subscription = Subscription.objects.create(name="Pro", description="Pro plan")
+    tenant = Tenant.objects.create(name="Gamma Corp", subscription=subscription)
+
+    owner = User.objects.create_user(
+        username="gamma_owner",
+        email="owner@gamma.com",
+        password="Password123!",
+        tenant=tenant,
+    )
+    assign_new_tenant_base_permissions(tenant, owner)
+
+    emp = User.objects.create_user(
+        username="gamma_emp",
+        email="emp@gamma.com",
+        password="Password123!",
+        tenant=tenant,
+    )
+    assign_new_user_base_permissions(emp)
+
+    peer = User.objects.create_user(
+        username="gamma_peer",
+        email="peer@gamma.com",
+        password="Password123!",
+        tenant=tenant,
+    )
+    assign_new_user_base_permissions(peer)
+
+    superuser = User.objects.create_superuser(
+        username="gamma_super",
+        email="super@gamma.com",
+        password="Password123!",
+    )
+
+    # Create dummy audit log for emp
+    user_ct = ContentType.objects.get_for_model(User)
+    LogEntry.objects.create(
+        content_type=user_ct,
+        object_pk=str(emp.id),
+        object_repr=str(emp),
+        action=LogEntry.Action.UPDATE,
+        actor=emp,
+        changes='{"name": ["old", "new"]}',
+    )
+
+    client = APIClient()
+
+    # 1. Emp views own profile audit
+    client.force_authenticate(user=emp)
+    res_self = client.get(f"/api/v1/users/user/{emp.id}/profile_audit/")
+    assert res_self.status_code == 200, f"Expected 200 for self profile_audit, got {res_self.status_code}"
+    results = res_self.data.get("results", res_self.data)
+    assert len(results) >= 1
+
+    # 2. Owner views emp's profile audit
+    client.force_authenticate(user=owner)
+    res_owner = client.get(f"/api/v1/users/user/{emp.id}/profile_audit/")
+    assert res_owner.status_code == 200, f"Expected 200 for owner profile_audit, got {res_owner.status_code}"
+
+    # 3. Superuser views emp's profile audit
+    client.force_authenticate(user=superuser)
+    res_super = client.get(f"/api/v1/users/user/{emp.id}/profile_audit/")
+    assert res_super.status_code == 200
+
+    # 4. Peer employee views emp's profile audit -> 403 Forbidden
+    client.force_authenticate(user=peer)
+    res_peer = client.get(f"/api/v1/users/user/{emp.id}/profile_audit/")
+    assert res_peer.status_code == 403
+
+

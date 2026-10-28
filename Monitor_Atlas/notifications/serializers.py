@@ -11,15 +11,14 @@ class FCMDeviceSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context["request"].user
         device, created = FCMDevice.objects.update_or_create(
-            user=user,
             fcm_token=validated_data["fcm_token"],
-            defaults={"platform": validated_data["platform"], "is_active": True},
+            defaults={"user": user, "platform": validated_data["platform"], "is_active": True},
         )
         return device
 
 
 class FCMDeviceRegisterSerializer(serializers.Serializer):
-    fcm_token = serializers.CharField(max_length=255)
+    fcm_token = serializers.CharField(max_length=512)
     platform = serializers.ChoiceField(choices=FCMDevice.PLATFORM_CHOICES)
 
 
