@@ -1,6 +1,6 @@
 <template>
   <ion-page>
-    <ion-header>
+    <ion-header class="form-header-sticky ion-no-border">
       <ion-toolbar>
         <ion-title>Asignar Usuario a Workspace</ion-title>
         <ion-buttons slot="end">
@@ -12,8 +12,7 @@
     </ion-header>
     
     <ion-content class="ion-padding">
-      <ion-card>
-        <ion-card-content>
+      <ion-card-content class="membership-form-container">
           <form @submit.prevent="handleSubmit">
             <!-- Workspace Selector -->
             <div class="form-group">
@@ -147,8 +146,7 @@
               </ion-button>
             </div>
           </form>
-        </ion-card-content>
-      </ion-card>
+      </ion-card-content>
     </ion-content>
   </ion-page>
 </template>
@@ -164,7 +162,6 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  IonCard,
   IonCardContent,
   IonItem,
   IonLabel,
@@ -310,6 +307,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.membership-form-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
 .form-group {
   margin-bottom: 24px;
 }
