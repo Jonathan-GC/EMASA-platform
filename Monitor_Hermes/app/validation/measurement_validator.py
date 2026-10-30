@@ -51,13 +51,27 @@ def validate_measurements(
 
     measurements = payload.get("measurements")
     if not measurements or not isinstance(measurements, dict):
-        loguru.logger.debug("No measurements field in payload")
+        loguru.logger.warning(
+            f"No 'measurements' field in payload for {payload.get('dev_eui')}; "
+            f"payload keys: {list(payload.keys())}"
+        )
         return violations
+
+    configured_units = {c.unit for c in configs}
+    received_units = set(measurements.keys())
+    if not (configured_units & received_units):
+        loguru.logger.warning(
+            f"Unit mismatch: configured={sorted(configured_units)} "
+            f"received={sorted(received_units)}. No validation performed."
+        )
 
     for config in configs:
         unit = config.unit
 
         if unit not in measurements:
+            loguru.logger.debug(
+                f"Configured unit '{unit}' not present in payload measurements; skipping."
+            )
             continue
 
         unit_data = measurements[unit]
