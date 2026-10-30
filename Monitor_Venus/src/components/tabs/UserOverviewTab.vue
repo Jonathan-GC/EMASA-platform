@@ -89,10 +89,6 @@ const logs = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-const endpoint = computed(() =>
-  authStore.isSuperUser ? API.AUDIT : API.TENANT_AUDIT
-)
-
 const {
   currentPage,
   itemsPerPage,
@@ -108,10 +104,9 @@ async function fetchActivity() {
   error.value = null
   try {
     const qs = new URLSearchParams()
-    qs.set('actor', props.userId)
     qs.set('limit', itemsPerPage.value)
     qs.set('offset', offset.value)
-    const response = await API.get(`${endpoint.value}?${qs.toString()}`)
+    const response = await API.get(`${API.USER_PROFILE_AUDIT(props.userId)}?${qs.toString()}`)
     // API.get wraps object responses in [obj]; paginated bodies carry data in .results
     const payload = Array.isArray(response) ? response[0] : response
     logs.value = payload?.results ?? []
