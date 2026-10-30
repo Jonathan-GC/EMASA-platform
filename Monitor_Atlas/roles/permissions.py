@@ -500,6 +500,17 @@ def has_contextual_perm(
                 return True
             if codename in get_perms(user, obj):
                 return True
+            # Tenant owner/admin authority over resources within their tenant
+            if getattr(user, "tenant", None) == tenant and (
+                "change_tenant" in get_perms(user, tenant)
+                or user.has_perm("organizations.change_tenant", tenant)
+                or WorkspaceMembership.objects.filter(
+                    user=user, workspace__tenant=tenant
+                ).filter(
+                    models.Q(role__is_admin=True) | models.Q(role__name__icontains="admin")
+                ).exists()
+            ):
+                return True
             from roles.models import WorkspaceMembership
             role_groups = [
                 m.role.group

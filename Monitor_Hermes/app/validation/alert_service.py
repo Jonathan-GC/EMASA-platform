@@ -76,6 +76,26 @@ async def send_alert_with_fallback(
             timeout=5.0,
         )
 
+        if response.status_code >= 400:
+            loguru.logger.warning(
+                f"⚠️ Atlas rejected alert for {dev_eui}: "
+                f"{response.status_code} {response.text}"
+            )
+            stored_user_id = user_ids[0] if user_ids else ""
+            pending_alert = PendingAlert(
+                dev_eui=dev_eui,
+                user_id=stored_user_id,
+                alert_data=atlas_payload,
+                created_at=datetime.now(timezone.utc),
+                sent_via_websocket=False,
+            )
+            try:
+                await save_pending_alert(db, pending_alert)
+                loguru.logger.info(f"📋 Alert queued for retry. Device: {dev_eui}")
+            except Exception as queue_error:
+                loguru.logger.exception(f"Failed to queue alert: {queue_error}")
+            return {"method": "queued", "success": False, "queued_for_retry": True}
+
         loguru.logger.info(f"✅ Alert sent to Atlas for device {dev_eui}")
         return {"method": "atlas", "success": True}
 
