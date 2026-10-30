@@ -326,6 +326,8 @@ onMounted(load)
 }
 
 .description-icon {
+  /* 28px: tamaño estándar de icono de aviso (ver common.css .notice) */
+  font-size: 28px;
   color: #d97706;
   flex-shrink: 0;
   margin-top: 1px;

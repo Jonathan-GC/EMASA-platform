@@ -57,7 +57,7 @@ export const theme = {
   // Error/Danger
   danger: {
     DEFAULT: '#ef4444',
-    light: '#f87171',
+    light: '#fde8e8',
     dark: '#dc2626',
   },
   

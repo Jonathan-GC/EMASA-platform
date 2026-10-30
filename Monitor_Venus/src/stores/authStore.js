@@ -638,6 +638,11 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Guardar nuevo access token
       tokenManager.saveAccessToken(data.access);
+
+      // Sincronizar también el token en memoria del cliente API. De lo contrario
+      // éste puede seguir usando el token anterior (con claims viejos) hasta que
+      // expire, aunque localStorage ya tenga el nuevo.
+      API.saveAccessToken(data.access, 60 * 60 * 1000);
       
       // Si el backend devolvió un nuevo refresh token, guardarlo también
       if (data.refresh) {

@@ -62,7 +62,7 @@
     },
     {
       "key": "location_id",
-      "label": "Ubicaciópn",
+      "label": "Ubicación",
       "type": "select"
     }
   ],

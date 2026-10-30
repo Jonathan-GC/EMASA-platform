@@ -155,10 +155,13 @@ function onFieldChanged(key: string, value: any) {
 // Lifecycle – initialise everything
 // ---------------------------------------------------
 onMounted(async () => {
+  // Avisa de inmediato al contenedor del modal (quickControl/quickActions)
+  // que el formulario ya está montado; el spinner del modal no debe esperar
+  // a los datos de referencia (se cargan en segundo plano).
+  emit('loaded');
   setDevice();                // device_id
   populateMeasurementTypes(); // fill ref dropdown
   await fetchDevices();       // fill device selector
   loaded.value = true;
-  emit('loaded');
 });
 </script>

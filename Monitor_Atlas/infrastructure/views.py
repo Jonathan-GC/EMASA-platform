@@ -34,7 +34,7 @@ from .models import (
 
 from organizations.models import Tenant
 from roles.permissions import HasPermission, IsServiceOrHasPermission
-from guardian.shortcuts import get_objects_for_user, get_users_with_perms
+from guardian.shortcuts import get_objects_for_user
 from auditlog.context import set_extra_data
 from platform_backend.audit_mixins import AuditActionMixin, _current_audit_context
 from .consent_helpers import compute_device_consent_signature
@@ -841,7 +841,7 @@ class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
             )
 
         try:
-            device = Device.objects.get(dev_eui=dev_eui)
+            device = Device.objects.get(dev_eui__iexact=dev_eui)
         except Device.DoesNotExist:
             return Response(
                 {"message": "Device not found"},
@@ -875,7 +875,7 @@ class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
             )
 
         try:
-            device = Device.objects.get(dev_eui=dev_eui)
+            device = Device.objects.get(dev_eui__iexact=dev_eui)
         except Device.DoesNotExist:
             return Response(
                 {"message": "Device not found"},
@@ -890,8 +890,16 @@ class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
             "assigned_users": [],
         }
 
-        users_queryset = get_users_with_perms(device)
-        for user in users_queryset:
+        # Resolve recipients through the contextual permission engine so the
+        # cached mapping matches Atlas's alert-time resolution (which no longer
+        # relies on stale Guardian object permissions).
+        from notifications.helpers import get_users_for_device as _resolve_device_users
+
+        try:
+            users = _resolve_device_users(dev_eui)
+        except ValueError:
+            users = []
+        for user in users:
             payload["assigned_users"].append(
                 {"user_id": user.id, "username": user.username}
             )

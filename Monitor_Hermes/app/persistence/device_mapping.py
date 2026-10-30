@@ -34,18 +34,25 @@ async def get_device_user_mapping(db, dev_eui: str) -> Optional[DeviceUserMappin
         redis_client = get_redis_client()
         cached_data = await redis_client.get(redis_key)
         if cached_data:
-            loguru.logger.debug(f"Cache HIT (Redis) for {dev_eui}")
-            return DeviceUserMapping(**json.loads(cached_data))
+            parsed = DeviceUserMapping(**json.loads(cached_data))
+            if parsed.assigned_users:
+                loguru.logger.debug(f"Cache HIT (Redis) for {dev_eui}")
+                return parsed
+            loguru.logger.info(f"Stale empty mapping in Redis for {dev_eui}; refreshing from Atlas.")
     except Exception as e:
         loguru.logger.warning(f"Redis error reading mapping for {dev_eui}: {e}")
 
     # 2. Try MongoDB
     mapping = await get_users_for_device(db, dev_eui)
-    if mapping:
+    if mapping and mapping.assigned_users:
         loguru.logger.debug(f"Cache HIT (Mongo) for {dev_eui}")
         # Populate Redis asynchronously
         await _cache_mapping_in_redis(mapping)
         return mapping
+    if mapping:
+        loguru.logger.info(
+            f"Stale empty mapping in Mongo for {dev_eui}; refreshing from Atlas."
+        )
 
     # 3. Fetch from Atlas API
     loguru.logger.info(f"Cache MISS for {dev_eui}. Fetching from Atlas...")
@@ -65,7 +72,7 @@ async def get_device_user_mapping(db, dev_eui: str) -> Optional[DeviceUserMappin
         assigned_users_list = [
             u.get("user_id") for u in data.get("assigned_users", []) if u.get("user_id")
         ]
-
+        print(f"Assigned users for {dev_eui}: {assigned_users_list}")
         new_mapping = DeviceUserMapping(
             dev_eui=data.get("dev_eui", dev_eui),
             tenant_id=str(data.get("tenant_id", "")),
