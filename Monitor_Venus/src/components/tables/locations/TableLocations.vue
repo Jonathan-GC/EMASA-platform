@@ -245,7 +245,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, inject } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
@@ -265,10 +265,10 @@ const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Component-specific state
 const application = ref([])
-const loading = ref(false)
+// Inicia en true: la primera carga comienza de inmediato al montar.
+const loading = ref(true)
 const error = ref(null)
 const selectedApplication = ref(null)
-const isMounted = ref(false)
 
 // Table composables
 const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(application, ['name', 'source'])
@@ -293,12 +293,6 @@ const setInitialData = (location) => {
 
 // Fetch data from API
 const fetchLocations = async () => {
-  // Ensure component is mounted before fetching
-  if (!isMounted.value) {
-    console.log('⏳ Component not ready, waiting...')
-    return
-  }
-
   loading.value = true
   error.value = null
   const headers={
@@ -341,19 +335,11 @@ const handleItemRefresh = () => {
 };
 
 // Lifecycle
-onMounted(async () => {
-  console.log('🔧 TableGateways component mounted')
-
-  // Wait for next tick to ensure DOM is ready
-  await nextTick()
-
-  // Mark component as mounted
-  isMounted.value = true
-
-  // Small delay to ensure Ionic page transition is complete
-  setTimeout(() => {
-    fetchLocations()
-  }, 100)
+onMounted(() => {
+  console.log('🔧 TableLocations component mounted')
+  // Sin setTimeout artificial: el spinner inicial (loading=true) se muestra
+  // desde el primer render y la petición sale de inmediato.
+  fetchLocations()
 })
 </script>
 

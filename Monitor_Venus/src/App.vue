@@ -14,9 +14,11 @@ import { App as CapApp } from '@capacitor/app'
 import API from '@/utils/api/api.js'
 import tokenManager from '@/utils/auth/tokenManager.js'
 import { parseGoogleState, postGoogleLinkCode } from '@/utils/auth/googleOAuth.js'
+import { useRoutePrefetch } from '@/composables/useRoutePrefetch.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const routePrefetch = useRoutePrefetch()
 
 let appUrlListener = null
 let removeForegroundListener = null
@@ -157,6 +159,9 @@ watch(
   async (isAuth) => {
     console.log('🔔 Auth state changed:', isAuth)
     if (isAuth) {
+      // Precarga las rutas del menú cuando la app queda inactiva.
+      routePrefetch.start()
+
       try {
         // Heartbeat de salud hacia la plataforma de estado (lazy, no bloquea)
         if (!healthHeartbeat) {
@@ -188,6 +193,8 @@ watch(
         console.warn('⚠️ Push notification setup failed:', e)
       }
     } else {
+      routePrefetch.stop()
+
       // Al cerrar sesión se detiene el heartbeat de salud
       if (healthHeartbeat) {
         healthHeartbeat.stopHeartbeat()
@@ -198,6 +205,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  routePrefetch.stop()
   if (healthHeartbeat) healthHeartbeat.stopHeartbeat()
   if (appUrlListener) appUrlListener.remove()
   if (appStateListener) appStateListener.remove()

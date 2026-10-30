@@ -12,6 +12,10 @@
         @itemEdited="handleitemEdited"
         @closed="emit('closed')"
       />
+      <div v-else class="loading-container">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Cargando formulario...</p>
+      </div>
     </ion-content>
   </ion-page>
 </template>
@@ -103,3 +107,23 @@ onMounted(async () => {
   };
 });*/
 </script>
+
+<style scoped>
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-container ion-spinner {
+  margin-bottom: 16px;
+}
+
+.loading-container p {
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+}
+</style>

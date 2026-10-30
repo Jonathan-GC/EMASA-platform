@@ -206,6 +206,12 @@ onMounted(() => {
   white-space: normal;
 }
 
+/* Tamaño estándar de icono de aviso: 28px (siempre en el host ion-icon) */
+.warning-note ion-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
 .error-container {
   margin-top: 40px;
 }

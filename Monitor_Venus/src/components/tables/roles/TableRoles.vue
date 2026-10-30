@@ -146,8 +146,8 @@
                   @view-clicked="openRoleMembersModal(role)"
                   @permissions-clicked="openPermissionsManager(role)"
                   @membership-clicked="openWorkspaceMembershipForm(role)"
-                  @itemEdited="handleItemRefresh"
-                  @itemDeleted="handleItemRefresh"
+                  @item-edited="handleItemRefresh"
+                  @item-deleted="handleItemRefresh"
                 />
               </ion-col>
             </ion-row>
@@ -214,8 +214,8 @@
                     @view-clicked="openRoleMembersModal(role)"
                     @permissions-clicked="openPermissionsManager(role)"
                     @membership-clicked="openWorkspaceMembershipForm(role)"
-                    @itemEdited="handleItemRefresh"
-                    @itemDeleted="handleItemRefresh"
+                    @item-edited="handleItemRefresh"
+                    @item-deleted="handleItemRefresh"
                   />
                 </div>
               </ion-card-content>
@@ -266,7 +266,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, inject } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
@@ -288,12 +288,12 @@ const icons = inject('icons', {})
 const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 const { getCardClass, getItemActivateProps } = useCardNavigation()
 
-// Component state
+// Component-specific state
 const roles = ref([])
-const loading = ref(false)
+// Inicia en true: la primera carga comienza de inmediato al montar.
+const loading = ref(true)
 const error = ref(null)
 const selectedRole = ref(null)
-const isMounted = ref(false)
 const permissionsModal = ref(null)
 
 // Table composables
@@ -304,11 +304,6 @@ const { currentPage, totalPages, changePage, paginatedItems } = useTablePaginati
 
 // Fetch data from API
 const fetchRoles = async () => {
-  if (!isMounted.value) {
-    console.log('⏳ Component not ready, waiting...')
-    return
-  }
-  
   loading.value = true
   error.value = null
   
@@ -378,9 +373,13 @@ const openPermissionsManager = async (role) => {
     cssClass: 'full-modal'
   })
   
-  modal.onDidDismiss().then(() => {
+  modal.onDidDismiss().then(({ data }) => {
     console.log('Permissions manager closed')
-    fetchRoles() // Refresh roles after permissions update
+    // Refresca solo cuando se guardaron cambios (dismiss con { changed: true });
+    // cancelar no dispara un refetch innecesario.
+    if (data?.changed) {
+      fetchRoles() // Refresh roles after permissions update
+    }
   })
   
   await modal.present()
@@ -398,6 +397,14 @@ const openRoleMembersModal = async (role) => {
     cssClass: 'full-modal'
   })
   
+  modal.onDidDismiss().then(({ data }) => {
+    console.log('Role members modal closed')
+    // Refresca solo si se removió un usuario del rol (users_count cambia)
+    if (data?.changed) {
+      fetchRoles()
+    }
+  })
+
   await modal.present()
 }
 
@@ -414,9 +421,12 @@ const openWorkspaceMembershipForm = async (role) => {
     cssClass: 'full-modal'
   })
   
-  modal.onDidDismiss().then(() => {
+  modal.onDidDismiss().then(({ data }) => {
     console.log('Workspace membership form closed')
-    // Optionally refresh data if needed
+    // Refresca solo cuando se asignó un usuario al rol (users_count cambia)
+    if (data?.changed) {
+      fetchRoles()
+    }
   })
   
   await modal.present()
@@ -427,15 +437,11 @@ const handleItemRefresh = () => {
 }
 
 // Lifecycle
-onMounted(async () => {
+onMounted(() => {
   console.log('🔧 TableRoles component mounted')
-  
-  await nextTick()
-  isMounted.value = true
-  
-  setTimeout(() => {
-    fetchRoles()
-  }, 100)
+  // Sin setTimeout artificial: el spinner inicial (loading=true) se muestra
+  // desde el primer render y la petición sale de inmediato.
+  fetchRoles()
 })
 </script>
 

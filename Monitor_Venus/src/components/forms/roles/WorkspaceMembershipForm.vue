@@ -1,10 +1,10 @@
 <template>
   <ion-page>
-    <ion-header>
+    <ion-header class="form-header-sticky ion-no-border">
       <ion-toolbar>
         <ion-title>Asignar Usuario a Workspace</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="closeModal">
+          <ion-button @click="closeModal()">
             <ion-icon :icon="icons.close"></ion-icon>
           </ion-button>
         </ion-buttons>
@@ -12,8 +12,7 @@
     </ion-header>
     
     <ion-content class="ion-padding">
-      <ion-card>
-        <ion-card-content>
+      <ion-card-content class="membership-form-container">
           <form @submit.prevent="handleSubmit">
             <!-- Workspace Selector -->
             <div class="form-group">
@@ -132,7 +131,7 @@
             <div class="form-actions">
               <ion-button 
                 fill="outline" 
-                @click="closeModal"
+                @click="closeModal()"
                 :disabled="submitting"
               >
                 Cancelar
@@ -147,8 +146,7 @@
               </ion-button>
             </div>
           </form>
-        </ion-card-content>
-      </ion-card>
+      </ion-card-content>
     </ion-content>
   </ion-page>
 </template>
@@ -164,7 +162,6 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  IonCard,
   IonCardContent,
   IonItem,
   IonLabel,
@@ -287,7 +284,8 @@ const handleSubmit = async () => {
     
     console.log('✅ Workspace membership created:', response)
     emit('membershipCreated', response)
-    closeModal()
+    // `changed: true` hace que la tabla de roles refresque al cerrar el modal
+    closeModal({ changed: true })
   } catch (err) {
     console.error('❌ Error creating workspace membership:', err)
     error.value = `Error al asignar usuario: ${err.message}`
@@ -296,9 +294,10 @@ const handleSubmit = async () => {
   }
 }
 
-const closeModal = async () => {
+// `data` viaja al onDidDismiss de la tabla; { changed: true } dispara el refetch
+const closeModal = async (data) => {
   const { modalController } = await import('@ionic/vue')
-  await modalController.dismiss()
+  await modalController.dismiss(data)
 }
 
 // Lifecycle
@@ -308,6 +307,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.membership-form-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
 .form-group {
   margin-bottom: 24px;
 }

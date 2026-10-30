@@ -95,12 +95,17 @@ const setAffiliation = () => {
 
 // Run the data fetching and setup logic when the component is mounted
 onMounted(async () => {
-  //await fetchTypes();
+  // Avisa de inmediato al contenedor del modal (quickControl/quickActions)
+  // que el formulario ya está montado; el spinner del modal no debe esperar
+  // a los datos de referencia (se cargan en segundo plano).
+  emit('loaded');
   //await fetchSex();
   //setAffiliation();
-  await fetchLocations();
-  await fetchWorkspaces();
+  // Carga en paralelo (antes eran dos await secuenciales = el doble de espera).
+  await Promise.all([
+    fetchLocations(),
+    fetchWorkspaces(),
+  ]);
   loaded.value = true;
-  emit('loaded');
 });
 </script>

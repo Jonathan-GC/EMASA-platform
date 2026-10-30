@@ -12,6 +12,10 @@
         @itemEdited="handleitemEdited"
         @closed="emit('closed')"
       />
+      <div v-else class="loading-container">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Cargando formulario...</p>
+      </div>
     </ion-content>
   </ion-page>
 </template>
@@ -89,12 +93,16 @@ const setAffiliation = () => {
 
 // Run the data fetching and setup logic when the component is mounted
 onMounted(async () => {
+  // Avisa de inmediato al contenedor del modal (quickControl/quickActions)
+  // que el formulario ya está montado; el spinner del modal no debe esperar
+  // a los datos de referencia. El gate interno ("Cargando formulario...")
+  // es el único spinner visible mientras se cargan las opciones.
+  emit('loaded');
   //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
   await fetchTenants();
   loaded.value = true;
-  emit('loaded');
 });
 
 /*const setInitialData = computed(() => {
@@ -103,3 +111,23 @@ onMounted(async () => {
   };
 });*/
 </script>
+
+<style scoped>
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-container ion-spinner {
+  margin-bottom: 16px;
+}
+
+.loading-container p {
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+}
+</style>

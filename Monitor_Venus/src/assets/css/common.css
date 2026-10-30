@@ -10,7 +10,7 @@
 }
 
 .warning-icon {
-  font-size: 32px;
+  font-size: 28px;
   color: var(--ion-color-warning-contrast);
   flex-shrink: 0;
 }
@@ -30,4 +30,56 @@
   margin: 0 0 1rem 0;
   font-size: 0.9rem;
   color: var(--ion-color-warning-contrast);
+}
+
+/* ============================================================
+   Avisos / notices compartidos
+   Tamaño de icono estándar: 28px, siempre en el host `ion-icon`
+   (ion-icon usa width/height: 1em + contain:strict; el tamaño
+   debe aplicarse al propio <ion-icon>, nunca al svg interno).
+   ============================================================ */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  white-space: normal;
+}
+
+.notice ion-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.notice-warning {
+  background: var(--ion-color-warning-tint, #fff6e6);
+}
+
+.notice-warning ion-icon {
+  color: var(--ion-color-warning, #f59e0b);
+}
+
+.notice-danger {
+  background: var(--ion-color-danger-tint, #fde8e8);
+}
+
+.notice-danger ion-icon {
+  color: var(--ion-color-danger, #ef4444);
+}
+
+.notice-info {
+  background: var(--ion-color-primary-tint, #e8f0fe);
+}
+
+.notice-info ion-icon {
+  color: var(--ion-color-primary, #3b82f6);
+}
+
+.notice-success {
+  background: var(--ion-color-success-tint, #e6f7ec);
+}
+
+.notice-success ion-icon {
+  color: var(--ion-color-success, #10b981);
 }
