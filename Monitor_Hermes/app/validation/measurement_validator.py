@@ -57,7 +57,7 @@ def validate_measurements(
         )
         return violations
 
-    configured_units = {c.unit for c in configs}
+    configured_units = { (c.ref or c.unit) for c in configs }
     received_units = set(measurements.keys())
     if not (configured_units & received_units):
         loguru.logger.warning(
@@ -67,14 +67,15 @@ def validate_measurements(
 
     for config in configs:
         unit = config.unit
+        measurement_key = config.ref or config.unit
 
-        if unit not in measurements:
+        if measurement_key not in measurements:
             loguru.logger.debug(
-                f"Configured unit '{unit}' not present in payload measurements; skipping."
+                f"Configured ref '{measurement_key}' (unit '{unit}') not present in payload measurements; skipping."
             )
             continue
 
-        unit_data = measurements[unit]
+        unit_data = measurements[measurement_key]
         if not isinstance(unit_data, dict):
             continue
 
@@ -104,7 +105,7 @@ def validate_measurements(
                 if value < config.min:
                     violations.append(
                         MeasurementViolation(
-                            unit=unit,
+                            unit=measurement_key,
                             channel=channel,
                             value=value,
                             limit_type="min",
@@ -120,7 +121,7 @@ def validate_measurements(
                 elif value > config.max:
                     violations.append(
                         MeasurementViolation(
-                            unit=unit,
+                            unit=measurement_key,
                             channel=channel,
                             value=value,
                             limit_type="max",

@@ -28,6 +28,7 @@ class MeasurementConfig(BaseModel):
     max: float
     threshold: float
     unit: str
+    ref: Optional[str] = None
 
 
 class DeviceMeasurementConfigs(BaseModel):
