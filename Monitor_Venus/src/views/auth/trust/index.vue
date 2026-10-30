@@ -367,4 +367,11 @@ onMounted(() => {
   --inner-padding-end: 0;
   margin-top: 8px;
 }
+
+.error-item ion-icon {
+  /* 28px: tamaño estándar de icono de aviso (ver common.css .notice) */
+  font-size: 28px;
+  vertical-align: middle;
+}
+
 </style>

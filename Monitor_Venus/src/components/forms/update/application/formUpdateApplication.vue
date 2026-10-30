@@ -78,7 +78,7 @@ const fetchTypes = async () => {
       }));
     }
   } catch (error) {
-    console.error('Error fetching user types:', error);
+    console.error('Error fetching device types:', error);
   }
 };
 
@@ -94,7 +94,7 @@ const fetchWorkspaces = async () => {
       }));
     }
   } catch (error) {
-    console.error('Error fetching sex values:', error);
+    console.error('Error fetching workspaces:', error);
   }
 };
 
@@ -109,11 +109,12 @@ const setAffiliation = () => {
 
 // Run the data fetching and setup logic when the component is mounted
 onMounted(async () => {
-  //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
-  await fetchTypes();
-  await fetchWorkspaces();
+  await Promise.all([
+    fetchTypes(),
+    fetchWorkspaces(),
+  ]);
   loaded.value = true;
   emit('loaded');
 });

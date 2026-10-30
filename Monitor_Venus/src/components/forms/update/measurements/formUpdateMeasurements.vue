@@ -89,9 +89,12 @@ const fetchDevices = async () => {
 const handleItemEdited = () => emit('itemEdited');
 
 onMounted(async () => {
+  // Avisa de inmediato al contenedor del modal (quickControl/quickActions)
+  // que el formulario ya está montado; el spinner del modal no debe esperar
+  // a los datos de referencia (se cargan en segundo plano).
+  emit('loaded');
   setDevice();
   await fetchDevices();
   populateMeasurementTypes();
-  emit('loaded');
 });
 </script>

@@ -12,7 +12,7 @@
         <!-- Loading state -->
         <div v-if="loading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
-          <p>Obteniendo datos de los Applications...</p>
+          <p>Obteniendo datos de los workspaces...</p>
         </div>
 
         <!-- Error state -->
@@ -190,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, inject } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
 import { useTableSorting } from '@composables/Tables/useTableSorting.js'
@@ -213,10 +213,11 @@ const { isMobile, isTablet, isDesktop } = useResponsiveView(768)
 
 // Component-specific state
 const application = ref([])
-const loading = ref(false)
+// Inicia en true: la primera carga comienza de inmediato al montar,
+// sin ventana donde se muestra el estado vacío o dos spinners seguidos.
+const loading = ref(true)
 const error = ref(null)
 const selectedApplication = ref(null)
-const isMounted = ref(false)
 
 // Table composables
 const { searchText, filteredItems, handleSearch, clearSearch } = useTableSearch(application, ['name', 'description', 'tenant'])
@@ -237,12 +238,6 @@ const setInitialData = (workspace) => {
 
 // Fetch data from API
 const fetchWorkspaces = async () => {
-  // Ensure component is mounted before fetching
-  if (!isMounted.value) {
-    console.log('⏳ Component not ready, waiting...')
-    return
-  }
-
   loading.value = true
   error.value = null
   const headers = {
@@ -285,19 +280,11 @@ const handleItemRefresh = () => {
 
 
 // Lifecycle
-onMounted(async () => {
-  console.log('🔧 TableGateways component mounted')
-
-  // Wait for next tick to ensure DOM is ready
-  await nextTick()
-
-  // Mark component as mounted
-  isMounted.value = true
-
-  // Small delay to ensure Ionic page transition is complete
-  setTimeout(() => {
-    fetchWorkspaces()
-  }, 100)
+onMounted(() => {
+  console.log('🔧 TableWorkspaces component mounted')
+  // Sin setTimeout artificial: el spinner inicial (loading=true) se muestra
+  // desde el primer render y la petición sale de inmediato.
+  fetchWorkspaces()
 })
 </script>
 

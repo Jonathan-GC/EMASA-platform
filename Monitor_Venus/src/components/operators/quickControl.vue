@@ -27,7 +27,9 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
+          <div v-show="componentLoaded" style="width: 100%; height: 100%;">
+            <component :is="ComponentToRender.component" :key="`create-${type}-${modalKey}`" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
+          </div>
         </div>
       </ion-content>
     </ion-modal>
@@ -40,7 +42,9 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
+          <div v-show="componentLoaded" style="width: 100%; height: 100%;">
+            <component :is="ComponentToRender.component" :key="`create-${type}-${modalKey}`" v-bind="ComponentToRender.props" @itemCreated="handleItemCreated" @loaded="componentLoaded = true" @closed="overlayCreate = false"/>
+          </div>
         </div>
       </ion-content>
     </ion-modal>
@@ -57,7 +61,9 @@
       <ion-content>
         <div class="d-flex align-center justify-center" style="height: 100vh;">
           <ion-spinner v-if="!componentLoaded" class="modal-loader" name="circular" color="primary"></ion-spinner>
-          <component :is="ComponentToRender.component" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true"/>
+          <div v-show="componentLoaded" style="width: 100%; height: 100%;">
+            <component :is="ComponentToRender.component" :key="`edit-${type}-${index}-${modalKey}`" v-bind="ComponentToRender.props" @itemEdited="handleItemEdited" @loaded="componentLoaded = true" @closed="overlayEdit = false"/>
+          </div>
         </div>
       </ion-content>
     </ion-modal>
@@ -198,11 +204,20 @@ export default defineComponent({
   watch: {
     // Watch for changes in the overlayCreate to load the component
     overlayCreate(newVal) {
-      if (newVal) this.componentLoaded = false;
+      if (newVal) {
+        this.componentLoaded = false;
+        // Fuerza el remount del formulario: los modals inline no desmontan
+        // su contenido al cerrarse, asi que sin esto el onMounted (y el
+        // emit('loaded')) nunca volveria a ejecutarse en la segunda apertura.
+        this.modalKey++;
+      }
     },
     // Watch for changes in the overlayEdit to load the component
     overlayEdit(newVal) {
-      if (newVal) this.componentLoaded = false;
+      if (newVal) {
+        this.componentLoaded = false;
+        this.modalKey++;
+      }
     }
   },
 
@@ -214,6 +229,9 @@ export default defineComponent({
       overlayEdit: false,
       selectedAction: 'create' as ActionType,
       componentLoaded: false,
+      // Se incrementa en cada apertura de modal y se usa como :key del
+      // componente dinamico para forzar una instancia nueva del formulario.
+      modalKey: 0,
     };
   },
 

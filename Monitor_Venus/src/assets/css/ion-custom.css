@@ -111,6 +111,11 @@ ion-list.custom{
 ion-content.custom{
     --background: #f9fafb;
 }
+
+/* Hide internal form spinners when inside the modal triggered by quickControl/quickActions */
+.form-modal .loading-container {
+  display: none !important;
+}
 @media (max-width: 480px) {
   ion-card-content.custom {
     padding-bottom: 140px!important;

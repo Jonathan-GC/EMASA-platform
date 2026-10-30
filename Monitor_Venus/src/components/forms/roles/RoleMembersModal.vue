@@ -94,6 +94,9 @@ const members = ref([])
 const loading = ref(true)
 const error = ref(null)
 const removingUserId = ref(null)
+// Se vuelve true cuando se remueve un usuario; al cerrar el modal la tabla
+// lo usa para decidir si debe refetchear (el users_count del rol cambia).
+const changed = ref(false)
 
 /**
  * Formats the image URL to include the backend base URL if it's a relative path.
@@ -161,6 +164,9 @@ const removeUserFromRole = async (userId) => {
       user_id: userId
     })
 
+    // Se removió un usuario: marcar el cambio para que la tabla refresque al cerrar
+    changed.value = true
+
     // Show success toast
     const toast = await toastController.create({
       message: 'Usuario removido del rol exitosamente',
@@ -189,8 +195,9 @@ const removeUserFromRole = async (userId) => {
 }
 
 
+// Al cerrar, informa si hubo cambios para que la tabla de roles refresque
 const closeModal = () => {
-  modalController.dismiss()
+  modalController.dismiss({ changed: changed.value })
 }
 
 onMounted(() => {

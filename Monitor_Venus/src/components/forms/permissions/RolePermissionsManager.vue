@@ -10,7 +10,7 @@
             </div>
           </ion-title>
           <ion-buttons slot="end">
-            <ion-button @click="closeModal">
+            <ion-button @click="closeModal()">
               <ion-icon :icon="icons.close" slot="icon-only"></ion-icon>
             </ion-button>
           </ion-buttons>
@@ -92,7 +92,7 @@
         <div class="form-actions">
           <ion-button 
             fill="outline" 
-            @click="closeModal"
+            @click="closeModal()"
             :disabled="loading"
           >
             Cancelar
@@ -254,9 +254,10 @@ const togglePermission = (resourceModel, itemId, permissionType, value) => {
   console.log('📝 Current permissions state:', permissions.value)
 }
 
-const closeModal = async () => {
+// `data` viaja al onDidDismiss de la tabla; { changed: true } dispara el refetch
+const closeModal = async (data) => {
   const { modalController } = await import('@ionic/vue')
-  await modalController.dismiss()
+  await modalController.dismiss(data)
 }
 
 // Fetch the dynamic permission catalog (categories, resources, actions)
@@ -398,7 +399,8 @@ const savePermissions = async () => {
     if (!response.error) {
       console.log('✅ Permissions saved successfully')
       emit('permissionsUpdated')
-      closeModal()
+      // `changed: true` hace que la tabla de roles refresque al cerrar el modal
+      closeModal({ changed: true })
     }
   } catch (error) {
     console.error('❌ Error saving permissions:', error)

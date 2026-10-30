@@ -215,7 +215,8 @@ watch(
 }
 
 .warn-icon {
-  font-size: 1.35rem;
+  /* 1.75rem = 28px: tamaño estándar de icono de aviso */
+  font-size: 1.75rem;
   flex-shrink: 0;
   color: #d97706;
 }

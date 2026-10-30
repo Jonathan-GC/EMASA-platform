@@ -94,11 +94,12 @@ const setAffiliation = () => {
 
 // Run the data fetching and setup logic when the component is mounted
 onMounted(async () => {
-  //await fetchTypes();
   //await fetchSex();
   //setAffiliation();
-  await fetchType();
-  await fetchWorkspaces();
+  await Promise.all([
+    fetchType(),
+    fetchWorkspaces(),
+  ]);
   loaded.value = true;
   emit('loaded');
 });

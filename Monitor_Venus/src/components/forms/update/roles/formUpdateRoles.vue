@@ -213,7 +213,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['itemEdited', 'closed'])
+const emit = defineEmits(['itemEdited', 'loaded', 'closed'])
 
 const icons = inject('icons', {})
 const loading = ref(false)
@@ -250,8 +250,10 @@ const closeModal = () => {
 }
 
 const createRole = async () => {
+  // Evita doble envío mientras la petición está en curso
+  if (loading.value) return
   loading.value = true
-  
+
   try {
     // Prepare payload
     const payload = {
@@ -261,14 +263,18 @@ const createRole = async () => {
       workspace_id: formValues.value.workspace_id,
     }
 
-    console.log('📤 Creating role:', payload)
-    
+    console.log('📤 Updating role:', payload)
+
     const response = await API.patch(`${API.ROLE}${props.index}/`, payload)
-    
-    if (!response.error) {
+
+    // API.handleResponse envuelve la respuesta en un array y lanza en errores HTTP,
+    // así que una respuesta sin lanzar excepción es una actualización exitosa.
+    if (response && !response.error) {
       console.log('✅ Role updated successfully')
       emit('itemEdited', formValues.value.name)
       closeModal()
+    } else if (response?.error) {
+      console.error('❌ Error updating role:', response.error)
     }
   } catch (error) {
     console.error('❌ Error updating role:', error)
@@ -289,23 +295,35 @@ const fetchWorkspaces = async () => {
 };
 
 onMounted( async () => {
-  await fetchWorkspaces();
-  
-  // Populate form with initialData if provided
-  if (props.initialData && Object.keys(props.initialData).length > 0) {
-    console.log('📝 Populating form with initial data:', props.initialData)
-    
-    formValues.value = {
-      ...formValues.value,
-      name: props.initialData.name || '',
-      description: props.initialData.description || '',
-      color: props.initialData.color || '#5865F2',
-      workspace_id: props.initialData.workspace_id || null,
+  // Avisa al contenedor del modal (quickControl/quickActions) que el formulario
+  // ya está montado; el spinner del modal no debe esperar a los datos de
+  // referencia. El spinner interno ("Cargando formulario...") es el único
+  // indicador de carga mientras se traen los workspaces.
+  emit('loaded')
+
+  try {
+    await fetchWorkspaces();
+
+    // Populate form with initialData if provided
+    if (props.initialData && Object.keys(props.initialData).length > 0) {
+      console.log('📝 Populating form with initial data:', props.initialData)
+
+      formValues.value = {
+        ...formValues.value,
+        name: props.initialData.name || '',
+        description: props.initialData.description || '',
+        color: props.initialData.color || '#5865F2',
+        workspace_id: props.initialData.workspace_id || null,
+      }
     }
+  } catch (error) {
+    // Nunca dejar el formulario atenido en el spinner: aunque falle la carga
+    // de workspaces, el formulario debe mostrarse.
+    console.error('❌ Error initializing role update form:', error)
+  } finally {
+    loaded.value = true
+    console.log('🎭 Role update form mounted')
   }
-  
-  loaded.value = true
-  console.log('🎭 Role creation form mounted')
 })
 </script>
 

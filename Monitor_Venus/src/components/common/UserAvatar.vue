@@ -14,10 +14,11 @@
       <!-- Tenant Badge -->
       <div v-if="showTenantBadge && hasTenant" class="tenant-badge" :class="badgeSize">
         <img 
-          v-if="tenantImage" 
+          v-if="tenantImage && !tenantImageError" 
           :src="tenantImage" 
-          :alt="tenantName"
+          :alt="tenantName || authStore.profileTenantName || 'Tenant'"
           class="tenant-image"
+          @error="handleTenantImageError"
         />
         <div v-else class="tenant-initials">
           {{ tenantInitials }}
@@ -32,7 +33,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
 
@@ -116,9 +117,20 @@ const tenantImage = computed(() => {
   return props.tenantImage || authStore.profileTenantImage
 })
 
+// Reset the error flag when the image source changes (e.g. after re-fetching /me)
+const tenantImageError = ref(false)
+watch(tenantImage, () => {
+  tenantImageError.value = false
+})
+
+const handleTenantImageError = () => {
+  console.warn('⚠️ No se pudo cargar la imagen del tenant:', tenantImage.value)
+  tenantImageError.value = true
+}
+
 // Get tenant initials
 const tenantInitials = computed(() => {
-  const name = props.tenantName || 'T'
+  const name = props.tenantName || authStore.profileTenantName || 'T'
   if (!name) return 'T'
   
   const parts = name.split(' ')
