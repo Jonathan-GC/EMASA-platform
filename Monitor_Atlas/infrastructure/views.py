@@ -841,7 +841,7 @@ class DeviceViewSet(AuditActionMixin, viewsets.ModelViewSet):
             )
 
         try:
-            device = Device.objects.get(dev_eui=dev_eui)
+            device = Device.objects.get(dev_eui__iexact=dev_eui)
         except Device.DoesNotExist:
             return Response(
                 {"message": "Device not found"},
