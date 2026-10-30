@@ -386,7 +386,8 @@ onIonViewWillEnter(() => {
 }
 
 .type-icon {
-  font-size: 1.5rem;
+  /* 1.75rem = 28px: tamaño estándar de icono de aviso (ver common.css .notice) */
+  font-size: 1.75rem;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -480,7 +481,7 @@ ion-card-content {
   }
 
   .type-icon {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   ion-card-title {

@@ -41,6 +41,9 @@ class API {
     USER_PROFILE(userId) {
         return `users/user/${userId}/profile/`
     }
+        USER_PROFILE_AUDIT(userId) {
+        return `users/user/${userId}/profile_audit/`
+    }
     TRANSFER_TENANT(userId) {
         return `users/user/${userId}/transfer_tenant/`
     }
@@ -214,7 +217,7 @@ class API {
     GEN_OBJECT_PERMISSION_KEY = 'regenerate_permission_keys/'
 
     //----[NOTIFICATION]----
-    MY_NOTIFICATIONS = 'support/notification/my_notifications/'
+    MY_NOTIFICATIONS = 'notifications/notifications/my_notifications/'
     REGISTER_DEVICE = 'notifications/devices/register/'
     MY_DEVICES = 'notifications/devices/'
     UNREGISTER_DEVICE(deviceId) {

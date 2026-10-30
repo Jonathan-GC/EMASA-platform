@@ -100,6 +100,16 @@ def _dispatch_fcm(tokens, title, message, type, topic, extra_data):
         ),
     )
 
+    webpush_config = messaging.WebpushConfig(
+        notification=messaging.WebpushNotification(
+            title=title,
+            body=message,
+        ),
+        fcm_options=messaging.WebpushFCMOptions(
+            link=extra_data.get("link") if extra_data and isinstance(extra_data, dict) and "link" in extra_data else None
+        ),
+    )
+
     fcm_messages = []
     for token_info in tokens:
         msg = messaging.Message(
@@ -112,6 +122,7 @@ def _dispatch_fcm(tokens, title, message, type, topic, extra_data):
             },
             android=android_config,
             apns=apns_config,
+            webpush=webpush_config,
         )
         fcm_messages.append(msg)
 

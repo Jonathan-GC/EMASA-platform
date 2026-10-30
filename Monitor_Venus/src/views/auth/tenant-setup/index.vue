@@ -331,11 +331,16 @@ const handleCreateTenant = async () => {
 
     // Wait a moment to show success message
     setTimeout(async () => {
-      // Refresh token to get updated tenant_id
-      await refreshUserData();
-      
-      // Redirect to home or tenant dashboard
-      router.push('/home');
+      try {
+        // Refresh token + profile to get updated tenant info (name, image)
+        await refreshUserData();
+
+        // Redirect to home or tenant dashboard
+        router.push('/home');
+      } catch (err) {
+        console.error('❌ Error actualizando el perfil tras crear el tenant:', err);
+        error.value = 'Organización creada, pero no se pudo actualizar tu perfil. Recarga la página.';
+      }
     }, 1500);
 
   } catch (err) {
@@ -363,6 +368,14 @@ const refreshUserData = async () => {
     
     console.log('✅ Token refrescado exitosamente');
     console.log('✅ Usuario actualizado con nuevo tenant_id:', authStore.tenantId);
+
+    // Recargar /me para obtener el tenant recién creado (nombre e imagen).
+    // Sin esto el badge del navbar conserva el perfil previo (tenant null)
+    // y muestra el avatar de iniciales hasta que el usuario recarga la página.
+    const profileLoaded = await authStore.fetchUserProfile();
+    if (!profileLoaded) {
+      console.warn('⚠️ No se pudo recargar el perfil tras crear el tenant');
+    }
     
   } catch (err) {
     console.error('❌ Error refrescando token:', err);

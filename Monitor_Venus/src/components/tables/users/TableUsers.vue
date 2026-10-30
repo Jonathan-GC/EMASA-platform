@@ -291,7 +291,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, inject } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import API from '@utils/api/api'
 import { useTablePagination } from '@composables/Tables/useTablePagination.js'
@@ -321,10 +321,10 @@ const { getCardClass, getItemActivateProps } = useCardNavigation()
 
 // Component-specific state
 const users = ref([])
-const loading = ref(false)
+// Inicia en true: la primera carga comienza de inmediato al montar.
+const loading = ref(true)
 const error = ref(null)
 const selectedUser = ref(null)
-const isMounted = ref(false)
 
 // Transform users data to include searchable status text
 const searchableUsers = computed(() => {
@@ -360,12 +360,6 @@ const setInitialData = (user) => {
 
 // Fetch data from API
 const fetchUsers = async () => {
-  // Ensure component is mounted before fetching
-  if (!isMounted.value) {
-    console.log('⏳ Component not ready, waiting...')
-    return
-  }
-
   loading.value = true
   error.value = null
 
@@ -417,19 +411,11 @@ const openTransferModal = async (user) => {
 }
 
 // Lifecycle
-onMounted(async () => {
+onMounted(() => {
   console.log('🔧 TableUsers component mounted')
-
-  // Wait for next tick to ensure DOM is ready
-  await nextTick()
-
-  // Mark component as mounted
-  isMounted.value = true
-
-  // Small delay to ensure Ionic page transition is complete
-  setTimeout(() => {
-    fetchUsers()
-  }, 100)
+  // Sin setTimeout artificial: el spinner inicial (loading=true) se muestra
+  // desde el primer render y la petición sale de inmediato.
+  fetchUsers()
 })
 </script>
 
