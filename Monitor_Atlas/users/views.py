@@ -231,6 +231,11 @@ from roles.permissions import IsAnAdminUser, IsTenantAdminUser
         description="Returns full profile structure for a user including roles, user info, active status, tenant, and contact info.",
         responses={200: UserProfileSerializer},
     ),
+    profile_audit=extend_schema(
+        summary="Get user profile audit logs",
+        description="Retrieves audit log entries for actions performed by this user. Accessible only by the user themselves, their tenant owner/admin, or global admins.",
+        responses={200: LogEntrySerializer(many=True)},
+    ),
 )
 class UserViewSet(AuditActionMixin, ModelViewSet):
     queryset = User.objects.all()
@@ -242,12 +247,16 @@ class UserViewSet(AuditActionMixin, ModelViewSet):
         user = self.request.user
         if user.is_superuser:
             return User.objects.all()
-        return get_objects_for_user(
+        qs = get_objects_for_user(
             user,
             "users.view_user",
             klass=User,
             accept_global_perms=False,
         )
+        active_tenant = getattr(self.request, "tenant", getattr(user, "tenant", None))
+        if active_tenant:
+            qs = (qs | User.objects.filter(tenant=active_tenant)).distinct()
+        return qs
 
     def list(self, request, *args, **kwargs):
         """Filter users by workspace if 'workspace' query param is provided.
@@ -352,6 +361,59 @@ class UserViewSet(AuditActionMixin, ModelViewSet):
     def profile(self, request, pk=None):
         user = self.get_object()
         serializer = UserProfileSerializer(user)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="profile_audit",
+        permission_classes=[IsAuthenticated],
+    )
+    def profile_audit(self, request, pk=None):
+        from rest_framework.exceptions import PermissionDenied
+        from guardian.shortcuts import get_perms
+        from roles.helpers import get_global_admin_role_group
+        from roles.models import WorkspaceMembership
+
+        target_user = self.get_object()
+        user = request.user
+
+        is_self = user.id == target_user.id
+        global_group = get_global_admin_role_group()
+        is_global = user.is_superuser or bool(
+            getattr(user, "tenant", None)
+            and user.tenant.is_global
+            and (
+                user.groups.filter(name="global_admin").exists()
+                or (global_group and global_group in user.groups.all())
+            )
+        )
+        is_tenant_owner = bool(
+            getattr(user, "tenant", None)
+            and getattr(target_user, "tenant", None)
+            and user.tenant.id == target_user.tenant.id
+            and (
+                "change_tenant" in get_perms(user, user.tenant)
+                or user.has_perm("organizations.change_tenant", user.tenant)
+                or WorkspaceMembership.objects.filter(
+                    user=user, workspace__tenant=user.tenant
+                ).filter(
+                    Q(role__is_admin=True) | Q(role__name__icontains="admin")
+                ).exists()
+            )
+        )
+
+        if not (is_self or is_global or is_tenant_owner):
+            raise PermissionDenied("You do not have permission to view audit logs for this user.")
+
+        queryset = LogEntry.objects.filter(actor=target_user).order_by("-timestamp")
+        paginator = AuditLogLimitOffsetPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = LogEntrySerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = LogEntrySerializer(queryset, many=True)
         return Response(serializer.data)
 
     @action(
@@ -841,6 +903,14 @@ class LogoutView(APIView):
         response.delete_cookie(
             key=REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH, samesite="Lax"
         )
+
+        fcm_token = request.data.get("fcm_token") if hasattr(request, "data") and isinstance(request.data, dict) else None
+        if not fcm_token and hasattr(request, "POST"):
+            fcm_token = request.POST.get("fcm_token")
+        if fcm_token:
+            from notifications.models import FCMDevice
+            FCMDevice.objects.filter(fcm_token=fcm_token).update(is_active=False)
+
         return response
 
 

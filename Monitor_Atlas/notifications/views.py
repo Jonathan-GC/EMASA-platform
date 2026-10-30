@@ -71,12 +71,14 @@ class FCMDeviceViewSet(viewsets.ModelViewSet):
     def register(self, request):
         register_serializer = FCMDeviceRegisterSerializer(data=request.data)
         register_serializer.is_valid(raise_exception=True)
+        fcm_token = register_serializer.validated_data["fcm_token"]
+        platform = register_serializer.validated_data["platform"]
 
         device, _created = FCMDevice.objects.update_or_create(
-            user=request.user,
-            fcm_token=register_serializer.validated_data["fcm_token"],
+            fcm_token=fcm_token,
             defaults={
-                "platform": register_serializer.validated_data["platform"],
+                "user": request.user,
+                "platform": platform,
                 "is_active": True,
             },
         )
