@@ -306,12 +306,23 @@ watch(
   display: flex;
   justify-content: center;
   margin-bottom: 1rem;
+  /* Contenedor de consulta para calcular el ancho de cada casilla
+     según el espacio real disponible (ver ion-input-otp.otp-input). */
+  container-type: inline-size;
+  --otp-count: 6;
 }
 
-.otp-input {
+/* Ionic inyecta en runtime .input-otp-size-medium.sc-ion-input-otp-md-h
+   { --width: 48px } (especificidad 0,2,0), igual que .otp-input[data-v-x],
+   por lo que ganaba Ionic. Añadir el tag sube a (0,2,1) y el override aplica.
+   - 6px = padding nativo del <input> + borde (Ionic no usa border-box) */
+ion-input-otp.otp-input {
   width: 100%;
-  max-width: 320px;
+  --min-width: 0;
   --border-radius: 8px;
+  --otp-box: calc((100cqw - 8px - (var(--otp-count, 6) - 1) * 12px) / var(--otp-count, 6) - 6px);
+  --width: min(48px, var(--otp-box));
+  --height: clamp(34px, var(--otp-box), 48px);
 }
 
 .error-item {
