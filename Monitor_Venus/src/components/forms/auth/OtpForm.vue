@@ -39,17 +39,24 @@
         <!-- OTP form -->
         <div v-else>
           <ion-item lines="none" class="otp-item">
-            <ion-input-otp
-              :value="code"
-              :length="codeLength"
-              :inputmode="codeInputMode"
-              :type="method === 'backup_code' ? 'text' : 'number'"
-              :disabled="busy"
-              :class="{ 'ion-invalid': !!error, 'ion-touched': !!error }"
-              class="otp-input"
-              @ionInput="onCodeInput"
-              @ionBlur="onCodeBlur"
-            ></ion-input-otp>
+            <div class="otp-field" :style="{ '--otp-count': codeLength }">
+              <ion-input-otp
+                :value="code"
+                :length="codeLength"
+                :inputmode="codeInputMode"
+                :type="method === 'backup_code' ? 'text' : 'number'"
+                :size="codeLength > 6 ? 'small' : 'medium'"
+                :disabled="busy"
+                :class="{
+                  'ion-invalid': !!error,
+                  'ion-touched': !!error,
+                  'otp-input--compact': codeLength > 6
+                }"
+                class="otp-input"
+                @ionInput="onCodeInput"
+                @ionBlur="onCodeBlur"
+              ></ion-input-otp>
+            </div>
           </ion-item>
 
           <p class="otp-hint">
@@ -467,6 +474,15 @@ onBeforeUnmount(() => {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
+/* En móvil Ionic aplica 16px (md) / 20px (ios) de padding lateral a
+   ion-card-content; sumado al gutter de la vista, las casillas del OTP
+   quedaban demasiado comprimidas. Se recupera espacio solo en esta tarjeta. */
+@media (max-width: 480px) {
+  .form-card ion-card-content {
+    padding-inline: 10px;
+  }
+}
+
 .otp-item {
   --background: transparent;
   --padding-start: 0;
@@ -514,12 +530,51 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-.otp-input {
+/* Contenedor de consulta: permite calcular el ancho de cada casilla
+   a partir del ancho real de la tarjeta, no del viewport. */
+.otp-field {
+  container-type: inline-size;
   width: 100%;
-  --border-radius: 8px;
-  --width: clamp(16px, calc((100vw - 188px) / 8), 48px);
-  --min-width: clamp(16px, calc((100vw - 188px) / 8), 40px);
 }
+
+/* ion-input-otp usa encapsulación "scoped": Ionic inyecta en runtime
+   .input-otp-size-medium.sc-ion-input-otp-md-h { --width: 48px } con la misma
+   especificidad que .otp-input[data-v-x], así que ganaba Ionic y cualquier
+   override por clase no se aplicaba (de ahí el desborde en móvil).
+   Añadir el tag eleva la especificidad a (0,2,1) y gana siempre.
+   - --otp-gap = gap interno de Ionic según el `size` usado (12px medium / 8px small)
+   - 6px  = padding nativo del <input> (4px) + borde (2px)
+   - 2px  = el padding nativo del <input> es asimétrico (1px arriba/abajo y
+            2px a los lados), así que se suma al alto para que la casilla
+            quede cuadrada; sin esto el ancho crece 2px más que el alto.
+   - No hay mínimo de alto: si el ancho disponible se reduce (8 caracteres en
+            un móvil), la casilla se achica y sigue siendo cuadrada. */
+ion-input-otp.otp-input {
+  width: 100%;
+  --min-width: 0;
+  --border-radius: 8px;
+  --otp-gap: 12px;
+  --otp-box: calc((100cqw - 8px - (var(--otp-count, 6) - 1) * var(--otp-gap)) / var(--otp-count, 6) - 6px);
+  --otp-side: min(48px, var(--otp-box));
+  --width: var(--otp-side);
+  --height: calc(var(--otp-side) + 2px);
+}
+
+/* Los códigos de recuperación son de 8 caracteres: con el gap de 12px las
+   casillas quedaban más altas que anchas en móvil. Con size="small" (8px)
+   recuperan ancho. --otp-gap debe coincidir con el `size` pasado al componente. */
+ion-input-otp.otp-input.otp-input--compact {
+  --otp-gap: 8px;
+}
+
+/* Solo en móvil: fijamos los inputs a 30px visibles (cuadrados) */
+@media (max-width: 480px) {
+  ion-input-otp.otp-input {
+    --width: 30px;
+    --height: 28px; /* 2px = padding (1+1) + border (1+1) que Ionic añade */
+  }
+}
+
 
 .otp-hint {
   font-size: 0.85rem;
