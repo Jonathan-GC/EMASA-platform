@@ -121,7 +121,7 @@ const getRoleColor = () => {
 .title {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 1rem;
 }
 
@@ -136,7 +136,7 @@ const getRoleColor = () => {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   padding: 1.5rem;
   border-radius: 12px;
   margin-bottom: 2rem;
@@ -156,7 +156,7 @@ const getRoleColor = () => {
 
 .info-title {
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 0.5rem;
 }
 
@@ -178,7 +178,7 @@ const getRoleColor = () => {
 .user-info {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   border-radius: 12px;
   max-width: 400px;
 }
@@ -192,7 +192,7 @@ const getRoleColor = () => {
 .user-name {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 0.5rem;
 }
 

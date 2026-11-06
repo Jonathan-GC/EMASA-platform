@@ -64,7 +64,7 @@ onMounted(() => {
 
 .header h1 {
   margin: 0 0 15px 0;
-  color: #374151;
+  color: var(--app-text);
   font-size: 2rem;
   font-weight: 600;
 }
@@ -86,12 +86,12 @@ onMounted(() => {
 }
 
 .no-data h2 {
-  color: #6b7280;
+  color: var(--app-text-muted);
   margin: 0 0 10px 0;
 }
 
 .no-data p {
-  color: #9ca3af;
+  color: var(--app-text-subtle);
   margin: 8px 0;
 }
 

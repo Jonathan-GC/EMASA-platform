@@ -34,13 +34,13 @@ const icons = inject('icons', {})
 @import '@assets/css/dashboard.css';
 
 .conversation-content-wrapper {
-  --background: #f3f4f6;
+  --background: var(--app-surface-2);
 }
 
 .current-dashboard {
   padding: 20px;
   min-height: 100vh;
-  background: #f3f4f6;
+  background: var(--app-surface-2);
 }
 
 .header {
@@ -64,12 +64,12 @@ const icons = inject('icons', {})
 }
 
 .no-data h2 {
-  color: #6b7280;
+  color: var(--app-text-muted);
   margin: 0 0 10px 0;
 }
 
 .no-data p {
-  color: #9ca3af;
+  color: var(--app-text-subtle);
   margin: 8px 0;
 }
 

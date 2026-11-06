@@ -404,11 +404,11 @@ const skipSetup = () => {
 <style scoped>
 .section-description {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--app-text-muted);
   margin: 0 0 20px 0;
   line-height: 1.5;
   padding: 12px;
-  background: #f8fafc;
+  background: var(--app-surface-2);
   border-left: 3px solid #3b82f6;
   border-radius: 4px;
 }
@@ -461,7 +461,7 @@ const skipSetup = () => {
 .welcome-title {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 1rem;
 }
 
@@ -490,7 +490,7 @@ const skipSetup = () => {
 .card-icon-wrapper {
   width: 48px;
   height: 48px;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -506,7 +506,7 @@ const skipSetup = () => {
 .info-card h3 {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 0.5rem;
 }
 
@@ -527,16 +527,16 @@ const skipSetup = () => {
 .image-upload-section {
   margin-bottom: 24px;
   padding: 20px;
-  background: #f8fafc;
+  background: var(--app-surface-2);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
 }
 
 .upload-label {
   display: block;
   font-size: 1rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--app-text);
   margin-bottom: 16px;
 }
 

@@ -1,0 +1,163 @@
+/**
+ * Theme tokens - semantic colors shared by every layer of the app.
+ *
+ * There are three color systems in this project and they must agree:
+ *   1. Ionic component vars  (--ion-*)
+ *   2. Tailwind v4 vars      (--color-*)
+ *   3. Hand-written CSS      (--app-*)
+ *
+ * Components in this codebase are styled mostly with hand-written CSS in
+ * scoped <style> blocks, so --app-* is the layer everything should move to.
+ * The Ionic bridge at the bottom of this file keeps ion-* components in sync
+ * with whichever mode is active.
+ *
+ * Mode is controlled by the `dark` class on <html> (see composables/useTheme.js).
+ * `:root.dark` is used instead of `.dark` so these values always beat
+ * @ionic/vue/css/palettes/dark.class.css regardless of CSS load order.
+ */
+
+:root {
+  /* Surfaces */
+  --app-bg: #ffffff;
+  --app-bg-subtle: #f9fafb;
+  --app-surface: #ffffff;
+  --app-surface-2: #f3f4f6;
+  --app-surface-3: #e5e7eb;
+
+  /* Lines */
+  --app-border: #e5e7eb;
+  --app-border-strong: #d1d5db;
+
+  /* Text */
+  --app-text: #111827;
+  --app-text-secondary: #374151;
+  --app-text-muted: #6b7280;
+  --app-text-subtle: #9ca3af;
+
+  /* Interaction */
+  --app-hover: #f3f4f6;
+  --app-link: #ea580c;
+
+  /* Status pills (tinted background + readable text) */
+  --app-danger-bg: #fee2e2;
+  --app-danger-text: #b91c1c;
+  --app-danger-border: #fecaca;
+  --app-success-bg: #dcfce7;
+  --app-success-text: #15803d;
+  --app-success-border: #bbf7d0;
+  --app-warning-bg: #fef3c7;
+  --app-warning-text: #b45309;
+  --app-warning-border: #fde68a;
+  --app-info-bg: #dbeafe;
+  --app-info-text: #1d4ed8;
+  --app-info-border: #bfdbfe;
+
+  /* Depth */
+  --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --app-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --app-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --app-shadow-hover: 0 8px 12px -1px rgba(0, 0, 0, 0.15);
+  --app-overlay: rgba(0, 0, 0, 0.5);
+  --app-inset-shadow: inset 0 1px 5px 0 rgba(0, 0, 0, 0.14);
+
+  color-scheme: light;
+}
+
+:root.dark {
+  /* Surfaces - zinc-900 scale */
+  --app-bg: #18181b;
+  --app-bg-subtle: #1c1c20;
+  --app-surface: #212124;
+  --app-surface-2: #2a2a2e;
+  --app-surface-3: #3f3f46;
+
+  /* Lines */
+  --app-border: #2e2e33;
+  --app-border-strong: #3f3f46;
+
+  /* Text */
+  --app-text: #fafafa;
+  --app-text-secondary: #d4d4d8;
+  --app-text-muted: #a1a1aa;
+  --app-text-subtle: #71717a;
+
+  /* Interaction */
+  --app-hover: #2a2a2e;
+  --app-link: #fb923c;
+
+  /* Status pills - translucent so they sit on any surface */
+  --app-danger-bg: rgba(220, 38, 38, 0.16);
+  --app-danger-text: #f87171;
+  --app-danger-border: rgba(220, 38, 38, 0.45);
+  --app-success-bg: rgba(22, 163, 74, 0.16);
+  --app-success-text: #4ade80;
+  --app-success-border: rgba(22, 163, 74, 0.45);
+  --app-warning-bg: rgba(217, 119, 6, 0.16);
+  --app-warning-text: #fbbf24;
+  --app-warning-border: rgba(217, 119, 6, 0.45);
+  --app-info-bg: rgba(37, 99, 235, 0.16);
+  --app-info-text: #60a5fa;
+  --app-info-border: rgba(37, 99, 235, 0.45);
+
+  /* Depth - darker and softer than light mode */
+  --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --app-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  --app-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+  --app-shadow-hover: 0 8px 12px -1px rgba(0, 0, 0, 0.7);
+  --app-overlay: rgba(0, 0, 0, 0.7);
+  --app-inset-shadow: inset 0 1px 5px 0 rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
+}
+
+/*
+ * ---- Ionic bridge ------------------------------------------------------
+ * Kept in a separate block with higher specificity (`html:root.dark` =
+ * 0,2,1) because @ionic/vue/css/palettes/dark.class.css uses `.ion-palette-dark.md`
+ * (0,2,0) and is bundled AFTER this file, which would otherwise win and
+ * override our zinc palette with Ionic's default greys.
+ *
+ * Brand colors are intentionally NOT touched: theme.js writes them as inline
+ * styles, so orange stays orange in both modes.
+ */
+html:root.dark {
+  --ion-background-color: var(--app-bg);
+  --ion-background-color-rgb: 24, 24, 27;
+
+  --ion-text-color: var(--app-text);
+  --ion-text-color-rgb: 250, 250, 250;
+
+  --ion-card-background: var(--app-surface);
+  --ion-item-background: var(--app-surface);
+  --ion-toolbar-background: var(--app-surface);
+
+  /* Ionic "light" is the near-white shade used by shells and dividers.
+     It has to invert in dark mode, otherwise sidebars stay white.
+     -shade is also the de-facto border color in ~180 hand-written rules,
+     so it must stay LIGHTER than the page or every divider disappears. */
+  --ion-color-light: #212124;
+  --ion-color-light-rgb: 33, 33, 36;
+  --ion-color-light-contrast: #fafafa;
+  --ion-color-light-contrast-rgb: 250, 250, 250;
+  --ion-color-light-shade: #34343a;
+  --ion-color-light-tint: #2a2a2e;
+
+  /* Ionic "dark" is the near-black text shade - invert for contrast */
+  --ion-color-dark: #fafafa;
+  --ion-color-dark-rgb: 250, 250, 250;
+  --ion-color-dark-contrast: #18181b;
+  --ion-color-dark-contrast-rgb: 24, 24, 27;
+  --ion-color-dark-shade: #dcdcdc;
+  --ion-color-dark-tint: #fbfbfb;
+
+  /* Background steps used by Ionic internals and our own cards.
+     step-50 backs solid-fill inputs, so it MUST be lighter than the
+     card surface or inputs look like plain text with a divider line. */
+  --ion-color-step-50: #2a2a2e;
+  --ion-color-step-100: #212124;
+  --ion-color-step-150: #34343a;
+  --ion-color-step-200: #3f3f46;
+  --ion-color-step-400: #a1a1aa;
+  --ion-color-step-500: #3f3f46;
+  --ion-color-step-600: #71717a;
+}

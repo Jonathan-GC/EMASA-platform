@@ -296,14 +296,14 @@ onMounted( async () => {
 .form-section {
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: var(--ion-color-light-tint);
+  background: var(--app-surface-2);
   border-radius: 12px;
 }
 
 .form-section h3 {
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -338,7 +338,7 @@ onMounted( async () => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 3px solid var(--ion-color-light);
+  border: 3px solid var(--app-border);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
@@ -432,7 +432,7 @@ onMounted( async () => {
 .permission-category h4 {
   margin: 0 0 1rem 0;
   font-size: 1rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 700;
@@ -465,7 +465,7 @@ onMounted( async () => {
 .permission-text strong {
   display: block;
   font-size: 0.95rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 0.25rem;
 }
 

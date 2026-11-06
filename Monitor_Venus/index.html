@@ -4,6 +4,32 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="theme-color" content="#ffffff" />
+  <!--
+    Apply the stored theme before the first paint so a dark-mode user never
+    sees a white flash. Keep in sync with src/composables/useTheme.js
+    (STORAGE_KEY = 'mtr-theme').
+  -->
+  <script>
+    (function () {
+      try {
+        var preference = localStorage.getItem('mtr-theme') || 'system'
+        var isDark = preference === 'dark' ||
+          (preference === 'system' && window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+        if (isDark) {
+          document.documentElement.classList.add('dark', 'ion-palette-dark')
+        }
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light'
+
+        var meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.setAttribute('content', isDark ? '#18181b' : '#ffffff')
+      } catch (e) {
+        // localStorage unavailable - fall back to the light default
+      }
+    })()
+  </script>
   <link rel="stylesheet" type="text/css" href="src/assets/css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

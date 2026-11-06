@@ -1,0 +1,273 @@
+/**
+ * Global dark-mode component layer.
+ *
+ * Every rule here is scoped to `html.dark`, so light mode is completely
+ * untouched. Tokens live in theme.css; this file only maps Ionic components
+ * (and a few native controls) onto those tokens.
+ *
+ * Why this file exists: the app styles Ionic components with CSS custom
+ * properties in ~100 scoped <style> blocks. Ionic flips its own palette in
+ * dark mode, so components that relied on light-mode defaults (white
+ * surfaces, near-black text) end up unreadable. Setting the vars once here
+ * fixes every usage instead of patching each component.
+ */
+
+/* ---------------------------------------------------------------- layout */
+
+html.dark ion-content {
+  --background: var(--app-bg);
+  --color: var(--app-text);
+}
+
+html.dark ion-list {
+  --ion-background-color: transparent;
+  --ion-item-background: transparent;
+}
+
+html.dark ion-item {
+  --color: var(--app-text);
+  --border-color: var(--app-border);
+}
+
+/* ---------------------------------------------------------------- inputs */
+
+html.dark ion-input,
+html.dark ion-textarea,
+html.dark ion-select,
+html.dark ion-datetime,
+html.dark ion-searchbar,
+html.dark ion-input-password-toggle {
+  --color: var(--app-text);
+  --placeholder-color: var(--app-text-subtle);
+  --placeholder-opacity: 1;
+  --border-color: var(--app-border-strong);
+  --highlight-color-focused: var(--app-link);
+  --highlight-color-valid: var(--app-success-text);
+  --highlight-color-invalid: var(--app-danger-text);
+}
+
+/* Solid fill reads --ion-color-step-50, which theme.css now keeps lighter
+   than the card surface. These rules guard against any component style
+   that hardcodes a light fill. */
+html.dark ion-input.input-fill-solid,
+html.dark ion-textarea.input-fill-solid,
+html.dark ion-select.select-fill-solid,
+html.dark ion-searchbar.searchbar-fill-solid {
+  --background: var(--app-surface-2);
+  --border-color: var(--app-border-strong);
+}
+
+html.dark ion-input.input-fill-outline,
+html.dark ion-textarea.input-fill-outline,
+html.dark ion-select.select-fill-outline {
+  --background: transparent;
+  --border-color: var(--app-border-strong);
+}
+
+html.dark ion-searchbar {
+  --background: var(--app-surface-2);
+  --icon-color: var(--app-text-muted);
+  --cancel-button-color: var(--app-text);
+  --clear-button-color: var(--app-text-muted);
+}
+
+/* Let the browser paint native popups (select options, date pickers) dark.
+   Ionic's own controls are `scoped`, not shadow, so a bare `input` selector
+   also paints the `.native-input` element *inside* an ion-input's solid fill.
+   That produced a second, lighter rectangle inside the field and masked the
+   wrapper's hover/focus tint (leaving only the lateral padding to change).
+   Skip Ionic's internals here; they inherit the fill from their host. */
+html.dark select,
+html.dark select option,
+html.dark textarea:not(.native-textarea),
+html.dark input:not([type='checkbox']):not([type='radio']):not([type='range']):not(.native-input):not(.searchbar-input) {
+  background-color: var(--app-surface-2);
+  color: var(--app-text);
+}
+
+/* Guard: never paint a layer over Ionic's own fill. */
+html.dark ion-input .native-input,
+html.dark ion-textarea .native-textarea,
+html.dark ion-searchbar .searchbar-input {
+  background-color: transparent;
+}
+
+html.dark select option:checked {
+  background-color: var(--app-surface-3);
+  color: var(--app-text);
+}
+
+/* --------------------------------------------------------------- surfaces */
+
+html.dark ion-card:not([color]) {
+  --background: var(--app-surface);
+  --color: var(--app-text);
+}
+
+html.dark ion-card-header,
+html.dark ion-card-content,
+html.dark ion-card-title,
+html.dark ion-card-subtitle {
+  color: var(--app-text);
+}
+
+html.dark ion-card-subtitle {
+  color: var(--app-text-muted);
+}
+
+html.dark ion-toolbar:not([color]) {
+  --color: var(--app-text);
+  --border-color: var(--app-border);
+}
+
+html.dark ion-header ion-toolbar:not([color]) {
+  --background: var(--app-surface);
+}
+
+html.dark ion-footer ion-toolbar:not([color]) {
+  --background: var(--app-surface);
+}
+
+html.dark ion-segment {
+  --background: var(--app-surface-2);
+}
+
+html.dark ion-segment-button {
+  --color: var(--app-text-muted);
+  --color-checked: var(--app-text);
+  --indicator-color: var(--app-link);
+}
+
+html.dark ion-chip:not([color]) {
+  --background: var(--app-surface-2);
+  --color: var(--app-text);
+}
+
+html.dark ion-accordion,
+html.dark ion-accordion-group {
+  --background: var(--app-surface);
+  --color: var(--app-text);
+}
+
+html.dark ion-accordion.accordion-expanding,
+html.dark ion-accordion.accordion-expanded {
+  --background: var(--app-surface);
+}
+
+/* ---------------------------------------------------------------- overlays */
+
+html.dark ion-modal {
+  --background: var(--app-surface);
+  --color: var(--app-text);
+  --ion-background-color: var(--app-surface);
+}
+
+html.dark ion-popover {
+  --background: var(--app-surface);
+  --color: var(--app-text);
+  --ion-background-color: var(--app-surface);
+}
+
+html.dark ion-alert {
+  --background: var(--app-surface);
+  --color: var(--app-text);
+  --ion-background-color: var(--app-surface);
+  --ion-text-color: var(--app-text);
+}
+
+html.dark ion-action-sheet {
+  --background: var(--app-surface);
+  --color: var(--app-text);
+  --button-color: var(--app-text);
+  --ion-background-color: var(--app-surface);
+  --ion-text-color: var(--app-text);
+}
+
+html.dark ion-toast {
+  --background: var(--app-surface-2);
+  --color: var(--app-text);
+  --button-color: var(--app-link);
+  --ion-background-color: var(--app-surface-2);
+  --ion-text-color: var(--app-text);
+}
+
+/* Ionic inverts --ion-color-dark in dark mode, turning `color="dark"`
+   buttons into near-white blocks with dark text (login / OTP / signup).
+   Render them as a proper elevated surface button instead. */
+html.dark ion-button.ion-color-dark {
+  --background: var(--app-surface-3);
+  --background-hover: var(--app-surface-2);
+  --background-activated: var(--app-surface-3);
+  --background-focused: var(--app-surface-2);
+  --color: var(--app-text);
+}
+
+/* ---------------------------------------------------------- form controls */
+
+html.dark ion-checkbox {
+  --checkbox-background: var(--app-surface-2);
+  --checkbox-background-checked: var(--app-link);
+  --border-color: var(--app-border-strong);
+  --border-color-checked: var(--app-link);
+  --checkmark-color: #ffffff;
+  --color: var(--app-text);
+}
+
+html.dark ion-radio {
+  --color: var(--app-border-strong);
+  --color-checked: var(--app-link);
+  --background: var(--app-surface-2);
+}
+
+html.dark ion-toggle {
+  --track-background: var(--app-surface-3);
+  --track-background-checked: var(--app-surface-3);
+  --handle-background: var(--app-text-muted);
+  --handle-background-checked: var(--app-link);
+}
+
+/* ---------------------------------------------------------------- panels */
+
+/* The trust/authorize CTA is a solid black button with white text in light
+   mode. On a dark surface that reads as a hole, so invert it. */
+html.dark .trust-button-primary {
+  --background: var(--app-text);
+  --background-hover: #e4e4e7;
+  --background-activated: #d4d4d8;
+  --color: var(--app-bg);
+  --ripple-color: rgba(0, 0, 0, 0.15);
+}
+
+html.dark .trust-button-primary::part(native) {
+  color: var(--app-bg);
+}
+
+html.dark .trust-button-primary ion-icon {
+  color: var(--app-bg);
+}
+
+/* ------------------------------------------------------------------- maps */
+
+/* OpenStreetMap tiles are light-only. Inverting the tile pane is the
+   standard no-network way to make Leaflet usable in a dark UI.
+   Controls/markers live outside the tile pane and keep their own colors. */
+html.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.75);
+}
+
+html.dark .leaflet-container {
+  background: var(--app-surface-2);
+}
+
+html.dark .leaflet-control-attribution,
+html.dark .leaflet-control-zoom a,
+html.dark .leaflet-popup-content-wrapper,
+html.dark .leaflet-popup-tip {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+html.dark .leaflet-control-attribution a {
+  color: var(--app-link);
+}

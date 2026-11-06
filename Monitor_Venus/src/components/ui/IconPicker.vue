@@ -193,11 +193,11 @@ const handleSearch = (event) => {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  border: 2px solid var(--ion-color-light);
+  border: 2px solid var(--app-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
 }
 
 .icon-item:hover {

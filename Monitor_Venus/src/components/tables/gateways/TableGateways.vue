@@ -392,7 +392,7 @@ onMounted(() => {
 
 .table-wrapper {
   overflow-x: auto;
-  border: 1px solid var(--ion-color-light);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
 }
 
@@ -415,17 +415,17 @@ onMounted(() => {
 }
 
 .sortable:hover {
-  background-color: var(--ion-color-light-tint);
+  background-color: var(--app-surface-2);
 }
 
 .table-row-stylized {
-  border-bottom: 1px solid var(--ion-color-light);
+  border-bottom: 1px solid var(--app-border);
   transition: background-color 0.2s ease;
   cursor: pointer;
 }
 
 .table-row-stylized:hover {
-  background-color: var(--ion-color-light-tint);
+  background-color: var(--app-surface-2);
 }
 
 .row-selected {
@@ -521,7 +521,7 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--ion-color-light);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .card-icon-title {
@@ -546,7 +546,7 @@ onMounted(() => {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -587,7 +587,7 @@ onMounted(() => {
 }
 
 .detail-value {
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   text-align: right;
 }
 
@@ -595,6 +595,6 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   padding-top: 12px;
-  border-top: 1px solid var(--ion-color-light);
+  border-top: 1px solid var(--app-border);
 }
 </style>

@@ -339,13 +339,13 @@ onMounted(async () => {
 .verification-title {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--color-zinc-900);
+  color: var(--app-text);
   margin: 0 0 1rem;
 }
 
 .verification-message {
   font-size: 1rem;
-  color: var(--color-zinc-600);
+  color: var(--app-text-muted);
   line-height: 1.6;
   margin: 0 0 2rem;
 }

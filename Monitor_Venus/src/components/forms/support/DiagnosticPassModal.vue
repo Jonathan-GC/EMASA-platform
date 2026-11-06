@@ -493,7 +493,7 @@ onMounted(() => {
   gap: 8px;
   padding: 12px;
   border-radius: 8px;
-  background: #fff6e6;
+  background: var(--app-warning-bg);
   margin-bottom: 12px;
   white-space: normal;
 }
@@ -518,13 +518,13 @@ onMounted(() => {
 
 .workspace-display ion-icon {
   font-size: 28px;
-  color: #6b7280;
+  color: var(--app-text-muted);
   margin-inline-end: 12px;
 }
 
 .workspace-display h3 {
   font-weight: 600;
-  color: #111827;
+  color: var(--app-text);
 }
 
 .error-container {
@@ -551,12 +551,12 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 0.95rem;
-  color: #111827;
+  color: var(--app-text);
   margin-bottom: 8px;
 }
 
 .history-title {
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-weight: 500;
 }
 
@@ -569,7 +569,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-size: 0.9rem;
   margin-top: 12px;
 }
@@ -580,10 +580,10 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border);
   border-radius: 10px;
   margin-bottom: 8px;
-  background: #ffffff;
+  background: var(--app-surface);
 }
 
 .pass-info {
@@ -600,14 +600,14 @@ onMounted(() => {
 
 .pass-tech {
   font-weight: 600;
-  color: #111827;
+  color: var(--app-text);
   font-size: 0.95rem;
 }
 
 .pass-meta {
   margin: 4px 0 0;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
 }
 
 .pass-reason {
@@ -638,8 +638,8 @@ onMounted(() => {
   font-size: 0.7rem;
   line-height: 1;
   text-transform: capitalize;
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--app-info-bg);
+  color: var(--app-info-text);
 }
 
 .pass-actions {

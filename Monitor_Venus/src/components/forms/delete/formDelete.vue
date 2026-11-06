@@ -17,7 +17,7 @@
           <ion-item class="custom">
             <ion-label>Esta a punto eliminar el {{ label }} denominado {{ props.name }}, si esta seguro de que desea
               eliminar este elemento por favor ingrese <span class="px-1"
-                style="background-color:var(--color-zinc-200); color: var(--color-zinc-600)"> {{ expectedValue
+                style="background-color:var(--app-surface-3); color: var(--app-text)"> {{ expectedValue
                 }}</span></ion-label>
           </ion-item>
           <ion-item class="custom">

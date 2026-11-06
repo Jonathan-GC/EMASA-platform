@@ -195,16 +195,16 @@ onUnmounted(() => {
 }
 
 .overlay-button {
-  --background: white;
-  --color: #444;
+  --background: var(--app-surface-2);
+  --color: var(--app-text);
   --border-radius: 4px;
-  --box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  --box-shadow: var(--app-shadow);
   --padding-start: 8px;
   --padding-end: 8px;
   margin: 0;
   height: 36px;
   width: 36px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--app-border-strong);
 }
 
 .inline-map-container {
@@ -214,8 +214,8 @@ onUnmounted(() => {
 
 .manual-input-container {
   padding: 10px;
-  background: white;
-  border-top: 1px solid #eee;
+  background: var(--app-surface);
+  border-top: 1px solid var(--app-border);
 }
 
 .manual-row {
@@ -230,14 +230,14 @@ onUnmounted(() => {
 .manual-field label {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: var(--app-text-muted);
   margin-bottom: 4px;
 }
 
 .manual-field input {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--app-border-strong);
   border-radius: 4px;
   font-size: 14px;
 }
