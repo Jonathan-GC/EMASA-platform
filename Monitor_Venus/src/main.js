@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from '@ionic/vue-router'
 import { createPinia } from 'pinia'
 import { registerPlugins } from './plugins/plugins'
 import { createIonic } from '@/plugins/ionic'
+import { initTheme } from '@/composables/useTheme.js'
 import App from './App.vue'
 
 // Import Ionic CSS
@@ -10,6 +11,9 @@ import '@ionic/vue/css/core.css'
 import '@ionic/vue/css/normalize.css'
 import '@ionic/vue/css/structure.css'
 import '@ionic/vue/css/typography.css'
+
+// Ionic dark palette - activated by the `.ion-palette-dark` class on <html>
+import '@ionic/vue/css/palettes/dark.class.css'
 
 // Import flag-icons CSS for country flags
 import 'flag-icons/css/flag-icons.min.css'
@@ -27,6 +31,9 @@ import '@ionic/vue/css/display.css'
 
 // Components are now auto-imported by unplugin-vue-components
 // Routes are handled by the router plugin
+
+// Apply the saved theme before anything renders (avoids a light flash)
+initTheme()
 
 const app = createApp(App)
 

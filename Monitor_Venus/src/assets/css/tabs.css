@@ -42,12 +42,12 @@
 }
 
 .no-data h2 {
-  color: #6b7280;
+  color: var(--app-text-muted);
   margin: 0 0 10px 0;
 }
 
 .no-data p {
-  color: #9ca3af;
+  color: var(--app-text-subtle);
   margin: 8px 0;
 }
 
@@ -62,28 +62,28 @@
 .device-info-section {
   margin-bottom: 20px;
   padding: 16px;
-  background: white;
+  background: var(--app-surface);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .device-info-section h3 {
   margin: 0 0 8px 0;
-  color: #374151;
+  color: var(--app-text);
   font-size: 1.2rem;
   font-weight: 600;
 }
 
 .device-info-section p {
   margin: 4px 0;
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-size: 0.9rem;
 }
 
 .form-container {
   margin: 20px 0;
   padding: 16px;
-  background: white;
+  background: var(--app-surface);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

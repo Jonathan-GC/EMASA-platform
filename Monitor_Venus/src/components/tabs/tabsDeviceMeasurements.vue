@@ -1358,7 +1358,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 .measurement-card ion-card-title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin: 0;
 }
 .measurements-grid {
@@ -1391,7 +1391,7 @@ const handleComparisonFiltersChange = (newFilters) => {
   height: 40px;
   min-width: 40px;
   border-radius: 10px;
-  background: white;
+  background: var(--app-surface);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
@@ -1417,7 +1417,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 .measurement-value {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   line-height: 1.2;
 }
 
@@ -1437,10 +1437,10 @@ const handleComparisonFiltersChange = (newFilters) => {
 .range-bar {
   position: relative;
   height: 8px;
-  background: #e9ecef;
+  background: var(--app-surface-3);
   border-radius: 4px;
   margin-bottom: 0.5rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--app-border-strong);
 }
 
 .range-fill {
@@ -1459,7 +1459,7 @@ const handleComparisonFiltersChange = (newFilters) => {
   top: -4px;
   width: 2px;
   height: 16px;
-  background: #495057;
+  background: var(--app-text-muted);
   transform: translateX(-1px);
 }
 
@@ -1476,7 +1476,7 @@ const handleComparisonFiltersChange = (newFilters) => {
   justify-content: space-between;
   font-size: 0.8rem;
   font-weight: 500;
-  color: #6c757d;
+  color: var(--app-text-muted);
   position: relative;
   height: 24px;
 }
@@ -1487,7 +1487,7 @@ const handleComparisonFiltersChange = (newFilters) => {
   transform: translateX(-50%);
   font-size: 0.75rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--app-text-secondary);
   white-space: nowrap;
 }
 
@@ -1510,7 +1510,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 
 
 .error-container h2 {
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   font-size: 1.25rem;
   margin: 1rem 0 0.5rem;
   font-weight: 600;
@@ -1534,7 +1534,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 }
 
 .no-data h2 {
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   font-size: 1.25rem;
   margin: 1rem 0 0.5rem;
 }
@@ -1545,7 +1545,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 }
 
 .device-info-section {
-  background-color: var(--ion-color-light);
+  background-color: var(--app-surface-2);
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -1553,7 +1553,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 
 .device-info-section h3 {
   margin: 0 0 0.5rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   font-size: 1.1rem;
 }
 
@@ -1717,7 +1717,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
@@ -1730,7 +1730,7 @@ const handleComparisonFiltersChange = (newFilters) => {
   align-items: center;
   justify-content: center;
   padding: 3rem 2rem;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   border-radius: 12px;
   border: 2px dashed var(--ion-color-medium);
   text-align: center;
@@ -1742,7 +1742,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 }
 
 .waiting-data-card p {
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   font-size: 1rem;
   margin: 0.5rem 0;
 }
@@ -1762,7 +1762,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 .additional-info h4 {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 1rem;
 }
 
@@ -1787,7 +1787,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 .info-value {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
 }
 
 .action-buttons {
@@ -1858,8 +1858,8 @@ const handleComparisonFiltersChange = (newFilters) => {
   border: 1px solid var(--ion-color-light-shade);
   border-radius: 6px;
   font-size: 0.9rem;
-  background: white;
-  color: var(--ion-color-dark);
+  background: var(--app-surface);
+  color: var(--app-text);
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 100px;
@@ -1878,7 +1878,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 .selector-label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 0.25rem;
 }
 
@@ -1887,8 +1887,8 @@ const handleComparisonFiltersChange = (newFilters) => {
   border: 2px solid var(--ion-color-light-shade);
   border-radius: 8px;
   font-size: 1rem;
-  background: white;
-  color: var(--ion-color-dark);
+  background: var(--app-surface);
+  color: var(--app-text);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1969,21 +1969,21 @@ const handleComparisonFiltersChange = (newFilters) => {
 
 .warning-card {
   margin: 2rem 0;
-  background: var(--ion-color-step-50, #f9f9f9);
+  background: var(--app-surface-2);
   border-left: 6px solid var(--ion-color-warning);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .error-card {
   margin: 2rem 0;
-  background: white;
+  background: var(--app-surface);
   border-radius: 16px;
   box-shadow: 0 10px 25px rgba(var(--ion-color-danger-rgb), 0.08);
 }
 
 .no-data-card {
   margin: 2rem 0;
-  background: var(--ion-color-step-50, #f9f9f9);
+  background: var(--app-surface-2);
   border-left: 6px solid var(--ion-color-medium);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
@@ -1995,10 +1995,10 @@ const handleComparisonFiltersChange = (newFilters) => {
   justify-content: center;
   padding: 5rem 2rem;
   text-align: center;
-  background: var(--ion-color-light, #f4f5f8);
+  background: var(--app-surface-2);
   border-radius: 20px;
   margin: 2rem 0;
-  border: 2px dashed var(--ion-color-step-200, #cccccc);
+  border: 2px dashed var(--app-border-strong);
 }
 
 .empty-icon {
@@ -2009,14 +2009,14 @@ const handleComparisonFiltersChange = (newFilters) => {
 }
 
 .no-data-empty-state h2 {
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
 }
 
 .no-data-empty-state p {
-  color: var(--ion-color-step-600, #666666);
+  color: var(--app-text-muted);
   font-size: 1.1rem;
   margin: 0 0 2rem 0;
   max-width: 300px;
@@ -2038,7 +2038,7 @@ const handleComparisonFiltersChange = (newFilters) => {
 }
 
 .warning-content p {
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   font-size: 1rem;
   margin: 0;
 }

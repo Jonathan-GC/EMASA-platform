@@ -8,7 +8,7 @@
           <p>Necesitas configurar tu organización para acceder a esta funcionalidad.</p>
           <ion-button 
             size="small" 
-            color="dark" 
+            color="primary" 
             @click="goToSetup"
           >
             Configurar Ahora

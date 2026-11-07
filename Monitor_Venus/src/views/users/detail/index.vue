@@ -17,6 +17,7 @@
           <aside class="sidebar">
             <UserProfileCard :user="userData" :is-own-profile="isOwnProfile" @edited="fetchUser" />
             <UserDetailsCard :user="userData" :roles="userRoles" />
+            <AppearanceCard v-if="isOwnProfile" />
           </aside>
 
           <!-- Main Content -->

@@ -34,6 +34,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonButton, IonIcon } from '@ionic/vue'
 import { refreshOutline } from 'ionicons/icons'
+import { useChartTheme } from '@/composables/useChartTheme.js'
 
 /**
  * SingleCurrentChart Component
@@ -51,6 +52,7 @@ const props = defineProps({
 
 const canvasRef = ref(null)
 const chartInstance = ref(null)
+const { colors: chartTheme } = useChartTheme()
 const sampleCount = ref(0)
 const isZoomed = ref(false)
 const streamingBufferMap = {}
@@ -208,7 +210,7 @@ const chartOptions = computed(() => ({
       min: props.yAxisMin,
       max: props.yAxisMax,
       title: { display: true, text: 'Corriente (A)' },
-      grid: { color: 'rgba(0, 0, 0, 0.1)' }
+      grid: { color: chartTheme.value.grid }
     }
   }
 }))

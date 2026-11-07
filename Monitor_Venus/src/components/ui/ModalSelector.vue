@@ -9,14 +9,14 @@
       role="button"
       :aria-label="title || 'Open selector'"
       :aria-disabled="disabled"
-      class="modal-selector-button bg-zinc-300 rounded-md custom country-selector-button"
+      class="modal-selector-button bg-zinc-300 dark:bg-zinc-800 rounded-md custom country-selector-button"
       :class="{ 'disabled': disabled }"
     >
       <div class="flex items-center justify-between w-full">
         <div class="flex items-center gap-2">
           <slot name="display" :selected="selectedOption">
             <span v-if="selectedOption">{{ getDisplayText(selectedOption) }}</span>
-            <span v-else class="text-gray-500">{{ placeholder || 'Seleccionar...' }}</span>
+            <span v-else class="text-gray-500 dark:text-zinc-400">{{ placeholder || 'Seleccionar...' }}</span>
           </slot>
         </div>
         <ion-icon :icon="chevronDownIcon" class="dropdown-icon"></ion-icon>
@@ -63,7 +63,7 @@
           
           <!-- No results message -->
           <ion-item v-if="filteredOptions.length === 0">
-            <ion-label class="text-center text-gray-500">
+            <ion-label class="text-center text-gray-500 dark:text-zinc-400">
               {{ noResultsText || 'No se encontraron resultados' }}
             </ion-label>
           </ion-item>

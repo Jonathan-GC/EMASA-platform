@@ -24,7 +24,7 @@
               type="text"
               placeholder="tu.usuario"
               :disabled="loading"
-              class="bg-zinc-300 rounded-md p-100 form-field custom"
+              class="rounded-md p-100 form-field custom"
               fill="solid"
               :scroll-y="isMobile"
             ></ion-input>
@@ -72,7 +72,7 @@
             <ion-button 
               type="submit"
               expand="block"
-              color="dark"
+              color="primary"
               :disabled="loading || !credentials.username || !credentials.password"
             >
               <ion-icon :icon="icons.key" slot="start"></ion-icon>

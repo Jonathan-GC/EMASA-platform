@@ -47,9 +47,9 @@
    =========================== */
 
 .chart-fragment {
-  background: white;
+  background: var(--app-surface);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow);
 }
 
 .chart-fragment .chart-container {
@@ -71,7 +71,7 @@
    =========================== */
 
 .chart-container {
-  background: white;
+  background: var(--app-surface);
   border-radius: 8px;
 }
 
@@ -119,10 +119,10 @@ ion-card-header ion-card-subtitle {
   --padding-end: 8px;
   margin: 0;
   height: 32px;
-  --background: rgba(255, 255, 255, 0.8);
-  --background-activated: rgba(255, 255, 255, 1);
+  --background: var(--app-surface);
+  --background-activated: var(--app-surface-2);
   --border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--app-shadow-sm);
   color: var(--ion-color-base);
   border-radius: 50%;
 }
@@ -140,7 +140,7 @@ ion-card-header ion-card-subtitle {
   justify-content: center;
   align-items: center;
   min-height: 300px;
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-size: 0.9rem;
 }
 
@@ -150,7 +150,7 @@ ion-card-header ion-card-subtitle {
   justify-content: center;
   align-items: center;
   min-height: 300px;
-  color: #dc2626;
+  color: var(--app-danger-text);
   font-size: 0.9rem;
   padding: 20px;
   text-align: center;

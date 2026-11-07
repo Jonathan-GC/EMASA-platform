@@ -83,7 +83,7 @@
           <div class="button-container">
             <ion-button
               expand="block"
-              color="dark"
+              color="primary"
               :disabled="busy || !isCodeComplete"
               @click="requestVerification"
             >
@@ -512,7 +512,7 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 10px;
   background: transparent;
-  color: var(--color-zinc-600, #52525b);
+  color: var(--app-text-muted);
   font-size: 0.7rem;
   font-family: inherit;
   cursor: pointer;
@@ -578,7 +578,7 @@ ion-input-otp.otp-input.otp-input--compact {
 
 .otp-hint {
   font-size: 0.85rem;
-  color: var(--color-zinc-500, #71717a);
+  color: var(--app-text-subtle);
   text-align: center;
   margin: 0.25rem 0 1rem;
 }
@@ -608,7 +608,7 @@ ion-input-otp.otp-input.otp-input--compact {
 .resend-text {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-zinc-500, #71717a);
+  color: var(--app-text-subtle);
 }
 
 .back-to-login {

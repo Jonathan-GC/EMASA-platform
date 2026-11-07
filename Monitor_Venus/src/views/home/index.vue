@@ -800,7 +800,7 @@ ion-content {
 .platform-chip {
   --background: transparent;
   --color: var(--ion-color-medium);
-  border: 1.5px solid var(--ion-color-light);
+  border: 1.5px solid var(--app-border);
   font-size: 13px;
   height: 32px;
 }
@@ -829,15 +829,15 @@ ion-content {
 
 /* Connected state - matches ConnectionStatus */
 .system-badge[color="success"] {
-  background: #d1fae5 !important;
-  color: #738e80 !important;
+  background: var(--app-success-bg) !important;
+  color: var(--app-success-text) !important;
 }
 
 /* Disconnected/Warning state - matches ConnectionStatus */
 .system-badge[color="danger"],
 .system-badge[color="warning"] {
-  background: #fee2e2 !important;
-  color: #ef4444 !important;
+  background: var(--app-danger-bg) !important;
+  color: var(--app-danger-text) !important;
 }
 
 /* Pulse animation for non-operational states */
@@ -996,7 +996,7 @@ ion-content {
 }
 
 .nav-arrow {
-  color: var(--ion-color-light);
+  color: var(--app-border-strong);
   flex-shrink: 0;
   font-size: 24px;
   transition: transform 0.3s ease;
@@ -1164,7 +1164,7 @@ ion-content {
 
 .table-wrapper {
   overflow-x: auto;
-  border: 1px solid var(--ion-color-light);
+  border: 1px solid var(--app-border);
   border-radius: 12px;
   margin: 16px;
 }
@@ -1188,13 +1188,13 @@ ion-content {
 }
 
 .table-row-stylized {
-  border-bottom: 1px solid var(--ion-color-light);
+  border-bottom: 1px solid var(--app-border);
   transition: background-color 0.2s ease;
   align-items: center;
 }
 
 .table-row-stylized:hover {
-  background-color: var(--ion-color-light-tint);
+  background-color: var(--app-surface-2);
 }
 
 .table-row-stylized ion-col {
@@ -1233,7 +1233,7 @@ ion-content {
 
 .change-log {
   font-size: 0.82rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   font-weight: 400;
   line-height: 1.4;
   display: -webkit-box;
@@ -1259,7 +1259,7 @@ ion-content {
 
 .user-username {
   font-weight: 500;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
 }
 
 .user-email {
@@ -1374,19 +1374,17 @@ ion-content {
   }
 }
 
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .nav-card {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
+/* Dark mode adjustments (`.dark` is toggled on <html> by useTheme) */
+.dark .nav-card {
+  box-shadow: var(--app-shadow);
+}
 
-  .nav-card:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
+.dark .nav-card:hover {
+  box-shadow: var(--app-shadow-hover);
+}
 
-  .role-chip,
-  .platform-chip {
-    border-color: var(--ion-color-dark);
-  }
+.dark .role-chip,
+.dark .platform-chip {
+  border-color: var(--app-border-strong);
 }
 </style>

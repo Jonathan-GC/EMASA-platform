@@ -114,10 +114,10 @@ async function onClick() {
   justify-content: center;
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
-  border: 1px solid #dadce0;
+  border: 1px solid var(--app-border-strong);
   border-radius: 4px;
-  background: #fff;
-  color: #3c4043;
+  background: var(--app-surface);
+  color: var(--app-text-secondary);
   font-weight: 500;
   font-size: 0.95rem;
   cursor: pointer;
@@ -125,7 +125,7 @@ async function onClick() {
   max-width: 320px;
   transition: background 120ms ease;
 }
-.google-btn:hover:not(:disabled) { background: #f8f9fa; }
+.google-btn:hover:not(:disabled) { background: var(--app-hover); }
 .google-btn:disabled { opacity: 0.7; cursor: progress; }
-.error { color: #c0392b; font-size: 0.9rem; margin: 0; }
+.error { color: var(--app-danger-text); font-size: 0.9rem; margin: 0; }
 </style>

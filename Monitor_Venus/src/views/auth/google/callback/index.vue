@@ -232,7 +232,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f9fafb;
+  background-color: var(--app-bg-subtle);
 }
 
 .header-container {
@@ -260,7 +260,7 @@ onBeforeUnmount(() => {
   margin: 0;
   border-radius: 16px;
   box-shadow: none;
-  background-color: #f9fafb;
+  background-color: var(--app-bg-subtle);
 }
 
 .card-content {
@@ -284,13 +284,13 @@ onBeforeUnmount(() => {
   margin: 0 0 0.5rem;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--app-text);
 }
 
 .callback-message {
   margin: 0;
   font-size: 0.95rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
 }
 
 .callback-error {
@@ -300,7 +300,7 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   background: rgba(239, 68, 68, 0.08);
   font-size: 0.9rem;
-  color: #c0392b;
+  color: var(--app-danger-text);
   text-align: left;
 }
 

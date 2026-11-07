@@ -779,7 +779,7 @@ async function fetchAttachments(ticketId) {
 }
 
 .role-pill {
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-size: 0.7rem;
   margin-left: 4px;
 }
@@ -813,7 +813,7 @@ async function fetchAttachments(ticketId) {
 
 .account-text .value {
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   line-height: 1.2;
   font-size: 0.95rem;
 }
@@ -843,7 +843,7 @@ async function fetchAttachments(ticketId) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #ffffff;
+  background: var(--app-surface);
   z-index: 9999;
   display: flex;
   flex-direction: column;
@@ -853,8 +853,8 @@ async function fetchAttachments(ticketId) {
 .mobile-header {
   position: sticky;
   top: 0;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--app-surface);
+  border-bottom: 1px solid var(--app-border);
   padding: 12px 16px;
   display: flex;
   align-items: center;
@@ -866,7 +866,7 @@ async function fetchAttachments(ticketId) {
 .mobile-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--app-text);
 }
 
 @media (max-width: 1100px) {

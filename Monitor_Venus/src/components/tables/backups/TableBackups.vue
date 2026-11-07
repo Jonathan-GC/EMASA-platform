@@ -827,7 +827,7 @@ ion-card-subtitle {
 
 .value {
   font-size: 1rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   flex: 1;
   text-align: right;
   word-break: break-word;
