@@ -535,7 +535,7 @@ onMounted(fetchDevices)
   align-items: center;
   justify-content: center;
   background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  color: var(--app-danger-text);
 }
 
 .confirm-text {

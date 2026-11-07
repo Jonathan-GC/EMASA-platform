@@ -531,7 +531,7 @@ onMounted(() => {
   margin-bottom: 8px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
 }
 
 .slider-label ion-icon {

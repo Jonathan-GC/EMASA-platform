@@ -70,6 +70,8 @@ import {
   speedometerOutline,
   bulbOutline,
   sunnyOutline,
+  moonOutline,
+  contrastOutline,
   waterOutline,
 
   // Location icons
@@ -268,6 +270,8 @@ export const icons = {
   'voltage': voltage,
   'water': waterOutline,
   'sunny': sunnyOutline,
+  'moon': moonOutline,
+  'contrast': contrastOutline,
 
   // Navigation icons
   'chevronUp': chevronUpOutline,

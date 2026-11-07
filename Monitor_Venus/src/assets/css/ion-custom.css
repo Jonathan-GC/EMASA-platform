@@ -1,12 +1,12 @@
 ion-item.custom ion-input.custom {
-    --placeholder-color: #858585;
-    --border-color: #cccccc;
-    --highlight-color-focused: #000000;
+    --placeholder-color: var(--app-text-subtle);
+    --border-color: var(--app-border-strong);
+    --highlight-color-focused: var(--app-text);
 }
 ion-item.custom ion-textarea.custom {
-    --placeholder-color: #858585;
-    --border-color: #cccccc;
-    --highlight-color-focused: #000000;
+    --placeholder-color: var(--app-text-subtle);
+    --border-color: var(--app-border-strong);
+    --highlight-color-focused: var(--app-text);
 }
 ion-item.custom{
     --padding-start: 0px;
@@ -24,7 +24,7 @@ ion-item.custom{
     cursor: default;
 }
 ion-input-password-toggle.custom ion-button {
-    --color: #000000;
+    --color: var(--app-text);
     
 }
 ion-item.custom .country-selector-button {
@@ -35,7 +35,7 @@ ion-item.custom .country-selector-button {
     cursor: pointer;
     min-height: 56px;
     position: relative;
-    border-bottom: solid 1px black;
+    border-bottom: solid 1px var(--app-border-strong);
     border-radius: 4px 4px 0px 0px;
 
 }
@@ -55,7 +55,7 @@ ion-modal{
 /* Sticky header and footer for forms */
 .form-header-sticky {
   z-index: 10;
-  background: var(--ion-background-color, #fff);
+  background: var(--app-surface);
   border: none !important;
 }
 
@@ -68,12 +68,12 @@ ion-modal{
 
 .form-footer-sticky {
   z-index: 10;
-  background: var(--ion-background-color, #fff);
+  background: var(--app-surface);
   border: none !important;
 }
 
 .form-footer-sticky ion-toolbar {
-  --background: var(--ion-background-color, #fff);
+  --background: var(--app-surface);
   --box-shadow: none;
   --border-width: 0;
   border: none !important;
@@ -82,7 +82,7 @@ ion-modal{
 
 ion-searchbar.custom{
     --border-radius: 50rem;
-    --box-shadow: inset 0 1px 5px 0px rgba(0, 0, 0, 0.14);
+    --box-shadow: var(--app-inset-shadow);
 }
 
 ion-header.custom{
@@ -90,7 +90,7 @@ ion-header.custom{
 }
 
 ion-card{
-  box-shadow:  0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow);
 }
 
 ion-chip ion-icon{
@@ -109,7 +109,7 @@ ion-list.custom{
 }
 
 ion-content.custom{
-    --background: #f9fafb;
+    --background: var(--app-bg-subtle);
 }
 
 /* Hide internal form spinners when inside the modal triggered by quickControl/quickActions */

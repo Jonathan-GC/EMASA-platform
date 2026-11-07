@@ -150,6 +150,7 @@ import { ref, onMounted, watch, reactive, computed, inject } from 'vue'
 import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonSpinner, IonButton, IonIcon } from '@ionic/vue'
 import { toastController } from '@ionic/vue'
 import { Chart, registerables } from 'chart.js'
+import { useChartTheme } from '@/composables/useChartTheme.js'
 import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
 import API from '@/utils/api/api.js'
@@ -186,6 +187,7 @@ const props = defineProps({
 
 const { isMobile } = useResponsiveView()
 const canvasRef = ref(null)
+const { colors: chartTheme } = useChartTheme()
 let chartInstance = null
 const icons = inject('icons')
 
@@ -777,7 +779,7 @@ const updateChart = (data) => {
         pointRadius: 2,
         pointHoverRadius: 6,
         pointHoverBackgroundColor: color,
-        pointHoverBorderColor: '#fff',
+        pointHoverBorderColor: chartTheme.value.pointBorder,
         pointHoverBorderWidth: 2
       })
     })
@@ -862,7 +864,7 @@ onMounted(() => {
             drawBorder: false
           },
           ticks: {
-            color: '#9ca3af',
+            color: chartTheme.value.tick,
             font: {
               size: 11
             }
@@ -875,7 +877,7 @@ onMounted(() => {
             display: true
           },
           ticks: {
-            color: '#9ca3af',
+            color: chartTheme.value.tick,
             font: {
               size: 11
             }
@@ -903,9 +905,9 @@ onMounted(() => {
           display: false
         },
         tooltip: {
-          backgroundColor: '#000',
-          titleColor: '#9ca3af',
-          bodyColor: '#fff',
+          backgroundColor: chartTheme.value.tooltipBg,
+          titleColor: chartTheme.value.tooltipTitle,
+          bodyColor: chartTheme.value.tooltipBody,
           padding: 12,
           cornerRadius: 8,
           displayColors: true,
@@ -1150,7 +1152,7 @@ watch(() => props.deviceId, () => {
 }
 
 .data-table thead {
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -1160,7 +1162,7 @@ watch(() => props.deviceId, () => {
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   border-bottom: 2px solid var(--ion-color-medium);
 }
 
@@ -1171,7 +1173,7 @@ watch(() => props.deviceId, () => {
 }
 
 .data-table tbody tr:hover {
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
 }
 
 .data-table tbody tr:nth-child(even) {

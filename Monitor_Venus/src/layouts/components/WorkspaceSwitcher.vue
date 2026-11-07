@@ -43,7 +43,7 @@ const onSelect = (value) => {
 
 <style scoped>
 .workspace-switcher {
-  border-bottom: 1px solid rgba(222, 226, 230, 0.6);
+  border-bottom: 1px solid var(--app-border);
   width: 100%;
 }
 

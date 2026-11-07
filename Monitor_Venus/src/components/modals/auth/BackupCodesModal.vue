@@ -211,21 +211,21 @@ watch(
   margin-bottom: 1.25rem;
   border-radius: 12px;
   background: rgba(245, 158, 11, 0.12);
-  color: var(--color-zinc-800, #27272a);
+  color: var(--app-text);
 }
 
 .warn-icon {
   /* 1.75rem = 28px: tamaño estándar de icono de aviso */
   font-size: 1.75rem;
   flex-shrink: 0;
-  color: #d97706;
+  color: var(--app-warning-text);
 }
 
 .warn-text {
   margin: 0.25rem 0 0;
   font-size: 0.83rem;
   line-height: 1.45;
-  color: var(--color-zinc-700, #3f3f46);
+  color: var(--app-text-secondary);
 }
 
 .codes-grid {

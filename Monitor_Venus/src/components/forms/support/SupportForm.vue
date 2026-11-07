@@ -219,7 +219,7 @@
                 <div class="file-row">
                   <input ref="fileInputRef" type="file" class="hidden" :accept="accepts" @change="handleFileChange"
                     aria-label="Upload attachment" />
-                  <ion-button fill="outline" size="small" type="button" @click="triggerFilePicker"
+                  <ion-button fill="outline" size="small" type="button" class="attach-btn" @click="triggerFilePicker"
                     :disabled="isUploading" shape="round">
                      <ion-icon :icon="attachOutline" slot="start"/>
                     Adjuntar archivo
@@ -295,6 +295,7 @@ import {
 } from '@ionic/vue'
 import { personOutline, personCircleOutline, mailOutline, attachOutline, documentAttachOutline, createOutline, documentTextOutline, listOutline, syncOutline, paperPlaneOutline } from 'ionicons/icons'
 import API from '@/utils/api/api'
+import tokenManager from '@/utils/auth/tokenManager'
 import ModalSelector from '@/components/ui/ModalSelector.vue'
 
 // Summary of recent changes made to this file:
@@ -353,9 +354,33 @@ const isLoggedIn = computed(() => !!authToken.value)
 const sessionUserId = ref<string | number | null>(null)
 const sessionUserLabel = ref('Authenticated user')
 
+// ¿Queda alguna sesión viva aunque el access token ya haya caducado?
+function hasRefreshSession(): boolean {
+  if (tokenManager.getRefreshToken()) return true
+  try {
+    return document.cookie.split('; ').some(row => row.startsWith('refresh_token='))
+  } catch {
+    return false
+  }
+}
+
 async function loadSessionContext() {
   try {
     authToken.value = API?.getValidToken?.() || null
+
+    // El access token caduca cada 60 min, pero la sesión sigue viva si hay
+    // refresh token. Sin este refresco silencioso la app caía en modo
+    // invitado y todo el bloque de adjuntos (botón "Adjuntar archivo")
+    // desaparecía aunque el usuario siguiera autenticado.
+    if (!authToken.value && hasRefreshSession()) {
+      try {
+        await API.refreshAccessToken()
+        authToken.value = API?.getValidToken?.() || null
+      } catch (e: any) {
+        console.warn('[Support] No se pudo refrescar la sesión:', e?.message)
+      }
+    }
+
     if (!authToken.value) {
       const cached = localStorage.getItem('sb_user_id')
       if (cached) sessionUserId.value = isNaN(+cached) ? cached : +cached
@@ -856,7 +881,7 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
 
 .account-text .value {
   font-weight: 700;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   line-height: 1.2;
   font-size: 1.2rem;
   /* increased per user request */
@@ -880,7 +905,7 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
 .selector-label {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
 }
 
 /* File preview chip */
@@ -894,7 +919,7 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
 .file-header {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--ion-color-medium-contrast, #222);
+  color: var(--app-text);
   margin-bottom: 2px;
 }
 
@@ -902,6 +927,23 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+/* "Adjuntar archivo": black label in light mode, orange preserved in dark. */
+.attach-btn {
+  --color: var(--app-text);
+}
+
+html.dark .attach-btn {
+  --color: var(--ion-color-primary);
+}
+
+.attach-btn ion-icon {
+  color: var(--app-text);
+}
+
+html.dark .attach-btn ion-icon {
+  color: var(--ion-color-primary);
 }
 
 .file-chip {
@@ -942,9 +984,9 @@ watch(() => ticketSelection.mechanical_subtype, (v) => { if (!isResetting.value)
 
 /* Make textarea use same tokens as input.custom */
 :deep(ion-item.custom) ion-textarea.custom {
-  --placeholder-color: #858585;
-  --border-color: #cccccc;
-  --highlight-color-focused: #000000;
+  --placeholder-color: var(--app-text-muted);
+  --border-color: var(--app-border-strong);
+  --highlight-color-focused: var(--app-text);
 }
 
 /* Heading and divider used by SupportForm layout tweaks */

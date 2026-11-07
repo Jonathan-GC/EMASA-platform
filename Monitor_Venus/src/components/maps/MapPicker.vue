@@ -162,7 +162,7 @@ onUnmounted(() => {
 .coords-display {
   display: flex;
   justify-content: space-around;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   padding: 12px;
   border-radius: 8px;
 }

@@ -67,8 +67,8 @@ const customPushAnimation = (baseEl, opts) => {
   width: 280px; /* Ancho fijo del sidebar */
   min-width: 280px;
   height: 100%; /* Altura completa de la pantalla */
-  background-color: var(--ion-color-light, #f4f5f8); /* Sin fondo azul */
-  border-right: 1px solid var(--ion-color-light, #f4f5f8);
+  background-color: var(--app-bg-subtle); /* Sin fondo azul */
+  border-right: 1px solid var(--app-border);
   overflow-y: auto;
 }
 
@@ -84,7 +84,7 @@ const customPushAnimation = (baseEl, opts) => {
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: var(--ion-background-color, #f4f5f8);
+  background: var(--app-bg);
 }
 
 /* Ensure ion-router-outlet fills the container properly */
@@ -98,7 +98,7 @@ const customPushAnimation = (baseEl, opts) => {
 
 /* Ensure child pages have solid backgrounds */
 .main-content :deep(ion-page) {
-  background: var(--ion-background-color, #f4f5f8);
+  background: var(--app-bg);
 }
 
 /* Responsive: En móviles, el sidebar se convierte en overlay */

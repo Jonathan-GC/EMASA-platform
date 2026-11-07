@@ -270,7 +270,7 @@ const handleLinkError = (ev) => {
 }
 
 .link-error {
-  color: #c0392b;
+  color: var(--app-danger-text);
   font-size: 0.9rem;
   margin: 10px 0 0;
 }

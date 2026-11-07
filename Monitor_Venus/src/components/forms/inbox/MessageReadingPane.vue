@@ -145,8 +145,8 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
 
 <style scoped>
 .reading-pane {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 14px;
   padding: 20px 24px;
   display: flex;
@@ -158,12 +158,12 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
 .no-selection {
   margin: auto;
   text-align: center;
-  color: #6b7280;
+  color: var(--app-text-muted);
 }
 
 .placeholder-icon {
   font-size: 70px;
-  color: #d1d5db;
+  color: var(--app-text-subtle);
   margin-bottom: 18px;
 }
 
@@ -192,7 +192,7 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
   display: flex;
   gap: 20px;
   font-size: 0.8rem;
-  color: #555;
+  color: var(--app-text-secondary);
   flex-wrap: wrap;
   align-items: center;
 }
@@ -208,10 +208,10 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
   font-size: 0.82rem;
   line-height: 1.5;
   font-family: var(--ion-font-family, monospace);
-  background: #f9fafb;
+  background: var(--app-surface-2);
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border);
 }
 
 .reading-meta .from,
@@ -246,12 +246,12 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
 .detail-grid label {
   display: block;
   font-size: 0.7rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
 }
 
 .detail-grid span {
   font-size: 0.9rem;
-  color: #111827;
+  color: var(--app-text);
 }
 
 .assign-feedback {
@@ -274,7 +274,7 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
 .assigned-line {
   margin-top: 6px;
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--app-text-secondary);
 }
 
 .attachments {
@@ -286,12 +286,16 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
   align-items: center;
   gap: 8px;
   font-weight: 700;
-  color: #111827;
+  color: var(--app-text);
   margin-bottom: 6px;
 }
 
 .attach-icon {
   font-size: 18px;
+  color: var(--app-text);
+}
+
+html.dark .attach-icon {
   color: var(--ion-color-medium, #6b7280);
 }
 
@@ -299,7 +303,7 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-size: 0.9rem;
 }
 
@@ -313,8 +317,13 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
 }
 
 .attachments-list a {
-  color: var(--ion-color-primary, #3b82f6);
+  color: var(--app-text);
   text-decoration: none;
+}
+
+/* Attachment links stay orange in dark mode; in light mode they read black. */
+html.dark .attachments-list a {
+  color: var(--ion-color-primary, #3b82f6);
 }
 
 .attachments-list a:hover {
@@ -324,14 +333,14 @@ defineEmits(['openAssignPopover', 'openPriorityPopover', 'openDiagnosticPassModa
 .conversation-button-container {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--app-border);
   display: flex;
   justify-content: flex-end;
 }
 
 .conversation-button-container ion-button {
   --background: var(--ion-color-primary, #3b82f6);
-  --background-hover: #2563eb;
+  --background-hover: var(--ion-color-primary-shade);
   --color: white;
   font-weight: 600;
   font-size: 0.875rem;

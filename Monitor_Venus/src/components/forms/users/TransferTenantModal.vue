@@ -201,7 +201,7 @@ onMounted(() => {
   gap: 8px;
   padding: 12px;
   border-radius: 8px;
-  background:  #fff6e6;
+  background: var(--app-warning-bg);
   margin-bottom: 12px;
   white-space: normal;
 }
