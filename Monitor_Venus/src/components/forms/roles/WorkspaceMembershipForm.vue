@@ -323,7 +323,7 @@ onMounted(() => {
   gap: 8px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   font-size: 0.95rem;
 }
 
@@ -331,7 +331,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
 }
 
 .placeholder-text {
@@ -347,7 +347,7 @@ onMounted(() => {
 
 .option-title {
   font-weight: 500;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
 }
 
 .option-subtitle {
@@ -365,14 +365,14 @@ onMounted(() => {
 
 .readonly-field {
   padding: 12px;
-  background-color: var(--ion-color-light);
+  background-color: var(--app-surface-2);
   border-radius: 8px;
   border: 1px solid var(--ion-color-medium-tint);
 }
 
 .readonly-title {
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin-bottom: 4px;
 }
 
@@ -404,6 +404,6 @@ onMounted(() => {
   gap: 12px;
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid var(--ion-color-light);
+  border-top: 1px solid var(--app-border);
 }
 </style>

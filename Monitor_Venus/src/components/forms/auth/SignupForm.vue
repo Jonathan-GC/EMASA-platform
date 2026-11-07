@@ -169,13 +169,13 @@
                   <ion-item :class="isMobile ? 'custom full-width mb-4' : 'custom flex-3 mr-2'">
                     <ion-label position="stacked" class="!mb-2">Dirección</ion-label>
                     <ion-input v-model="credentials.address.address" type="text" placeholder="Calle Falsa #12-3"
-                      :disabled="loading" class="bg-zinc-300 rounded-md custom" fill="solid"></ion-input>
+                      :disabled="loading" class="rounded-md custom" fill="solid"></ion-input>
                   </ion-item>
 
                   <ion-item :class="isMobile ? 'custom full-width' : 'custom flex-2'">
                     <ion-label position="stacked" class="!mb-2">Código Postal</ion-label>
                     <ion-input v-model="credentials.address.zip_code" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="000000"
-                      :disabled="loading" class="bg-zinc-300 rounded-md custom" fill="solid" @ionInput="filterNumericInput($event, 'zip_code')"></ion-input>
+                      :disabled="loading" class="rounded-md custom" fill="solid" @ionInput="filterNumericInput($event, 'zip_code')"></ion-input>
                   </ion-item>
                 </div>
               </ion-card-content>
@@ -879,8 +879,10 @@ const handleResendVerification = async () => {
 }
 
 .resend-button {
-  --border-color: var(--ion-color-light);
-  --color: var(--ion-color-light);
+  /* Always rendered on top of the dark hero photo, so it stays white
+     regardless of the active theme. */
+  --border-color: #ffffff;
+  --color: #ffffff;
   font-weight: 500;
 }
 

@@ -45,14 +45,14 @@ defineProps({
   border-radius: 20px;
   font-weight: 500;
   font-size: 0.9rem;
-  background: #fee2e2;
-  color: #ef4444;
+  background: var(--app-danger-bg);
+  color: var(--app-danger-text);
   transition: all 0.3s ease;
 }
 
 .connection-status.connected {
-  background: #d1fae5;
-  color:#738e80;
+  background: var(--app-success-bg);
+  color: var(--app-success-text);
 }
 
 .reconnect-info {

@@ -1031,7 +1031,7 @@ ion-card-subtitle {
 
 .info-value {
   font-size: 1rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin: 0;
   line-height: 1.5;
   word-break: break-word;
@@ -1040,7 +1040,7 @@ ion-card-subtitle {
 .info-mono {
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   padding: 8px 12px;
   border-radius: 6px;
   border: 1px solid var(--ion-color-light-shade);

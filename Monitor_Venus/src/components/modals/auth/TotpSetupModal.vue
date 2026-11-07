@@ -242,12 +242,12 @@ watch(
   gap: 0.75rem;
   padding: 3rem 1rem;
   text-align: center;
-  color: var(--color-zinc-600, #52525b);
+  color: var(--app-text-muted);
 }
 
 .error-big {
   font-size: 48px;
-  color: #ef4444;
+  color: var(--app-danger-text);
 }
 
 .step-hint {
@@ -255,7 +255,7 @@ watch(
   font-size: 0.85rem;
   line-height: 1.45;
   text-align: center;
-  color: var(--color-zinc-500, #71717a);
+  color: var(--app-text-subtle);
 }
 
 .qr-wrapper {
@@ -264,7 +264,7 @@ watch(
   padding: 1rem;
   margin-bottom: 1rem;
   border-radius: 14px;
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid rgba(113, 113, 122, 0.2);
 }
 
@@ -275,7 +275,7 @@ watch(
 .manual-label {
   margin: 0 0 0.4rem;
   font-size: 0.8rem;
-  color: var(--color-zinc-500, #71717a);
+  color: var(--app-text-subtle);
   text-align: center;
 }
 

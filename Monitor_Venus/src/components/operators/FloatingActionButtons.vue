@@ -131,17 +131,15 @@ const canCreate = computed(() => {
    .floating-utility so all three utility buttons look identical. */
 .floating-action-buttons :deep(.quick-control-refresh),
 .floating-action-buttons .floating-utility {
-  --background: #ffffff;
-  --color: var(--ion-color-amber-500, #f97316);
-  --background-hover: #f4f4f5;
-  --background-focused: #f4f4f5;
-  --background-activated: #e4e4e7;
+  --background: var(--app-surface);
+  --color: var(--app-link);
+  --background-hover: var(--app-hover);
+  --background-focused: var(--app-hover);
+  --background-activated: var(--app-surface-3);
   --background-hover-opacity: 0.08;
   --background-focused-opacity: 0.12;
   --background-activated-opacity: 0;
   --border-radius: 999px;
-  --box-shadow: 0 3px 1px -2px rgba(0, 0, 0, 0.2),
-                0 2px 2px 0 rgba(0, 0, 0, 0.14),
-                0 1px 5px 0 rgba(0, 0, 0, 0.12);
+  --box-shadow: var(--app-shadow-hover);
 }
 </style>

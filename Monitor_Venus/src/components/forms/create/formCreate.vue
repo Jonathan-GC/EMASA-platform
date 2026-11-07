@@ -52,7 +52,7 @@
                 >
                 <template #display="{ selected }">
                     <span v-if="selected">{{ selected.label }}</span>
-                    <span v-else class="text-gray-500">{{ field.placeholder || 'Seleccionar...' }}</span>
+                    <span v-else class="text-gray-500 dark:text-zinc-400">{{ field.placeholder || 'Seleccionar...' }}</span>
                   </template>
                   
                 </ModalSelector>

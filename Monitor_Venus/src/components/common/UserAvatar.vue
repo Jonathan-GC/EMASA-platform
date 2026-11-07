@@ -236,7 +236,7 @@ watch(() => userProfileImage.value, (newVal) => {
   bottom: -2px;
   left: -2px;
   border-radius: 50%;
-  background: white;
+  background: var(--app-surface);
   display: flex;
   align-items: center;
   justify-content: center;

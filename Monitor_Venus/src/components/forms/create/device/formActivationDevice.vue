@@ -578,7 +578,7 @@ onMounted(() => {
 /* Device activation form styles */
 ion-card {
   margin: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow);
 }
 
 ion-card-header {
@@ -588,12 +588,12 @@ ion-card-header {
 ion-card-title {
   font-size: 1.3rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--app-text);
 }
 
 ion-card-subtitle {
   font-size: 0.9rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -604,8 +604,8 @@ ion-card-subtitle {
   margin: 0 0 16px 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1f2937;
-  border-bottom: 2px solid #3b82f6;
+  color: var(--app-text);
+  border-bottom: 2px solid var(--app-link);
   padding-bottom: 8px;
 }
 
@@ -613,14 +613,14 @@ ion-card-subtitle {
 .activation-control-section {
   margin-bottom: 24px;
   padding: 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--app-surface-2);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
 }
 
 .status-item,
 .toggle-item {
-  --background: #ffffff;
+  --background: var(--app-surface);
   --border-radius: 8px;
   margin-bottom: 12px;
   box-shadow: none;
@@ -631,14 +631,14 @@ ion-card-subtitle {
   margin: 0 0 4px 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--app-text);
 }
 
 .status-item p,
 .toggle-item p {
   margin: 0;
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--app-text-muted);
   line-height: 1.3;
 }
 
@@ -663,12 +663,12 @@ ion-progress-bar {
 
 .section-description {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--app-text-muted);
   margin: 0 0 20px 0;
   line-height: 1.5;
   padding: 12px;
-  background: #f8fafc;
-  border-left: 3px solid #3b82f6;
+  background: var(--app-surface-2);
+  border-left: 3px solid var(--app-link);
   border-radius: 4px;
 }
 
@@ -676,14 +676,14 @@ ion-progress-bar {
 .frame-counters-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--app-border);
 }
 
 .frame-counters-section h4 {
   margin: 0 0 16px 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--app-text);
 }
 
 /* Form Lists and Items */
@@ -696,29 +696,29 @@ ion-item {
   --border-radius: 8px;
   --padding-start: 0;
   --inner-padding-end: 0;
-  --border-color: #e5e7eb;
-  --background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --border-color: var(--app-border);
+  --background: var(--app-surface);
+  box-shadow: var(--app-shadow-sm);
 }
 
 ion-input {
-  --placeholder-color: #9ca3af;
-  --color: #374151;
+  --placeholder-color: var(--app-text-subtle);
+  --color: var(--app-text);
   font-size: 0.9rem;
 }
 
 /* Required field indicator */
 ion-item ion-input[required] {
-  --border-color: #f59e0b;
+  --border-color: var(--app-warning-text);
 }
 
 ion-item ion-input[required]:focus-within {
-  --border-color: #3b82f6;
+  --border-color: var(--app-link);
 }
 
 /* Helper text styling */
 ion-input::part(helper-text) {
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-size: 0.75rem;
   margin-top: 4px;
 }
@@ -747,8 +747,8 @@ ion-input::part(helper-text) {
 }
 
 .set-keys-button:disabled {
-  --background: #d1d5db;
-  --color: #9ca3af;
+  --background: var(--app-surface-3);
+  --color: var(--app-text-muted);
 }
 
 /* Loading container for activation details */
@@ -758,7 +758,7 @@ ion-input::part(helper-text) {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: #f8fafc;
+  background: var(--app-surface-2);
   border-radius: 8px;
   margin-bottom: 20px;
 }
@@ -770,13 +770,13 @@ ion-input::part(helper-text) {
 .loading-container p {
   margin: 0;
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 /* Divider */
 .section-divider {
   border: none;
-  border-top: 2px solid #e5e7eb;
+  border-top: 2px solid var(--app-border);
   margin: 24px 0;
   height: 0;
 }

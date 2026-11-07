@@ -1,3 +1,4 @@
+@import "./theme.css";
 @import "tailwindcss/utilities";
 @import "tailwindcss/theme";
 
@@ -11,15 +12,24 @@
 @import "./footer.css";
 @import "./tables.css";
 @import "./sidebar-styles.css";
+@import "./dark-components.css";
 /*@import "./tabs.css";*/
 
+/*
+ * Class-based dark mode for Tailwind utilities.
+ * Tailwind v4 defaults the `dark:` variant to prefers-color-scheme, which
+ * ignores the in-app toggle. useTheme() toggles `.dark` on <html>.
+ * Must stay after every @import: CSS requires imports at the top.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 body a{
-    color: var(--color-amber-600);
+    color: var(--app-link);
 }
 
 
 .table-header {
-  background-color: var(--color-zinc-100);
+  background-color: var(--app-surface-2);
   font-weight: 600;
 }
 
@@ -36,18 +46,18 @@ body a{
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 10px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--app-border);
 }
 
 .table-card {
   width: 100%;
   margin: 0 auto;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow);
 }
 
 .divider{
   margin: 1rem 0;
-  border-top: 1px solid var(--color-zinc-200);
+  border-top: 1px solid var(--app-border);
 }
 
 .page-loading {
@@ -82,7 +92,7 @@ body a{
 .header-title h1 {
   margin: 0;
   padding: 0;
-  color: #374151;
+  color: var(--app-text-secondary);
   font-size: 2rem;
   font-weight: 600;
   display: flex;
@@ -101,7 +111,7 @@ body a{
     display: none;
   }
   .table-card{
-    background: #f8f9fa;
+    background: var(--app-bg-subtle);
     box-shadow: none;
   }
 }

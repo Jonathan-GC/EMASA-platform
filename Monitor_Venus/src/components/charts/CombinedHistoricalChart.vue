@@ -152,6 +152,7 @@
 import { ref, onMounted, reactive, computed, watch, inject } from 'vue'
 import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonSpinner, IonButton, IonIcon } from '@ionic/vue'
 import { Chart, registerables } from 'chart.js'
+import { useChartTheme } from '@/composables/useChartTheme.js'
 import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
 import API from '@/utils/api/api.js'
@@ -203,6 +204,7 @@ const emit = defineEmits(['filters-changed'])
 
 const { isMobile } = useResponsiveView()
 const canvasRef = ref(null)
+const { colors: chartTheme } = useChartTheme()
 let chartInstance = null
 const icons = inject('icons')
 
@@ -640,7 +642,7 @@ const updateChart = (data1, data2) => {
         pointRadius: 2,
         pointHoverRadius: 6,
         pointHoverBackgroundColor: color,
-        pointHoverBorderColor: '#fff',
+        pointHoverBorderColor: chartTheme.value.pointBorder,
         pointHoverBorderWidth: 2,
         yAxisID: 'y1'
       })
@@ -674,7 +676,7 @@ const updateChart = (data1, data2) => {
         pointRadius: 2,
         pointHoverRadius: 6,
         pointHoverBackgroundColor: color,
-        pointHoverBorderColor: '#fff',
+        pointHoverBorderColor: chartTheme.value.pointBorder,
         pointHoverBorderWidth: 2,
         yAxisID: 'y2'
       })
@@ -1046,7 +1048,7 @@ ion-card-content.is-mobile-content {
 }
 
 .data-table thead {
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -1056,7 +1058,7 @@ ion-card-content.is-mobile-content {
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   border-bottom: 2px solid var(--ion-color-medium);
 }
 
@@ -1067,7 +1069,7 @@ ion-card-content.is-mobile-content {
 }
 
 .data-table tbody tr:hover {
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
 }
 
 .data-table tbody tr:nth-child(even) {

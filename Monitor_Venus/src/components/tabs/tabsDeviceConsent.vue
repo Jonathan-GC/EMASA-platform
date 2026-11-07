@@ -303,7 +303,7 @@ onMounted(load)
 
 .header h1 {
   margin: 0 0 4px 0;
-  color: #374151;
+  color: var(--app-text);
   font-size: 1.6rem;
   font-weight: 600;
 }
@@ -314,21 +314,21 @@ onMounted(load)
   gap: 10px;
   font-size: 0.92rem;
   font-weight: 500;
-  color: #78350f;
+  color: var(--app-warning-text);
   margin: 0 0 8px 0;
   line-height: 1.5;
   padding: 13px 14px;
-  background: #fef3c7;
-  border-left: 4px solid #f59e0b;
+  background: var(--app-warning-bg);
+  border-left: 4px solid var(--app-warning-border);
   border-radius: 6px;
   text-align: left;
-  box-shadow: 0 1px 2px rgba(245, 158, 11, 0.15);
+  box-shadow: none;
 }
 
 .description-icon {
   /* 28px: tamaño estándar de icono de aviso (ver common.css .notice) */
   font-size: 28px;
-  color: #d97706;
+  color: var(--app-warning-text);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -340,19 +340,19 @@ onMounted(load)
   justify-content: center;
   gap: 12px;
   padding: 30px 0;
-  color: #6b7280;
+  color: var(--app-text-muted);
 }
 
 .consent-empty {
   text-align: center;
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-size: 0.9rem;
   padding: 10px 0;
 }
 
 .consent-error {
   margin: 12px 0 0 0;
-  color: #b91c1c;
+  color: var(--app-danger-text);
   font-size: 0.85rem;
   text-align: center;
 }
@@ -382,7 +382,7 @@ onMounted(load)
 .measurement-option {
   --padding-start: 0;
   --inner-padding-end: 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--app-border);
   border-radius: 0;
   margin-bottom: 0;
 }
@@ -392,7 +392,7 @@ onMounted(load)
 }
 
 .measurement-option-icon {
-  color: #111827;
+  color: var(--app-text);
   font-size: 16px;
   flex-shrink: 0;
 }
@@ -402,7 +402,7 @@ onMounted(load)
   justify-content: space-between;
   gap: 16px;
   padding: 7px 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--app-border);
 }
 
 .detail-row:last-child {
@@ -410,13 +410,13 @@ onMounted(load)
 }
 
 .detail-label {
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-size: 0.9rem;
   flex-shrink: 0;
 }
 
 .detail-value {
-  color: #111827;
+  color: var(--app-text);
   font-size: 0.9rem;
   text-align: right;
   word-break: break-word;
@@ -424,7 +424,7 @@ onMounted(load)
 
 .detail-value.signature {
   font-size: 0.75rem;
-  background: #f3f4f6;
+  background: var(--app-surface-2);
   padding: 2px 6px;
   border-radius: 4px;
 }

@@ -292,14 +292,14 @@ onMounted(() => {
 .confirm-title {
   font-size: 1.875rem;
   font-weight: 700;
-  color: var(--color-zinc-900);
+  color: var(--app-text);
   margin: 0 0 0.5rem;
   text-align: center;
 }
 
 .confirm-subtitle {
   font-size: 0.95rem;
-  color: var(--color-zinc-600);
+  color: var(--app-text-muted);
   text-align: center;
   margin: 0 0 2rem;
   line-height: 1.5;
@@ -359,7 +359,7 @@ onMounted(() => {
   --padding-start: 12px;
   --padding-end: 12px;
   margin-bottom: 1rem;
-  border: 1px solid var(--color-zinc-200);
+  border: 1px solid var(--app-border);
 }
 
 .input-icon {
@@ -374,7 +374,7 @@ onMounted(() => {
 }
 
 .password-requirements {
-  background-color: var(--ion-color-light);
+  background-color: var(--app-surface-2);
   padding: 1rem;
   border-radius: 8px;
   margin-top: 1rem;
@@ -383,7 +383,7 @@ onMounted(() => {
 .requirements-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--color-zinc-700);
+  color: var(--app-text-secondary);
   margin: 0 0 0.5rem;
 }
 
@@ -398,7 +398,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: var(--color-zinc-600);
+  color: var(--app-text-muted);
   margin-bottom: 0.5rem;
 }
 
@@ -408,7 +408,7 @@ onMounted(() => {
 
 .password-requirements li ion-icon {
   font-size: 1.25rem;
-  color: var(--color-zinc-400);
+  color: var(--app-text-subtle);
 }
 
 .password-requirements li.valid {

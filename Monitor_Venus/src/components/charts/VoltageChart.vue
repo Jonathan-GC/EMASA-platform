@@ -32,6 +32,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonIcon } from '@ionic/vue'
 import { refreshOutline } from 'ionicons/icons'
+import { useChartTheme } from '@/composables/useChartTheme.js'
 
 /**
  * VoltageChart Component
@@ -55,6 +56,7 @@ const props = defineProps({
 
 const canvasRef = ref(null)
 const chartInstance = ref(null)
+const { colors: chartTheme, version: themeVersion } = useChartTheme()
 const sampleCount = ref(0)
 const isZoomed = ref(false)
 const streamingBuffer = []
@@ -112,6 +114,13 @@ onMounted(() => {
   }
 })
 
+// Repaint the canvas when the theme changes (Chart.js cannot read CSS vars).
+watch(themeVersion, () => {
+  if (!chartInstance.value) return
+  chartInstance.value.options = chartOptions.value
+  chartInstance.value.update('none')
+})
+
 onUnmounted(() => {
   if (chartInstance.value) {
     chartInstance.value.destroy()
@@ -149,11 +158,20 @@ const chartOptions = computed(() => ({
   plugins: {
     title: {
       display: true,
-      text: `${props.title || `Sensor ${props.index + 1}`} - ${props.deviceName}`
+      text: `${props.title || `Sensor ${props.index + 1}`} - ${props.deviceName}`,
+      color: chartTheme.value.title
     },
-    legend: { display: true },
+    legend: {
+      display: true,
+      labels: { color: chartTheme.value.title }
+    },
     tooltip: {
       animation: false,
+      backgroundColor: chartTheme.value.tooltipBg,
+      titleColor: chartTheme.value.tooltipTitle,
+      bodyColor: chartTheme.value.tooltipBody,
+      borderColor: chartTheme.value.tooltipBorder,
+      borderWidth: 1,
       callbacks: {
         title: (context) => context[0]?.parsed?.x ? format(new Date(context[0].parsed.x), 'HH:mm:ss.SSS', { locale: es }) : '',
         label: (context) => `${props.yAxisLabel}: ${context.parsed.y.toFixed(3)}${props.yAxisUnit}`
@@ -247,13 +265,16 @@ const chartOptions = computed(() => ({
           }
         }
       },
-      title: { display: true, text: 'Tiempo' }
+      title: { display: true, text: 'Tiempo', color: chartTheme.value.title },
+      ticks: { color: chartTheme.value.tick },
+      grid: { color: chartTheme.value.grid }
     },
     y: {
       min: props.yAxisMin,
       max: props.yAxisMax,
-      title: { display: true, text: `${props.yAxisLabel}`},
-      grid: { color: 'rgba(0, 0, 0, 0.1)' }
+      title: { display: true, text: `${props.yAxisLabel}`, color: chartTheme.value.title },
+      ticks: { color: chartTheme.value.tick },
+      grid: { color: chartTheme.value.grid }
     }
   }
 }))
