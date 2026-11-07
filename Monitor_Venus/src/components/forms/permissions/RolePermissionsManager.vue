@@ -458,7 +458,7 @@ onMounted(async () => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 3px solid var(--ion-color-light);
+  border: 3px solid var(--app-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
 }
@@ -467,7 +467,7 @@ onMounted(async () => {
   margin: 0 0 0.25rem 0;
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
 }
 
 .role-details p {
@@ -490,7 +490,7 @@ onMounted(async () => {
   padding: 3rem 1rem;
   text-align: center;
   gap: 1rem;
-  background: var(--ion-color-light-tint);
+  background: var(--app-surface-2);
   border-radius: 12px;
 }
 
@@ -519,7 +519,7 @@ onMounted(async () => {
 }
 
 .permission-category-section {
-  background: white;
+  background: var(--app-surface);
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--ion-color-light-shade);
@@ -530,7 +530,7 @@ onMounted(async () => {
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   border-bottom: 1px solid var(--ion-color-light-shade);
 }
 
@@ -543,14 +543,14 @@ onMounted(async () => {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   flex: 1;
 }
 
 .item-count {
   font-size: 0.85rem;
   color: var(--ion-color-medium);
-  background: white;
+  background: var(--app-surface-2);
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-weight: 600;
@@ -563,7 +563,7 @@ onMounted(async () => {
 
 .permission-item-card {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--ion-color-light);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .permission-item-card:last-child {
@@ -576,7 +576,7 @@ onMounted(async () => {
 
 .item-name strong {
   font-size: 0.95rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   display: block;
 }
 
@@ -593,7 +593,7 @@ onMounted(async () => {
 
 .permission-checkbox span {
   font-size: 0.85rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
 }
 
 .permission-checkbox .disabled-label {

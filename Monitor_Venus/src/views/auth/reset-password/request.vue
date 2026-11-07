@@ -227,14 +227,14 @@ const goToLogin = () => {
 .reset-title {
   font-size: 1.875rem;
   font-weight: 700;
-  color: var(--color-zinc-900);
+  color: var(--app-text);
   margin: 0 0 0.5rem;
   text-align: center;
 }
 
 .reset-subtitle {
   font-size: 0.95rem;
-  color: var(--color-zinc-600);
+  color: var(--app-text-muted);
   text-align: center;
   margin: 0 0 2rem;
   line-height: 1.5;
@@ -294,7 +294,7 @@ const goToLogin = () => {
   --padding-start: 12px;
   --padding-end: 12px;
   margin-bottom: 1rem;
-  border: 1px solid var(--color-zinc-200);
+  border: 1px solid var(--app-border);
 }
 
 .input-icon {

@@ -34,6 +34,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonButton, IonIcon } from '@ionic/vue'
 import { refreshOutline } from 'ionicons/icons'
+import { useChartTheme } from '@/composables/useChartTheme.js'
 
 /**
  * DualAxisBatteryChart Component
@@ -55,6 +56,7 @@ const BATTERY_MAX_V = 13.2
 
 const canvasRef = ref(null)
 const chartInstance = ref(null)
+const { colors: chartTheme } = useChartTheme()
 const isZoomed = ref(false)
 const sampleCount = ref(0)
 const streamingBuffer = []
@@ -228,7 +230,7 @@ const chartOptions = computed(() => ({
       min: props.yAxisMin,
       max: props.yAxisMax,
       title: { display: true, text: 'Voltaje (V)' },
-      grid: { color: 'rgba(0, 0, 0, 0.1)' }
+      grid: { color: chartTheme.value.grid }
     },
     'y-right': {
       position: 'right',

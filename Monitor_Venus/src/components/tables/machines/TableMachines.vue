@@ -545,7 +545,7 @@ onMounted(() => {
 
 .table-wrapper {
   overflow-x: auto;
-  border: 1px solid var(--ion-color-light);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
 }
 
@@ -568,11 +568,11 @@ onMounted(() => {
 }
 
 .sortable:hover {
-  background-color: var(--ion-color-light-tint);
+  background-color: var(--app-surface-2);
 }
 
 .table-row-stylized {
-  border-bottom: 1px solid var(--ion-color-light);
+  border-bottom: 1px solid var(--app-border);
   transition: background-color 0.2s ease;
   cursor: pointer;
 }
@@ -594,11 +594,11 @@ onMounted(() => {
 }
 .clickable-card:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow);
 }
 
 .table-row-stylized:hover {
-  background-color: var(--ion-color-light-tint);
+  background-color: var(--app-surface-2);
 }
 
 .row-selected {
@@ -680,7 +680,7 @@ onMounted(() => {
 
 .machine-card {
   margin: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow);
 }
 
 .machine-card ion-card-content {
@@ -693,7 +693,7 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--ion-color-light);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .card-icon-title {
@@ -718,7 +718,7 @@ onMounted(() => {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -753,7 +753,7 @@ onMounted(() => {
 }
 
 .detail-value {
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -769,7 +769,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   padding-top: 12px;
-  border-top: 1px solid var(--ion-color-light);
+  border-top: 1px solid var(--app-border);
 }
 
 /* Modal Styles */
@@ -854,7 +854,7 @@ onMounted(() => {
   height: 120px;
   border-radius: 12px;
   overflow: hidden;
-  background: white;
+  background: var(--app-surface-2);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
@@ -868,7 +868,7 @@ onMounted(() => {
 /* Info Cards */
 .info-card {
   margin: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow);
   border-radius: 12px;
 }
 
@@ -913,7 +913,7 @@ onMounted(() => {
 
 .info-value {
   font-size: 1rem;
-  color: var(--ion-color-dark);
+  color: var(--app-text);
   margin: 0;
   line-height: 1.5;
   word-break: break-word;
@@ -922,7 +922,7 @@ onMounted(() => {
 .info-mono {
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
-  background: var(--ion-color-light);
+  background: var(--app-surface-2);
   padding: 8px 12px;
   border-radius: 6px;
   border: 1px solid var(--ion-color-light-shade);

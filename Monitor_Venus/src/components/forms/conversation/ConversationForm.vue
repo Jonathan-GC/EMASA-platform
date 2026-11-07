@@ -156,8 +156,8 @@
                 @click="sendComment" 
                 :disabled="!newComment.trim() || sendingComment"
               >
-                <ion-spinner v-if="sendingComment" name="dots" color="light" />
-                <ion-icon v-else :icon="sendOutline" slot="icon-only" color="light" />
+                <ion-spinner v-if="sendingComment" name="dots" class="text-white" />
+                <ion-icon v-else :icon="sendOutline" slot="icon-only" class="text-white" />
               </ion-button>
             </div>
           </div>
@@ -925,8 +925,8 @@ function scrollToBottom() {
 
 .ticket-header-compact {
   width: 100%;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--app-surface-2);
+  border-bottom: 1px solid var(--app-border);
   padding: 24px 0;
   margin: 0;
 }
@@ -963,7 +963,7 @@ function scrollToBottom() {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--app-text);
   line-height: 1.2;
 }
 
@@ -972,7 +972,7 @@ function scrollToBottom() {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--app-border);
 }
 
 .detail-item {
@@ -980,7 +980,7 @@ function scrollToBottom() {
   align-items: center;
   gap: 8px;
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .detail-item ion-icon {
@@ -997,10 +997,10 @@ function scrollToBottom() {
 .chat-container {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--app-surface);
   border: none;
-  border-top: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
+  border-top: 1px solid var(--app-border);
+  border-bottom: 1px solid var(--app-border);
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
@@ -1011,9 +1011,9 @@ function scrollToBottom() {
 
 .chat-internal-header {
   padding: 16px 20px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  color: #334155;
+  background: var(--app-surface-2);
+  border-bottom: 1px solid var(--app-border);
+  color: var(--app-text-secondary);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1041,19 +1041,19 @@ function scrollToBottom() {
 .header-name {
   font-weight: 600;
   font-size: 0.95rem;
-  color: #1e293b;
+  color: var(--app-text);
 }
 
 .header-status {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .chat-window {
   flex: 1;
   overflow-y: auto;
   padding: 32px 0;
-  background-color: #f3f4f6;
+  background-color: var(--app-surface-2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1076,8 +1076,8 @@ function scrollToBottom() {
 }
 
 .date-separator span {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--app-surface-3);
+  color: var(--app-text-secondary);
   padding: 4px 14px;
   border-radius: 20px;
   font-size: 0.7rem;
@@ -1141,9 +1141,9 @@ function scrollToBottom() {
 }
 
 .message-theirs .message-bubble {
-  background: white;
-  color: #1e293b;
-  border: 1px solid #e2e8f0;
+  background: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
   border-bottom-left-radius: 4px;
 }
 
@@ -1173,7 +1173,7 @@ function scrollToBottom() {
 
 .message-time {
   font-size: 0.65rem;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .message-mine .message-time {
@@ -1219,21 +1219,21 @@ function scrollToBottom() {
 
 .message-textarea {
   flex: 1;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
   border-radius: 12px;
   padding: 12px 16px;
   font-size: 0.95rem;
   max-height: 120px;
   resize: none;
-  color: #1e293b;
+  color: var(--app-text);
   outline: none;
   transition: all 0.2s;
 }
 
 .message-textarea:focus {
   border-color: var(--ion-color-primary);
-  background: white;
+  background: var(--app-surface);
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
 }
 
@@ -1255,8 +1255,8 @@ function scrollToBottom() {
   transform: translateX(-50%);
   width: calc(100% - 48px);
   max-width: 1400px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   z-index: 1000;
@@ -1277,12 +1277,12 @@ function scrollToBottom() {
 .error-icon,
 .empty-icon {
   font-size: 3rem;
-  color: #cbd5e1;
+  color: var(--app-text-subtle);
   margin-bottom: 12px;
 }
 
 .error-text {
-  color: #ef4444;
+  color: var(--app-danger-text);
 }
 
 .support-actions {
@@ -1297,8 +1297,8 @@ function scrollToBottom() {
 }
 
 .original-ticket {
-  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-  border: 2px solid #fdba74;
+  background: var(--app-warning-bg);
+  border: 2px solid var(--app-warning-border);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 32px;
@@ -1324,11 +1324,16 @@ function scrollToBottom() {
   gap: 8px;
   text-decoration: none;
   font-size: 0.8rem;
-  color: #0284c7;
+  color: var(--app-text);
   padding: 6px;
   background: rgba(0, 0, 0, 0.03);
   border-radius: 6px;
   transition: background 0.2s;
+}
+
+/* Dark mode keeps the blue attachment chips. */
+html.dark .attachment-link {
+  color: var(--app-info-text);
 }
 
 .attachment-link:hover {
@@ -1344,8 +1349,21 @@ function scrollToBottom() {
   --padding-start: 8px;
   --padding-end: 8px;
   margin: 0;
-  color: #64748b;
+  --color: var(--app-text);
   font-size: 1.4rem;
+}
+
+/* Paperclip is black in light mode and keeps its orange in dark mode. */
+.icon-btn ion-icon {
+  color: var(--app-text);
+}
+
+html.dark .icon-btn {
+  --color: var(--ion-color-primary);
+}
+
+html.dark .icon-btn ion-icon {
+  color: var(--ion-color-primary);
 }
 
 .file-preview-bar {
@@ -1354,8 +1372,8 @@ function scrollToBottom() {
   gap: 8px;
   margin: 8px 12px;
   padding: 6px 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
   border-radius: 10px;
   font-size: 0.8rem;
 }
@@ -1369,7 +1387,7 @@ function scrollToBottom() {
 }
 
 .remove-file-btn {
-  --color: #ef4444;
+  --color: var(--app-danger-text);
   margin: 0;
   height: 24px;
   font-size: 0.8rem;
@@ -1381,8 +1399,8 @@ function scrollToBottom() {
   justify-content: center;
   gap: 8px;
   padding: 10px;
-  background: #ecfdf5;
-  color: #065f46;
+  background: var(--app-success-bg);
+  color: var(--app-success-text);
   border-radius: 12px;
   font-weight: 600;
   font-size: 0.85rem;
@@ -1395,8 +1413,8 @@ function scrollToBottom() {
   text-align: center;
 }
 
-.error-line { color: #ef4444; }
-.success-line { color: #10b981; }
+.error-line { color: var(--app-danger-text); }
+.success-line { color: var(--app-success-text); }
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }

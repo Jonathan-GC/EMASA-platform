@@ -287,19 +287,19 @@ onIonViewWillEnter(() => {
 
 .empty-icon {
   font-size: 80px;
-  color: #d1d5db;
+  color: var(--app-text-subtle);
   margin-bottom: 20px;
 }
 
 .empty-content h2 {
   font-size: 1.5rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
   margin: 0 0 10px 0;
 }
 
 .empty-content p {
   font-size: 1rem;
-  color: #9ca3af;
+  color: var(--app-text-subtle);
   margin: 0;
 }
 
@@ -324,7 +324,7 @@ onIonViewWillEnter(() => {
 
 .loading-content p {
   font-size: 1rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
   margin: 0;
 }
 
@@ -339,35 +339,35 @@ onIonViewWillEnter(() => {
 .notification-card {
   margin: 0;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-sm);
   transition: all 0.3s ease;
   border-left: 3px solid transparent;
 }
 
 .notification-card:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--app-shadow);
   transform: translateY(-1px);
 }
 
 .notification-card.unread {
-  background: #f8fafc;
-  border-left-color: #3b82f6;
+  background: var(--app-surface-2);
+  border-left-color: var(--app-info-text);
 }
 
 .notification-card.success {
-  border-left-color: #10b981;
+  border-left-color: var(--app-success-text);
 }
 
 .notification-card.warning {
-  border-left-color: #f59e0b;
+  border-left-color: var(--app-warning-text);
 }
 
 .notification-card.error {
-  border-left-color: #ef4444;
+  border-left-color: var(--app-danger-text);
 }
 
 .notification-card.info {
-  border-left-color: #3b82f6;
+  border-left-color: var(--app-info-text);
 }
 
 /* Card Header */
@@ -393,19 +393,19 @@ onIonViewWillEnter(() => {
 }
 
 .type-icon.success {
-  color: #10b981;
+  color: var(--app-success-text);
 }
 
 .type-icon.warning {
-  color: #f59e0b;
+  color: var(--app-warning-text);
 }
 
 .type-icon.error {
-  color: #ef4444;
+  color: var(--app-danger-text);
 }
 
 .type-icon.info {
-  color: #3b82f6;
+  color: var(--app-info-text);
 }
 
 .header-text {
@@ -416,14 +416,14 @@ onIonViewWillEnter(() => {
 ion-card-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--app-text);
   margin-bottom: 2px;
   line-height: 1.3;
 }
 
 ion-card-subtitle {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
   font-weight: 400;
 }
 
@@ -448,7 +448,7 @@ ion-card-content {
 
 .notification-message {
   font-size: 0.9rem;
-  color: #4b5563;
+  color: var(--app-text-secondary);
   line-height: 1.5;
   margin: 0;
   white-space: pre-wrap;
@@ -512,9 +512,9 @@ ion-card-content {
   align-items: center;
   margin-top: 30px;
   padding: 20px;
-  background: white;
+  background: var(--app-surface);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-sm);
   gap: 16px;
 }
 
@@ -528,12 +528,12 @@ ion-card-content {
 .page-indicator {
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--app-text);
 }
 
 .items-info {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
 }
 
 @media (max-width: 768px) {

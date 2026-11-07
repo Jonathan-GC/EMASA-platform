@@ -14,7 +14,7 @@
             <!-- Filter and sort controls on the right -->
             <div class="actions-right">
                 <ion-button fill="clear" shape="round" @click="$emit('toggle-unread')"
-                    :color="showUnreadOnly ? 'primary' : 'medium'" size="small"
+                    :class="['mail-buttons', { 'is-active': showUnreadOnly }]" size="small"
                     :title="showUnreadOnly ? 'Mostrar todos' : 'Mostrar no leídos'">
                     <ion-icon :icon="showUnreadOnly ? icons.eye : icons.eyeOff" slot="icon-only" />
                 </ion-button>
@@ -165,8 +165,8 @@ function handleSortSelection(field) {
     justify-content: space-between;
     gap: 8px;
     padding: 8px 12px;
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
     border-bottom: none;
     border-radius: 14px 14px 0 0;
 }
@@ -187,8 +187,8 @@ function handleSortSelection(field) {
 }
 
 .message-list {
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
     border-radius: 0 0 14px 14px;
     padding: 8px 0;
     display: flex;
@@ -198,15 +198,50 @@ function handleSortSelection(field) {
     text-align: left;
 }
 
+/* Dark icons in light mode, light icons in dark mode. */
 ion-button.mail-buttons {
-    --color: black !important;
-    --ripple-color: orange !important;
+    --color: var(--app-text) !important;
+    --ripple-color: var(--ion-color-primary) !important;
+}
+
+ion-button.mail-buttons.is-active {
+    --color: var(--ion-color-primary) !important;
+}
+
+/* Keep the whole action row on the same muted tone in dark mode. The bright
+   text token made the sort/clear icons stand out against the muted unread
+   toggle (#989aa2). */
+html.dark ion-button.mail-buttons {
+    --color: var(--app-text-muted) !important;
+}
+
+html.dark ion-button.mail-buttons.is-active {
+    --color: var(--ion-color-primary) !important;
+}
+
+/* Glyph-level fallback: Ionic's shadow `::slotted` rules read its own
+   `--color`, which can leave the icons grey in light mode. Pin the glyph
+   itself so light is always black and dark keeps the muted tone. */
+ion-button.mail-buttons ion-icon {
+    color: var(--app-text) !important;
+}
+
+html.dark ion-button.mail-buttons ion-icon {
+    color: var(--app-text-muted) !important;
+}
+
+ion-button.mail-buttons.is-active ion-icon {
+    color: var(--ion-color-primary) !important;
+}
+
+html.dark ion-button.mail-buttons.is-active ion-icon {
+    color: var(--ion-color-primary) !important;
 }
 
 .message-item {
     padding: 10px 14px 8px;
     cursor: pointer;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--app-border);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -220,11 +255,11 @@ ion-button.mail-buttons {
 }
 
 .message-item:hover {
-    background: #f8fafc;
+    background: var(--app-surface-2);
 }
 
 .message-item.selected {
-    background: #eef6ff;
+    background: var(--app-info-bg);
 }
 
 .message-item.unread .subject {
@@ -250,7 +285,7 @@ ion-button.mail-buttons {
 
 .from {
     font-size: 0.75rem;
-    color: #555;
+    color: var(--app-text-secondary);
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -258,7 +293,7 @@ ion-button.mail-buttons {
 
 .subject {
     font-size: 0.95rem;
-    color: #111;
+    color: var(--app-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -284,7 +319,7 @@ ion-button.mail-buttons {
 
 .date {
     font-size: 0.7rem;
-    color: #888;
+    color: var(--app-text-muted);
 }
 
 .dot {
@@ -296,7 +331,7 @@ ion-button.mail-buttons {
 
 .snippet {
     font-size: 0.85rem;
-    color: #555;
+    color: var(--app-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -348,12 +383,12 @@ ion-badge.pass-indicator ion-icon {
 .empty-state {
     text-align: center;
     padding: 40px 20px;
-    color: #6b7280;
+    color: var(--app-text-muted);
 }
 
 .empty-icon {
     font-size: 64px;
-    color: #d1d5db;
+    color: var(--app-text-subtle);
     margin-bottom: 10px;
 }
 

@@ -249,7 +249,7 @@ defineExpose({
   position: relative;
   width: 200px;
   height: 200px;
-  border: 3px dashed #cbd5e1;
+  border: 3px dashed var(--app-border-strong);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -257,12 +257,12 @@ defineExpose({
   overflow: visible;
   cursor: pointer;
   transition: all 0.3s ease;
-  background-color: #f8fafc;
+  background-color: var(--app-surface-2);
 }
 
 .image-preview:hover {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
+  border-color: var(--app-link);
+  background-color: var(--app-hover);
 }
 
 .uploaded-image {
@@ -279,13 +279,13 @@ defineExpose({
   justify-content: center;
   text-align: center;
   padding: 20px;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .image-placeholder ion-icon {
   font-size: 48px;
   margin-bottom: 12px;
-  color: #94a3b8;
+  color: var(--app-text-subtle);
 }
 
 .image-placeholder p {
@@ -317,10 +317,10 @@ defineExpose({
   gap: 8px;
   margin-top: 12px;
   padding: 12px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
+  background-color: var(--app-danger-bg);
+  border: 1px solid var(--app-danger-border);
   border-radius: 8px;
-  color: #dc2626;
+  color: var(--app-danger-text);
   font-size: 0.9rem;
 }
 

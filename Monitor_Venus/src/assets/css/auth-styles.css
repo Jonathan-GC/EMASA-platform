@@ -17,7 +17,7 @@
   max-width: 500px;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-lg);
 }
 
 .step-content .form-card{
@@ -25,7 +25,7 @@
   max-width: 800px;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-lg);
   margin-inline: 0;
 }
 /*.login-container {
@@ -55,7 +55,7 @@
 {
   max-width: 500px;
   width: 100%;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-lg);
   border-radius: 16px;
   z-index: 999999!important;
 }
@@ -70,7 +70,7 @@
 
 .csrf-status, .token-status {
   margin: 10px 0;
-  background-color: var(--ion-color-light-tint);
+  background-color: var(--app-surface-2);
   border-radius: 8px;
 }
 
@@ -105,7 +105,7 @@
 .cookie-info {
   margin-top: 20px;
   padding: 16px;
-  background-color: var(--ion-color-light);
+  background-color: var(--app-surface-2);
   border-radius: 8px;
   border: 1px solid var(--ion-color-medium);
 }
@@ -175,8 +175,8 @@ ion-input {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background-color: var(--ion-color-light);
-  color: var(--ion-color-medium);
+  background-color: var(--app-surface-2);
+  color: var(--app-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -197,7 +197,7 @@ ion-input {
 
 .step-label {
   font-size: 12px;
-  color: var(--ion-color-light);
+  color: var(--app-text-muted);
   text-align: center;
 }
 
@@ -208,7 +208,7 @@ ion-input {
 
 .progress-bar {
   height: 4px;
-  background-color: var(--ion-color-light);
+  background-color: var(--app-surface-3);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -244,7 +244,7 @@ ion-input {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 2px dashed var(--color-zinc-300);
+  border: 2px dashed var(--app-border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,19 +298,25 @@ ion-input {
 }
 
 .error-message ion-icon, .success-message ion-icon {
-  --color:white;
-  /* 28px: tamaño estándar de icono de aviso (ver common.css .notice) */
   font-size: 28px;
   flex-shrink: 0;
 }
 .error-message {
-  background-color: var(--ion-color-danger-tint);
-  color: var(--color-zinc-100);
+  background-color: var(--app-danger-bg);
+  color: var(--app-danger-text);
+}
+
+.error-message ion-icon {
+  --color: var(--app-danger-text);
 }
 
 .success-message {
-  background-color: var(--ion-color-success-tint);
-  color: var(--ion-color-success);
+  background-color: var(--app-success-bg);
+  color: var(--app-success-text);
+}
+
+.success-message ion-icon {
+  --color: var(--app-success-text);
 }
 
 ion-button.custom {

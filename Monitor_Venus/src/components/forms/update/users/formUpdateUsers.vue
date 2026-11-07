@@ -508,6 +508,6 @@ onMounted(async () => {
 
 .divider {
   margin: 1rem 0;
-  border-top: 1px solid var(--ion-color-light);
+  border-top: 1px solid var(--app-border);
 }
 </style>
